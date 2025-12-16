@@ -1,0 +1,125 @@
+{
+  "common": {
+    "appName": "TradeHub Formações",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Criar",
+    "logout": "Sair",
+    "welcome": "Bem-vindo"
+  },
+  "auth": {
+    "login": "Iniciar Sessão",
+    "register": "Registar",
+    "email": "Email",
+    "password": "Palavra-passe",
+    "rememberMe": "Lembrar-me",
+    "forgotPassword": "Esqueceu a palavra-passe?",
+    "enterEmail": "Introduza o seu email",
+    "enterPassword": "Introduza a sua palavra-passe",
+    "loginError": "Email ou palavra-passe inválidos",
+    "logging": "A entrar...",
+    "invalidEmail": "Email já registado"
+  },
+  "navigation": {
+    "dashboard": "Painel",
+    "myCourses": "Os Meus Cursos",
+    "certificates": "Certificados",
+    "courses": "Cursos",
+    "students": "Formandos",
+    "challenges": "Desafios",
+    "users": "Utilizadores",
+    "settings": "Definições"
+  },
+  "roles": {
+    "admin": "Administrador",
+    "formador": "Formador",
+    "formando": "Formando"
+  },
+  "dashboard": {
+    "activeCourses": "Cursos Ativos",
+    "studyHours": "Horas de Estudo",
+    "certificates": "Certificados",
+    "createdCourses": "Cursos Criados",
+    "activeStudents": "Formandos Ativos",
+    "totalUsers": "Total de Utilizadores",
+    "totalCourses": "Total de Cursos",
+    "trainers": "Formadores",
+    "students": "Formandos"
+  },
+  "courses": {
+    "title": "Título",
+    "description": "Descrição",
+    "bank": "Banco",
+    "product": "Produto",
+    "lessons": "Lições",
+    "enroll": "Inscrever-se",
+    "enrolled": "Inscrito",
+    "progress": "Progresso",
+    "startCourse": "Iniciar Curso",
+    "continueCourse": "Continuar Curso",
+    "completeCourse": "Terminar Curso"
+  },
+  "lessons": {
+    "lesson": "Lição",
+    "content": "Conteúdo",
+    "duration": "Duração",
+    "minutes": "minutos",
+    "startLesson": "Iniciar Lição",
+    "completeLesson": "Terminar Lição",
+    "nextLesson": "Próxima Lição",
+    "previousLesson": "Lição Anterior"
+  },
+  "challenges": {
+    "challenge": "Desafio",
+    "submit": "Submeter",
+    "submitted": "Submetido",
+    "approved": "Aprovado",
+    "rejected": "Rejeitado",
+    "mpu": "MPU (Min/Unidade)",
+    "operations": "Operações"
+  },
+  "certificates": {
+    "certificate": "Certificado",
+    "issued": "Emitido",
+    "totalHours": "Total de Horas",
+    "averageScore": "Média",
+    "download": "Descarregar",
+    "valid": "Válido"
+  },
+  "admin": {
+    "manageUsers": "Gerir Utilizadores",
+    "manageBanks": "Gerir Bancos",
+    "manageProducts": "Gerir Produtos",
+    "createUser": "Criar Utilizador",
+    "editUser": "Editar Utilizador",
+    "deleteUser": "Eliminar Utilizador",
+    "userEmail": "Email do Utilizador",
+    "userName": "Nome do Utilizador",
+    "userRole": "Função do Utilizador",
+    "active": "Ativo",
+    "inactive": "Inativo"
+  },
+  "messages": {
+    "welcomeAdmin": "Bem-vindo, Administrador",
+    "welcomeFormador": "Bem-vindo, Formador",
+    "welcomeFormando": "Bem-vindo, Formando",
+    "noData": "Sem dados disponíveis",
+    "loadingData": "A carregar dados...",
+    "errorLoading": "Erro ao carregar dados",
+    "savingData": "A guardar dados...",
+    "dataSaved": "Dados guardados com sucesso",
+    "deletingData": "A eliminar dados...",
+    "dataDeleted": "Dados eliminados com sucesso"
+  },
+  "formValidator": {
+    "required": "Este campo é obrigatório",
+    "invalidEmail": "Email inválido",
+    "passwordMinLength": "A palavra-passe deve ter pelo menos 8 caracteres",
+    "passwordMatch": "As palavras-passe não correspondem"
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "common": {
+    "appName": "TradeHub Learning",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "logout": "Logout",
+    "welcome": "Welcome"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "email": "Email",
+    "password": "Password",
+    "rememberMe": "Remember me",
+    "forgotPassword": "Forgot password?",
+    "enterEmail": "Enter your email",
+    "enterPassword": "Enter your password",
+    "loginError": "Invalid email or password",
+    "logging": "Logging in...",
+    "invalidEmail": "Email already registered"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "myCourses": "My Courses",
+    "certificates": "Certificates",
+    "courses": "Courses",
+    "students": "Students",
+    "challenges": "Challenges",
+    "users": "Users",
+    "settings": "Settings"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "formador": "Trainer",
+    "formando": "Student"
+  },
+  "dashboard": {
+    "activeCourses": "Active Courses",
+    "studyHours": "Study Hours",
+    "certificates": "Certificates",
+    "createdCourses": "Courses Created",
+    "activeStudents": "Active Students",
+    "totalUsers": "Total Users",
+    "totalCourses": "Total Courses",
+    "trainers": "Trainers",
+    "students": "Students"
+  },
+  "courses": {
+    "title": "Title",
+    "description": "Description",
+    "bank": "Bank",
+    "product": "Product",
+    "lessons": "Lessons",
+    "enroll": "Enroll",
+    "enrolled": "Enrolled",
+    "progress": "Progress",
+    "startCourse": "Start Course",
+    "continueCourse": "Continue Course",
+    "completeCourse": "Complete Course"
+  },
+  "lessons": {
+    "lesson": "Lesson",
+    "content": "Content",
+    "duration": "Duration",
+    "minutes": "minutes",
+    "startLesson": "Start Lesson",
+    "completeLesson": "Complete Lesson",
+    "nextLesson": "Next Lesson",
+    "previousLesson": "Previous Lesson"
+  },
+  "challenges": {
+    "challenge": "Challenge",
+    "submit": "Submit",
+    "submitted": "Submitted",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "mpu": "MPU (Min/Unit)",
+    "operations": "Operations"
+  },
+  "certificates": {
+    "certificate": "Certificate",
+    "issued": "Issued",
+    "totalHours": "Total Hours",
+    "averageScore": "Average Score",
+    "download": "Download",
+    "valid": "Valid"
+  },
+  "admin": {
+    "manageUsers": "Manage Users",
+    "manageBanks": "Manage Banks",
+    "manageProducts": "Manage Products",
+    "createUser": "Create User",
+    "editUser": "Edit User",
+    "deleteUser": "Delete User",
+    "userEmail": "User Email",
+    "userName": "User Name",
+    "userRole": "User Role",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "messages": {
+    "welcomeAdmin": "Welcome, Administrator",
+    "welcomeFormador": "Welcome, Trainer",
+    "welcomeFormando": "Welcome, Student",
+    "noData": "No data available",
+    "loadingData": "Loading data...",
+    "errorLoading": "Error loading data",
+    "savingData": "Saving data...",
+    "dataSaved": "Data saved successfully",
+    "deletingData": "Deleting data...",
+    "dataDeleted": "Data deleted successfully"
+  },
+  "formValidator": {
+    "required": "This field is required",
+    "invalidEmail": "Invalid email",
+    "passwordMinLength": "Password must be at least 8 characters",
+    "passwordMatch": "Passwords do not match"
+  }
+}

@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  # Backend - FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tradehub-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=mssql+pyodbc://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:1433/${DB_NAME}?driver=ODBC+Driver+17+for+SQL+Server
+      - SECRET_KEY=${SECRET_KEY:-CHANGE_THIS_IN_PRODUCTION}
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=60
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - sqlserver
+    networks:
+      - tradehub-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Frontend - React
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tradehub-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_BASE_URL=http://backend:8000
+      - VITE_APP_NAME=TradeHub Formações
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - tradehub-network
+
+  # SQL Server Database
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: tradehub-sqlserver
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=${DB_PASSWORD:-Tradehub@2024}
+      - MSSQL_PID=Express
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+      - ./database/init_data.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - tradehub-network
+    healthcheck:
+      test: ["/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${DB_PASSWORD:-Tradehub@2024}", "-Q", "select 1"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+
+networks:
+  tradehub-network:
+    driver: bridge
+
+volumes:
+  sqlserver-data:
+    driver: local
