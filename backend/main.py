@@ -7,7 +7,15 @@ app = FastAPI(title="Trade Data Hub API", version="1.0.0")
 # CORS middleware
 from app.config import settings
 
-origins = [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()]
+def get_allowed_origins():
+    origins = [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()]
+    if settings.DEBUG:
+        # In debug mode, allow any origin ending with :5173
+        return ["*"]  # For simplicity, allow all in debug
+    return origins
+
+origins = get_allowed_origins()
+
 if "*" in origins:
     # If wildcard is present, do not allow credentials
     allow_credentials = False

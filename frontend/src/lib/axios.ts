@@ -1,12 +1,22 @@
 import axios from 'axios';
 import { useAuthStore } from '../stores/authStore';
 
+const getBaseURL = () => {
+  const envBase = import.meta.env.VITE_API_BASE_URL;
+  if (envBase) return envBase;
+  
+  // Use the same host as the frontend, but port 8000
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  return `${protocol}//${hostname}:8000`;
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true,
+  withCredentials: false,  // Disabled for CORS with wildcard
 });
 
 // Request interceptor to add token
