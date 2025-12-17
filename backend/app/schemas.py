@@ -128,8 +128,8 @@ class TrainingPlanBase(BaseModel):
     trainer_id: int
     bank_id: Optional[int] = None
     product_id: Optional[int] = None
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
 
 class TrainingPlanCreate(TrainingPlanBase):
     course_ids: Optional[list[int]] = []

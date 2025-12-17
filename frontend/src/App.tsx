@@ -24,6 +24,7 @@ import AdminBanksPage from './pages/admin/Banks';
 import AdminProductsPage from './pages/admin/Products';
 import StudentReportsPage from './pages/student/Reports';
 import ChallengeForm from './pages/admin/ChallengeForm';
+import LessonForm from './pages/admin/LessonForm';
 import ChallengeExecutionComplete from './pages/trainer/ChallengeExecutionComplete';
 import ChallengeExecutionSummary from './pages/trainer/ChallengeExecutionSummary';
 import ChallengeResult from './pages/ChallengeResult';
@@ -66,6 +67,7 @@ function App() {
             <Route path="reports" element={<TrainerReportsPage />} />
             <Route path="challenges/:challengeId/execute/complete" element={<ChallengeExecutionComplete />} />
             <Route path="challenges/:challengeId/execute/summary" element={<ChallengeExecutionSummary />} />
+            <Route path="courses/:courseId/lessons/new" element={<LessonForm />} />
           </>
         )}
         {user?.role === 'ADMIN' && (
@@ -75,6 +77,7 @@ function App() {
             <Route path="courses" element={<AdminCoursesPage />} />
             <Route path="course/new" element={<AdminCourseForm />} />
             <Route path="courses/:courseId/challenges/new" element={<ChallengeForm />} />
+            <Route path="courses/:courseId/lessons/new" element={<LessonForm />} />
             <Route path="training-plans" element={<AdminTrainingPlans />} />
             <Route path="training-plan/new" element={<AdminTrainingPlanForm />} />
             <Route path="challenges/:challengeId/execute/complete" element={<ChallengeExecutionComplete />} />

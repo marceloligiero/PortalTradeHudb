@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import auth, admin, student, trainer, training_plans
+from app.routers import challenges
 
 app = FastAPI(title="Trade Data Hub API", version="1.0.0")
 
@@ -47,15 +48,26 @@ async def log_requests(request: Request, call_next):
         return response
     except Exception as e:
         logger.error(f"Unhandled exception during request: {e}")
-        logger.error(traceback.format_exc())
-        return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+        tb = traceback.format_exc()
+        logger.error(tb)
+        # Persist traceback to file for local debugging
+        try:
+            with open("backend/exception_trace.txt", "w", encoding="utf-8") as f:
+                f.write(tb)
+        except Exception:
+            pass
+        # RETURN TRACEBACK FOR DEBUGGING (temporary)
+        return JSONResponse(status_code=500, content={"detail": str(e), "trace": tb})
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(student.router, prefix="/api/student", tags=["student"])
 app.include_router(trainer.router, prefix="/api/trainer", tags=["trainer"])
-app.include_router(training_plans.router, prefix="/api", tags=["training-plans"])
+# Mount training_plans at /api/training-plans to match frontend expectations
+app.include_router(training_plans.router, prefix="/api/training-plans", tags=["training-plans"])
+# Mount challenges router (frontend uses /api/challenges)
+app.include_router(challenges.router)
 
 @app.get("/")
 async def root():

@@ -10,24 +10,55 @@ from app.pagination import paginate, PaginatedResponse
 router = APIRouter()
 
 # Users Management
-@router.get("/users", response_model=PaginatedResponse[schemas.User])
+@router.get("/users")
 async def list_users(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
     current_user: models.User = Depends(auth.require_role(["ADMIN"])),
     db: Session = Depends(get_db)
 ):
-    query = db.query(models.User)
-    items, total = paginate(query, page, page_size)
-    total_pages = (total + page_size - 1) // page_size
-    
-    return PaginatedResponse(
-        items=items,
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages
-    )
+    """List users with simple dict response to avoid pydantic ORM serialization issues.
+    This endpoint wraps processing in a try/except and returns traceback in the
+    response for easier debugging while developing. Remove detailed trace before
+    production use.
+    """
+    import traceback
+    from fastapi.responses import JSONResponse
+    try:
+        query = db.query(models.User)
+        items, total = paginate(query, page, page_size)
+        total_pages = (total + page_size - 1) // page_size
+
+        users_list = []
+        for u in items:
+            users_list.append({
+                "id": u.id,
+                "email": u.email,
+                "full_name": u.full_name,
+                "role": u.role,
+                "is_active": u.is_active,
+                "is_pending": u.is_pending,
+                "created_at": u.created_at.isoformat() if u.created_at else None,
+            })
+
+        return {
+            "items": users_list,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
+        }
+    except Exception as e:
+        tb = traceback.format_exc()
+        logger = __import__('logging').getLogger('admin.routes')
+        logger.error(f"Error in list_users: {e}\n{tb}")
+        try:
+            with open("backend/error_trace.txt", "w", encoding="utf-8") as _f:
+                _f.write(tb)
+        except Exception:
+            # best-effort file logging for local debugging
+            pass
+        return JSONResponse(status_code=500, content={"detail": str(e), "trace": tb})
 
 @router.post("/users", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
 async def create_user(
@@ -433,7 +464,7 @@ async def get_admin_trainers_report(
     
     return trainers_report
 
-@router.post("/reports/training-plans")
+@router.get("/reports/training-plans")
 async def get_admin_training_plans_report(
     current_user: models.User = Depends(auth.require_role(["ADMIN"])),
     db: Session = Depends(get_db)
@@ -455,7 +486,7 @@ async def get_admin_training_plans_report(
             "id": plan.id,
             "title": plan.title,
             "description": plan.description,
-            "bank_code": plan.bank_code,
+            "bank_code": (plan.bank.code if getattr(plan, 'bank', None) else (getattr(plan, 'bank_code', None) or getattr(plan, 'bank_id', None))),
             "trainer_name": trainer.full_name if trainer else "Unknown",
             "students_assigned": assignments,
             "start_date": plan.start_date.isoformat() if plan.start_date else None,

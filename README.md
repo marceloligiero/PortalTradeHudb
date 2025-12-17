@@ -78,6 +78,19 @@ cp .env.example .env
 npm run dev
 ```
 
+> Alternativa: usar o script único de inicialização em desenvolvimento
+
+PowerShell (Windows):
+```powershell
+.\start-all.ps1
+```
+
+Linux / macOS:
+```bash
+./start-all.sh
+```
+
+
 ---
 
 ## 📚 Documentação Completa

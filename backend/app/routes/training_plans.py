@@ -34,17 +34,12 @@ async def list_training_plans(
     logger = logging.getLogger(__name__)
     
     try:
+        # Load plans according to role
         if current_user.role == "ADMIN":
-            training_plans = db.query(models.TrainingPlan).options(
-                joinedload(models.TrainingPlan.trainer),
-                joinedload(models.TrainingPlan.courses)
-            ).all()
+            plans = db.query(models.TrainingPlan).all()
         elif current_user.role == "TRAINER":
-            training_plans = db.query(models.TrainingPlan).filter(
+            plans = db.query(models.TrainingPlan).filter(
                 models.TrainingPlan.trainer_id == current_user.id
-            ).options(
-                joinedload(models.TrainingPlan.trainer),
-                joinedload(models.TrainingPlan.courses)
             ).all()
         else:  # STUDENT
             # Buscar planos atribuídos ao formando
@@ -53,17 +48,52 @@ async def list_training_plans(
             ).all()
             plan_ids = [a.training_plan_id for a in assignments]
             if plan_ids:
-                training_plans = db.query(models.TrainingPlan).filter(
+                plans = db.query(models.TrainingPlan).filter(
                     models.TrainingPlan.id.in_(plan_ids)
-                ).options(
-                    joinedload(models.TrainingPlan.trainer),
-                    joinedload(models.TrainingPlan.courses)
                 ).all()
             else:
-                training_plans = []
-        
-        logger.info(f"User {current_user.email} fetched {len(training_plans)} training plans")
-        return training_plans
+                plans = []
+
+        result = []
+        for plan in plans:
+            # count courses in plan
+            plan_courses = db.query(models.TrainingPlanCourse).filter(
+                models.TrainingPlanCourse.training_plan_id == plan.id
+            ).all()
+            total_courses = len(plan_courses)
+
+            # count students assigned
+            total_students = db.query(models.TrainingPlanAssignment).filter(
+                models.TrainingPlanAssignment.training_plan_id == plan.id
+            ).count()
+
+            # calculate total duration in minutes from lessons
+            total_minutes = 0
+            for pc in plan_courses:
+                lessons = db.query(models.Lesson).filter(models.Lesson.course_id == pc.course_id).all()
+                total_minutes += sum((l.estimated_minutes or 0) for l in lessons)
+
+            total_hours = round(total_minutes / 60)
+
+            result.append({
+                "id": plan.id,
+                "title": plan.title,
+                "description": plan.description,
+                "trainer_id": plan.trainer_id,
+                "trainer": {
+                    "id": plan.trainer.id if plan.trainer else None,
+                    "full_name": plan.trainer.full_name if plan.trainer else None
+                } if hasattr(plan, 'trainer') else None,
+                "total_courses": total_courses,
+                "total_students": total_students,
+                "total_duration_hours": total_hours,
+                "start_date": plan.start_date.isoformat() if plan.start_date else None,
+                "end_date": plan.end_date.isoformat() if plan.end_date else None,
+                "created_at": plan.created_at.isoformat() if plan.created_at else None
+            })
+
+        logger.info(f"User {current_user.email} fetched {len(result)} training plans")
+        return result
     
     except Exception as e:
         logger.error(f"Error listing training plans: {str(e)}")
@@ -73,7 +103,7 @@ async def list_training_plans(
         )
 
 # CREATE - POST /
-@router.post("/", response_model=schemas.TrainingPlan, status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_training_plan(
     plan: schemas.TrainingPlanCreate,
     current_user: models.User = Depends(auth.get_current_user),
@@ -118,22 +148,29 @@ async def create_training_plan(
         if not product:
             raise HTTPException(status_code=400, detail="Product not found")
     
-    # Converter datas string para datetime se fornecidas
+    # Converter datas para datetime se fornecidas. Accept both str and datetime inputs.
+    from datetime import datetime
     start_date_dt = None
     end_date_dt = None
+
     if plan.start_date:
-        from datetime import datetime
-        try:
-            start_date_dt = datetime.fromisoformat(plan.start_date.replace('Z', '+00:00'))
-        except:
-            start_date_dt = datetime.strptime(plan.start_date, '%Y-%m-%d')
-    
+        # If schema already provided a datetime, use it directly
+        if isinstance(plan.start_date, datetime):
+            start_date_dt = plan.start_date
+        else:
+            try:
+                start_date_dt = datetime.fromisoformat(plan.start_date.replace('Z', '+00:00'))
+            except Exception:
+                start_date_dt = datetime.strptime(plan.start_date, '%Y-%m-%d')
+
     if plan.end_date:
-        from datetime import datetime
-        try:
-            end_date_dt = datetime.fromisoformat(plan.end_date.replace('Z', '+00:00'))
-        except:
-            end_date_dt = datetime.strptime(plan.end_date, '%Y-%m-%d')
+        if isinstance(plan.end_date, datetime):
+            end_date_dt = plan.end_date
+        else:
+            try:
+                end_date_dt = datetime.fromisoformat(plan.end_date.replace('Z', '+00:00'))
+            except Exception:
+                end_date_dt = datetime.strptime(plan.end_date, '%Y-%m-%d')
     
     # Criar plano de formação
     try:
@@ -205,7 +242,26 @@ async def create_training_plan(
     try:
         db.refresh(db_plan)
         logger.info(f"Training plan created successfully: ID={db_plan.id}")
-        return db_plan
+        # Manually serialize into a JSON-friendly dict to avoid FastAPI
+        # response_model validation mismatches between pydantic versions.
+        resp = {
+            "id": db_plan.id,
+            "title": db_plan.title,
+            "description": db_plan.description,
+            "trainer_id": db_plan.trainer_id,
+            "bank_id": db_plan.bank_id,
+            "product_id": db_plan.product_id,
+            "start_date": db_plan.start_date.isoformat() if db_plan.start_date else None,
+            "end_date": db_plan.end_date.isoformat() if db_plan.end_date else None,
+            "created_by": db_plan.created_by,
+            "is_active": db_plan.is_active,
+            "created_at": db_plan.created_at.isoformat() if db_plan.created_at else None,
+            "total_duration_minutes": None,
+            "completed_minutes": None,
+            "remaining_minutes": None,
+            "progress_percentage": None,
+        }
+        return resp
     except Exception as e:
         logger.error(f"Error refreshing training plan: {str(e)}")
         raise HTTPException(
