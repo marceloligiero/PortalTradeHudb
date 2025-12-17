@@ -5,10 +5,10 @@ const getBaseURL = () => {
   const envBase = import.meta.env.VITE_API_BASE_URL;
   if (envBase) return envBase;
   
-  // Use the same host as the frontend, but port 8000
+  // Use the same host as the frontend, but port 8001
   const protocol = window.location.protocol;
   const hostname = window.location.hostname;
-  return `${protocol}//${hostname}:8000`;
+  return `${protocol}//${hostname}:8001`;
 };
 
 const api = axios.create({
