@@ -21,7 +21,7 @@ export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
     console.log('Sending login request:', { username: data.email, password: '***' });
     try {
-      const response = await api.post('/api/auth/login', {
+      const response = await api.post('/auth/login', {
         username: data.email,
         password: data.password,
       });
@@ -34,7 +34,7 @@ export const authApi = {
   },
 
   getCurrentUser: async () => {
-    const response = await api.get('/api/auth/me');
+    const response = await api.get('/auth/me');
     return response.data;
   },
 };
