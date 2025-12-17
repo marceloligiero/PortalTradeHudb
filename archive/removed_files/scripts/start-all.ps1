@@ -1,3 +1,4 @@
+```powershell
 <#
 Start both backend (uvicorn) and frontend (vite) in development mode.
 Usage: Run PowerShell with execution policy that allows script execution and run this file.
@@ -31,3 +32,4 @@ if (Get-Command npm -ErrorAction SilentlyContinue) {
 Pop-Location
 
 Write-Host "Start commands issued. Check terminals or process list for status." -ForegroundColor Cyan
+```

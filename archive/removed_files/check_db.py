@@ -1,3 +1,4 @@
+```python
 import pyodbc
 
 conn_str = "DRIVER={ODBC Driver 18 for SQL Server};SERVER=PT-L163820\\SQLEXPRESS;DATABASE=TradeDataHub;Trusted_Connection=yes;Encrypt=no;TrustServerCertificate=yes;"
@@ -40,3 +41,4 @@ try:
     
 except Exception as e:
     print(f"\n❌ Erro: {e}")
+```

@@ -1,3 +1,4 @@
+```python
 import pyodbc
 from passlib.context import CryptContext
 
@@ -50,3 +51,4 @@ try:
     
 except Exception as e:
     print(f"❌ Erro: {e}")
+```

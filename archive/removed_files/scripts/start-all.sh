@@ -1,3 +1,4 @@
+```bash
 #!/usr/bin/env bash
 # Start backend and frontend in development mode (UNIX-like systems)
 ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -23,3 +24,4 @@ else
 fi
 
 echo "Start commands issued. Check backend.log and frontend.log for output."
+```

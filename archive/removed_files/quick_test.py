@@ -1,3 +1,4 @@
+```python
 import requests
 
 # Test form-encoded login
@@ -14,3 +15,4 @@ try:
         print(f"Error: {response.text}")
 except Exception as e:
     print(f"Exception: {e}")
+```
