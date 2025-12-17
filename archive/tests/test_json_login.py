@@ -1,3 +1,4 @@
+```python
 import requests
 import json
 
@@ -11,3 +12,4 @@ try:
     print(f"Response: {response.text}")
 except Exception as e:
     print(f"Exception: {e}")
+```

@@ -1,3 +1,4 @@
+```python
 import requests
 import json
 
@@ -57,3 +58,4 @@ try:
         print("\n❌ Login falhou!")
 except Exception as e:
     print(f"❌ Erro na requisição: {str(e)}")
+```

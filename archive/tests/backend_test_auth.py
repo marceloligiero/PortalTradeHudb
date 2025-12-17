@@ -1,3 +1,4 @@
+```python
 """Tests for authentication endpoints"""
 import pytest
 from fastapi import status
@@ -133,3 +134,4 @@ def test_get_current_user_unauthorized(client):
     """Test getting current user without token"""
     response = client.get("/api/auth/me")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+```}EOF

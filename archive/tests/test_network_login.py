@@ -1,3 +1,4 @@
+```python
 import requests
 
 url = "http://192.168.1.78:8000/api/auth/login"
@@ -15,3 +16,4 @@ try:
         print(f"Error: {response.text}")
 except Exception as e:
     print(f"Exception: {e}")
+```

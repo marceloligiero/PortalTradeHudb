@@ -1,3 +1,4 @@
+```python
 from fastapi.testclient import TestClient
 import main
 
@@ -9,3 +10,4 @@ def test_admin_login():
     data = resp.json()
     assert 'access_token' in data and data['token_type'] == 'bearer'
     assert data['user']['email'] == 'admin@tradehub.com'
+```

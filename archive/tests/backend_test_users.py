@@ -1,3 +1,4 @@
+```python
 """Tests for user management endpoints"""
 import pytest
 from fastapi import status
@@ -114,3 +115,4 @@ def test_admin_validate_trainer(client, admin_token, db):
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert data["is_pending"] == False
+```

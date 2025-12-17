@@ -1,3 +1,4 @@
+```javascript
 // Test login from browser console
 fetch('http://localhost:8000/api/auth/login', {
   method: 'POST',
@@ -12,3 +13,4 @@ fetch('http://localhost:8000/api/auth/login', {
 .then(r => r.json())
 .then(d => console.log('Success:', d))
 .catch(e => console.error('Error:', e));
+```

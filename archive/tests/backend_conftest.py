@@ -1,3 +1,4 @@
+```python
 """Test configuration and fixtures"""
 import pytest
 from fastapi.testclient import TestClient
@@ -108,3 +109,4 @@ def student_token(client, db):
         data={"username": "student@test.com", "password": "testpass123"}
     )
     return response.json()["access_token"]
+```

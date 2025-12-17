@@ -1,3 +1,4 @@
+```python
 import requests
 import json
 
@@ -47,3 +48,4 @@ try:
         print("\n✗ Erro ao criar plano")
 except Exception as e:
     print(f"\n✗ Exceção: {e}")
+```
