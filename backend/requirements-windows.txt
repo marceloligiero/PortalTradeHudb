@@ -3,10 +3,6 @@ fastapi-users[sqlalchemy]==12.1.3
 uvicorn[standard]==0.27.0
 sqlalchemy==2.0.25
 pyodbc==5.0.1
-## NOTE: Windows dev-friendly pins. If you have MSVC build tools installed,
-## you can revert to original upstream pins.
-# Use a pydantic wheel to avoid building from source on Windows
-pydantic==2.12.5
 pydantic-settings==2.1.0
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
@@ -14,9 +10,8 @@ python-multipart==0.0.7
 python-dotenv==1.0.0
 email-validator==2.1.0
 reportlab==4.0.9
-## pandas wheel for CPython 3.13 available; pin to a wheel-friendly version
-## Use a pandas wheel compatible with this environment
-pandas==2.3.3
+# pandas excluded to prefer prebuilt wheel already installed
+# pandas==2.1.4
 openpyxl==3.1.2
 
 # Testing dependencies

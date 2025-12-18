@@ -290,7 +290,7 @@ async def get_training_plan(
     
     if not plan:
         raise HTTPException(status_code=404, detail="Training plan not found")
-    
+
     # Verificar permissões
     if current_user.role == "STUDENT":
         # Verificar se o formando está atribuído
@@ -305,7 +305,25 @@ async def get_training_plan(
         if plan.trainer_id != current_user.id:
             raise HTTPException(status_code=403, detail="Not authorized to access this training plan")
     
-    return plan
+    # Serialize plan to a JSON-friendly dict (ensure dates are ISO strings)
+    resp = {
+        "id": plan.id,
+        "title": plan.title,
+        "description": plan.description,
+        "trainer_id": plan.trainer_id,
+        "bank_id": plan.bank_id,
+        "product_id": plan.product_id,
+        "start_date": plan.start_date.isoformat() if plan.start_date else None,
+        "end_date": plan.end_date.isoformat() if plan.end_date else None,
+        "created_by": plan.created_by,
+        "is_active": plan.is_active,
+        "created_at": plan.created_at.isoformat() if plan.created_at else None,
+        "total_duration_minutes": None,
+        "completed_minutes": None,
+        "remaining_minutes": None,
+        "progress_percentage": None,
+    }
+    return resp
 
 # UPDATE - PUT /{plan_id}
 @router.put("/{plan_id}", response_model=schemas.TrainingPlan)
@@ -360,8 +378,25 @@ async def update_training_plan(
     
     db.commit()
     db.refresh(db_plan)
-    
-    return db_plan
+
+    # Return serialized dict to avoid ResponseValidationError on datetime fields
+    return {
+        "id": db_plan.id,
+        "title": db_plan.title,
+        "description": db_plan.description,
+        "trainer_id": db_plan.trainer_id,
+        "bank_id": db_plan.bank_id,
+        "product_id": db_plan.product_id,
+        "start_date": db_plan.start_date.isoformat() if db_plan.start_date else None,
+        "end_date": db_plan.end_date.isoformat() if db_plan.end_date else None,
+        "created_by": db_plan.created_by,
+        "is_active": db_plan.is_active,
+        "created_at": db_plan.created_at.isoformat() if db_plan.created_at else None,
+        "total_duration_minutes": None,
+        "completed_minutes": None,
+        "remaining_minutes": None,
+        "progress_percentage": None,
+    }
 
 @router.delete("/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_training_plan(
