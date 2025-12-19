@@ -128,6 +128,8 @@ class TrainingPlanBase(BaseModel):
     trainer_id: int
     bank_id: Optional[int] = None
     product_id: Optional[int] = None
+    # Use string dates (ISO) for API responses to match frontend expectations
+    # Routes currently return ISO strings via .isoformat(), so keep schema as str
     start_date: Optional[str] = None
     end_date: Optional[str] = None
 

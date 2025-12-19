@@ -65,7 +65,7 @@ const ChallengeExecutionComplete: React.FC = () => {
   const loadStudents = async () => {
     try {
       const response = await api.get('/api/admin/users?role=STUDENT');
-      setStudents(response.data);
+      setStudents(response.data?.items ?? response.data);
     } catch (err) {
       console.error('Erro ao carregar estudantes:', err);
     }

@@ -2,8 +2,11 @@ import pyodbc
 import os
 
 # Database connection
-server = r'PT-L163820\SQLEXPRESS'
-database = 'TradeDataHub'
+import os
+
+# Use environment variables when available; fallback to local SQL Server name
+server = os.environ.get('DB_SERVER', r'PT-L163820\SQLEXPRESS')
+database = os.environ.get('DB_NAME', 'etldata4you')
 conn_str = f'DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};DATABASE={database};Trusted_Connection=yes;'
 
 try:

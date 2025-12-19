@@ -1,3 +1,104 @@
+````markdown
+# Portal Trade DataHub
+
+Consolidated README merging project overview, installation instructions, server guide and changelog.
+
+---
+
+## Visão Geral
+
+Portal Trade DataHub é uma plataforma para gestão de formações (cursos, lições, planos e desafios) desenvolvida para o Trade DataHub / Santander Digital Services.
+
+- Backend: FastAPI + SQLAlchemy
+- Frontend: React + Vite + TypeScript
+- Banco: SQL Server (ODBC)
+- Autenticação: JWT
+
+---
+
+## Instalação e Inicialização (Desenvolvimento)
+
+### Pré-requisitos
+
+- Node.js 18+ e npm
+- Python 3.10+
+- SQL Server (ou equivalente) acessível conforme `backend/.env`
+
+### Backend (Windows - PowerShell)
+
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+copy .env.example .env
+# editar .env com credenciais e SECRET_KEY
+python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+### Start único (recomendado para dev)
+
+PowerShell:
+```powershell
+.\start-all.ps1
+```
+
+Linux/macOS:
+```bash
+./start-all.sh
+```
+
+---
+
+## Changelog (resumo)
+
+Principais pontos (v2.0.0): paginação, auditoria, testes automatizados, melhorias de UX e segurança.
+
+Changelog completo: `archive/CHANGELOG.md`.
+
+---
+
+## Guia de Servidor (resumo)
+
+- Exemplo de IP do servidor: `192.168.1.78`
+- Frontend: `http://localhost:5173` ou `http://192.168.1.78:5173`
+- Backend: `http://localhost:8000` ou `http://192.168.1.78:8000`
+
+Abra portas `8000` e `5173` no firewall quando necessário.
+
+Guia completo: `SERVIDOR-GUIA.md`.
+
+---
+
+## Organização e limpeza
+
+- Arquivos de teste e scripts antigos foram movidos para `archive/removed_files/`.
+- Testes integrados e guias mantidos em `backend/tests/`.
+
+---
+
+## Links úteis
+
+- API docs (rodando): `http://localhost:8000/docs`
+- Guia do servidor: `SERVIDOR-GUIA.md`
+- Arquivos arquivados: `archive/`
+
+---
+
+## Suporte
+
+Se precisar que eu empurre a branch de limpeza para o repositório remoto, compacte o `archive/`, ou continue a limpeza (ex.: remover `backend/tests/README.md` ou limpar `__pycache__`), diga qual ação prefere.
+
+````
 # 🎓 Portal Trade DataHub - Sistema de Gestão de Formações
 
 ![Version](https://img.shields.io/badge/version-2.0.0-red)
@@ -77,6 +178,19 @@ npm install
 cp .env.example .env
 npm run dev
 ```
+
+> Alternativa: usar o script único de inicialização em desenvolvimento
+
+PowerShell (Windows):
+```powershell
+.\start-all.ps1
+```
+
+Linux / macOS:
+```bash
+./start-all.sh
+```
+
 
 ---
 
