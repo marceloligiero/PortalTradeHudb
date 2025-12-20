@@ -10,6 +10,12 @@ interface Course {
   bank_code: string;
   product_name?: string;
   is_enrolled?: boolean;
+  training_plan?: {
+    id: number;
+    title: string;
+    start_date?: string;
+    end_date?: string;
+  } | null;
 }
 
 export default function StudentCoursesPage() {
@@ -29,13 +35,12 @@ export default function StudentCoursesPage() {
       setLoading(true);
       const response = await api.get('/api/student/courses');
       setCourses(response.data);
-    } catch (error) {courses.filter((course) => {
-    const matchesBank = selectedBank === 'ALL' || course.bank_code === selectedBank;
-    const matchesSearch = course.title.toLowerCase().includes(search.toLowerCase());
-    return matchesBank && matchesSearch;
-  });
-
-  const uniqueBanks = ['ALL', ...Array.from(new Set(courses.map(c => c.bank_code)))]}
+    } catch (error) {
+      console.error('Error fetching courses', error);
+      setCourses([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEnroll = async (courseId: number) => {
@@ -58,8 +63,10 @@ export default function StudentCoursesPage() {
     { code: 'UN' as const, label: 'UN' },
   ];
 
-  const filteredCourses = mockCourses.filter((course) => {
-    const matchesBank = selectedBank === 'ALL' || course.bank === selectedBank;
+  const uniqueBanks = ['ALL', ...Array.from(new Set(courses.map((c) => c.bank_code)))];
+
+  const filteredCourses = courses.filter((course) => {
+    const matchesBank = selectedBank === 'ALL' || course.bank_code === selectedBank;
     const matchesSearch = course.title.toLowerCase().includes(search.toLowerCase());
     return matchesBank && matchesSearch;
   });
@@ -120,9 +127,14 @@ export default function StudentCoursesPage() {
                   <h3 className="text-lg font-semibold text-white mb-2">{course.title}</h3>
                   <p className="text-sm text-gray-400 line-clamp-2">{course.description}</p>
                 </div>
-                {course.is_enrolled && (
-                  <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
-                )}
+                <div className="flex flex-col items-end gap-2">
+                  {course.is_enrolled && (
+                    <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+                  )}
+                  {course.training_plan && (
+                    <div className="px-2 py-1 bg-white/6 text-xs rounded-full text-white border border-white/10">{course.training_plan.title}</div>
+                  )}
+                </div>
               </div>
               {course.product_name && (
                 <span className="px-3 py-1 rounded-full text-xs bg-white/10 text-white border border-white/10 self-start">

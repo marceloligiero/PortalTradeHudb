@@ -11,6 +11,7 @@ import TrainerCoursesPage from './pages/trainer/Courses';
 import TrainerStudentsPage from './pages/trainer/Students';
 import TrainingPlanForm from './pages/trainer/TrainingPlanForm';
 import TrainingPlans from './pages/trainer/TrainingPlans';
+import TrainingPlanDetail from './pages/trainer/TrainingPlanDetail';
 import TrainerReportsPage from './pages/trainer/Reports';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminUsersPage from './pages/admin/Users';
@@ -68,8 +69,12 @@ function App() {
             <Route path="challenges/:challengeId/execute/complete" element={<ChallengeExecutionComplete />} />
             <Route path="challenges/:challengeId/execute/summary" element={<ChallengeExecutionSummary />} />
             <Route path="courses/:courseId/lessons/new" element={<LessonForm />} />
+            <Route path="training-plan/:id" element={<TrainingPlanDetail />} />
           </>
         )}
+        {/* Support direct links that include a 'trainer/' or 'admin/' prefix used in some navigation code */}
+        <Route path="trainer/training-plan/:id" element={<TrainingPlanDetail />} />
+        <Route path="training-plan/:id" element={<TrainingPlanDetail />} />
         {user?.role === 'ADMIN' && (
           <>
             <Route index element={<AdminDashboard />} />
@@ -80,6 +85,7 @@ function App() {
             <Route path="courses/:courseId/lessons/new" element={<LessonForm />} />
             <Route path="training-plans" element={<AdminTrainingPlans />} />
             <Route path="training-plan/new" element={<AdminTrainingPlanForm />} />
+            <Route path="admin/training-plan/:id" element={<TrainingPlanDetail />} />
             <Route path="challenges/:challengeId/execute/complete" element={<ChallengeExecutionComplete />} />
             <Route path="challenges/:challengeId/execute/summary" element={<ChallengeExecutionSummary />} />
             <Route path="reports" element={<AdminReportsPage />} />

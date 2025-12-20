@@ -46,10 +46,12 @@ api.interceptors.request.use((config) => {
   if (!config.baseURL) {
     config.baseURL = getBaseURL();
   }
-  // Normalize duplicate '/api' when dev proxy is used: requests often
-  // include '/api/...' and baseURL is '/api' -> results in '/api/api/...'
-  // Remove leading '/api' from url in that case.
-  if (config.baseURL && config.baseURL.replace(/\/$/, '') === '/api' && config.url?.startsWith('/api')) {
+  // Normalize duplicate '/api' when baseURL already contains the '/api'
+  // prefix (production full URL like 'http://host:8000/api') or when
+  // dev proxy uses '/api'. If baseURL ends with '/api' and the request
+  // url also starts with '/api', strip the leading '/api' from url to
+  // avoid composing '/api/api/...'. This covers both dev and prod cases.
+  if (config.baseURL && config.baseURL.replace(/\/$/, '').endsWith('/api') && config.url?.startsWith('/api')) {
     config.url = config.url.replace(/^\/api/, '');
   }
   // Debug: show how requests are being composed in dev

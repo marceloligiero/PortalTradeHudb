@@ -159,7 +159,10 @@ class TrainingPlan(TrainingPlanBase):
 
 class TrainingPlanDetail(TrainingPlan):
     """Training plan with full details including courses and assignments"""
-    pass
+    courses: list[Course] = []
+    days_total: Optional[int] = None
+    days_remaining: Optional[int] = None
+    status: Optional[str] = None
 
 # Training Plan Assignment Schemas
 class AssignStudentToPlan(BaseModel):
@@ -226,6 +229,23 @@ class Challenge(ChallengeBase):
     
     class Config:
         from_attributes = True
+
+
+# Detailed Course with lessons and challenges (placed after Challenge definition to avoid forward refs)
+class CourseDetail(BaseModel):
+    id: int
+    title: str
+    description: Optional[str] = None
+    order_index: Optional[int] = 0
+    use_custom: Optional[bool] = False
+    custom_title: Optional[str] = None
+    custom_description: Optional[str] = None
+    lessons: list[Lesson] = []
+    challenges: list[Challenge] = []
+
+    class Config:
+        from_attributes = True
+
 
 # Challenge Part (para desafios tipo COMPLETE)
 class ChallengePartBase(BaseModel):

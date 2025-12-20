@@ -1,33 +1,64 @@
 import { useTranslation } from 'react-i18next';
+import { useEffect, useState } from 'react';
 import TrainerValidation from './TrainerValidation';
 import { Users, BookOpen, GraduationCap, UserCheck, Shield } from 'lucide-react';
+import api from '../../lib/axios';
 
 export default function AdminDashboard() {
   const { t } = useTranslation();
+
+  const [totalUsers, setTotalUsers] = useState<number>(0);
+  const [totalCourses, setTotalCourses] = useState<number>(0);
+  const [totalTrainers, setTotalTrainers] = useState<number>(0);
+  const [totalStudents, setTotalStudents] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // Fetch paginated users to get the total count
+        const usersResp = await api.get('/api/admin/users?page=1&page_size=1');
+        const usersTotal = usersResp.data?.total ?? 0;
+        setTotalUsers(usersTotal);
+
+        // Fetch aggregated stats (courses, trainers, students)
+        const statsResp = await api.get('/api/admin/reports/stats');
+        const statsData = statsResp.data ?? {};
+        setTotalCourses(statsData.total_courses ?? 0);
+        setTotalTrainers((statsData.total_trainers ?? 0) + (statsData.pending_trainers ?? 0));
+        setTotalStudents(statsData.total_students ?? 0);
+      } catch (e) {
+        // Keep defaults on error; admin panel may be unauthenticated in dev
+        // eslint-disable-next-line no-console
+        console.error('Error fetching admin stats:', e);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   const stats = [
     {
       icon: Users,
       title: t('dashboard.admin.totalUsers'),
-      value: '0',
+      value: String(totalUsers),
       color: 'from-red-600 to-red-700',
     },
     {
       icon: BookOpen,
       title: t('dashboard.admin.totalCourses'),
-      value: '0',
+      value: String(totalCourses),
       color: 'from-red-700 to-red-800',
     },
     {
       icon: UserCheck,
       title: t('dashboard.admin.trainers'),
-      value: '0',
+      value: String(totalTrainers),
       color: 'from-red-800 to-red-900',
     },
     {
       icon: GraduationCap,
       title: t('dashboard.admin.students'),
-      value: '0',
+      value: String(totalStudents),
       color: 'from-red-900 to-black',
     },
   ];

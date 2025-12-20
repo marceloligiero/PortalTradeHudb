@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { GraduationCap, Plus, Users, BookOpen, Calendar } from 'lucide-react';
+import { GraduationCap, Plus } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
+import TrainingPlanCard from '../../components/plans/TrainingPlanCard';
 
 interface TrainingPlan {
   id: number;
@@ -106,51 +107,7 @@ export default function TrainingPlans() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {plans.map((plan) => (
-              <div
-                key={plan.id}
-                onClick={() => navigate(`/trainer/training-plan/${plan.id}`)}
-                className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 hover:bg-white/10 transition-all cursor-pointer group"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">
-                      {plan.title}
-                    </h3>
-                    <p className="text-sm text-slate-400 line-clamp-2">
-                      {plan.description}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-3 mt-4">
-                  <div className="flex items-center gap-2 text-sm text-slate-300">
-                    <BookOpen className="w-4 h-4 text-blue-400" />
-                    <span>
-                      {plan.total_courses} {plan.total_courses === 1 ? 'curso' : 'cursos'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-slate-300">
-                    <Users className="w-4 h-4 text-green-400" />
-                    <span>
-                      {plan.total_students} {plan.total_students === 1 ? 'aluno' : 'alunos'}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-slate-300">
-                    <Calendar className="w-4 h-4 text-purple-400" />
-                    <span>
-                      {plan.total_duration_hours}h de formação
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-white/10">
-                  <p className="text-xs text-slate-500">
-                    Criado em {new Date(plan.created_at).toLocaleDateString('pt-PT')}
-                  </p>
-                </div>
-              </div>
+              <TrainingPlanCard key={plan.id} plan={plan} />
             ))}
           </div>
         )}
