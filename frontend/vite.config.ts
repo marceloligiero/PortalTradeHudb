@@ -7,6 +7,23 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const apiBase = env.VITE_API_BASE_URL || 'http://localhost:8000';
 
+  // Support adding the machine's public IP at runtime via the
+  // DEV_PUBLIC_IP environment variable (start script will set this).
+  // Also keep the cloudflared quick-tunnel host allowed.
+  const publicIp = process.env.DEV_PUBLIC_IP || env.DEV_PUBLIC_IP || '';
+  const allowedHosts: Array<string | any> = ['.trycloudflare.com'];
+  if (publicIp) {
+    if (publicIp === 'all') {
+      // Vite accepts the special value 'all' to allow any host.
+      // We'll push the string 'all' so runtime will accept any host.
+      // Type system may not like it but Vite reads it at runtime.
+      // @ts-ignore
+      allowedHosts.push('all');
+    } else {
+      allowedHosts.push(publicIp);
+    }
+  }
+
   return {
     plugins: [react()],
     resolve: {
@@ -16,6 +33,8 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: '0.0.0.0',
+      // Allow requests addressed to the machine public IP and trycloudflare
+      allowedHosts,
       port: 5173,
       strictPort: true,
       // Proxy `/api` to backend during dev to avoid CORS and allow opening

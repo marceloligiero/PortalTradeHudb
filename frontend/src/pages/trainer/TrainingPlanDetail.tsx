@@ -21,6 +21,7 @@ interface ChallengeItem {
   challenge_type?: string;
   time_limit_minutes?: number;
   target_mpu?: number;
+  max_errors?: number;
 }
 
 interface CourseItem {
@@ -164,8 +165,28 @@ export default function TrainingPlanDetail() {
                         <ul className="space-y-2">
                           {c.challenges.map((ch) => (
                             <li key={ch.id} className="p-2 bg-white/5 rounded-md">
-                              <div className="text-sm text-white">{ch.title}</div>
-                              <div className="text-xs text-slate-400">{ch.challenge_type} • {ch.time_limit_minutes} min • alvo {ch.target_mpu}</div>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="text-sm text-white">{ch.title}</div>
+                                  <div className="text-xs text-slate-400">{ch.challenge_type} • {ch.time_limit_minutes} min • alvo {ch.target_mpu}</div>
+                                </div>
+                                <div className="text-right">
+                                  {typeof ch.max_errors !== 'undefined' && (
+                                    <div className="text-xs text-gray-400 mb-2">Máx. erros: {ch.max_errors}</div>
+                                  )}
+                                  <button
+                                    onClick={() => {
+                                      const route = ch.challenge_type === 'COMPLETE'
+                                        ? `/challenges/${ch.id}/execute/complete`
+                                        : `/challenges/${ch.id}/execute/summary`;
+                                      navigate(route);
+                                    }}
+                                    className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-600 text-white rounded-md text-sm hover:bg-emerald-700 transition-all"
+                                  >
+                                    Aplicar
+                                  </button>
+                                </div>
+                              </div>
                             </li>
                           ))}
                         </ul>

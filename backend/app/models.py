@@ -180,6 +180,7 @@ class Challenge(Base):
     operations_required = Column(Integer, default=100, nullable=False)  # Meta de operações
     time_limit_minutes = Column(Integer, default=60, nullable=False)  # Meta de tempo
     target_mpu = Column(Float, nullable=False)  # Meta de MPU para aprovação
+    max_errors = Column(Integer, default=0, nullable=False)  # Max de erros permitidos (0 = nenhum)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -218,6 +219,7 @@ class ChallengeSubmission(Base):
     # Para tipo SUMMARY (resumido)
     total_operations = Column(Integer)  # Total de operações inseridas
     total_time_minutes = Column(Integer)  # Tempo total inserido
+    errors_count = Column(Integer, default=0)  # Número de erros cometidos pelo aluno
     
     # Campos comuns
     started_at = Column(DateTime(timezone=True))

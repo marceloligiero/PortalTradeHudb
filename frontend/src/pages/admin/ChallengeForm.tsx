@@ -10,6 +10,7 @@ interface ChallengeFormData {
   operations_required: number;
   time_limit_minutes: number;
   target_mpu: number;
+  max_errors: number;
 }
 
 const ChallengeForm: React.FC = () => {
@@ -26,6 +27,7 @@ const ChallengeForm: React.FC = () => {
     operations_required: 100,
     time_limit_minutes: 60,
     target_mpu: 1.67, // 100 operações / 60 minutos
+    max_errors: 0,
   });
 
   // Calcular MPU automaticamente quando operações ou tempo mudam
@@ -225,6 +227,24 @@ const ChallengeForm: React.FC = () => {
                 />
                 <p className="text-xs text-gray-500 mt-1">Tempo máximo em minutos</p>
               </div>
+            </div>
+
+            {/* Max Errors */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-pink-500" />
+                  Máximo de Erros Permitidos
+                </div>
+              </label>
+              <input
+                type="number"
+                value={formData.max_errors}
+                onChange={(e) => setFormData({ ...formData, max_errors: parseInt(e.target.value || '0') })}
+                min="0"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              />
+              <p className="text-xs text-gray-500 mt-1">Número máximo de erros permitidos para aprovação</p>
             </div>
 
             {/* MPU Meta (calculado automaticamente) */}
