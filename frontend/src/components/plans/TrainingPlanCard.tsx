@@ -1,12 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Users, Calendar, Clock, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { BookOpen, Users, Calendar, Clock, ArrowRight, TrendingUp, Target } from 'lucide-react';
 
 interface PlanCardProps {
   plan: any;
 }
 
 export default function TrainingPlanCard({ plan }: PlanCardProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const start = plan?.start_date ? new Date(plan.start_date) : null;
@@ -26,54 +28,106 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
   return (
     <div
       onClick={() => navigate(`/trainer/training-plan/${plan?.id}`)}
-      className="group cursor-pointer"
+      className="group cursor-pointer h-full"
     >
-      <div className="relative overflow-hidden rounded-2xl shadow-lg bg-gradient-to-br from-white/3 to-white/6 border border-white/6">
-        <div className="flex">
-          <div className="w-2 bg-gradient-to-b from-pink-500 via-rose-500 to-amber-400" />
-
-          <div className="flex-1 p-5 sm:p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 pr-4">
-                <h3 className="text-base sm:text-lg font-semibold text-white leading-snug truncate">{plan?.title ?? 'Plano'}</h3>
-                <p className="mt-2 text-sm text-slate-300 line-clamp-2">{plan?.description ?? ''}</p>
-              </div>
-
-              <div className="flex-shrink-0 flex flex-col items-end">
-                <div className={`px-3 py-1 rounded-full text-xs font-semibold ${status === 'ONGOING' ? 'bg-emerald-500 text-white' : status === 'UPCOMING' ? 'bg-blue-500 text-white' : 'bg-slate-600 text-white'}`}>
-                  {status.toLowerCase()}
-                </div>
-                <div className="mt-2 text-xs text-slate-400">{plan?.total_duration_hours ?? '-'}h</div>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-3 gap-3 text-xs text-slate-300">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-sky-400" />
-                <div>{plan?.total_courses ?? 0} { (plan?.total_courses ?? 0) === 1 ? 'curso' : 'cursos'}</div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-violet-400" />
-                <div>{plan?.total_students ?? 0} { (plan?.total_students ?? 0) === 1 ? 'aluno' : 'alunos'}</div>
-              </div>
-
-              <div className="flex items-center gap-2 justify-end">
-                <div className="flex items-center gap-3 text-slate-300">
-                  <div className="flex items-center gap-1"><Calendar className="w-4 h-4" /> <span className="text-xs">{start ? start.toLocaleDateString() : '-'}</span></div>
-                  <div className="flex items-center gap-1"><Clock className="w-4 h-4" /> <span className="text-xs">{daysRemaining !== null ? `${daysRemaining}d` : '-'}</span></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center justify-between">
-              <div className="text-xs text-slate-400">ID: {plan?.id ?? '-'}</div>
-              <div className="text-slate-300">
-                <ArrowRight className="w-4 h-4 opacity-80" />
-              </div>
-            </div>
+      <div className="relative h-full overflow-hidden rounded-2xl shadow-lg bg-white border border-gray-200 hover:shadow-2xl hover:border-[#ec0000]/30 transition-all duration-300">
+        {/* Status Badge */}
+        <div className="absolute top-4 right-4 z-10">
+          <div className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg ${
+            status === 'ONGOING' 
+              ? 'bg-green-500 text-white' 
+              : status === 'UPCOMING' 
+                ? 'bg-blue-500 text-white' 
+                : 'bg-gray-500 text-white'
+          }`}>
+            {status === 'ONGOING' ? 'Ativo' : status === 'UPCOMING' ? 'Próximo' : 'Completo'}
           </div>
         </div>
+
+        {/* Card Header with Gradient */}
+        <div className="bg-gradient-to-br from-gray-50 to-white p-6 pb-4 border-b border-gray-100">
+          <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-[#ec0000] transition-colors duration-300 line-clamp-2 pr-20">
+            {plan?.title ?? 'Plano'}
+          </h3>
+          <p className="text-gray-600 text-sm line-clamp-2 leading-relaxed">
+            {plan?.description ?? ''}
+          </p>
+        </div>
+
+        <div className="p-6">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="bg-gradient-to-br from-[#ec0000]/5 to-[#ec0000]/10 rounded-xl p-4 border border-[#ec0000]/10 group-hover:from-[#ec0000]/10 group-hover:to-[#ec0000]/20 transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <BookOpen className="w-4 h-4 text-[#ec0000]" />
+                <span className="text-xs font-bold text-gray-600 uppercase">Cursos</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{plan?.total_courses ?? 0}</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-4 border border-blue-100 group-hover:from-blue-100 group-hover:to-blue-200/50 transition-all">
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="w-4 h-4 text-blue-600" />
+                <span className="text-xs font-bold text-gray-600 uppercase">Alunos</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{plan?.total_students ?? 0}</p>
+            </div>
+          </div>
+
+          {/* Additional Info */}
+          <div className="space-y-3 mb-6">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-gray-500" />
+                <span className="text-sm font-semibold text-gray-700">Duração Total</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900">{plan?.total_duration_hours ?? 0}h</span>
+            </div>
+
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-gray-500" />
+                <span className="text-sm font-semibold text-gray-700">Início</span>
+              </div>
+              <span className="text-sm font-bold text-gray-900">
+                {start ? start.toLocaleDateString('pt-PT') : '-'}
+              </span>
+            </div>
+
+            {daysRemaining !== null && daysRemaining > 0 && (
+              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-200">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-orange-600" />
+                  <span className="text-sm font-semibold text-orange-700">Dias Restantes</span>
+                </div>
+                <span className="text-sm font-bold text-orange-900">{daysRemaining} dias</span>
+              </div>
+            )}
+          </div>
+
+          {/* Trainer Info */}
+          {plan?.trainer_name && (
+            <div className="mb-6 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border border-purple-100">
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-purple-600" />
+                <span className="text-xs font-bold text-gray-600 uppercase">Formador</span>
+              </div>
+              <p className="text-sm font-semibold text-gray-900 mt-1">{plan.trainer_name}</p>
+            </div>
+          )}
+
+          {/* Action Button */}
+          <button
+            className="w-full flex items-center justify-center gap-3 p-4 bg-gradient-to-r from-[#ec0000] to-[#cc0000] text-white rounded-xl font-bold hover:from-[#cc0000] hover:to-[#b00000] transition-all shadow-md hover:shadow-xl group-hover:scale-105 duration-300"
+          >
+            <span>Ver Detalhes</span>
+            <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+          </button>
+        </div>
+
+        {/* Decorative Elements */}
+        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-[#ec0000]/5 rounded-full blur-3xl group-hover:bg-[#ec0000]/10 transition-colors duration-500" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#ec0000] to-[#cc0000] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
     </div>
   );

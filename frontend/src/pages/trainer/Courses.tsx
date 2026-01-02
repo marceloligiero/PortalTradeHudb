@@ -137,7 +137,7 @@ export default function TrainerCoursesPage() {
                   <div className="flex items-center gap-2 text-yellow-400">
                     <Calendar className="w-4 h-4" />
                     <span>
-                      {Math.floor(course.remaining_minutes / 60)}h {course.remaining_minutes % 60}m restantes
+                      {Math.floor(course.remaining_minutes / 60)}h {course.remaining_minutes % 60}m {t('trainerReports.remaining')}
                     </span>
                   </div>
                 </div>
@@ -146,13 +146,13 @@ export default function TrainerCoursesPage() {
                     onClick={(e) => { e.stopPropagation(); navigate(`/training-plan/${course.id}`); }}
                     className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-white/5 text-white rounded-lg font-medium hover:bg-white/10 transition-all"
                   >
-                    Abrir
+                    {t('common.view')}
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); navigate(`/courses/${course.id}/lessons/new`); }}
                     className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-all"
                   >
-                    Nova aula
+                    {t('trainingPlan.newLesson')}
                   </button>
                 </div>
               </div>
@@ -169,15 +169,15 @@ export default function TrainerCoursesPage() {
             </div>
             <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
               <div className="text-2xl font-bold text-blue-400">
-                {courses.reduce((sum, c) => sum + c.total_students, 0)}
+                {courses.reduce((sum, c) => sum + c.students_count, 0)}
               </div>
               <div className="text-sm text-gray-400">{t('trainingPlan.totalStudents')}</div>
             </div>
             <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
               <div className="text-2xl font-bold text-green-400">
-                {courses.reduce((sum, c) => sum + c.max_students, 0)}
+                {Math.round(courses.reduce((sum, c) => sum + c.progress_percentage, 0) / courses.length) || 0}%
               </div>
-              <div className="text-sm text-gray-400">{t('trainingPlan.totalCapacity')}</div>
+              <div className="text-sm text-gray-400">{t('trainerReports.avgCompletion')}</div>
             </div>
           </div>
         )}

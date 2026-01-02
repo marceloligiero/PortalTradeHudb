@@ -397,7 +397,7 @@ export default function AdminTrainingPlanForm() {
                     )}
                   </select>
                   {banks.length === 0 && (
-                    <div className="text-yellow-400 text-xs mt-1">⚠️ Nenhum banco encontrado</div>
+                    <div className="text-yellow-400 text-xs mt-1">⚠️ {t('errors.noBanks')}</div>
                   )}
                 </div>
 
@@ -426,7 +426,7 @@ export default function AdminTrainingPlanForm() {
                     )}
                   </select>
                   {products.length === 0 && (
-                    <div className="text-yellow-400 text-xs mt-1">⚠️ Nenhum produto encontrado</div>
+                    <div className="text-yellow-400 text-xs mt-1">⚠️ {t('errors.noProducts')}</div>
                   )}
                 </div>
               </div>
@@ -483,7 +483,7 @@ export default function AdminTrainingPlanForm() {
                   {trainers.length === 0 ? (
                     <div className="text-center py-8 text-gray-400">
                       <Users className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                      <p>Nenhum formador disponível</p>
+                      <p>{t('errors.noTrainers')}</p>
                     </div>
                   ) : (
                     trainers.map((trainer) => (
@@ -536,7 +536,7 @@ export default function AdminTrainingPlanForm() {
                   {courses.length === 0 ? (
                     <div className="text-center py-8 text-gray-400">
                       <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                      <p>Nenhum curso disponível</p>
+                      <p>{t('errors.noCourses')}</p>
                     </div>
                   ) : (
                     courses.map((course) => (
@@ -591,7 +591,7 @@ export default function AdminTrainingPlanForm() {
                 {formData.course_ids.length > 0 && (
                   <div className="mt-3 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
                     <div className="text-purple-300 font-medium">
-                      {formData.course_ids.length} curso(s) selecionado(s)
+                      {formData.course_ids.length} {t('errors.coursesSelected')}
                     </div>
                   </div>
                 )}
@@ -615,7 +615,7 @@ export default function AdminTrainingPlanForm() {
                   {students.length === 0 ? (
                     <div className="text-center py-8 text-gray-400">
                       <Users className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                      <p>Nenhum formando disponível</p>
+                      <p>{t('errors.noStudents')}</p>
                     </div>
                   ) : (
                     students.map((student) => (
@@ -650,7 +650,7 @@ export default function AdminTrainingPlanForm() {
                 {formData.student_ids.length > 0 && (
                   <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
                     <div className="text-green-300 font-medium">
-                      {formData.student_ids.length} formando(s) selecionado(s)
+                      {formData.student_ids.length} {t('errors.studentsSelected')}
                     </div>
                   </div>
                 )}
@@ -709,14 +709,14 @@ export default function AdminTrainingPlanForm() {
                 <div className="bg-white/5 p-4 rounded-xl border border-white/10">
                   <div className="text-sm text-gray-400 mb-1">Cursos</div>
                   <div className="text-white font-medium">
-                    {formData.course_ids.length} curso(s) selecionado(s)
+                    {formData.course_ids.length} {t('errors.coursesSelected')}
                   </div>
                 </div>
 
                 <div className="bg-white/5 p-4 rounded-xl border border-white/10">
                   <div className="text-sm text-gray-400 mb-1">Formandos</div>
                   <div className="text-white font-medium">
-                    {formData.student_ids.length} formando(s) selecionado(s)
+                    {formData.student_ids.length} {t('errors.studentsSelected')}
                   </div>
                 </div>
               </div>

@@ -2,7 +2,8 @@ fastapi==0.109.0
 fastapi-users[sqlalchemy]==12.1.3
 uvicorn[standard]==0.27.0
 sqlalchemy==2.0.25
-pyodbc==5.0.1
+pymysql==1.1.0
+cryptography==41.0.7
 ## NOTE: Windows dev-friendly pins. If you have MSVC build tools installed,
 ## you can revert to original upstream pins.
 # Use a pydantic wheel to avoid building from source on Windows

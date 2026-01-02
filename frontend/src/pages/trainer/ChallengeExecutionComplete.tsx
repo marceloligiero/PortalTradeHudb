@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Play, StopCircle, Check, AlertCircle, TrendingUp, Target, Clock } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -22,6 +23,7 @@ interface ChallengePart {
 }
 
 const ChallengeExecutionComplete: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { challengeId } = useParams<{ challengeId: string }>();
   
@@ -58,7 +60,7 @@ const ChallengeExecutionComplete: React.FC = () => {
       setChallenge(response.data);
     } catch (err) {
       console.error('Erro ao carregar desafio:', err);
-      setError('Erro ao carregar desafio');
+      setError(t('challenges.loadError'));
     } finally {
       setLoading(false);
     }
@@ -122,7 +124,7 @@ const ChallengeExecutionComplete: React.FC = () => {
       setError('');
     } catch (err: any) {
       console.error('Erro ao iniciar submission:', err);
-      setError(err.response?.data?.detail || 'Erro ao iniciar');
+      setError(err.response?.data?.detail || t('challenges.startError'));
     }
   };
 
@@ -161,7 +163,7 @@ const ChallengeExecutionComplete: React.FC = () => {
       setError('');
     } catch (err: any) {
       console.error('Erro ao adicionar parte:', err);
-      setError(err.response?.data?.detail || 'Erro ao adicionar parte');
+      setError(err.response?.data?.detail || t('challenges.addPartError'));
     }
   };
 
@@ -180,7 +182,7 @@ const ChallengeExecutionComplete: React.FC = () => {
       navigate(`/challenges/result/${response.data.id}`);
     } catch (err: any) {
       console.error('Erro ao finalizar:', err);
-      setError(err.response?.data?.detail || 'Erro ao finalizar');
+      setError(err.response?.data?.detail || t('challenges.finalizeError'));
     }
   };
 
@@ -285,7 +287,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                 }}
                 className="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
               >
-                <option value="">Selecione um estudante</option>
+                <option value="">{t('placeholders.selectStudent')}</option>
                 {students.map((student) => (
                   <option key={student.id} value={student.id}>
                     {student.full_name} ({student.email})

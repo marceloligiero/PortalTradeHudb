@@ -118,13 +118,13 @@ export default function CoursesPage() {
                     className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-700 hover:to-purple-800 transition-all"
                   >
                     <Target className="w-4 h-4" />
-                    Novo desafio
+                    {t('challenges.createNew')}
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); navigate(`/courses/${course.id}/lessons/new`); }}
                     className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white rounded-lg font-medium hover:from-emerald-700 hover:to-emerald-800 transition-all"
                   >
-                    Nova aula
+                    {t('trainingPlan.newLesson')}
                   </button>
                 </div>
               </div>

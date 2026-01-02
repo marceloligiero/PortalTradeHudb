@@ -87,7 +87,7 @@ const LessonForm: React.FC = () => {
       navigate(`/courses/${courseId}`);
     } catch (err: any) {
       console.error('Erro ao criar aula:', err);
-      setError(err.response?.data?.detail || err.message || 'Erro ao criar aula');
+      setError(err.response?.data?.detail || err.message || t('lessons.createError'));
       // fallback debug alert
       try { alert('Erro ao criar aula: ' + (err.response?.data?.detail || err.message)); } catch {}
     } finally {

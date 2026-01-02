@@ -107,19 +107,19 @@ export default function TrainingPlanForm() {
 
     // Validações
     if (!formData.title.trim()) {
-      setError('O título é obrigatório');
+      setError(t('admin.titleRequired'));
       setLoading(false);
       return;
     }
 
     if (!formData.description.trim()) {
-      setError('A descrição é obrigatória');
+      setError(t('admin.descriptionRequired'));
       setLoading(false);
       return;
     }
 
     if (formData.selectedCourses.length === 0) {
-      setError('Selecione pelo menos um curso');
+      setError(t('trainingPlan.selectAtLeastOneCourse'));
       setLoading(false);
       return;
     }
@@ -128,7 +128,7 @@ export default function TrainingPlanForm() {
       const startDate = new Date(formData.start_date);
       const endDate = new Date(formData.end_date);
       if (endDate < startDate) {
-        setError('A data de fim deve ser posterior à data de início');
+        setError(t('trainingPlan.endDateMustBeAfterStartDate'));
         setLoading(false);
         return;
       }
@@ -151,7 +151,7 @@ export default function TrainingPlanForm() {
       navigate('/trainer/training-plans');
     } catch (error: any) {
       console.error('Error creating training plan:', error);
-      setError(error.response?.data?.detail || 'Falha ao criar plano de formação');
+      setError(error.response?.data?.detail || t('trainingPlan.createError'));
     } finally {
       setLoading(false);
     }
@@ -223,14 +223,14 @@ export default function TrainingPlanForm() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Banco
+                    {t('trainingPlan.bank')}
                   </label>
                   <select
                     value={formData.bank_id}
                     onChange={(e) => setFormData({ ...formData, bank_id: e.target.value })}
                     className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 [&>option]:bg-slate-800 [&>option]:text-white"
                   >
-                    <option value="" className="bg-slate-800 text-white">Selecione um banco</option>
+                    <option value="" className="bg-slate-800 text-white">{t('trainingPlan.selectBank')}</option>
                     {banks.map(bank => (
                       <option key={bank.id} value={bank.id} className="bg-slate-800 text-white">{bank.name}</option>
                     ))}
@@ -239,14 +239,14 @@ export default function TrainingPlanForm() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Produto
+                    {t('trainingPlan.productType')}
                   </label>
                   <select
                     value={formData.product_id}
                     onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
                     className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 [&>option]:bg-slate-800 [&>option]:text-white"
                   >
-                    <option value="" className="bg-slate-800 text-white">Selecione um produto</option>
+                    <option value="" className="bg-slate-800 text-white">{t('trainingPlan.selectProduct')}</option>
                     {products.map(product => (
                       <option key={product.id} value={product.id} className="bg-slate-800 text-white">{product.name}</option>
                     ))}
@@ -257,7 +257,7 @@ export default function TrainingPlanForm() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Data de Início
+                    {t('trainingPlan.startDate')}
                   </label>
                   <input
                     type="date"
@@ -269,7 +269,7 @@ export default function TrainingPlanForm() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Data de Fim
+                    {t('trainingPlan.endDate')}
                   </label>
                   <input
                     type="date"
@@ -293,7 +293,7 @@ export default function TrainingPlanForm() {
 
             {courses.length === 0 ? (
               <p className="text-slate-400 text-center py-8">
-                {t('trainingPlan.noCoursesAvailable')}
+                {t('courses.noCourses')}
               </p>
             ) : (
               <div className="space-y-3">
@@ -349,13 +349,13 @@ export default function TrainingPlanForm() {
             <div className="flex items-center gap-3 mb-6">
               <Users className="w-5 h-5 text-green-400" />
               <h2 className="text-xl font-bold text-white">
-                Formandos
+                {t('admin.students')}
               </h2>
             </div>
 
             {students.length === 0 ? (
               <p className="text-slate-400 text-center py-8">
-                Nenhum formando disponível
+                {t('trainingPlan.noStudentsAvailable')}
               </p>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -386,7 +386,7 @@ export default function TrainingPlanForm() {
             {formData.selectedStudents.length > 0 && (
               <div className="mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
                 <p className="text-sm text-green-300">
-                  {formData.selectedStudents.length} formando{formData.selectedStudents.length !== 1 ? 's' : ''} selecionado{formData.selectedStudents.length !== 1 ? 's' : ''}
+                  {formData.selectedStudents.length} {t('trainingPlan.studentsSelected')}
                 </p>
               </div>
             )}
@@ -406,7 +406,7 @@ export default function TrainingPlanForm() {
               disabled={loading}
               className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? t('common.saving') : t('trainingPlan.create')}
+              {loading ? t('common.loading') : t('trainingPlan.create')}
             </button>
           </div>
         </form>

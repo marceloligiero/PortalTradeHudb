@@ -62,7 +62,10 @@
     "users": "Utilizadores",
     "challenges": "Desafios",
     "reports": "Relatórios",
-    "settings": "Definições"
+    "settings": "Definições",
+    "trainingPlans": "Planos de Formação",
+    "banks": "Bancos",
+    "products": "Produtos"
   },
   "roles": {
     "ADMIN": "Administrador",
@@ -99,6 +102,60 @@
       "students": "Formandos"
     }
   },
+  "landing": {
+    "heroTitle": "Plataforma de Formação Trade & Comércio Exterior",
+    "heroSubtitle": "Desenvolva expertise em créditos documentários, garantias, câmbio e operações de comércio internacional. Formação especializada para profissionais da área de Trade do Santander.",
+    "getStarted": "Aceder à Plataforma",
+    "learnMore": "Conhecer Planos",
+    "featuresTitle": "Por que escolher a TradeHub?",
+    "feature1Title": "Especialização em Trade",
+    "feature1Desc": "Formações desenvolvidas por especialistas em créditos documentários, garantias bancárias e operações de comércio exterior.",
+    "feature2Title": "Certificação Interna",
+    "feature2Desc": "Certificados e badges que reconhecem competências em operações de Trade, LC, ACC e operações cambiais.",
+    "feature3Title": "Aprendizagem Prática",
+    "feature3Desc": "Estudos de caso reais, simulações de operações e desafios práticos baseados em cenários do mercado.",
+    "statsUsers": "Profissionais Formados",
+    "statsCourses": "Planos de Formação",
+    "statsCertificates": "Certificados Emitidos",
+    "journeyTitle": "Percurso de Desenvolvimento",
+    "journeyStep1": "Inscrição",
+    "journeyStep1Desc": "Aceda à plataforma e escolha seu plano de formação em Trade.",
+    "journeyStep2": "Aprendizagem",
+    "journeyStep2Desc": "Módulos especializados em LC, ACC, câmbio e garantias bancárias.",
+    "journeyStep3": "Prática",
+    "journeyStep3Desc": "Simulações de operações e estudos de caso reais do mercado.",
+    "journeyStep4": "Certificação",
+    "journeyStep4Desc": "Obtenha certificado de especialização em Trade e Comércio Exterior.",
+    "ctaTitle": "Transforme sua equipa com formação especializada",
+    "ctaSubtitle": "Profissionais mais qualificados em operações de Trade, créditos e câmbio.",
+    "faqTitle": "Perguntas Frequentes",
+    "faq1Q": "Como acedo aos planos de formação?",
+    "faq1A": "Após autenticação, terá acesso a todos os planos disponíveis. Inscreva-se nos módulos de seu interesse.",
+    "faq2Q": "Os certificados são reconhecidos internamente?",
+    "faq2A": "Sim, todos os certificados são reconhecidos pelo Santander e inclusos nos seus registos de desenvolvimento profissional.",
+    "faq3Q": "Posso fazer os planos ao meu ritmo?",
+    "faq3A": "Sim, a plataforma permite aprendizagem flexível. Você controla o seu calendário de estudo.",
+    "trainingPlansTitle": "Planos de Formação Especializados",
+    "trainingPlansSubtitle": "Escolha o plano adequado ao seu perfil profissional",
+    "viewAllPlans": "Ver Todos os Planos",
+    "planDuration": "Duração",
+    "planLevel": "Nível",
+    "planModules": "Módulos",
+    "searchPlaceholder": "Procurar plano de formação...",
+    "categories": "Áreas de Especialização",
+    "trustedBy": "Plataforma de formação do Santander para Trade e Comércio Exterior",
+    "viewCourse": "Ver Plano",
+    "bestseller": "Mais Solicitado",
+    "new": "Novo",
+    "rating": "Avaliação",
+    "explore": "Explorar",
+    "business": "Trade Finance",
+    "finance": "Operações Cambiais",
+    "technology": "Documentação",
+    "compliance": "Regulação & Compliance",
+    "marketing": "Estratégia Comercial",
+    "leadership": "Liderança de Equipas"
+  },
   "courses": {
     "title": "Cursos",
     "createNew": "Criar Novo Curso",
@@ -108,9 +165,12 @@
     "bank": "Banco",
     "product": "Produto",
     "lessons": "Lições",
-    "enroll": "Inscrever-se",
+    "enroll": "Inscrever-me",
+    "enrolling": "Inscrevendo...",
     "enrolled": "Inscrito",
-    "completionRate": "Taxa de Conclusão"
+    "enrollError": "Erro ao inscrever no curso",
+    "completionRate": "Taxa de Conclusão",
+    "createdAt": "Data de Criação"
   },
   "trainingPlan": {
     "create": "Criar Plano de Formação",
@@ -119,11 +179,20 @@
     "createFirst": "Criar Primeiro Plano",
     "myPlans": "Os Meus Planos de Formação",
     "managePlans": "Gerencie os seus planos e acompanhe o progresso",
+    "managePlansDescription": "Gerencie os seus planos e acompanhe o progresso",
+    "manageAllPlans": "Gerir todos os planos de formação da plataforma",
+    "noPlan": "Nenhum plano de formação",
+    "createFirstPlan": "Crie o primeiro plano de formação para começar",
+    "createPlan": "Criar Plano",
     "basicInfo": "Informações Básicas",
     "title": "Título",
+    "titlePlaceholder": "Ex: Plano de Formação Completo",
     "description": "Descrição",
+    "descriptionPlaceholder": "Descreva os objetivos do plano de formação...",
     "bank": "Banco",
+    "selectBank": "Selecione um banco",
     "productType": "Tipo de Produto",
+    "selectProduct": "Selecione um produto",
     "startDate": "Data de Início",
     "endDate": "Data de Fim",
     "maxStudents": "Máximo de Formandos",
@@ -137,7 +206,15 @@
     "createButton": "Criar Plano de Formação",
     "totalPlans": "Total de Planos",
     "totalStudents": "Total de Formandos",
-    "totalCapacity": "Capacidade Total"
+    "totalCapacity": "Capacidade Total",
+    "selectCourses": "Selecionar Cursos",
+    "coursesSelected": "cursos selecionados",
+    "noStudentsAvailable": "Nenhum formando disponível",
+    "studentsSelected": "formandos selecionados",
+    "selectAtLeastOneCourse": "Selecione pelo menos um curso",
+    "endDateMustBeAfterStartDate": "A data de fim deve ser posterior à data de início",
+    "createError": "Falha ao criar plano de formação",
+    "newLesson": "Nova Aula"
   },
   "lessons": {
     "title": "Lições",
@@ -196,6 +273,8 @@
     "reject": "Rejeitar",
     "manageUsers": "Gerir utilizadores e permissões",
     "manageCourses": "Gerir cursos e conteúdos",
+    "manageBanks": "Gerir bancos e instituições",
+    "manageProducts": "Gerir produtos e categorias",
     "systemConfiguration": "Configurações gerais do sistema",
     "name": "Nome",
     "status": "Estado",
@@ -208,6 +287,7 @@
       "inactive": "Inativos"
     },
     "totalUsers": "Total de Utilizadores",
+    "totalCourses": "Total de Cursos",
     "pendingApproval": "Aguardando Aprovação",
     "activeUsers": "Utilizadores Ativos",
     "totalTrainers": "Total de Formadores",
@@ -215,10 +295,17 @@
     "createFirstCourse": "Crie o primeiro curso para começar",
     "newCourse": "Novo Curso",
     "newTrainingPlan": "Novo Plano de Formação",
+    "newBank": "Novo Banco",
+    "newProduct": "Novo Produto",
+    "products": "Produtos",
     "createNewCourse": "Criar novo curso de formação",
     "createNewPlan": "Criar novo plano de formação",
+    "createNewBank": "Criar Novo Banco",
+    "createNewProduct": "Criar Novo Produto",
     "createCourse": "Criar Curso",
     "createPlan": "Criar Plano",
+    "createBank": "Criar Banco",
+    "createProduct": "Criar Produto",
     "courseCreatedSuccess": "Curso criado com sucesso!",
     "planCreatedSuccess": "Plano de formação criado com sucesso!",
     "courseTitle": "Título do Curso",
@@ -230,8 +317,17 @@
     "planDescription": "Descrição do Plano",
     "planDescriptionPlaceholder": "Descreva os objetivos e estrutura do plano...",
     "bank": "Banco",
+    "banks": "Bancos",
+    "selectBank": "Selecione um banco",
     "productType": "Tipo de Produto",
+    "selectProduct": "Selecione um produto",
     "productTypePlaceholder": "Ex: Forex, Ações, CFDs",
+    "productCode": "Código do Produto",
+    "productCodePlaceholder": "Ex: CARD001",
+    "productName": "Nome do Produto",
+    "productNamePlaceholder": "Ex: Cartões de Crédito",
+    "productDescription": "Descrição",
+    "productDescriptionPlaceholder": "Descrição do produto",
     "trainer": "Formador",
     "selectTrainer": "Selecione um formador",
     "maxStudents": "Máximo de Formandos",
@@ -271,7 +367,21 @@
     "allowSelfRegistrationDesc": "Permitir que novos utilizadores se registem no sistema",
     "maxStudentsPerCourse": "Máximo de Formandos por Curso",
     "saveSettings": "Guardar Configurações",
-    "settingsSaved": "Configurações guardadas com sucesso"
+    "settingsSaved": "Configurações guardadas com sucesso",
+    "bankCode": "Código do Banco",
+    "bankCodePlaceholder": "Ex: PT001",
+    "bankName": "Nome do Banco",
+    "bankNamePlaceholder": "Ex: Santander Portugal",
+    "country": "País",
+    "totalBanks": "Total de Bancos",
+    "activeBanks": "Bancos Ativos",
+    "totalProducts": "Total de Produtos",
+    "activeProducts": "Produtos Ativos",
+    "inactiveProducts": "Produtos Inativos",
+    "countries": "Países",
+    "noProductsRegistered": "Nenhum produto cadastrado",
+    "createFirstProduct": "Crie o primeiro produto para começar",
+    "noDescription": "Sem descrição"
   },
   "reports": {
     "title": "Relatórios e Estatísticas",
@@ -354,7 +464,45 @@
     "inProgress": "Em Progresso",
     "notStarted": "Não Iniciado",
     "avgTime": "Tempo Médio",
-    "noLessons": "Nenhuma lição disponível"
+    "noLessons": "Nenhuma lição disponível",
+    "remaining": "restantes"
+  },
+  "challenges": {
+    "title": "Desafios",
+    "createNew": "Criar Novo Desafio",
+    "selectStudent": "Selecione um estudante",
+    "fillOperationsTime": "Preencha operações e tempo",
+    "fillOperations": "Preencha as operações antes de finalizar",
+    "loadError": "Erro ao carregar desafio",
+    "loadStudentsError": "Erro ao carregar estudantes",
+    "submitError": "Erro ao submeter desafio",
+    "startError": "Erro ao iniciar",
+    "addPartError": "Erro ao adicionar parte",
+    "finalizeError": "Erro ao finalizar",
+    "createError": "Erro ao criar desafio",
+    "loadResultError": "Erro ao carregar resultado"
+  },
+  "lessons": {
+    "title": "Lições",
+    "createError": "Erro ao criar aula",
+    "fillSteps": "Preencha os passos para cadastrar a aula"
+  },
+  "errors": {
+    "loadData": "Erro ao carregar dados",
+    "selectTrainer": "Selecione um formador",
+    "createPlan": "Erro ao criar plano de formação",
+    "noBanks": "Nenhum banco encontrado",
+    "noProducts": "Nenhum produto encontrado",
+    "noTrainers": "Nenhum formador disponível",
+    "noCourses": "Nenhum curso disponível",
+    "noStudents": "Nenhum formando disponível",
+    "coursesSelected": "curso(s) selecionado(s)",
+    "studentsSelected": "formando(s) selecionado(s)"
+  },
+  "placeholders": {
+    "selectBank": "Selecione um banco",
+    "selectProduct": "Selecione um produto",
+    "selectStudent": "Selecione um estudante"
   },
   "studentReports": {
     "title": "O Meu Progresso",
@@ -390,70 +538,5 @@
     "achievements": "Conquistas",
     "noAchievements": "Nenhuma conquista ainda",
     "keepLearning": "Continue aprendendo para desbloquear conquistas!"
-  },
-  "landing": {
-    "hero": {
-      "subtitle": "Plataforma de formação profissional do Santander Digital Services. Desenvolva as suas competências com cursos práticos e certificados reconhecidos.",
-      "cta": "Começar Agora",
-      "login": "Entrar"
-    },
-    "stats": {
-      "students": "Formandos Ativos",
-      "courses": "Cursos Disponíveis",
-      "satisfaction": "Taxa de Satisfação",
-      "support": "Suporte Disponível"
-    },
-    "features": {
-      "title": "O Que Oferecemos",
-      "subtitle": "Tudo o que precisa para desenvolver as suas competências profissionais",
-      "training": {
-        "title": "Formação Especializada",
-        "description": "Cursos desenvolvidos por especialistas do setor bancário com foco em produtos e processos reais"
-      },
-      "personalized": {
-        "title": "Planos Personalizados",
-        "description": "Trilhas de aprendizagem adaptadas ao seu nível e objetivos profissionais"
-      },
-      "analytics": {
-        "title": "Análise de Desempenho",
-        "description": "Acompanhe o seu progresso com métricas detalhadas e relatórios de MPU"
-      },
-      "certificates": {
-        "title": "Certificação Oficial",
-        "description": "Certificados reconhecidos pelo Santander Digital Services ao concluir os cursos"
-      }
-    },
-    "benefits": {
-      "title": "Porque Escolher TradeHub",
-      "subtitle": "Invista no seu futuro com a plataforma de formação líder do setor",
-      "flexible": "Acesso flexível 24/7 a todos os conteúdos de formação",
-      "practical": "Exercícios práticos baseados em casos reais do dia a dia",
-      "certified": "Certificação oficial reconhecida no setor bancário",
-      "mentorship": "Acompanhamento direto com formadores experientes",
-      "community": "Comunidade ativa de formandos e partilha de conhecimento",
-      "updates": "Conteúdos atualizados constantemente com as últimas práticas"
-    },
-    "community": {
-      "students": "1000+",
-      "active": "Formandos Ativos",
-      "growth": "+25%",
-      "monthly": "Crescimento Mensal"
-    },
-    "cta": {
-      "title": "Pronto Para Começar?",
-      "subtitle": "Junte-se a centenas de profissionais que já transformaram as suas carreiras com TradeHub",
-      "button": "Criar Conta Gratuita"
-    },
-    "footer": {
-      "description": "Plataforma de formação profissional do Santander Digital Services",
-      "links": "Links Rápidos",
-      "about": "Sobre Nós",
-      "courses": "Cursos",
-      "contact": "Contacto",
-      "legal": "Legal",
-      "privacy": "Política de Privacidade",
-      "terms": "Termos de Uso",
-      "rights": "Todos os direitos reservados"
-    }
   }
 }

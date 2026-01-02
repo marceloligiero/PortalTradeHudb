@@ -58,7 +58,7 @@ const ChallengeForm: React.FC = () => {
       navigate(`/courses/${courseId}`);
     } catch (err: any) {
       console.error('Erro ao criar desafio:', err);
-      setError(err.response?.data?.detail || 'Erro ao criar desafio');
+      setError(err.response?.data?.detail || t('challenges.createError'));
     } finally {
       setLoading(false);
     }

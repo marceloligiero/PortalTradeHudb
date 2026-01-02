@@ -50,7 +50,7 @@ export default function StudentCoursesPage() {
       await fetchCourses();
     } catch (error: any) {
       console.error('Error enrolling:', error);
-      alert(error.response?.data?.detail || 'Erro ao inscrever no curso');
+      alert(error.response?.data?.detail || t('courses.enrollError'));
     } finally {
       setEnrolling(null);
     }
@@ -73,20 +73,20 @@ export default function StudentCoursesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="glass-effect-strong rounded-2xl p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between animate-slide-up hover-lift">
         <div>
-          <h1 className="text-3xl font-bold text-white">{t('navigation.myCourses')}</h1>
+          <h1 className="text-3xl font-bold text-gradient">{t('navigation.myCourses')}</h1>
           <p className="text-gray-400">{t('courses.title')}</p>
         </div>
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
-          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-2">
+          <div className="flex items-center gap-2 glass-effect border border-white/10 rounded-xl px-4 py-2 focus-within:glass-effect-strong transition-all">
             <Search className="w-4 h-4 text-gray-400" />
             <input
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder={t('courses.courseName')}
-              className="bg-transparent text-white placeholder-gray-500 text-sm focus:outline-none"
+              className="bg-transparent text-white placeholder-gray-500 text-sm focus:outline-none w-full"
             />
           </div>
           <div className="flex flex-wrap gap-2">
@@ -108,19 +108,30 @@ export default function StudentCoursesPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-400">
-          {t('messages.loading')}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="glass-effect rounded-2xl p-6 space-y-4 animate-scale-in" style={{ animationDelay: `${i * 50}ms` }}>
+              <div className="skeleton h-6 w-3/4 rounded"></div>
+              <div className="skeleton h-4 w-full rounded"></div>
+              <div className="skeleton h-4 w-5/6 rounded"></div>
+              <div className="flex gap-2 mt-4">
+                <div className="skeleton h-8 w-20 rounded"></div>
+                <div className="skeleton h-8 w-24 rounded"></div>
+              </div>
+              <div className="skeleton h-10 w-full rounded mt-4"></div>
+            </div>
+          ))}
         </div>
       ) : filteredCourses.length === 0 ? (
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-12 text-center">
-          <BookOpen className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+        <div className="glass-effect-strong rounded-2xl p-12 text-center animate-scale-in">
+          <BookOpen className="w-16 h-16 text-gray-600 mx-auto mb-4 animate-float" />
           <p className="text-gray-400">{t('dashboard.student.emptyTitle')}</p>
           <p className="text-gray-500 text-sm mt-2">{t('dashboard.student.emptyDescription')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCourses.map((course) => (
-            <div key={course.id} className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 flex flex-col gap-4">
+          {filteredCourses.map((course, index) => (
+            <div key={course.id} className="glass-effect rounded-2xl p-6 flex flex-col gap-4 hover-lift card-3d hover-glow transition-all animate-scale-in" style={{ animationDelay: `${index * 50}ms` }}>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <p className="text-xs uppercase text-gray-400 tracking-wider mb-1">{course.bank_code}</p>
@@ -144,18 +155,18 @@ export default function StudentCoursesPage() {
               <div className="mt-auto pt-4 border-t border-white/10">
                 {course.is_enrolled ? (
                   <button
-                    className="w-full px-4 py-2 bg-green-600/20 text-green-400 rounded-lg font-medium cursor-default"
+                    className="w-full px-4 py-2 glass-effect-strong text-green-400 rounded-lg font-medium cursor-default border border-green-400/30"
                     disabled
                   >
-                    ✓ Inscrito
+                    ✓ {t('courses.enrolled')}
                   </button>
                 ) : (
                   <button
                     onClick={() => handleEnroll(course.id)}
                     disabled={enrolling === course.id}
-                    className="w-full px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium hover:from-red-700 hover:to-red-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="btn-primary ripple w-full px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg font-medium hover:from-red-700 hover:to-red-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover-scale shadow-lg shadow-red-900/30"
                   >
-                    {enrolling === course.id ? 'Inscrevendo...' : 'Inscrever-me'}
+                    {enrolling === course.id ? t('courses.enrolling') : t('courses.enroll')}
                   </button>
                 )}
               </div>

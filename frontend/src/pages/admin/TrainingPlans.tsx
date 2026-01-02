@@ -64,11 +64,11 @@ export default function TrainingPlans() {
             <div className="flex items-center gap-3 mb-2">
               <GraduationCap className="w-8 h-8 text-blue-400" />
               <h1 className="text-3xl font-bold text-white">
-                Planos de Formação
+                {t('navigation.trainingPlans')}
               </h1>
             </div>
             <p className="text-slate-400">
-              Gerir todos os planos de formação da plataforma
+              {t('trainingPlan.manageAllPlans')}
             </p>
           </div>
           <button
@@ -76,7 +76,7 @@ export default function TrainingPlans() {
             className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
           >
             <Plus className="w-5 h-5" />
-            Criar Plano
+            {t('trainingPlan.createPlan')}
           </button>
         </div>
 
@@ -91,10 +91,10 @@ export default function TrainingPlans() {
           <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-12 text-center">
             <GraduationCap className="w-16 h-16 text-slate-600 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">
-              Nenhum plano de formação
+              {t('trainingPlan.noPlan')}
             </h3>
             <p className="text-slate-400 mb-6">
-              Crie o primeiro plano de formação para começar
+              {t('trainingPlan.createFirstPlan')}
             </p>
             <button
               onClick={() => navigate('/training-plan/new')}

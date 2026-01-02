@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Check, AlertCircle, TrendingUp, Target, Clock } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -15,6 +16,7 @@ interface Challenge {
 }
 
 const ChallengeExecutionSummary: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { challengeId } = useParams<{ challengeId: string }>();
   
@@ -55,7 +57,7 @@ const ChallengeExecutionSummary: React.FC = () => {
       setChallenge(response.data);
     } catch (err) {
       console.error('Erro ao carregar desafio:', err);
-      setError('Erro ao carregar desafio');
+      setError(t('challenges.loadError'));
     } finally {
       setLoading(false);
     }
@@ -101,12 +103,12 @@ const ChallengeExecutionSummary: React.FC = () => {
 
   const handleSubmit = async () => {
     if (!selectedStudentId) {
-      setError('Selecione um estudante');
+      setError(t('challenges.selectStudent'));
       return;
     }
 
     if (formData.total_operations === 0 || formData.total_time_minutes === 0) {
-      setError('Preencha operações e tempo');
+      setError(t('challenges.fillOperationsTime'));
       return;
     }
 
@@ -127,7 +129,7 @@ const ChallengeExecutionSummary: React.FC = () => {
       navigate(`/challenges/result/${response.data.id}`);
     } catch (err: any) {
       console.error('Erro ao submeter:', err);
-      setError(err.response?.data?.detail || 'Erro ao submeter desafio');
+      setError(err.response?.data?.detail || t('challenges.submitError'));
     } finally {
       setSubmitting(false);
     }
@@ -234,7 +236,7 @@ const ChallengeExecutionSummary: React.FC = () => {
               }}
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
             >
-              <option value="">Selecione um estudante</option>
+              <option value="">{t('placeholders.selectStudent')}</option>
               {students.map((student) => (
                 <option key={student.id} value={student.id}>
                   {student.full_name} ({student.email})
