@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 from .. import models, schemas
+from fastapi import Body
 from ..database import get_db
 from ..auth import get_current_user, require_role
 
@@ -93,6 +94,108 @@ async def get_challenge(
     
     return challenge
 
+
+@router.get("/{challenge_id}/eligible-students")
+async def get_eligible_students(
+    challenge_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+):
+    """Return students assigned to training plans that include the course of this challenge.
+    TRAINERs will only see students from their own plans.
+    """
+    # Fetch challenge.course_id only (avoid selecting new columns not present in DB)
+    challenge_course = db.query(models.Challenge.course_id).filter(models.Challenge.id == challenge_id).first()
+    if not challenge_course:
+        raise HTTPException(status_code=404, detail="Desafio não encontrado")
+    course_id = challenge_course[0]
+
+    # Find plans that include the course
+    plans = db.query(models.TrainingPlan).join(models.TrainingPlanCourse).filter(
+        models.TrainingPlanCourse.course_id == course_id
+    ).all()
+
+    if not plans:
+        return []
+
+    student_ids = set()
+    for plan in plans:
+        # If trainer, skip plans not owned by trainer
+        if current_user.role == 'TRAINER' and plan.trainer_id != current_user.id:
+            continue
+
+        assigns = db.query(models.TrainingPlanAssignment).filter(
+            models.TrainingPlanAssignment.training_plan_id == plan.id
+        ).all()
+        for a in assigns:
+            student_ids.add(a.user_id)
+
+    if not student_ids:
+        return []
+
+    students = db.query(models.User).filter(
+        models.User.id.in_(list(student_ids)),
+        models.User.role == 'STUDENT',
+        models.User.is_active == True
+    ).all()
+
+    result = []
+    for s in students:
+        result.append({
+            "id": s.id,
+            "full_name": s.full_name,
+            "email": s.email
+        })
+
+    return result
+
+
+@router.get("/{challenge_id}/eligible-students/debug")
+async def get_eligible_students_debug(
+    challenge_id: int,
+    db: Session = Depends(get_db),
+):
+    """Debug endpoint (no auth) — returns same as eligible-students for local debugging only."""
+    # Debug variant: fetch course_id directly
+    challenge_course = db.query(models.Challenge.course_id).filter(models.Challenge.id == challenge_id).first()
+    if not challenge_course:
+        return []
+    course_id = challenge_course[0]
+
+    plans = db.query(models.TrainingPlan).join(models.TrainingPlanCourse).filter(
+        models.TrainingPlanCourse.course_id == course_id
+    ).all()
+
+    if not plans:
+        return []
+
+    student_ids = set()
+    for plan in plans:
+        assigns = db.query(models.TrainingPlanAssignment).filter(
+            models.TrainingPlanAssignment.training_plan_id == plan.id
+        ).all()
+        for a in assigns:
+            student_ids.add(a.user_id)
+
+    if not student_ids:
+        return []
+
+    students = db.query(models.User).filter(
+        models.User.id.in_(list(student_ids)),
+        models.User.role == 'STUDENT',
+        models.User.is_active == True
+    ).all()
+
+    result = []
+    for s in students:
+        result.append({
+            "id": s.id,
+            "full_name": s.full_name,
+            "email": s.email
+        })
+
+    return result
+
 # ===== ATUALIZAR Desafio =====
 @router.put("/{challenge_id}", response_model=schemas.Challenge)
 async def update_challenge(
@@ -154,12 +257,45 @@ async def submit_challenge_summary(
     
     if not student:
         raise HTTPException(status_code=404, detail="Estudante não encontrado")
+
+    # Verificar se o estudante está atribuído a algum plano que contenha o curso do desafio
+    plans_with_course = db.query(models.TrainingPlan).join(models.TrainingPlanCourse).filter(
+        models.TrainingPlanCourse.course_id == challenge.course_id
+    ).all()
+
+    if not plans_with_course:
+        # Se o curso não está em nenhum plano, rejeitamos por segurança
+        raise HTTPException(status_code=400, detail="Curso do desafio não está associado a nenhum plano de formação")
+
+    # Verificar se existe pelo menos um plano onde o estudante esteja atribuído
+    assignment_found = False
+    for plan in plans_with_course:
+        assign = db.query(models.TrainingPlanAssignment).filter(
+            models.TrainingPlanAssignment.training_plan_id == plan.id,
+            models.TrainingPlanAssignment.user_id == submission.user_id
+        ).first()
+        if assign:
+            # Se o aplicador for TRAINER, garantir que o plan pertence ao trainer atual
+            if current_user.role == 'TRAINER' and plan.trainer_id != current_user.id:
+                # este plano não pertence ao trainer atual — ignorar e continuar procurando
+                continue
+            assignment_found = True
+            break
+
+    if not assignment_found:
+        raise HTTPException(status_code=403, detail="Estudante não está atribuído a um plano que contenha este curso ou sem permissão para aplicar")
     
     # Calcular MPU
     calculated_mpu = calculate_mpu(submission.total_operations, submission.total_time_minutes)
-    
-    # Verificar aprovação
-    is_approved, mpu_vs_target = calculate_approval(calculated_mpu, challenge.target_mpu)
+
+    # Verificar aprovação por MPU
+    is_approved_mpu, mpu_vs_target = calculate_approval(calculated_mpu, challenge.target_mpu)
+
+    # Verificar aprovação por erros (se definido)
+    max_errors = getattr(challenge, 'max_errors', 0) or 0
+    errors_ok = submission.errors_count <= max_errors
+
+    is_approved = is_approved_mpu and errors_ok
     
     # Calcular score (0-100)
     score = min(mpu_vs_target, 100.0)
@@ -172,6 +308,7 @@ async def submit_challenge_summary(
         submission_type="SUMMARY",
         total_operations=submission.total_operations,
         total_time_minutes=submission.total_time_minutes,
+        errors_count=submission.errors_count,
         started_at=now,
         completed_at=now,
         calculated_mpu=calculated_mpu,
@@ -221,6 +358,29 @@ async def start_challenge_complete(
     
     if not student:
         raise HTTPException(status_code=404, detail="Estudante não encontrado")
+
+    # Verificar se o estudante está atribuído a algum plano que contenha o curso do desafio
+    plans_with_course = db.query(models.TrainingPlan).join(models.TrainingPlanCourse).filter(
+        models.TrainingPlanCourse.course_id == challenge.course_id
+    ).all()
+
+    if not plans_with_course:
+        raise HTTPException(status_code=400, detail="Curso do desafio não está associado a nenhum plano de formação")
+
+    assignment_found = False
+    for plan in plans_with_course:
+        assign = db.query(models.TrainingPlanAssignment).filter(
+            models.TrainingPlanAssignment.training_plan_id == plan.id,
+            models.TrainingPlanAssignment.user_id == user_id
+        ).first()
+        if assign:
+            if current_user.role == 'TRAINER' and plan.trainer_id != current_user.id:
+                continue
+            assignment_found = True
+            break
+
+    if not assignment_found:
+        raise HTTPException(status_code=403, detail="Estudante não está atribuído a um plano que contenha este curso ou sem permissão para aplicar")
     
     # Verificar se já existe submission em aberto
     existing = db.query(models.ChallengeSubmission).filter(
@@ -300,6 +460,7 @@ async def add_challenge_part(
 @router.post("/submit/complete/{submission_id}/finish", response_model=schemas.ChallengeSubmissionDetail)
 async def finish_challenge_complete(
     submission_id: int,
+    finish_input: schemas.ChallengeFinishInput = Body(default=None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
 ):
@@ -341,8 +502,21 @@ async def finish_challenge_complete(
         models.Challenge.id == submission.challenge_id
     ).first()
     
-    is_approved, mpu_vs_target = calculate_approval(calculated_mpu, challenge.target_mpu)
+    # Aprovação por MPU
+    is_approved_mpu, mpu_vs_target = calculate_approval(calculated_mpu, challenge.target_mpu)
     score = min(mpu_vs_target, 100.0)
+
+    # Determine errors_count: prefer provided finish_input, else use submission.errors_count or 0
+    if finish_input and getattr(finish_input, 'errors_count', None) is not None:
+        errors_count = int(finish_input.errors_count or 0)
+    else:
+        errors_count = int(getattr(submission, 'errors_count', 0) or 0)
+
+    # Approval by errors
+    max_errors = getattr(challenge, 'max_errors', 0) or 0
+    errors_ok = errors_count <= max_errors
+
+    is_approved = is_approved_mpu and errors_ok
     
     # Atualizar submission
     submission.total_operations = total_operations
@@ -357,12 +531,57 @@ async def finish_challenge_complete(
     db.commit()
     db.refresh(submission)
     
-    # Retornar com detalhes
-    return schemas.ChallengeSubmissionDetail(
-        **submission.__dict__,
-        parts=[schemas.ChallengePart(**part.__dict__) for part in parts],
-        challenge=schemas.Challenge(**challenge.__dict__)
-    )
+    # Retornar com detalhes (construir dict explícito para evitar __dict__ issues)
+    resp = {
+        "id": submission.id,
+        "challenge_id": submission.challenge_id,
+        "user_id": submission.user_id,
+        "submission_type": submission.submission_type,
+        "total_operations": submission.total_operations,
+        "total_time_minutes": submission.total_time_minutes,
+        "started_at": submission.started_at.isoformat() if submission.started_at else None,
+        "completed_at": submission.completed_at.isoformat() if submission.completed_at else None,
+        "calculated_mpu": submission.calculated_mpu,
+        "mpu_vs_target": submission.mpu_vs_target,
+        "is_approved": submission.is_approved,
+        "score": submission.score,
+        "feedback": submission.feedback,
+        "submitted_by": submission.submitted_by,
+        "created_at": submission.created_at.isoformat() if submission.created_at else None,
+        "updated_at": submission.updated_at.isoformat() if submission.updated_at else None,
+        "parts": [
+            {
+                "id": p.id,
+                "challenge_id": p.challenge_id,
+                "submission_id": p.submission_id,
+                "part_number": p.part_number,
+                "operations_count": p.operations_count,
+                "started_at": p.started_at.isoformat() if p.started_at else None,
+                "completed_at": p.completed_at.isoformat() if p.completed_at else None,
+                "duration_minutes": p.duration_minutes,
+                "mpu": p.mpu,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+            }
+            for p in parts
+        ],
+        "challenge": {
+            "id": challenge.id,
+            "course_id": challenge.course_id,
+            "title": challenge.title,
+            "description": challenge.description,
+            "challenge_type": challenge.challenge_type,
+            "operations_required": challenge.operations_required,
+            "time_limit_minutes": challenge.time_limit_minutes,
+            "target_mpu": challenge.target_mpu,
+            "max_errors": getattr(challenge, 'max_errors', 0),
+            "created_by": getattr(challenge, 'created_by', None),
+            "is_active": challenge.is_active,
+            "created_at": challenge.created_at.isoformat() if challenge.created_at else None,
+            "updated_at": challenge.updated_at.isoformat() if challenge.updated_at else None,
+        }
+    }
+
+    return resp
 
 # ===== LISTAR Submissions de um Desafio =====
 @router.get("/{challenge_id}/submissions", response_model=List[schemas.ChallengeSubmission])
@@ -409,10 +628,65 @@ async def get_submission_detail(
     user = db.query(models.User).filter(models.User.id == submission.user_id).first()
     submitter = db.query(models.User).filter(models.User.id == submission.submitted_by).first() if submission.submitted_by else None
     
-    return schemas.ChallengeSubmissionDetail(
-        **submission.__dict__,
-        parts=[schemas.ChallengePart(**part.__dict__) for part in parts],
-        challenge=schemas.Challenge(**challenge.__dict__) if challenge else None,
-        user=schemas.UserBasic(**user.__dict__) if user else None,
-        submitter=schemas.UserBasic(**submitter.__dict__) if submitter else None
-    )
+    resp = {
+        "id": submission.id,
+        "challenge_id": submission.challenge_id,
+        "user_id": submission.user_id,
+        "submission_type": submission.submission_type,
+        "total_operations": submission.total_operations,
+        "total_time_minutes": submission.total_time_minutes,
+        "started_at": submission.started_at.isoformat() if submission.started_at else None,
+        "completed_at": submission.completed_at.isoformat() if submission.completed_at else None,
+        "calculated_mpu": submission.calculated_mpu,
+        "mpu_vs_target": submission.mpu_vs_target,
+        "is_approved": submission.is_approved,
+        "score": submission.score,
+        "feedback": submission.feedback,
+        "submitted_by": submission.submitted_by,
+        "created_at": submission.created_at.isoformat() if submission.created_at else None,
+        "updated_at": submission.updated_at.isoformat() if submission.updated_at else None,
+        "parts": [
+            {
+                "id": p.id,
+                "challenge_id": p.challenge_id,
+                "submission_id": p.submission_id,
+                "part_number": p.part_number,
+                "operations_count": p.operations_count,
+                "started_at": p.started_at.isoformat() if p.started_at else None,
+                "completed_at": p.completed_at.isoformat() if p.completed_at else None,
+                "duration_minutes": p.duration_minutes,
+                "mpu": p.mpu,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+            }
+            for p in parts
+        ],
+        "challenge": {
+            "id": challenge.id,
+            "course_id": challenge.course_id,
+            "title": challenge.title,
+            "description": challenge.description,
+            "challenge_type": challenge.challenge_type,
+            "operations_required": challenge.operations_required,
+            "time_limit_minutes": challenge.time_limit_minutes,
+            "target_mpu": challenge.target_mpu,
+            "max_errors": getattr(challenge, 'max_errors', 0) if challenge else 0,
+            "created_by": getattr(challenge, 'created_by', None) if challenge else None,
+            "is_active": challenge.is_active if challenge else None,
+            "created_at": challenge.created_at.isoformat() if challenge and challenge.created_at else None,
+            "updated_at": challenge.updated_at.isoformat() if challenge and challenge.updated_at else None,
+        } if challenge else None,
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role
+        } if user else None,
+        "submitter": {
+            "id": submitter.id,
+            "email": submitter.email,
+            "full_name": submitter.full_name,
+            "role": submitter.role
+        } if submitter else None
+    }
+
+    return resp

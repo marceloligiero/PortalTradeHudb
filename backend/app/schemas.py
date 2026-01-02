@@ -29,8 +29,7 @@ class User(UserBase):
     is_pending: bool
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 class UserWithPendingStatus(User):
     """Extended user schema that includes pending status"""
@@ -66,8 +65,7 @@ class Course(CourseBase):
     is_active: bool
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # Lesson Schemas
 class LessonBase(BaseModel):
@@ -84,8 +82,7 @@ class Lesson(LessonBase):
     course_id: int
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # Bank Schemas
 class BankBase(BaseModel):
@@ -101,8 +98,7 @@ class Bank(BankBase):
     is_active: bool
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # Product Schemas
 class ProductBase(BaseModel):
@@ -118,8 +114,7 @@ class Product(ProductBase):
     is_active: bool
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # Training Plan Schemas
 class TrainingPlanBase(BaseModel):
@@ -128,6 +123,8 @@ class TrainingPlanBase(BaseModel):
     trainer_id: int
     bank_id: Optional[int] = None
     product_id: Optional[int] = None
+    # Use string dates (ISO) for API responses to match frontend expectations
+    # Routes currently return ISO strings via .isoformat(), so keep schema as str
     start_date: Optional[str] = None
     end_date: Optional[str] = None
 
@@ -152,12 +149,14 @@ class TrainingPlan(TrainingPlanBase):
     remaining_minutes: Optional[int] = None  # Tempo restante
     progress_percentage: Optional[float] = None  # Percentual de conclusão
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 class TrainingPlanDetail(TrainingPlan):
     """Training plan with full details including courses and assignments"""
-    pass
+    courses: list[Course] = []
+    days_total: Optional[int] = None
+    days_remaining: Optional[int] = None
+    status: Optional[str] = None
 
 # Training Plan Assignment Schemas
 class AssignStudentToPlan(BaseModel):
@@ -171,8 +170,7 @@ class TrainingPlanAssignment(BaseModel):
     assigned_at: datetime
     completed_at: Optional[datetime] = None
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 class StudentAssignment(BaseModel):
     id: int
@@ -180,8 +178,7 @@ class StudentAssignment(BaseModel):
     assigned_at: datetime
     completed_at: Optional[datetime] = None
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # User Basic (for trainer listing)
 class UserBasic(BaseModel):
@@ -190,8 +187,7 @@ class UserBasic(BaseModel):
     full_name: str
     role: str
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # Challenge Schemas
 class ChallengeBase(BaseModel):
@@ -201,6 +197,7 @@ class ChallengeBase(BaseModel):
     operations_required: int  # Meta de operações
     time_limit_minutes: int  # Meta de tempo em minutos
     target_mpu: float  # Meta de MPU para aprovação
+    max_errors: int = 0  # Máximo de erros permitidos para aprovação
 
 class ChallengeCreate(ChallengeBase):
     course_id: int
@@ -212,6 +209,7 @@ class ChallengeUpdate(BaseModel):
     operations_required: Optional[int] = None
     time_limit_minutes: Optional[int] = None
     target_mpu: Optional[float] = None
+    max_errors: Optional[int] = None
     is_active: Optional[bool] = None
 
 class Challenge(ChallengeBase):
@@ -222,8 +220,23 @@ class Challenge(ChallengeBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
+
+
+# Detailed Course with lessons and challenges (placed after Challenge definition to avoid forward refs)
+class CourseDetail(BaseModel):
+    id: int
+    title: str
+    description: Optional[str] = None
+    order_index: Optional[int] = 0
+    use_custom: Optional[bool] = False
+    custom_title: Optional[str] = None
+    custom_description: Optional[str] = None
+    lessons: list[Lesson] = []
+    challenges: list[Challenge] = []
+    
+    model_config = {"from_attributes": True}
+
 
 # Challenge Part (para desafios tipo COMPLETE)
 class ChallengePartBase(BaseModel):
@@ -243,8 +256,7 @@ class ChallengePart(ChallengePartBase):
     mpu: Optional[float] = None
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # Challenge Submission Schemas
 class ChallengeSubmissionBase(BaseModel):
@@ -260,11 +272,13 @@ class ChallengeSubmissionSummary(ChallengeSubmissionBase):
     """Para desafios tipo SUMMARY - apenas totais"""
     total_operations: int
     total_time_minutes: int
+    errors_count: int = 0
 
 class ChallengeSubmissionCreate(ChallengeSubmissionBase):
     # Para ambos os tipos
     total_operations: Optional[int] = None
     total_time_minutes: Optional[int] = None
+    errors_count: Optional[int] = 0
     parts: Optional[list[ChallengePartCreate]] = []
 
 class ChallengeSubmission(ChallengeSubmissionBase):
@@ -282,8 +296,7 @@ class ChallengeSubmission(ChallengeSubmissionBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 class ChallengeSubmissionDetail(ChallengeSubmission):
     """Submission com detalhes completos incluindo partes"""
@@ -322,8 +335,11 @@ class Lesson(LessonBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
+
+# Input used to finish a COMPLETE submission (allow passing errors count)
+class ChallengeFinishInput(BaseModel):
+    errors_count: Optional[int] = 0
 
 # Course with total hours calculation
 class CourseWithHours(BaseModel):
@@ -336,5 +352,4 @@ class CourseWithHours(BaseModel):
     lesson_count: int
     challenge_count: int
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

@@ -1,4 +1,4 @@
-USE [TradeDataHub]
+USE [etldata4you]
 GO
 
 IF NOT EXISTS (SELECT * FROM users WHERE email = 'admin@tradehub.com')

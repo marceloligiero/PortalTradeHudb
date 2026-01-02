@@ -11,6 +11,7 @@ import TrainerCoursesPage from './pages/trainer/Courses';
 import TrainerStudentsPage from './pages/trainer/Students';
 import TrainingPlanForm from './pages/trainer/TrainingPlanForm';
 import TrainingPlans from './pages/trainer/TrainingPlans';
+import TrainingPlanDetail from './pages/trainer/TrainingPlanDetail';
 import TrainerReportsPage from './pages/trainer/Reports';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminUsersPage from './pages/admin/Users';
@@ -22,8 +23,10 @@ import AdminReportsPage from './pages/admin/Reports';
 import AdminSettingsPage from './pages/admin/Settings';
 import AdminBanksPage from './pages/admin/Banks';
 import AdminProductsPage from './pages/admin/Products';
+import AdminTrainerValidation from './pages/admin/TrainerValidation';
 import StudentReportsPage from './pages/student/Reports';
 import ChallengeForm from './pages/admin/ChallengeForm';
+import LessonForm from './pages/admin/LessonForm';
 import ChallengeExecutionComplete from './pages/trainer/ChallengeExecutionComplete';
 import ChallengeExecutionSummary from './pages/trainer/ChallengeExecutionSummary';
 import ChallengeResult from './pages/ChallengeResult';
@@ -66,17 +69,25 @@ function App() {
             <Route path="reports" element={<TrainerReportsPage />} />
             <Route path="challenges/:challengeId/execute/complete" element={<ChallengeExecutionComplete />} />
             <Route path="challenges/:challengeId/execute/summary" element={<ChallengeExecutionSummary />} />
+            <Route path="courses/:courseId/lessons/new" element={<LessonForm />} />
+            <Route path="training-plan/:id" element={<TrainingPlanDetail />} />
           </>
         )}
+        {/* Support direct links that include a 'trainer/' or 'admin/' prefix used in some navigation code */}
+        <Route path="trainer/training-plan/:id" element={<TrainingPlanDetail />} />
+        <Route path="training-plan/:id" element={<TrainingPlanDetail />} />
         {user?.role === 'ADMIN' && (
           <>
             <Route index element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsersPage />} />
+            <Route path="trainer-validation" element={<AdminTrainerValidation />} />
             <Route path="courses" element={<AdminCoursesPage />} />
             <Route path="course/new" element={<AdminCourseForm />} />
             <Route path="courses/:courseId/challenges/new" element={<ChallengeForm />} />
+            <Route path="courses/:courseId/lessons/new" element={<LessonForm />} />
             <Route path="training-plans" element={<AdminTrainingPlans />} />
             <Route path="training-plan/new" element={<AdminTrainingPlanForm />} />
+            <Route path="admin/training-plan/:id" element={<TrainingPlanDetail />} />
             <Route path="challenges/:challengeId/execute/complete" element={<ChallengeExecutionComplete />} />
             <Route path="challenges/:challengeId/execute/summary" element={<ChallengeExecutionSummary />} />
             <Route path="reports" element={<AdminReportsPage />} />

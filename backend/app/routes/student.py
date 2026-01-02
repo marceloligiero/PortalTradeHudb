@@ -8,16 +8,60 @@ from datetime import datetime, timedelta
 
 router = APIRouter()
 
-@router.get("/courses", response_model=List[schemas.Course])
+@router.get("/courses")
 async def get_my_courses(
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
+    """Return student's enrolled courses plus optional training plan association when the course
+    is part of a training plan assigned to the student.
+    """
+    # Get assigned training plan ids for this student
+    assigned = db.query(models.TrainingPlanAssignment).filter(
+        models.TrainingPlanAssignment.user_id == current_user.id
+    ).all()
+    assigned_plan_ids = [a.training_plan_id for a in assigned]
+
     enrollments = db.query(models.Enrollment).filter(
         models.Enrollment.user_id == current_user.id
     ).all()
-    
-    return [enrollment.course for enrollment in enrollments]
+
+    result = []
+    for enrollment in enrollments:
+        course = enrollment.course
+
+        # Build base course dict (keep fields frontend expects)
+        course_obj = {
+            "id": course.id,
+            "title": course.title,
+            "description": course.description,
+            "bank_code": course.bank.code if hasattr(course, 'bank') and course.bank else None,
+            "product_name": course.product.name if hasattr(course, 'product') and course.product else None,
+            "is_enrolled": True,
+            "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
+        }
+
+        # If the course is part of any training plan assigned to this student, attach the first one found
+        tp = None
+        if assigned_plan_ids:
+            tp_course = db.query(models.TrainingPlanCourse).filter(
+                models.TrainingPlanCourse.course_id == course.id,
+                models.TrainingPlanCourse.training_plan_id.in_(assigned_plan_ids)
+            ).first()
+            if tp_course:
+                tp_record = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == tp_course.training_plan_id).first()
+                if tp_record:
+                    tp = {
+                        "id": tp_record.id,
+                        "title": tp_record.title,
+                        "start_date": tp_record.start_date.isoformat() if tp_record.start_date else None,
+                        "end_date": tp_record.end_date.isoformat() if tp_record.end_date else None,
+                    }
+
+        course_obj["training_plan"] = tp
+        result.append(course_obj)
+
+    return result
 
 @router.post("/enroll/{course_id}")
 async def enroll_in_course(

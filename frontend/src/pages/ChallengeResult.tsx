@@ -24,6 +24,7 @@ interface ChallengeSubmissionDetail {
     operations_required: number;
     time_limit_minutes: number;
     target_mpu: number;
+    max_errors?: number;
   };
   user: {
     id: number;
@@ -153,6 +154,14 @@ const ChallengeResult: React.FC = () => {
                 }}
               />
             </div>
+          </div>
+
+          <div className="bg-white/5 backdrop-blur-lg rounded-lg border border-white/10 p-4">
+            <div className="flex items-center gap-2 text-gray-400 mb-2">
+              <span className="text-sm">Erros</span>
+            </div>
+            <p className="text-3xl font-bold text-white">{submission.errors_count ?? 0}</p>
+            <p className="text-xs text-gray-500 mt-1">Máx permitido: {submission.challenge.max_errors ?? 0}</p>
           </div>
 
           <div className="bg-white/5 backdrop-blur-lg rounded-lg border border-white/10 p-4">

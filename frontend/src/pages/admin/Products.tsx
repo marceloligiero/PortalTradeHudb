@@ -87,10 +87,10 @@ export default function ProductsPage() {
           <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-12 text-center">
             <Package className="w-16 h-16 text-gray-600 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">
-              Nenhum produto cadastrado
+              {t('admin.noProductsRegistered')}
             </h3>
             <p className="text-gray-400 mb-6">
-              Crie o primeiro produto para começar
+              {t('admin.createFirstProduct')}
             </p>
           </div>
         ) : (
@@ -109,22 +109,22 @@ export default function ProductsPage() {
                       ? 'bg-green-500/10 text-green-400' 
                       : 'bg-red-500/10 text-red-400'
                   }`}>
-                    {product.is_active ? 'Ativo' : 'Inativo'}
+                    {product.is_active ? t('common.active') : t('common.inactive')}
                   </span>
                 </div>
                 <div className="mb-2">
-                  <span className="text-xs text-gray-500">Código:</span>
+                  <span className="text-xs text-gray-500">{t('admin.productCode')}:</span>
                   <p className="text-sm font-mono text-purple-400">{product.code}</p>
                 </div>
                 <h3 className="text-lg font-bold text-white mb-2 group-hover:text-purple-400 transition-colors">
                   {product.name}
                 </h3>
                 <p className="text-gray-400 text-sm line-clamp-2">
-                  {product.description || 'Sem descrição'}
+                  {product.description || t('admin.noDescription')}
                 </p>
                 <div className="mt-4 pt-4 border-t border-white/10">
                   <p className="text-xs text-gray-500">
-                    Criado em {new Date(product.created_at).toLocaleDateString()}
+                    {t('courses.createdAt')} {new Date(product.created_at).toLocaleDateString()}
                   </p>
                 </div>
               </div>
@@ -137,19 +137,19 @@ export default function ProductsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
             <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
               <div className="text-2xl font-bold text-white">{products.length}</div>
-              <div className="text-sm text-gray-400">Total de Produtos</div>
+              <div className="text-sm text-gray-400">{t('admin.totalProducts')}</div>
             </div>
             <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
               <div className="text-2xl font-bold text-green-400">
                 {products.filter(p => p.is_active).length}
               </div>
-              <div className="text-sm text-gray-400">Produtos Ativos</div>
+              <div className="text-sm text-gray-400">{t('admin.activeProducts')}</div>
             </div>
             <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
               <div className="text-2xl font-bold text-red-400">
                 {products.filter(p => !p.is_active).length}
               </div>
-              <div className="text-sm text-gray-400">Produtos Inativos</div>
+              <div className="text-sm text-gray-400">{t('admin.inactiveProducts')}</div>
             </div>
           </div>
         )}
@@ -159,43 +159,43 @@ export default function ProductsPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-gray-800 rounded-2xl border border-white/10 p-8 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-bold text-white mb-6">Criar Novo Produto</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">{t('admin.createNewProduct')}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Código do Produto *
+                  {t('admin.productCode')} *
                 </label>
                 <input
                   type="text"
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Ex: CARD001"
+                  placeholder={t('admin.productCodePlaceholder')}
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Nome do Produto *
+                  {t('admin.productName')} *
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Ex: Cartões de Crédito"
+                  placeholder={t('admin.productNamePlaceholder')}
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Descrição
+                  {t('admin.productDescription')}
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                  placeholder="Descrição do produto"
+                  placeholder={t('admin.productDescriptionPlaceholder')}
                   rows={3}
                 />
               </div>
@@ -205,13 +205,13 @@ export default function ProductsPage() {
                   onClick={() => setShowModal(false)}
                   className="flex-1 px-4 py-3 bg-white/5 border border-white/10 text-gray-300 rounded-lg hover:bg-white/10 transition-all"
                 >
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all"
                 >
-                  Criar Produto
+                  {t('admin.createProduct')}
                 </button>
               </div>
             </form>

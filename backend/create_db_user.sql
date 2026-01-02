@@ -7,7 +7,7 @@ BEGIN
 END
 GO
 
-USE TradeDataHub;
+USE etldata4you;
 GO
 -- Create user for the login
 IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'tradehub_app')

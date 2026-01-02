@@ -1,4 +1,6 @@
 from pydantic_settings import BaseSettings
+from pathlib import Path
+
 
 class Settings(BaseSettings):
     # Database
@@ -16,7 +18,9 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     
     class Config:
-        env_file = ".env"
+        # Ensure we always load the backend .env regardless of cwd
+        env_file = str(Path(__file__).resolve().parents[1] / ".env")
         case_sensitive = True
+
 
 settings = Settings()

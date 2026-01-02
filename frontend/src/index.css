@@ -2,6 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Animações Blob */
+@keyframes blob {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Slide In */
 @keyframes slide-in {
   from {
     transform: translateX(100%);
@@ -17,58 +43,263 @@
   animation: slide-in 0.3s ease-out;
 }
 
+/* Fade In & Scale */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-in {
+  animation: fadeInScale 0.2s ease-out;
+}
+
+/* Shimmer */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite;
+}
+
+/* Gradient Shift */
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient {
+  animation: gradient-shift 3s ease infinite;
+  background-size: 200% 200%;
+}
+
+/* Pulse */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
 @layer base {
   * {
     @apply border-gray-800;
   }
   body {
-    @apply bg-black text-white;
+    @apply bg-[#0a0a0a] text-white;
   }
   html {
     scroll-behavior: smooth;
   }
 }
 
-@layer utilities {
-  .animate-fade-in {
-    animation: fadeIn 1s ease-in;
+@layer components {
+  /* Button Utilities */
+  .btn-primary {
+    @apply px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold hover:shadow-lg hover:shadow-red-600/50 transition-all duration-200;
   }
-  
-  .animate-fadeIn {
-    animation: fadeIn 0.5s ease-out;
+
+  .btn-secondary {
+    @apply px-6 py-3 rounded-xl bg-white/10 text-white font-semibold border border-white/20 hover:bg-white/20 transition-all duration-200;
   }
-  
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+
+  .btn-ghost {
+    @apply px-6 py-3 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-all duration-200;
   }
-  
+
+  /* Card Utilities */
+  .card-glass {
+    @apply rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:border-white/20 transition-all duration-300;
+  }
+
+  .card-elevated {
+    @apply rounded-2xl bg-white/10 border border-white/20 shadow-lg;
+  }
+
+  /* Text Utilities */
   .text-gradient {
     background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
-  
-  .bg-gradient-red {
-    background: linear-gradient(135deg, #dc2626 0%, #7f1d1d 100%);
+
+  .text-glow {
+    text-shadow: 0 0 20px rgba(220, 38, 38, 0.5);
   }
-  
-  .shadow-red-glow {
-    box-shadow: 0 0 20px rgba(220, 38, 38, 0.5);
-  }
-  
-  /* Glassmorphism */
+}
+
+@layer utilities {
+  /* Glass Effect */
   .glass {
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-dark {
+    background: rgba(10, 10, 10, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  /* Shadow Effects */
+  .shadow-red-glow {
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.5);
+  }
+
+  .shadow-glow {
+    box-shadow: 0 0 30px rgba(220, 38, 38, 0.3);
+  }
+
+  .shadow-inner-glow {
+    inset-shadow: 0 0 20px rgba(220, 38, 38, 0.2);
+  }
+
+  /* Border Gradient */
+  .border-gradient {
+    position: relative;
+    background: linear-gradient(#0a0a0a, #0a0a0a) padding-box;
+    border: 1px solid transparent;
+    border-image: linear-gradient(135deg, #dc2626, #991b1b) 1;
+  }
+
+  /* Floating Animation */
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  /* Bounce In */
+  .animate-bounce-in {
+    animation: bounceIn 0.5s ease-out;
+  }
+
+  @keyframes bounceIn {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+    70% {
+      transform: scale(0.9);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  /* Slide Down */
+  .animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Rotate */
+  .animate-rotate-slow {
+    animation: rotateSlow 20s linear infinite;
+  }
+
+  @keyframes rotateSlow {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Shake */
+  .animate-shake {
+    animation: shake 0.5s;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+  }
+
+  /* Scale In */
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* Slide Out */
+  .animate-slide-out {
+    animation: slideOut 0.3s ease-in;
+  }
+
+  @keyframes slideOut {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+  }
+
+  /* Glass Morphism */
+  .glass-morphism-dark {
+    background: rgba(10, 10, 10, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
   }
 }

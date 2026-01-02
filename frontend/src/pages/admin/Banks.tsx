@@ -88,11 +88,11 @@ export default function BanksPage() {
             <table className="w-full">
               <thead className="bg-white/5">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Código</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Nome</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">País</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Status</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">Data de Criação</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">{t('admin.bankCode')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">{t('admin.bankName')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">{t('admin.country')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">{t('admin.status')}</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-300">{t('courses.createdAt')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -107,7 +107,7 @@ export default function BanksPage() {
                           ? 'bg-green-500/10 text-green-400' 
                           : 'bg-red-500/10 text-red-400'
                       }`}>
-                        {bank.is_active ? 'Ativo' : 'Inativo'}
+                        {bank.is_active ? t('common.active') : t('common.inactive')}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-400">
@@ -124,19 +124,19 @@ export default function BanksPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
             <div className="text-2xl font-bold text-white">{banks.length}</div>
-            <div className="text-sm text-gray-400">Total de Bancos</div>
+            <div className="text-sm text-gray-400">{t('admin.totalBanks')}</div>
           </div>
           <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
             <div className="text-2xl font-bold text-green-400">
               {banks.filter(b => b.is_active).length}
             </div>
-            <div className="text-sm text-gray-400">Bancos Ativos</div>
+            <div className="text-sm text-gray-400">{t('admin.activeBanks')}</div>
           </div>
           <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
             <div className="text-2xl font-bold text-blue-400">
               {new Set(banks.map(b => b.country)).size}
             </div>
-            <div className="text-sm text-gray-400">Países</div>
+            <div className="text-sm text-gray-400">{t('admin.countries')}</div>
           </div>
         </div>
       </div>
@@ -145,37 +145,37 @@ export default function BanksPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-gray-800 rounded-2xl border border-white/10 p-8 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-bold text-white mb-6">Criar Novo Banco</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">{t('admin.createNewBank')}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Código do Banco *
+                  {t('admin.bankCode')} *
                 </label>
                 <input
                   type="text"
                   value={formData.code}
                   onChange={(e) => setFormData({ ...formData, code: e.target.value })}
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Ex: PT001"
+                  placeholder={t('admin.bankCodePlaceholder')}
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Nome do Banco *
+                  {t('admin.bankName')} *
                 </label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Ex: Santander Portugal"
+                  placeholder={t('admin.bankNamePlaceholder')}
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  País *
+                  {t('admin.country')} *
                 </label>
                 <select
                   value={formData.country}
@@ -196,13 +196,13 @@ export default function BanksPage() {
                   onClick={() => setShowModal(false)}
                   className="flex-1 px-4 py-3 bg-white/5 border border-white/10 text-gray-300 rounded-lg hover:bg-white/10 transition-all"
                 >
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all"
                 >
-                  Criar Banco
+                  {t('admin.createBank')}
                 </button>
               </div>
             </form>

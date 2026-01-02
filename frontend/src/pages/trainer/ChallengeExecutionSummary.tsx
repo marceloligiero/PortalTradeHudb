@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Check, AlertCircle, TrendingUp, Target, Clock } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -11,9 +12,11 @@ interface Challenge {
   operations_required: number;
   time_limit_minutes: number;
   target_mpu: number;
+  max_errors?: number;
 }
 
 const ChallengeExecutionSummary: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { challengeId } = useParams<{ challengeId: string }>();
   
@@ -28,6 +31,7 @@ const ChallengeExecutionSummary: React.FC = () => {
   const [formData, setFormData] = useState({
     total_operations: 0,
     total_time_minutes: 0,
+    errors_count: 0,
   });
 
   const [calculatedMpu, setCalculatedMpu] = useState(0);
@@ -53,7 +57,7 @@ const ChallengeExecutionSummary: React.FC = () => {
       setChallenge(response.data);
     } catch (err) {
       console.error('Erro ao carregar desafio:', err);
-      setError('Erro ao carregar desafio');
+      setError(t('challenges.loadError'));
     } finally {
       setLoading(false);
     }
@@ -61,21 +65,50 @@ const ChallengeExecutionSummary: React.FC = () => {
 
   const loadStudents = async () => {
     try {
-      const response = await api.get('/api/admin/users?role=STUDENT');
-      setStudents(response.data);
+      // Prefer endpoint that lists students eligible for this challenge
+      const resp = await api.get(`/api/challenges/${challengeId}/eligible-students`);
+      const remote = resp.data ?? [];
+      const mapped = (Array.isArray(remote) ? remote : []).map((s: any) => ({
+        id: s.id,
+        full_name: s.full_name || s.name || s.fullName || s.full_name || s.name,
+        email: s.email,
+      }));
+
+      if (mapped.length > 0) {
+        setStudents(mapped);
+        return;
+      }
+
+      // Fallbacks: trainer report then admin students
+      try {
+        const respTrainer = await api.get('/api/trainer/reports/students');
+        const remoteT = respTrainer.data ?? [];
+        const mappedT = (Array.isArray(remoteT) ? remoteT : []).map((s: any) => ({ id: s.id, full_name: s.full_name || s.name || s.fullName || s.name, email: s.email }));
+        if (mappedT.length > 0) { setStudents(mappedT); return; }
+      } catch (e) { /* ignore */ }
+
+      try {
+        const respAdmin = await api.get('/api/admin/students');
+        const remoteAdmin = respAdmin.data ?? [];
+        const mappedAdmin = (Array.isArray(remoteAdmin) ? remoteAdmin : []).map((s: any) => ({ id: s.id, full_name: s.full_name || s.name || s.full_name || s.fullName || s.name, email: s.email }));
+        setStudents(mappedAdmin);
+      } catch (e) {
+        setStudents([]);
+      }
     } catch (err) {
       console.error('Erro ao carregar estudantes:', err);
+      setStudents([]);
     }
   };
 
   const handleSubmit = async () => {
     if (!selectedStudentId) {
-      setError('Selecione um estudante');
+      setError(t('challenges.selectStudent'));
       return;
     }
 
     if (formData.total_operations === 0 || formData.total_time_minutes === 0) {
-      setError('Preencha operações e tempo');
+      setError(t('challenges.fillOperationsTime'));
       return;
     }
 
@@ -89,13 +122,14 @@ const ChallengeExecutionSummary: React.FC = () => {
         submission_type: 'SUMMARY',
         total_operations: formData.total_operations,
         total_time_minutes: formData.total_time_minutes,
+        errors_count: formData.errors_count || 0,
       });
 
       // Redirecionar para página de resultados
       navigate(`/challenges/result/${response.data.id}`);
     } catch (err: any) {
       console.error('Erro ao submeter:', err);
-      setError(err.response?.data?.detail || 'Erro ao submeter desafio');
+      setError(err.response?.data?.detail || t('challenges.submitError'));
     } finally {
       setSubmitting(false);
     }
@@ -104,7 +138,9 @@ const ChallengeExecutionSummary: React.FC = () => {
   const getApprovalStatus = () => {
     if (!challenge || calculatedMpu === 0) return null;
     
-    const isApproved = calculatedMpu >= challenge.target_mpu;
+    const isMpuOk = calculatedMpu >= challenge.target_mpu;
+    const errorsOk = (formData.errors_count || 0) <= (challenge.max_errors ?? 0);
+    const isApproved = isMpuOk && errorsOk;
     const percentage = (calculatedMpu / challenge.target_mpu) * 100;
 
     return { isApproved, percentage };
@@ -145,8 +181,11 @@ const ChallengeExecutionSummary: React.FC = () => {
             {challenge.title}
           </h1>
           <p className="text-gray-400 mt-2">{challenge.description}</p>
-          <div className="inline-block mt-3 px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full">
-            <span className="text-sm text-yellow-500 font-medium">Desafio Resumido</span>
+          <div className="mt-3 flex items-center gap-3">
+            <div className="inline-block px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full">
+              <span className="text-sm text-yellow-500 font-medium">Desafio Resumido</span>
+            </div>
+            <div className="inline-block px-3 py-1 bg-white/5 border border-white/10 rounded-full text-sm text-gray-200">Máx. erros: {typeof challenge.max_errors !== 'undefined' ? challenge.max_errors : 0}</div>
           </div>
           
           {/* Metas */}
@@ -190,11 +229,14 @@ const ChallengeExecutionSummary: React.FC = () => {
               Estudante *
             </label>
             <select
-              value={selectedStudentId || ''}
-              onChange={(e) => setSelectedStudentId(parseInt(e.target.value))}
+              value={selectedStudentId ?? ''}
+              onChange={(e) => {
+                const v = e.target.value;
+                setSelectedStudentId(v ? parseInt(v, 10) : null);
+              }}
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
             >
-              <option value="">Selecione um estudante</option>
+              <option value="">{t('placeholders.selectStudent')}</option>
               {students.map((student) => (
                 <option key={student.id} value={student.id}>
                   {student.full_name} ({student.email})
@@ -280,6 +322,21 @@ const ChallengeExecutionSummary: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Erros cometidos */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Erros cometidos pelo aluno
+            </label>
+            <input
+              type="number"
+              value={formData.errors_count}
+              onChange={(e) => setFormData({ ...formData, errors_count: parseInt(e.target.value || '0') })}
+              min="0"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">Máximo permitido: {challenge.max_errors ?? 0} erros</p>
+          </div>
 
           {/* Botão Submeter */}
           <div className="flex gap-4">
