@@ -163,13 +163,13 @@ const TrainerValidation = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
+    <div className="space-y-6">
       {/* Header Section */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative overflow-hidden bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-2xl mx-4 mt-4 mb-8"
+        className="relative overflow-hidden bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-2xl"
       >
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
@@ -279,7 +279,7 @@ const TrainerValidation = () => {
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            className="mx-4 mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3"
+            className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3"
           >
             <div className="p-2 bg-red-100 rounded-full">
               <AlertCircle className="w-5 h-5 text-red-600" />
@@ -293,7 +293,7 @@ const TrainerValidation = () => {
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            className="mx-4 mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3"
+            className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3"
           >
             <div className="p-2 bg-green-100 rounded-full">
               <CheckCircle className="w-5 h-5 text-green-600" />
@@ -304,12 +304,12 @@ const TrainerValidation = () => {
       </AnimatePresence>
 
       {/* Content */}
-      <div className="px-4 pb-8">
+      <div>
         {pendingTrainers.length === 0 ? (
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center"
+            className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center"
           >
             <motion.div
               animate={{ y: [0, -10, 0] }}
