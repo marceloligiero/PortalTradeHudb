@@ -412,8 +412,67 @@ const DeactivateConfirmContent = ({ user, onConfirm, onClose, processing }: { us
   );
 };
 
+// Reactivate Confirmation Modal Content
+const ReactivateConfirmContent = ({ user, onConfirm, onClose, processing }: { user: User | null; onConfirm: () => void; onClose: () => void; processing: boolean }) => {
+  if (!user) return null;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col items-center text-center">
+        <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
+          <UserCheck className="w-8 h-8 text-green-400" />
+        </div>
+        <h3 className="text-lg font-semibold text-white mb-2">Reativar Utilizador</h3>
+        <p className="text-gray-400">
+          Tem a certeza que pretende reativar o utilizador <span className="text-white font-medium">{user.full_name}</span>?
+        </p>
+        <p className="text-sm text-green-400 mt-2">O utilizador poderá aceder novamente à plataforma.</p>
+      </div>
+
+      <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white font-bold">
+            {user.full_name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className="text-white font-medium">{user.full_name}</p>
+            <p className="text-sm text-gray-400">{user.email}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          onClick={onClose}
+          className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all border border-white/10"
+          disabled={processing}
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={onConfirm}
+          disabled={processing}
+          className="flex-1 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {processing ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              A reativar...
+            </>
+          ) : (
+            <>
+              <UserCheck className="w-4 h-4" />
+              Reativar
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 // User Row Component
-const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivate }: any) => {
+const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivate, onReactivate }: any) => {
   const [showActions, setShowActions] = useState(false);
   const actionsRef = useRef<HTMLDivElement>(null);
 
@@ -547,13 +606,23 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
                       <Edit3 className="w-4 h-4" />
                       Editar
                     </button>
-                    <button 
-                      onClick={() => { onDeactivate(user); setShowActions(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300 transition-all"
-                    >
-                      <UserX className="w-4 h-4" />
-                      Inativar
-                    </button>
+                    {user.is_active ? (
+                      <button 
+                        onClick={() => { onDeactivate(user); setShowActions(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300 transition-all"
+                      >
+                        <UserX className="w-4 h-4" />
+                        Inativar
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => { onReactivate(user); setShowActions(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-green-400 hover:bg-green-500/10 hover:text-green-300 transition-all"
+                      >
+                        <UserCheck className="w-4 h-4" />
+                        Reativar
+                      </button>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -576,6 +645,7 @@ export default function UsersPage() {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deactivateModalOpen, setDeactivateModalOpen] = useState(false);
+  const [reactivateModalOpen, setReactivateModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [saving, setSaving] = useState(false);
@@ -659,6 +729,25 @@ export default function UsersPage() {
       fetchUsers();
     } catch (error) {
       console.error('Error deactivating user:', error);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleReactivateUser = (user: User) => {
+    setSelectedUser(user);
+    setReactivateModalOpen(true);
+  };
+
+  const handleConfirmReactivate = async () => {
+    if (!selectedUser) return;
+    setProcessing(true);
+    try {
+      await api.put(`/api/admin/users/${selectedUser.id}`, { is_active: true });
+      setReactivateModalOpen(false);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error reactivating user:', error);
     } finally {
       setProcessing(false);
     }
@@ -811,6 +900,7 @@ export default function UsersPage() {
                       onView={handleViewUser}
                       onEdit={handleEditUser}
                       onDeactivate={handleDeactivateUser}
+                      onReactivate={handleReactivateUser}
                     />
                   ))
                 )}
@@ -842,6 +932,10 @@ export default function UsersPage() {
 
       <Modal isOpen={deactivateModalOpen} onClose={() => setDeactivateModalOpen(false)} title="Confirmar Desativação">
         <DeactivateConfirmContent user={selectedUser} onConfirm={handleConfirmDeactivate} onClose={() => setDeactivateModalOpen(false)} processing={processing} />
+      </Modal>
+
+      <Modal isOpen={reactivateModalOpen} onClose={() => setReactivateModalOpen(false)} title="Confirmar Reativação">
+        <ReactivateConfirmContent user={selectedUser} onConfirm={handleConfirmReactivate} onClose={() => setReactivateModalOpen(false)} processing={processing} />
       </Modal>
     </div>
   );
