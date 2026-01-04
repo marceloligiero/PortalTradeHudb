@@ -200,6 +200,28 @@ async def delete_user(
         details=f"Deleted user: {db_user.email}"
     )
     
+    # Delete related records first (cascade delete)
+    # Get user's enrollments
+    user_enrollments = db.query(models.Enrollment).filter(models.Enrollment.user_id == user_id).all()
+    enrollment_ids = [e.id for e in user_enrollments]
+    
+    # Delete lesson progress for user's enrollments
+    if enrollment_ids:
+        db.query(models.LessonProgress).filter(models.LessonProgress.enrollment_id.in_(enrollment_ids)).delete(synchronize_session=False)
+    
+    # Delete enrollments
+    db.query(models.Enrollment).filter(models.Enrollment.user_id == user_id).delete(synchronize_session=False)
+    
+    # Delete certificates
+    db.query(models.Certificate).filter(models.Certificate.user_id == user_id).delete(synchronize_session=False)
+    
+    # Delete challenge submissions
+    db.query(models.ChallengeSubmission).filter(models.ChallengeSubmission.submitted_by == user_id).delete(synchronize_session=False)
+    
+    # Delete training plan assignments
+    db.query(models.TrainingPlanAssignment).filter(models.TrainingPlanAssignment.user_id == user_id).delete(synchronize_session=False)
+    
+    # Now delete the user
     db.delete(db_user)
     db.commit()
     
