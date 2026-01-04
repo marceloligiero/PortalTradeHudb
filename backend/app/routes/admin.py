@@ -319,7 +319,7 @@ async def list_all_students(
 ) -> List[Dict[str, Any]]:
     """List all active students for dropdowns"""
     students = db.query(models.User).filter(
-        models.User.role == "STUDENT",
+        models.User.role == "TRAINEE",
         models.User.is_active == True
     ).all()
     return [{"id": s.id, "email": s.email, "full_name": s.full_name} for s in students]
