@@ -120,19 +120,24 @@ async def get_user(
         models.Certificate.user_id == user_id
     ).count()
     
-    # Get lesson progress
+    # Get user's enrollment IDs
+    user_enrollment_ids = db.query(models.Enrollment.id).filter(
+        models.Enrollment.user_id == user_id
+    ).subquery()
+    
+    # Get lesson progress through enrollments
     completed_lessons = db.query(models.LessonProgress).filter(
-        models.LessonProgress.user_id == user_id,
-        models.LessonProgress.completed == True
+        models.LessonProgress.enrollment_id.in_(user_enrollment_ids),
+        models.LessonProgress.status == "COMPLETED"
     ).count()
     
     total_lessons = db.query(models.LessonProgress).filter(
-        models.LessonProgress.user_id == user_id
+        models.LessonProgress.enrollment_id.in_(user_enrollment_ids)
     ).count()
     
-    # Get total study time
-    total_study_time = db.query(func.sum(models.LessonProgress.time_spent)).filter(
-        models.LessonProgress.user_id == user_id
+    # Get total study time (actual_time_minutes)
+    total_study_time = db.query(func.sum(models.LessonProgress.actual_time_minutes)).filter(
+        models.LessonProgress.enrollment_id.in_(user_enrollment_ids)
     ).scalar() or 0
     
     return {
