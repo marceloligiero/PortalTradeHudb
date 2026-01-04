@@ -27,10 +27,8 @@ const getBaseURL = () => {
     return `${protocol}//${hostname}:${envPort}/api`;
   }
 
-  // fallback: default to port 8000 on the same host (API prefix)
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  return `${protocol}//${hostname}:8000/api`;
+  // fallback: use relative path (works with Nginx proxy)
+  return '/api';
 };
 
 const api = axios.create({
