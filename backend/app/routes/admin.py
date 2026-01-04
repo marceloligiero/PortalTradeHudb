@@ -460,6 +460,136 @@ async def delete_admin_course(
     db.commit()
     return None
 
+# Lesson Detail endpoint
+@router.get("/courses/{course_id}/lessons/{lesson_id}")
+async def get_admin_lesson(
+    course_id: int,
+    lesson_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    """Get lesson details"""
+    lesson = db.query(models.Lesson).filter(
+        models.Lesson.id == lesson_id,
+        models.Lesson.course_id == course_id
+    ).first()
+    
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    
+    return {
+        "id": lesson.id,
+        "course_id": lesson.course_id,
+        "course_title": course.title if course else None,
+        "title": lesson.title,
+        "description": lesson.description,
+        "content": lesson.content,
+        "lesson_type": lesson.lesson_type,
+        "order_index": lesson.order_index,
+        "estimated_minutes": lesson.estimated_minutes,
+        "video_url": lesson.video_url,
+        "materials_url": lesson.materials_url,
+        "created_at": lesson.created_at.isoformat() if lesson.created_at else None,
+        "updated_at": lesson.updated_at.isoformat() if lesson.updated_at else None
+    }
+
+@router.delete("/courses/{course_id}/lessons/{lesson_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_admin_lesson(
+    course_id: int,
+    lesson_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    """Delete a lesson"""
+    lesson = db.query(models.Lesson).filter(
+        models.Lesson.id == lesson_id,
+        models.Lesson.course_id == course_id
+    ).first()
+    
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    
+    db.delete(lesson)
+    db.commit()
+    return None
+
+# Challenge Detail endpoint
+@router.get("/courses/{course_id}/challenges/{challenge_id}")
+async def get_admin_challenge(
+    course_id: int,
+    challenge_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    """Get challenge details with stats"""
+    challenge = db.query(models.Challenge).filter(
+        models.Challenge.id == challenge_id,
+        models.Challenge.course_id == course_id
+    ).first()
+    
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+    
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    
+    # Get submission stats
+    total_submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id == challenge_id
+    ).count()
+    
+    from sqlalchemy import func as sql_func
+    avg_score_result = db.query(sql_func.avg(models.ChallengeSubmission.final_mpu)).filter(
+        models.ChallengeSubmission.challenge_id == challenge_id
+    ).scalar()
+    
+    passed_submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id == challenge_id,
+        models.ChallengeSubmission.passed == True
+    ).count()
+    
+    completion_rate = (passed_submissions / total_submissions * 100) if total_submissions > 0 else 0
+    
+    return {
+        "id": challenge.id,
+        "course_id": challenge.course_id,
+        "course_title": course.title if course else None,
+        "title": challenge.title,
+        "description": challenge.description,
+        "challenge_type": challenge.challenge_type,
+        "operations_required": challenge.operations_required,
+        "time_limit_minutes": challenge.time_limit_minutes,
+        "target_mpu": challenge.target_mpu,
+        "max_errors": challenge.max_errors,
+        "is_active": challenge.is_active,
+        "created_at": challenge.created_at.isoformat() if challenge.created_at else None,
+        "updated_at": challenge.updated_at.isoformat() if challenge.updated_at else None,
+        "total_submissions": total_submissions,
+        "avg_score": avg_score_result or 0,
+        "completion_rate": completion_rate
+    }
+
+@router.delete("/courses/{course_id}/challenges/{challenge_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_admin_challenge(
+    course_id: int,
+    challenge_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    """Delete a challenge"""
+    challenge = db.query(models.Challenge).filter(
+        models.Challenge.id == challenge_id,
+        models.Challenge.course_id == course_id
+    ).first()
+    
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+    
+    db.delete(challenge)
+    db.commit()
+    return None
+
 @router.post("/courses", response_model=schemas.Course, status_code=status.HTTP_201_CREATED)
 async def create_admin_course(
     course: schemas.CourseCreate,

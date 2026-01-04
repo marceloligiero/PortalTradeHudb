@@ -451,7 +451,8 @@ export default function CourseDetail() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow"
+                    onClick={() => navigate(`/courses/${course.id}/lessons/${lesson.id}`)}
+                    className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center text-green-600 font-semibold">
@@ -470,9 +471,7 @@ export default function CourseDetail() {
                           {lesson.content_type}
                         </span>
                       </div>
-                      <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                        <ChevronRight className="w-5 h-5 text-gray-400" />
-                      </button>
+                      <ChevronRight className="w-5 h-5 text-gray-400" />
                     </div>
                   </motion.div>
                 ))}
@@ -515,7 +514,8 @@ export default function CourseDetail() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow"
+                    onClick={() => navigate(`/courses/${course.id}/challenges/${challenge.id}`)}
+                    className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -538,10 +538,10 @@ export default function CourseDetail() {
                           {challenge.max_score} pts
                         </span>
                       </div>
-                      <button className="text-red-600 hover:text-red-700 font-medium flex items-center gap-1">
+                      <span className="text-red-600 font-medium flex items-center gap-1">
                         <Play className="w-4 h-4" />
                         {t('common.view')}
-                      </button>
+                      </span>
                     </div>
                   </motion.div>
                 ))}

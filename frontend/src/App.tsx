@@ -28,6 +28,8 @@ import AdminTrainerValidation from './pages/admin/TrainerValidation';
 import StudentReportsPage from './pages/student/Reports';
 import ChallengeForm from './pages/admin/ChallengeForm';
 import LessonForm from './pages/admin/LessonForm';
+import LessonDetail from './pages/admin/LessonDetail';
+import ChallengeDetail from './pages/admin/ChallengeDetail';
 import ChallengeExecutionComplete from './pages/trainer/ChallengeExecutionComplete';
 import ChallengeExecutionSummary from './pages/trainer/ChallengeExecutionSummary';
 import ChallengeResult from './pages/ChallengeResult';
@@ -86,7 +88,9 @@ function App() {
             <Route path="courses/:courseId" element={<AdminCourseDetail />} />
             <Route path="course/new" element={<AdminCourseForm />} />
             <Route path="courses/:courseId/challenges/new" element={<ChallengeForm />} />
+            <Route path="courses/:courseId/challenges/:challengeId" element={<ChallengeDetail />} />
             <Route path="courses/:courseId/lessons/new" element={<LessonForm />} />
+            <Route path="courses/:courseId/lessons/:lessonId" element={<LessonDetail />} />
             <Route path="training-plans" element={<AdminTrainingPlans />} />
             <Route path="training-plan/new" element={<AdminTrainingPlanForm />} />
             <Route path="admin/training-plan/:id" element={<TrainingPlanDetail />} />
