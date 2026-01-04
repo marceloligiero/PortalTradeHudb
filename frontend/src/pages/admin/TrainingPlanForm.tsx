@@ -651,7 +651,7 @@ export default function AdminTrainingPlanForm() {
                 )}
               </div>
             </div>
-          )}}
+          )}
 
           {/* Step 5: Review */}
           {currentStep === 5 && (
