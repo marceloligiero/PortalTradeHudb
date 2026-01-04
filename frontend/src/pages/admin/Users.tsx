@@ -30,7 +30,7 @@ interface User {
   id: number;
   email: string;
   full_name: string;
-  role: 'STUDENT' | 'TRAINER' | 'ADMIN';
+  role: 'TRAINEE' | 'TRAINER' | 'ADMIN';
   is_active: boolean;
   is_pending: boolean;
   created_at: string;
