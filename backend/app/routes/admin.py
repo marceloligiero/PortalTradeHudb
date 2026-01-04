@@ -437,8 +437,8 @@ async def get_admin_course(
                 "title": c.title,
                 "description": c.description,
                 "challenge_type": c.challenge_type,
-                "difficulty": c.difficulty,
-                "max_score": c.max_score,
+                "difficulty": "medium",  # Not in model, using default
+                "max_score": c.operations_required,
                 "time_limit_minutes": c.time_limit_minutes
             } for c in challenges
         ]
