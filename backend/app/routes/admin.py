@@ -374,6 +374,92 @@ async def list_admin_courses(
     
     return courses_list
 
+@router.get("/courses/{course_id}")
+async def get_admin_course(
+    course_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    """Get course details with lessons and challenges"""
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Get trainer info
+    trainer = db.query(models.User).filter(models.User.id == course.trainer_id).first() if course.trainer_id else None
+    
+    # Get bank info
+    bank = db.query(models.Bank).filter(models.Bank.id == course.bank_id).first() if course.bank_id else None
+    
+    # Get product info  
+    product = db.query(models.Product).filter(models.Product.id == course.product_id).first() if course.product_id else None
+    
+    # Get lessons
+    lessons = db.query(models.Lesson).filter(models.Lesson.course_id == course_id).order_by(models.Lesson.order_index).all()
+    
+    # Get challenges
+    challenges = db.query(models.Challenge).filter(models.Challenge.course_id == course_id).all()
+    
+    # Count enrolled students
+    total_students = db.query(models.Enrollment).filter(models.Enrollment.course_id == course_id).count()
+    
+    return {
+        "id": course.id,
+        "title": course.title,
+        "description": course.description,
+        "bank_id": course.bank_id,
+        "bank_code": bank.code if bank else None,
+        "bank_name": bank.name if bank else None,
+        "product_id": course.product_id,
+        "product_code": product.code if product else None,
+        "product_name": product.name if product else None,
+        "trainer_id": course.trainer_id,
+        "trainer_name": trainer.full_name if trainer else None,
+        "total_students": total_students,
+        "total_lessons": len(lessons),
+        "total_challenges": len(challenges),
+        "created_at": course.created_at.isoformat() if course.created_at else None,
+        "updated_at": course.updated_at.isoformat() if course.updated_at else None,
+        "lessons": [
+            {
+                "id": l.id,
+                "title": l.title,
+                "description": l.description,
+                "content_type": l.content_type,
+                "duration_minutes": l.duration_minutes,
+                "order_index": l.order_index
+            } for l in lessons
+        ],
+        "challenges": [
+            {
+                "id": c.id,
+                "title": c.title,
+                "description": c.description,
+                "challenge_type": c.challenge_type,
+                "difficulty": c.difficulty,
+                "max_score": c.max_score,
+                "time_limit_minutes": c.time_limit_minutes
+            } for c in challenges
+        ]
+    }
+
+@router.delete("/courses/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_admin_course(
+    course_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    """Delete a course"""
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    db.delete(course)
+    db.commit()
+    return None
+
 @router.post("/courses", response_model=schemas.Course, status_code=status.HTTP_201_CREATED)
 async def create_admin_course(
     course: schemas.CourseCreate,

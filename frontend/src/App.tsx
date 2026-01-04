@@ -17,6 +17,7 @@ import AdminDashboard from './pages/admin/Dashboard';
 import AdminUsersPage from './pages/admin/Users';
 import AdminCoursesPage from './pages/admin/Courses';
 import AdminCourseForm from './pages/admin/CourseForm';
+import AdminCourseDetail from './pages/admin/CourseDetail';
 import AdminTrainingPlanForm from './pages/admin/TrainingPlanForm';
 import AdminTrainingPlans from './pages/admin/TrainingPlans';
 import AdminReportsPage from './pages/admin/Reports';
@@ -82,6 +83,7 @@ function App() {
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="trainer-validation" element={<AdminTrainerValidation />} />
             <Route path="courses" element={<AdminCoursesPage />} />
+            <Route path="courses/:courseId" element={<AdminCourseDetail />} />
             <Route path="course/new" element={<AdminCourseForm />} />
             <Route path="courses/:courseId/challenges/new" element={<ChallengeForm />} />
             <Route path="courses/:courseId/lessons/new" element={<LessonForm />} />
