@@ -63,15 +63,6 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
-
-      {/* Decorative Sidebar Element */}
-      <div className="absolute bottom-10 left-6 right-6 p-6 rounded-[24px] bg-gradient-to-br from-red-600/10 to-transparent border border-white/5">
-        <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-red-600/20">
-          <GraduationCap className="w-6 h-6 text-white" />
-        </div>
-        <p className="text-xs font-black text-white uppercase tracking-widest mb-1">TradeHub Pro</p>
-        <p className="text-[10px] text-gray-500 font-bold">Acesso Premium Ativo</p>
-      </div>
     </aside>
   );
 }
