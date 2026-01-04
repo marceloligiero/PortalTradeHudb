@@ -15,32 +15,18 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          password: ${{ secrets.VPS_PASSWORD }}
+          key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /var/www/tradehub
             
             # Pull latest changes
             git pull origin main
             
-            # Update backend
-            cd backend
-            source .venv/bin/activate
-            pip install -r requirements.txt
+            # Rebuild and restart Docker containers
+            docker compose up -d --build
             
-            # Update frontend
-            cd ../frontend
+            # Show container status
+            docker compose ps
             
-            # Ensure .env exists with correct API config
-            echo "VITE_API_BASE_URL=/api" > .env
-            
-            npm install
-            npm run build
-            
-            # Fix any hardcoded URLs in build
-            sed -i 's|http://72.60.188.172/api|/api|g' dist/assets/*.js 2>/dev/null || true
-            
-            # Restart services
-            pm2 restart tradehub-backend
-            sudo systemctl reload nginx
-            
-            echo "✅ Deploy completed successfully!"
+            echo "✅ Deploy completed successfully at $(date)!"
+
