@@ -99,6 +99,60 @@ async def create_user(
     
     return db_user
 
+@router.get("/users/{user_id}")
+async def get_user(
+    user_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    """Get detailed information about a specific user"""
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Get enrollments count
+    enrollments_count = db.query(models.Enrollment).filter(
+        models.Enrollment.user_id == user_id
+    ).count()
+    
+    # Get certificates count
+    certificates_count = db.query(models.Certificate).filter(
+        models.Certificate.user_id == user_id
+    ).count()
+    
+    # Get lesson progress
+    completed_lessons = db.query(models.LessonProgress).filter(
+        models.LessonProgress.user_id == user_id,
+        models.LessonProgress.completed == True
+    ).count()
+    
+    total_lessons = db.query(models.LessonProgress).filter(
+        models.LessonProgress.user_id == user_id
+    ).count()
+    
+    # Get total study time
+    total_study_time = db.query(func.sum(models.LessonProgress.time_spent)).filter(
+        models.LessonProgress.user_id == user_id
+    ).scalar() or 0
+    
+    return {
+        "id": db_user.id,
+        "email": db_user.email,
+        "full_name": db_user.full_name,
+        "role": db_user.role,
+        "is_active": db_user.is_active,
+        "is_pending": db_user.is_pending,
+        "created_at": db_user.created_at.isoformat() if db_user.created_at else None,
+        "stats": {
+            "enrollments_count": enrollments_count,
+            "certificates_count": certificates_count,
+            "completed_lessons": completed_lessons,
+            "total_lessons": total_lessons,
+            "total_study_time_minutes": total_study_time,
+            "completion_rate": round((completed_lessons / total_lessons * 100) if total_lessons > 0 else 0, 1)
+        }
+    }
+
 @router.put("/users/{user_id}", response_model=schemas.User)
 async def update_user(
     user_id: int,

@@ -15,14 +15,19 @@ import {
   Briefcase,
   ChevronDown,
   Sparkles,
-  TrendingUp,
   AlertCircle,
   CheckCircle2,
   XCircle,
   Eye,
   Edit3,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  X,
+  Save,
+  Award,
+  BookOpen,
+  Timer,
+  Target
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -34,6 +39,17 @@ interface User {
   is_active: boolean;
   is_pending: boolean;
   created_at: string;
+}
+
+interface UserDetails extends User {
+  stats: {
+    enrollments_count: number;
+    certificates_count: number;
+    completed_lessons: number;
+    total_lessons: number;
+    total_study_time_minutes: number;
+    completion_rate: number;
+  };
 }
 
 // Animated Counter Component
@@ -93,8 +109,325 @@ const StatCard = ({ icon: Icon, label, value, color, delay = 0 }: any) => (
   </motion.div>
 );
 
-// User Row Component with animations
-const UserRow = ({ user, index, onApprove, onReject, t }: any) => {
+// Modal Base Component
+const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }) => (
+  <AnimatePresence>
+    {isOpen && (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className="bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+            <h2 className="text-xl font-semibold text-white">{title}</h2>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+            >
+              <X className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
+          <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+            {children}
+          </div>
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
+// User Details Modal Content
+const UserDetailsContent = ({ user, onClose }: { user: UserDetails | null; onClose: () => void }) => {
+  if (!user) return <div className="text-center py-8 text-gray-400">A carregar...</div>;
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'ADMIN': return 'Administrador';
+      case 'TRAINER': return 'Formador';
+      default: return 'Formando';
+    }
+  };
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('pt-PT', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  const formatTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white text-2xl font-bold">
+          {user.full_name.charAt(0).toUpperCase()}
+        </div>
+        <div>
+          <h3 className="text-xl font-semibold text-white">{user.full_name}</h3>
+          <p className="text-gray-400">{user.email}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+              user.role === 'ADMIN' ? 'bg-purple-500/20 text-purple-300' :
+              user.role === 'TRAINER' ? 'bg-blue-500/20 text-blue-300' :
+              'bg-green-500/20 text-green-300'
+            }`}>
+              {getRoleLabel(user.role)}
+            </span>
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+              user.is_pending ? 'bg-yellow-500/20 text-yellow-300' :
+              user.is_active ? 'bg-emerald-500/20 text-emerald-300' :
+              'bg-red-500/20 text-red-300'
+            }`}>
+              {user.is_pending ? 'Pendente' : user.is_active ? 'Ativo' : 'Inativo'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+          <div className="flex items-center gap-2 mb-2">
+            <BookOpen className="w-4 h-4 text-blue-400" />
+            <span className="text-xs text-gray-400">Inscrições</span>
+          </div>
+          <p className="text-2xl font-bold text-white">{user.stats.enrollments_count}</p>
+        </div>
+        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+          <div className="flex items-center gap-2 mb-2">
+            <Award className="w-4 h-4 text-yellow-400" />
+            <span className="text-xs text-gray-400">Certificados</span>
+          </div>
+          <p className="text-2xl font-bold text-white">{user.stats.certificates_count}</p>
+        </div>
+        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+          <div className="flex items-center gap-2 mb-2">
+            <Target className="w-4 h-4 text-green-400" />
+            <span className="text-xs text-gray-400">Progresso</span>
+          </div>
+          <p className="text-2xl font-bold text-white">{user.stats.completion_rate}%</p>
+          <p className="text-xs text-gray-500">{user.stats.completed_lessons}/{user.stats.total_lessons} lições</p>
+        </div>
+        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+          <div className="flex items-center gap-2 mb-2">
+            <Timer className="w-4 h-4 text-purple-400" />
+            <span className="text-xs text-gray-400">Tempo de Estudo</span>
+          </div>
+          <p className="text-2xl font-bold text-white">{formatTime(user.stats.total_study_time_minutes)}</p>
+        </div>
+      </div>
+
+      <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+        <h4 className="text-sm font-medium text-gray-300 mb-3">Informações Adicionais</h4>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-400">ID do Utilizador</span>
+            <span className="text-white font-mono">#{user.id}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-400">Data de Registo</span>
+            <span className="text-white">{formatDate(user.created_at)}</span>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={onClose}
+        className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all border border-white/10"
+      >
+        Fechar
+      </button>
+    </div>
+  );
+};
+
+// Edit User Modal Content
+const EditUserContent = ({ user, onSave, onClose, saving }: { user: User | null; onSave: (data: any) => void; onClose: () => void; saving: boolean }) => {
+  const [formData, setFormData] = useState({
+    full_name: '',
+    email: '',
+    role: 'TRAINEE' as 'TRAINEE' | 'TRAINER' | 'ADMIN',
+    is_active: true
+  });
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        full_name: user.full_name,
+        email: user.email,
+        role: user.role,
+        is_active: user.is_active
+      });
+    }
+  }, [user]);
+
+  if (!user) return <div className="text-center py-8 text-gray-400">A carregar...</div>;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave(formData);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Nome Completo</label>
+        <input
+          type="text"
+          value={formData.full_name}
+          onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all outline-none"
+          placeholder="Nome do utilizador"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+        <input
+          type="email"
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all outline-none"
+          placeholder="email@exemplo.com"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">Função</label>
+        <select
+          value={formData.role}
+          onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all outline-none appearance-none cursor-pointer"
+        >
+          <option value="TRAINEE" className="bg-gray-900">Formando</option>
+          <option value="TRAINER" className="bg-gray-900">Formador</option>
+          <option value="ADMIN" className="bg-gray-900">Administrador</option>
+        </select>
+      </div>
+
+      <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
+        <div>
+          <p className="text-white font-medium">Estado Ativo</p>
+          <p className="text-sm text-gray-400">O utilizador pode aceder à plataforma</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
+          className={`relative w-12 h-6 rounded-full transition-colors ${formData.is_active ? 'bg-green-500' : 'bg-gray-600'}`}
+        >
+          <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${formData.is_active ? 'translate-x-6' : ''}`} />
+        </button>
+      </div>
+
+      <div className="flex gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all border border-white/10"
+          disabled={saving}
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          disabled={saving}
+          className="flex-1 py-3 rounded-xl bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {saving ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              A guardar...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4" />
+              Guardar
+            </>
+          )}
+        </button>
+      </div>
+    </form>
+  );
+};
+
+// Delete Confirmation Modal Content
+const DeleteConfirmContent = ({ user, onConfirm, onClose, deleting }: { user: User | null; onConfirm: () => void; onClose: () => void; deleting: boolean }) => {
+  if (!user) return null;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col items-center text-center">
+        <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-4">
+          <Trash2 className="w-8 h-8 text-red-400" />
+        </div>
+        <h3 className="text-lg font-semibold text-white mb-2">Remover Utilizador</h3>
+        <p className="text-gray-400">
+          Tem a certeza que pretende remover o utilizador <span className="text-white font-medium">{user.full_name}</span>?
+        </p>
+        <p className="text-sm text-red-400 mt-2">Esta ação não pode ser revertida.</p>
+      </div>
+
+      <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white font-bold">
+            {user.full_name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className="text-white font-medium">{user.full_name}</p>
+            <p className="text-sm text-gray-400">{user.email}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <button
+          onClick={onClose}
+          className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all border border-white/10"
+          disabled={deleting}
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={onConfirm}
+          disabled={deleting}
+          className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {deleting ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              A remover...
+            </>
+          ) : (
+            <>
+              <Trash2 className="w-4 h-4" />
+              Remover
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// User Row Component
+const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDelete }: any) => {
   const [showActions, setShowActions] = useState(false);
   const actionsRef = useRef<HTMLDivElement>(null);
 
@@ -121,20 +454,17 @@ const UserRow = ({ user, index, onApprove, onReject, t }: any) => {
       case 'ADMIN': return { 
         bg: 'from-purple-500/20 to-purple-600/20', 
         border: 'border-purple-500/30',
-        text: 'text-purple-300',
-        glow: 'shadow-purple-500/20'
+        text: 'text-purple-300'
       };
       case 'TRAINER': return { 
         bg: 'from-blue-500/20 to-blue-600/20', 
         border: 'border-blue-500/30',
-        text: 'text-blue-300',
-        glow: 'shadow-blue-500/20'
+        text: 'text-blue-300'
       };
       default: return { 
         bg: 'from-green-500/20 to-green-600/20', 
         border: 'border-green-500/30',
-        text: 'text-green-300',
-        glow: 'shadow-green-500/20'
+        text: 'text-green-300'
       };
     }
   };
@@ -148,115 +478,54 @@ const UserRow = ({ user, index, onApprove, onReject, t }: any) => {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.4, delay: index * 0.05 }}
       whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
-      className="group relative"
+      className="px-6 py-4 border-b border-white/5 last:border-b-0"
     >
-      {/* Hover Glow Effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-red-600/0 via-red-600/5 to-red-600/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      
-      <div className="relative grid grid-cols-12 gap-4 items-center px-6 py-5 border-b border-white/5">
-        {/* Avatar & Name */}
-        <div className="col-span-4 flex items-center gap-4">
-          <motion.div 
-            whileHover={{ scale: 1.1, rotate: 5 }}
-            className="relative"
-          >
-            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${roleConfig.bg} ${roleConfig.border} border flex items-center justify-center shadow-lg ${roleConfig.glow}`}>
-              <span className={`text-lg font-bold ${roleConfig.text}`}>
-                {user.full_name.charAt(0).toUpperCase()}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <motion.div whileHover={{ scale: 1.05 }} className="relative">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+              {user.full_name.charAt(0).toUpperCase()}
+            </div>
+            <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-gray-900 ${
+              user.is_pending ? 'bg-yellow-500' : user.is_active ? 'bg-green-500' : 'bg-red-500'
+            }`} />
+          </motion.div>
+          
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-white font-medium">{user.full_name}</h3>
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r ${roleConfig.bg} ${roleConfig.border} border ${roleConfig.text}`}>
+                <RoleIcon className="w-3 h-3 inline mr-1" />
+                {user.role === 'ADMIN' ? 'Admin' : user.role === 'TRAINER' ? 'Formador' : 'Formando'}
               </span>
             </div>
-            {user.is_pending && (
-              <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full border-2 border-gray-900"
-              />
-            )}
-          </motion.div>
-          <div>
-            <h3 className="font-semibold text-white group-hover:text-red-300 transition-colors">
-              {user.full_name}
-            </h3>
-            <div className="flex items-center gap-1 text-sm text-gray-500">
-              <Mail className="w-3 h-3" />
-              {user.email}
+            <div className="flex items-center gap-2 mt-1">
+              <Mail className="w-3.5 h-3.5 text-gray-500" />
+              <span className="text-sm text-gray-400">{user.email}</span>
             </div>
           </div>
         </div>
-
-        {/* Role Badge */}
-        <div className="col-span-2">
-          <motion.div 
-            whileHover={{ scale: 1.05 }}
-            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-r ${roleConfig.bg} ${roleConfig.border} border`}
-          >
-            <RoleIcon className={`w-4 h-4 ${roleConfig.text}`} />
-            <span className={`text-sm font-medium ${roleConfig.text}`}>
-              {t(`roles.${user.role.toLowerCase()}`)}
-            </span>
-          </motion.div>
-        </div>
-
-        {/* Status */}
-        <div className="col-span-3">
-          {user.is_pending ? (
-            <motion.div 
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="flex items-center gap-2 text-yellow-400"
-            >
-              <div className="relative">
-                <Clock className="w-5 h-5" />
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                  className="absolute inset-0"
-                >
-                  <div className="w-1 h-1 bg-yellow-400 rounded-full absolute top-0 left-1/2 -translate-x-1/2" />
-                </motion.div>
-              </div>
-              <span className="font-medium">{t('admin.pending')}</span>
-              <span className="text-xs text-yellow-500/60 bg-yellow-500/10 px-2 py-0.5 rounded-full">
-                Aguardando
-              </span>
-            </motion.div>
-          ) : user.is_active ? (
-            <div className="flex items-center gap-2 text-green-400">
-              <CheckCircle2 className="w-5 h-5" />
-              <span className="font-medium">{t('admin.active')}</span>
-              <span className="text-xs text-green-500/60 bg-green-500/10 px-2 py-0.5 rounded-full">
-                Online
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-red-400">
-              <XCircle className="w-5 h-5" />
-              <span className="font-medium">{t('admin.inactive')}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="col-span-3 flex items-center justify-end gap-2">
+        
+        <div className="flex items-center gap-2">
           {user.is_pending && user.role === 'TRAINER' ? (
             <div className="flex items-center gap-2">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => onApprove(user.id)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white rounded-xl text-sm font-medium shadow-lg shadow-green-900/30 transition-all"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-medium shadow-lg shadow-green-500/20"
               >
-                <UserCheck className="w-4 h-4" />
-                {t('admin.approve')}
+                <CheckCircle2 className="w-4 h-4" />
+                Aprovar
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => onReject(user.id)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white rounded-xl text-sm font-medium shadow-lg shadow-red-900/30 transition-all"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-sm font-medium hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-all"
               >
-                <UserX className="w-4 h-4" />
-                {t('admin.reject')}
+                <XCircle className="w-4 h-4" />
+                Rejeitar
               </motion.button>
             </div>
           ) : (
@@ -278,15 +547,24 @@ const UserRow = ({ user, index, onApprove, onReject, t }: any) => {
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     className="absolute right-0 top-full mt-2 w-48 bg-gray-900/95 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl overflow-hidden z-50"
                   >
-                    <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-all">
+                    <button 
+                      onClick={() => { onView(user.id); setShowActions(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-all"
+                    >
                       <Eye className="w-4 h-4" />
                       Ver Detalhes
                     </button>
-                    <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-all">
+                    <button 
+                      onClick={() => { onEdit(user); setShowActions(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-all"
+                    >
                       <Edit3 className="w-4 h-4" />
                       Editar
                     </button>
-                    <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all">
+                    <button 
+                      onClick={() => { onDelete(user); setShowActions(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all"
+                    >
                       <Trash2 className="w-4 h-4" />
                       Remover
                     </button>
@@ -308,6 +586,14 @@ export default function UsersPage() {
   const [filter, setFilter] = useState<'all' | 'pending' | 'active' | 'inactive'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -343,209 +629,173 @@ export default function UsersPage() {
     }
   };
 
+  const handleViewUser = async (userId: number) => {
+    setViewModalOpen(true);
+    setUserDetails(null);
+    try {
+      const response = await api.get(`/api/admin/users/${userId}`);
+      setUserDetails(response.data);
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+    }
+  };
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setEditModalOpen(true);
+  };
+
+  const handleSaveUser = async (formData: any) => {
+    if (!selectedUser) return;
+    setSaving(true);
+    try {
+      await api.put(`/api/admin/users/${selectedUser.id}`, formData);
+      setEditModalOpen(false);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error updating user:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteUser = (user: User) => {
+    setSelectedUser(user);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedUser) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/api/admin/users/${selectedUser.id}`);
+      setDeleteModalOpen(false);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const filteredUsers = users.filter(user => {
     const matchesFilter = 
       filter === 'all' ? true :
       filter === 'pending' ? user.is_pending :
       filter === 'active' ? user.is_active && !user.is_pending :
-      !user.is_active;
+      filter === 'inactive' ? !user.is_active : true;
     
-    const matchesSearch = searchQuery === '' || 
+    const matchesSearch = 
       user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase());
     
     return matchesFilter && matchesSearch;
   });
 
-  const filterOptions = [
-    { key: 'all', icon: UsersIcon, label: t('admin.filter.all'), count: users.length },
-    { key: 'pending', icon: Clock, label: t('admin.filter.pending'), count: users.filter(u => u.is_pending).length },
-    { key: 'active', icon: UserCheck, label: t('admin.filter.active'), count: users.filter(u => u.is_active && !u.is_pending).length },
-    { key: 'inactive', icon: UserX, label: t('admin.filter.inactive'), count: users.filter(u => !u.is_active).length },
-  ];
+  const stats = {
+    total: users.length,
+    active: users.filter(u => u.is_active && !u.is_pending).length,
+    pending: users.filter(u => u.is_pending).length,
+    trainers: users.filter(u => u.role === 'TRAINER').length
+  };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-b from-[#0a0a0a] via-[#0f0f0f] to-[#0a0a0a] overflow-hidden">
-      {/* Animated Background Grid */}
-      <div className="fixed inset-0 opacity-20 pointer-events-none">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `linear-gradient(rgba(220, 38, 38, 0.1) 1px, transparent 1px),
-                           linear-gradient(90deg, rgba(220, 38, 38, 0.1) 1px, transparent 1px)`,
-          backgroundSize: '50px 50px'
-        }} />
-      </div>
-
-      {/* Floating Orbs */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{
-            x: [0, 100, 0],
-            y: [0, -100, 0],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-[120px] bg-red-600/10"
-        />
-        <motion.div
-          animate={{
-            x: [0, -100, 0],
-            y: [0, 100, 0],
-            scale: [1, 1.3, 1],
-          }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-[120px] bg-blue-600/10"
-        />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse" />
       </div>
 
       <div className="relative z-10 p-8">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mb-8"
-          >
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <motion.div 
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center shadow-2xl shadow-red-900/50"
-                >
-                  <UsersIcon className="w-8 h-8 text-white" />
-                </motion.div>
-                <div>
-                  <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-400">
-                    {t('navigation.users')}
-                  </h1>
-                  <p className="text-gray-400 mt-1 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-red-500" />
-                    {t('admin.manageUsers')}
-                  </p>
-                </div>
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
+                <UsersIcon className="w-6 h-6 text-white" />
               </div>
-              
-              <motion.button
-                whileHover={{ scale: 1.05, rotate: 180 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={fetchUsers}
-                disabled={loading}
-                className="w-12 h-12 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-all"
-              >
-                <RefreshCw className={`w-5 h-5 text-gray-400 ${loading ? 'animate-spin' : ''}`} />
-              </motion.button>
+              <div>
+                <h1 className="text-3xl font-bold text-white">{t('admin.users')}</h1>
+                <p className="text-gray-400">{t('admin.usersDescription')}</p>
+              </div>
             </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <StatCard 
-                icon={UsersIcon} 
-                label={t('admin.totalUsers')} 
-                value={users.length} 
-                color="from-red-600 to-red-700"
-                delay={0}
-              />
-              <StatCard 
-                icon={Clock} 
-                label={t('admin.pendingApproval')} 
-                value={users.filter(u => u.is_pending).length} 
-                color="from-yellow-500 to-orange-500"
-                delay={0.1}
-              />
-              <StatCard 
-                icon={UserCheck} 
-                label={t('admin.activeUsers')} 
-                value={users.filter(u => u.is_active && !u.is_pending).length} 
-                color="from-green-500 to-emerald-600"
-                delay={0.2}
-              />
-              <StatCard 
-                icon={Briefcase} 
-                label={t('admin.totalTrainers')} 
-                value={users.filter(u => u.role === 'TRAINER').length} 
-                color="from-blue-500 to-indigo-600"
-                delay={0.3}
-              />
-            </div>
-
-            {/* Search & Filters Bar */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between"
-            >
-              {/* Search Input */}
-              <div className="relative flex-1 max-w-md">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                <input
-                  type="text"
-                  placeholder="Pesquisar utilizadores..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all"
-                />
-              </div>
-
-              {/* Filter Buttons */}
-              <div className="flex flex-wrap gap-2">
-                {filterOptions.map((option) => {
-                  const Icon = option.icon;
-                  return (
-                    <motion.button
-                      key={option.key}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => setFilter(option.key as any)}
-                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all ${
-                        filter === option.key
-                          ? 'bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg shadow-red-900/40'
-                          : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/10'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span>{option.label}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        filter === option.key 
-                          ? 'bg-white/20' 
-                          : 'bg-white/5'
-                      }`}>
-                        {option.count}
-                      </span>
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </motion.div>
           </motion.div>
 
-          {/* Users List */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="relative"
-          >
-            {/* Glass Card Container */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/0 rounded-3xl blur-xl" />
-            <div className="relative bg-white/[0.02] backdrop-blur-2xl rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
-              {/* Table Header */}
-              <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-white/5 border-b border-white/10">
-                <div className="col-span-4 text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                  Utilizador
-                </div>
-                <div className="col-span-2 text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                  Função
-                </div>
-                <div className="col-span-3 text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                  Estado
-                </div>
-                <div className="col-span-3 text-sm font-semibold text-gray-400 uppercase tracking-wider text-right">
-                  Ações
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <StatCard icon={UsersIcon} label="Total de Utilizadores" value={stats.total} color="from-blue-500 to-cyan-500" delay={0} />
+            <StatCard icon={UserCheck} label="Utilizadores Ativos" value={stats.active} color="from-green-500 to-emerald-500" delay={0.1} />
+            <StatCard icon={Clock} label="Pendentes" value={stats.pending} color="from-yellow-500 to-orange-500" delay={0.2} />
+            <StatCard icon={Briefcase} label="Formadores" value={stats.trainers} color="from-purple-500 to-pink-500" delay={0.3} />
+          </div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+            <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
+              <div className="p-6 border-b border-white/10">
+                <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Pesquisar utilizadores..."
+                      className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all outline-none"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className="flex items-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 transition-all"
+                      >
+                        <Filter className="w-4 h-4" />
+                        <span>Filtros</span>
+                        <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+                      </button>
+                      
+                      <AnimatePresence>
+                        {showFilters && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="absolute right-0 top-full mt-2 w-48 bg-gray-900/95 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl overflow-hidden z-50"
+                          >
+                            {[
+                              { value: 'all', label: 'Todos', icon: UsersIcon },
+                              { value: 'active', label: 'Ativos', icon: UserCheck },
+                              { value: 'pending', label: 'Pendentes', icon: Clock },
+                              { value: 'inactive', label: 'Inativos', icon: UserX }
+                            ].map((option) => (
+                              <button
+                                key={option.value}
+                                onClick={() => { setFilter(option.value as any); setShowFilters(false); }}
+                                className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-all ${
+                                  filter === option.value ? 'bg-red-500/20 text-red-400' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                }`}
+                              >
+                                <option.icon className="w-4 h-4" />
+                                {option.label}
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={fetchUsers}
+                      className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl text-white font-medium shadow-lg shadow-red-500/20 hover:shadow-red-500/40 transition-shadow"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                      Atualizar
+                    </motion.button>
+                  </div>
                 </div>
               </div>
 
-              {/* Users List */}
               <div className="divide-y divide-white/5">
                 {loading ? (
                   <div className="flex flex-col items-center justify-center py-20">
@@ -572,13 +822,14 @@ export default function UsersPage() {
                       index={index}
                       onApprove={handleApproveTrainer}
                       onReject={handleRejectTrainer}
-                      t={t}
+                      onView={handleViewUser}
+                      onEdit={handleEditUser}
+                      onDelete={handleDeleteUser}
                     />
                   ))
                 )}
               </div>
 
-              {/* Footer */}
               {!loading && filteredUsers.length > 0 && (
                 <div className="px-6 py-4 bg-white/5 border-t border-white/10 flex items-center justify-between">
                   <p className="text-sm text-gray-400">
@@ -594,6 +845,18 @@ export default function UsersPage() {
           </motion.div>
         </div>
       </div>
+
+      <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} title="Detalhes do Utilizador">
+        <UserDetailsContent user={userDetails} onClose={() => setViewModalOpen(false)} />
+      </Modal>
+
+      <Modal isOpen={editModalOpen} onClose={() => setEditModalOpen(false)} title="Editar Utilizador">
+        <EditUserContent user={selectedUser} onSave={handleSaveUser} onClose={() => setEditModalOpen(false)} saving={saving} />
+      </Modal>
+
+      <Modal isOpen={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Confirmar Remoção">
+        <DeleteConfirmContent user={selectedUser} onConfirm={handleConfirmDelete} onClose={() => setDeleteModalOpen(false)} deleting={deleting} />
+      </Modal>
     </div>
   );
 }
