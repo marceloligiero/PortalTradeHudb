@@ -322,20 +322,6 @@ const EditUserContent = ({ user, onSave, onClose, saving }: { user: User | null;
         </select>
       </div>
 
-      <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
-        <div>
-          <p className="text-white font-medium">Estado Ativo</p>
-          <p className="text-sm text-gray-400">O utilizador pode aceder à plataforma</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setFormData({ ...formData, is_active: !formData.is_active })}
-          className={`relative w-12 h-6 rounded-full transition-colors ${formData.is_active ? 'bg-green-500' : 'bg-gray-600'}`}
-        >
-          <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${formData.is_active ? 'translate-x-6' : ''}`} />
-        </button>
-      </div>
-
       <div className="flex gap-3 pt-2">
         <button
           type="button"
@@ -377,9 +363,9 @@ const DeactivateConfirmContent = ({ user, onConfirm, onClose, processing }: { us
         <div className="w-16 h-16 rounded-full bg-yellow-500/20 flex items-center justify-center mb-4">
           <UserX className="w-8 h-8 text-yellow-400" />
         </div>
-        <h3 className="text-lg font-semibold text-white mb-2">Desativar Utilizador</h3>
+        <h3 className="text-lg font-semibold text-white mb-2">Inativar Utilizador</h3>
         <p className="text-gray-400">
-          Tem a certeza que pretende desativar o utilizador <span className="text-white font-medium">{user.full_name}</span>?
+          Tem a certeza que pretende inativar o utilizador <span className="text-white font-medium">{user.full_name}</span>?
         </p>
         <p className="text-sm text-yellow-400 mt-2">O utilizador não poderá aceder à plataforma.</p>
       </div>
@@ -412,12 +398,12 @@ const DeactivateConfirmContent = ({ user, onConfirm, onClose, processing }: { us
           {processing ? (
             <>
               <RefreshCw className="w-4 h-4 animate-spin" />
-              A desativar...
+              A inativar...
             </>
           ) : (
             <>
               <UserX className="w-4 h-4" />
-              Desativar
+              Inativar
             </>
           )}
         </button>
@@ -566,7 +552,7 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
                       className="w-full flex items-center gap-3 px-4 py-3 text-sm text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300 transition-all"
                     >
                       <UserX className="w-4 h-4" />
-                      Desativar
+                      Inativar
                     </button>
                   </motion.div>
                 )}
