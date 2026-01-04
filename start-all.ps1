@@ -39,7 +39,7 @@ function Start-Backend {
   if (-not (Test-Path $python)) { $python = (Get-Command python -ErrorAction SilentlyContinue).Path }
 
   $out = Join-Path $Logs 'backend-uvicorn.log'
-  $err = $out
+  $err = Join-Path $Logs 'backend-uvicorn-error.log'
   $args = '-m','uvicorn','main:app','--host','127.0.0.1','--port','8000','--log-level','info'
 
   $proc = Start-Process -FilePath $python -ArgumentList $args -RedirectStandardOutput $out -RedirectStandardError $err -PassThru
@@ -56,24 +56,32 @@ function Start-Frontend {
   }
 
   $out = Join-Path $Logs 'frontend-vite.log'
-  $err = $out
-  # Use npm.cmd on Windows if available
-  $npm = (Get-Command npm -ErrorAction SilentlyContinue).Path
-  $proc = Start-Process -FilePath $npm -ArgumentList 'run','dev','--','--host' -RedirectStandardOutput $out -RedirectStandardError $err -WorkingDirectory (Join-Path $Root 'frontend') -PassThru
+  $err = Join-Path $Logs 'frontend-vite-error.log'
+  # On Windows, npm is a .cmd file, so we need to run it through cmd.exe
+  $proc = Start-Process -FilePath 'cmd.exe' -ArgumentList '/c','npm','run','dev','--','--host' -RedirectStandardOutput $out -RedirectStandardError $err -WorkingDirectory (Join-Path $Root 'frontend') -PassThru
   $proc.Id | Out-File (Join-Path $Logs 'prod-frontend.pid') -Encoding ascii
   Pop-Location
 }
 
 function Start-Cloudflared {
+  # Check if cloudflared is available
+  $cloudflared = Get-Command cloudflared -ErrorAction SilentlyContinue
+  if (-not $cloudflared) {
+    Write-Log 'cloudflared not found in PATH - skipping tunnels (optional)'
+    return
+  }
+  
   Write-Log 'Starting cloudflared quick tunnels...'
   Push-Location $Root
   $outB = Join-Path $Logs 'cloudflared-backend.log'
+  $errB = Join-Path $Logs 'cloudflared-backend-error.log'
   $outF = Join-Path $Logs 'cloudflared-frontend.log'
+  $errF = Join-Path $Logs 'cloudflared-frontend-error.log'
 
-  $procB = Start-Process -FilePath 'cloudflared' -ArgumentList 'tunnel','--url','http://127.0.0.1:8000' -RedirectStandardOutput $outB -RedirectStandardError $outB -PassThru
+  $procB = Start-Process -FilePath $cloudflared.Path -ArgumentList 'tunnel','--url','http://127.0.0.1:8000' -RedirectStandardOutput $outB -RedirectStandardError $errB -PassThru
   $procB.Id | Out-File (Join-Path $Logs 'cloudflared-backend.pid') -Encoding ascii
 
-  $procF = Start-Process -FilePath 'cloudflared' -ArgumentList 'tunnel','--url','http://127.0.0.1:5173' -RedirectStandardOutput $outF -RedirectStandardError $outF -PassThru
+  $procF = Start-Process -FilePath $cloudflared.Path -ArgumentList 'tunnel','--url','http://127.0.0.1:5173' -RedirectStandardOutput $outF -RedirectStandardError $errF -PassThru
   $procF.Id | Out-File (Join-Path $Logs 'cloudflared-frontend.pid') -Encoding ascii
   Pop-Location
 }
