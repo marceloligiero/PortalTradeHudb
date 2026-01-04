@@ -466,6 +466,8 @@
     "description": "Description",
     "executeChallenge": "Execute Challenge",
     "startNow": "Start now",
+    "summaryMode": "Summary Mode",
+    "completeMode": "Complete Mode",
     "viewResults": "View Results",
     "seeSubmissions": "See submissions",
     "performance": "Performance",

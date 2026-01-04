@@ -332,7 +332,10 @@ export default function ChallengeDetail() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.quickActions')}</h3>
             <div className="space-y-3">
               <button
-                onClick={() => navigate(`/challenges/${challenge.id}/execute/complete`)}
+                onClick={() => {
+                  const executionType = challenge.challenge_type?.toUpperCase() === 'SUMMARY' ? 'summary' : 'complete';
+                  navigate(`/challenges/${challenge.id}/execute/${executionType}`);
+                }}
                 className="w-full flex items-center gap-3 p-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors group"
               >
                 <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
@@ -340,7 +343,11 @@ export default function ChallengeDetail() {
                 </div>
                 <div className="flex-1 text-left">
                   <p className="font-medium text-gray-900">{t('admin.executeChallenge')}</p>
-                  <p className="text-sm text-gray-500">{t('admin.startNow')}</p>
+                  <p className="text-sm text-gray-500">
+                    {challenge.challenge_type?.toUpperCase() === 'SUMMARY' 
+                      ? t('admin.summaryMode') 
+                      : t('admin.completeMode')}
+                  </p>
                 </div>
               </button>
               <button

@@ -455,6 +455,8 @@
     "description": "Descrição",
     "executeChallenge": "Executar Desafio",
     "startNow": "Iniciar agora",
+    "summaryMode": "Modo Resumido",
+    "completeMode": "Modo Completo",
     "viewResults": "Ver Resultados",
     "seeSubmissions": "Ver submissões",
     "performance": "Desempenho",

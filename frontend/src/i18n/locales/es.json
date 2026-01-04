@@ -585,6 +585,8 @@
     "description": "Descripción",
     "executeChallenge": "Ejecutar Desafío",
     "startNow": "Empezar ahora",
+    "summaryMode": "Modo Resumido",
+    "completeMode": "Modo Completo",
     "viewResults": "Ver Resultados",
     "seeSubmissions": "Ver envíos",
     "performance": "Rendimiento",
