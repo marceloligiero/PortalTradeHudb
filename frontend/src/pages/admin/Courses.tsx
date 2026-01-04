@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   BookOpen, 
   Plus, 
@@ -10,12 +10,9 @@ import {
   GraduationCap, 
   Calendar,
   Search,
-  Filter,
   LayoutGrid,
   List,
   Sparkles,
-  TrendingUp,
-  Clock,
   ChevronRight
 } from 'lucide-react';
 import api from '../../lib/axios';
@@ -65,17 +62,16 @@ export default function CoursesPage() {
     hidden: { opacity: 0 },
     visible: { 
       opacity: 1, 
-      transition: { staggerChildren: 0.1 } 
+      transition: { staggerChildren: 0.05 } 
     }
   };
 
   const cardVariants = {
-    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    hidden: { opacity: 0, y: 10 },
     visible: { 
       opacity: 1, 
-      y: 0, 
-      scale: 1,
-      transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } 
+      y: 0,
+      transition: { duration: 0.3, ease: "easeOut" } 
     }
   };
 
@@ -305,19 +301,20 @@ export default function CoursesPage() {
         </motion.div>
       ) : viewMode === 'grid' ? (
         <motion.div 
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
+          key="grid"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
-          <AnimatePresence mode="popLayout">
-            {filteredCourses.map((course) => (
-              <motion.div
-                key={course.id}
-                variants={cardVariants}
-                layout
-                onClick={() => navigate(`/courses/${course.id}`)}
-                className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl hover:border-gray-300 transition-all duration-300 cursor-pointer group"
+          {filteredCourses.map((course, index) => (
+            <motion.div
+              key={course.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+              onClick={() => navigate(`/courses/${course.id}`)}
+              className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl hover:border-gray-300 transition-all duration-300 cursor-pointer group"
               >
                 {/* Card Header */}
                 <div className="h-2 bg-gradient-to-r from-red-500 via-red-600 to-red-700" />
@@ -385,23 +382,23 @@ export default function CoursesPage() {
                 </div>
               </motion.div>
             ))}
-          </AnimatePresence>
         </motion.div>
       ) : (
         /* List View */
         <motion.div 
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
+          key="list"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
           className="space-y-3"
         >
-          <AnimatePresence mode="popLayout">
-            {filteredCourses.map((course) => (
-              <motion.div
-                key={course.id}
-                variants={cardVariants}
-                layout
-                onClick={() => navigate(`/courses/${course.id}`)}
+          {filteredCourses.map((course, index) => (
+            <motion.div
+              key={course.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.03 }}
+              onClick={() => navigate(`/courses/${course.id}`)}
                 className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-lg hover:border-gray-300 transition-all duration-300 cursor-pointer group"
               >
                 <div className="flex items-center gap-4">
@@ -458,7 +455,6 @@ export default function CoursesPage() {
                 </div>
               </motion.div>
             ))}
-          </AnimatePresence>
         </motion.div>
       )}
     </div>
