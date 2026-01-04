@@ -68,9 +68,16 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
             <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-4 border border-blue-100 group-hover:from-blue-100 group-hover:to-blue-200/50 transition-all">
               <div className="flex items-center gap-2 mb-2">
                 <Users className="w-4 h-4 text-blue-600" />
-                <span className="text-xs font-bold text-gray-600 uppercase">Alunos</span>
+                <span className="text-xs font-bold text-gray-600 uppercase">Formando</span>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{plan?.total_students ?? 0}</p>
+              {plan?.student ? (
+                <div>
+                  <p className="text-sm font-bold text-gray-900 truncate">{plan.student.full_name}</p>
+                  <p className="text-xs text-gray-500 truncate">{plan.student.email}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400">Não atribuído</p>
+              )}
             </div>
           </div>
 

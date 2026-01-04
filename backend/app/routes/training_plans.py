@@ -62,10 +62,16 @@ async def list_training_plans(
             ).all()
             total_courses = len(plan_courses)
 
-            # count students assigned
-            total_students = db.query(models.TrainingPlanAssignment).filter(
-                models.TrainingPlanAssignment.training_plan_id == plan.id
-            ).count()
+            # Get student info (1 student per plan)
+            student_info = None
+            if plan.student_id:
+                student = db.query(models.User).filter(models.User.id == plan.student_id).first()
+                if student:
+                    student_info = {
+                        "id": student.id,
+                        "full_name": student.full_name,
+                        "email": student.email
+                    }
 
             # calculate total duration in minutes from lessons
             total_minutes = 0
@@ -85,7 +91,7 @@ async def list_training_plans(
                     "full_name": plan.trainer.full_name if plan.trainer else None
                 } if hasattr(plan, 'trainer') else None,
                 "total_courses": total_courses,
-                "total_students": total_students,
+                "student": student_info,
                 "total_duration_hours": total_hours,
                 "start_date": plan.start_date.isoformat() if plan.start_date else None,
                 "end_date": plan.end_date.isoformat() if plan.end_date else None,
