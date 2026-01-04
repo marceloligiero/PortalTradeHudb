@@ -2,10 +2,12 @@ import { Home, BookOpen, Award, Users, Settings, Building2, Package, GraduationC
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function Sidebar() {
   const { user } = useAuthStore();
   const { t } = useTranslation();
+  const { isDark } = useTheme();
 
   const studentLinks = [
     { to: '/', icon: Home, label: t('navigation.dashboard') },
@@ -42,7 +44,11 @@ export default function Sidebar() {
       : adminLinks;
 
   return (
-    <aside className="w-72 bg-[#0a0a0a]/50 backdrop-blur-2xl border-r border-white/5 min-h-[calc(100vh-80px)] sticky top-20">
+    <aside className={`w-72 backdrop-blur-2xl border-r min-h-[calc(100vh-80px)] sticky top-20 transition-colors duration-300 ${
+      isDark 
+        ? 'bg-[#0a0a0a]/50 border-white/5' 
+        : 'bg-white/50 border-gray-200'
+    }`}>
       <nav className="p-6 space-y-2">
         {links.map((link) => (
           <NavLink
@@ -52,7 +58,9 @@ export default function Sidebar() {
               `flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${
                 isActive
                   ? 'bg-red-600 text-white font-bold shadow-xl shadow-red-600/20'
-                  : 'text-gray-500 hover:bg-white/5 hover:text-white font-medium'
+                  : isDark 
+                    ? 'text-gray-500 hover:bg-white/5 hover:text-white font-medium'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 font-medium'
               }`
             }
           >
