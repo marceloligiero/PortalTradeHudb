@@ -367,21 +367,21 @@ const EditUserContent = ({ user, onSave, onClose, saving }: { user: User | null;
   );
 };
 
-// Delete Confirmation Modal Content
-const DeleteConfirmContent = ({ user, onConfirm, onClose, deleting }: { user: User | null; onConfirm: () => void; onClose: () => void; deleting: boolean }) => {
+// Deactivate Confirmation Modal Content
+const DeactivateConfirmContent = ({ user, onConfirm, onClose, processing }: { user: User | null; onConfirm: () => void; onClose: () => void; processing: boolean }) => {
   if (!user) return null;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-center text-center">
-        <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center mb-4">
-          <Trash2 className="w-8 h-8 text-red-400" />
+        <div className="w-16 h-16 rounded-full bg-yellow-500/20 flex items-center justify-center mb-4">
+          <UserX className="w-8 h-8 text-yellow-400" />
         </div>
-        <h3 className="text-lg font-semibold text-white mb-2">Remover Utilizador</h3>
+        <h3 className="text-lg font-semibold text-white mb-2">Desativar Utilizador</h3>
         <p className="text-gray-400">
-          Tem a certeza que pretende remover o utilizador <span className="text-white font-medium">{user.full_name}</span>?
+          Tem a certeza que pretende desativar o utilizador <span className="text-white font-medium">{user.full_name}</span>?
         </p>
-        <p className="text-sm text-red-400 mt-2">Esta ação não pode ser revertida.</p>
+        <p className="text-sm text-yellow-400 mt-2">O utilizador não poderá aceder à plataforma.</p>
       </div>
 
       <div className="bg-white/5 rounded-xl p-4 border border-white/10">
@@ -400,24 +400,24 @@ const DeleteConfirmContent = ({ user, onConfirm, onClose, deleting }: { user: Us
         <button
           onClick={onClose}
           className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all border border-white/10"
-          disabled={deleting}
+          disabled={processing}
         >
           Cancelar
         </button>
         <button
           onClick={onConfirm}
-          disabled={deleting}
-          className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          disabled={processing}
+          className="flex-1 py-3 rounded-xl bg-yellow-500 hover:bg-yellow-600 text-white font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          {deleting ? (
+          {processing ? (
             <>
               <RefreshCw className="w-4 h-4 animate-spin" />
-              A remover...
+              A desativar...
             </>
           ) : (
             <>
-              <Trash2 className="w-4 h-4" />
-              Remover
+              <UserX className="w-4 h-4" />
+              Desativar
             </>
           )}
         </button>
@@ -427,7 +427,7 @@ const DeleteConfirmContent = ({ user, onConfirm, onClose, deleting }: { user: Us
 };
 
 // User Row Component
-const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDelete }: any) => {
+const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivate }: any) => {
   const [showActions, setShowActions] = useState(false);
   const actionsRef = useRef<HTMLDivElement>(null);
 
@@ -562,11 +562,11 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDelete }:
                       Editar
                     </button>
                     <button 
-                      onClick={() => { onDelete(user); setShowActions(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all"
+                      onClick={() => { onDeactivate(user); setShowActions(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300 transition-all"
                     >
-                      <Trash2 className="w-4 h-4" />
-                      Remover
+                      <UserX className="w-4 h-4" />
+                      Desativar
                     </button>
                   </motion.div>
                 )}
@@ -589,11 +589,11 @@ export default function UsersPage() {
 
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deactivateModalOpen, setDeactivateModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -659,22 +659,22 @@ export default function UsersPage() {
     }
   };
 
-  const handleDeleteUser = (user: User) => {
+  const handleDeactivateUser = (user: User) => {
     setSelectedUser(user);
-    setDeleteModalOpen(true);
+    setDeactivateModalOpen(true);
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDeactivate = async () => {
     if (!selectedUser) return;
-    setDeleting(true);
+    setProcessing(true);
     try {
-      await api.delete(`/api/admin/users/${selectedUser.id}`);
-      setDeleteModalOpen(false);
+      await api.put(`/api/admin/users/${selectedUser.id}`, { is_active: false });
+      setDeactivateModalOpen(false);
       fetchUsers();
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error('Error deactivating user:', error);
     } finally {
-      setDeleting(false);
+      setProcessing(false);
     }
   };
 
@@ -824,7 +824,7 @@ export default function UsersPage() {
                       onReject={handleRejectTrainer}
                       onView={handleViewUser}
                       onEdit={handleEditUser}
-                      onDelete={handleDeleteUser}
+                      onDeactivate={handleDeactivateUser}
                     />
                   ))
                 )}
@@ -854,8 +854,8 @@ export default function UsersPage() {
         <EditUserContent user={selectedUser} onSave={handleSaveUser} onClose={() => setEditModalOpen(false)} saving={saving} />
       </Modal>
 
-      <Modal isOpen={deleteModalOpen} onClose={() => setDeleteModalOpen(false)} title="Confirmar Remoção">
-        <DeleteConfirmContent user={selectedUser} onConfirm={handleConfirmDelete} onClose={() => setDeleteModalOpen(false)} deleting={deleting} />
+      <Modal isOpen={deactivateModalOpen} onClose={() => setDeactivateModalOpen(false)} title="Confirmar Desativação">
+        <DeactivateConfirmContent user={selectedUser} onConfirm={handleConfirmDeactivate} onClose={() => setDeactivateModalOpen(false)} processing={processing} />
       </Modal>
     </div>
   );
