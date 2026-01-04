@@ -540,13 +540,13 @@ async def get_admin_challenge(
     ).count()
     
     from sqlalchemy import func as sql_func
-    avg_score_result = db.query(sql_func.avg(models.ChallengeSubmission.final_mpu)).filter(
+    avg_score_result = db.query(sql_func.avg(models.ChallengeSubmission.calculated_mpu)).filter(
         models.ChallengeSubmission.challenge_id == challenge_id
     ).scalar()
     
     passed_submissions = db.query(models.ChallengeSubmission).filter(
         models.ChallengeSubmission.challenge_id == challenge_id,
-        models.ChallengeSubmission.passed == True
+        models.ChallengeSubmission.is_approved == True
     ).count()
     
     completion_rate = (passed_submissions / total_submissions * 100) if total_submissions > 0 else 0
