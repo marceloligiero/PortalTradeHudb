@@ -356,7 +356,7 @@ async def get_admin_stats(
     """Get overall platform statistics"""
     
     # Count users by role
-    total_students = db.query(models.User).filter(models.User.role == "STUDENT").count()
+    total_students = db.query(models.User).filter(models.User.role == "TRAINEE").count()
     total_trainers = db.query(models.User).filter(
         models.User.role == "TRAINER",
         models.User.is_pending == False
@@ -368,10 +368,23 @@ async def get_admin_stats(
     
     # Count courses and training plans
     total_courses = db.query(models.Course).count()
+    active_courses = db.query(models.Course).filter(models.Course.is_active == True).count()
     total_training_plans = db.query(models.TrainingPlan).count()
+    active_training_plans = db.query(models.TrainingPlan).filter(models.TrainingPlan.is_active == True).count()
     
-    # Count enrollments
+    # Count enrollments and certificates
     total_enrollments = db.query(models.Enrollment).count()
+    total_certificates = db.query(models.Certificate).count()
+    
+    # Calculate completion rate
+    completed_enrollments = db.query(models.Enrollment).filter(
+        models.Enrollment.completed_at.isnot(None)
+    ).count()
+    avg_completion_rate = (completed_enrollments / total_enrollments * 100) if total_enrollments > 0 else 0
+    
+    # Calculate total study hours
+    total_study_hours = db.query(func.sum(models.LessonProgress.actual_time_minutes)).scalar() or 0
+    total_study_hours = float(total_study_hours) / 60.0
     
     # Active students (enrolled in last 30 days)
     month_ago = datetime.utcnow() - timedelta(days=30)
@@ -380,14 +393,20 @@ async def get_admin_stats(
     ).distinct().count()
     
     return {
+        "total_users": total_students + total_trainers,
         "total_students": total_students,
         "total_trainers": total_trainers,
         "pending_trainers": pending_trainers,
         "total_courses": total_courses,
+        "active_courses": active_courses,
         "total_training_plans": total_training_plans,
+        "active_training_plans": active_training_plans,
         "total_enrollments": total_enrollments,
+        "total_certificates": total_certificates,
+        "avg_completion_rate": round(avg_completion_rate, 2),
+        "total_study_hours": round(total_study_hours, 2),
         "active_students": active_students,
-        "certificates_issued": 0  # TODO: implement when certificates are added
+        "certificates_issued": total_certificates
     }
 
 @router.get("/reports/courses")

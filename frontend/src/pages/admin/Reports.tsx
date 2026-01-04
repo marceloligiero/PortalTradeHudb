@@ -71,10 +71,10 @@ export default function ReportsPage() {
         api.get('/api/admin/reports/training-plans'),
       ]);
 
-      setStats(statsRes.data);
-      setCourseStats(coursesRes.data);
-      setTrainerStats(trainersRes.data);
-      setTrainingPlanStats(plansRes.data);
+      setStats(statsRes.data || {});
+      setCourseStats(coursesRes.data || []);
+      setTrainerStats(trainersRes.data || []);
+      setTrainingPlanStats(plansRes.data || []);
     } catch (err) {
       console.error('Error fetching reports:', err);
     } finally {
@@ -92,11 +92,11 @@ export default function ReportsPage() {
     // TODO: Implement Excel export
   };
 
-  const filteredCourses = courseStats.filter(course => 
+  const filteredCourses = (courseStats || []).filter(course => 
     selectedBank === 'ALL' || course.bank_code === selectedBank
   );
 
-  const filteredTrainers = trainerStats.filter(trainer => 
+  const filteredTrainers = (trainerStats || []).filter(trainer => 
     selectedBank === 'ALL' || trainer.bank_code === selectedBank
   );
 
@@ -115,28 +115,28 @@ export default function ReportsPage() {
 
   // Preparar dados para gráficos
   const userDistribution = [
-    { name: 'Formandos', value: stats.total_students, color: '#ef4444' },
-    { name: 'Formadores', value: stats.total_trainers, color: '#f97316' },
+    { name: 'Formandos', value: stats.total_students || 0, color: '#ef4444' },
+    { name: 'Formadores', value: stats.total_trainers || 0, color: '#f97316' },
   ];
 
-  const courseData = courseStats.slice(0, 6).map(course => ({
-    name: course.course_title.substring(0, 20) + '...',
-    students: course.total_students,
-    completion: Math.round(course.completion_rate),
+  const courseData = (courseStats || []).slice(0, 6).map(course => ({
+    name: course.course_title?.substring(0, 20) + '...' || 'Curso',
+    students: course.total_students || 0,
+    completion: Math.round(course.completion_rate || 0),
   }));
 
-  const trainingPlanData = trainingPlanStats.slice(0, 5).map(plan => ({
-    plan: plan.plan_title.substring(0, 15) + '...',
-    students: plan.enrolled_students,
-    completion: Math.round(plan.completion_rate),
-    capacity: plan.total_students,
+  const trainingPlanData = (trainingPlanStats || []).slice(0, 5).map(plan => ({
+    plan: plan.plan_title?.substring(0, 15) + '...' || 'Plano',
+    students: plan.enrolled_students || 0,
+    completion: Math.round(plan.completion_rate || 0),
+    capacity: plan.total_students || 0,
   }));
 
-  const trainerPerformanceData = trainerStats.slice(0, 5).map(trainer => ({
-    name: trainer.trainer_name.split(' ')[0],
-    courses: trainer.total_courses,
-    students: trainer.total_students,
-    efficiency: Math.min(100, (trainer.total_students / (trainer.total_courses * 20)) * 100),
+  const trainerPerformanceData = (trainerStats || []).slice(0, 5).map(trainer => ({
+    name: trainer.trainer_name?.split(' ')[0] || 'Formador',
+    courses: trainer.total_courses || 0,
+    students: trainer.total_students || 0,
+    efficiency: Math.min(100, ((trainer.total_students || 0) / ((trainer.total_courses || 1) * 20)) * 100),
   }));
 
   return (
@@ -205,15 +205,15 @@ export default function ReportsPage() {
                 </div>
               </div>
               <div className="text-4xl font-black text-white mb-1">
-                {stats.total_users.toLocaleString()}
+                {(stats.total_users || 0).toLocaleString()}
               </div>
               <div className="text-blue-300 font-semibold">Total de Utilizadores</div>
               <div className="mt-3 flex gap-2 text-sm">
                 <span className="px-2 py-1 bg-blue-500/20 rounded-lg text-blue-300">
-                  {stats.total_students} Formandos
+                  {stats.total_students || 0} Formandos
                 </span>
                 <span className="px-2 py-1 bg-purple-500/20 rounded-lg text-purple-300">
-                  {stats.total_trainers} Formadores
+                  {stats.total_trainers || 0} Formadores
                 </span>
               </div>
             </div>
@@ -238,15 +238,15 @@ export default function ReportsPage() {
                 </div>
               </div>
               <div className="text-4xl font-black text-white mb-1">
-                {stats.total_courses.toLocaleString()}
+                {(stats.total_courses || 0).toLocaleString()}
               </div>
               <div className="text-red-300 font-semibold">Total de Cursos</div>
               <div className="mt-3 flex gap-2 text-sm">
                 <span className="px-2 py-1 bg-red-500/20 rounded-lg text-red-300">
-                  {stats.active_courses} Ativos
+                  {stats.active_courses || 0} Ativos
                 </span>
                 <span className="px-2 py-1 bg-orange-500/20 rounded-lg text-orange-300">
-                  {stats.total_training_plans} Planos
+                  {stats.total_training_plans || 0} Planos
                 </span>
               </div>
             </div>
@@ -271,14 +271,14 @@ export default function ReportsPage() {
                 </div>
               </div>
               <div className="text-4xl font-black text-white mb-1">
-                {Math.round(stats.avg_completion_rate)}%
+                {Math.round(stats.avg_completion_rate || 0)}%
               </div>
               <div className="text-green-300 font-semibold">Taxa de Conclusão</div>
               <div className="mt-3">
                 <div className="w-full bg-green-900/30 rounded-full h-2.5">
                   <div 
                     className="bg-gradient-to-r from-green-500 to-emerald-500 h-2.5 rounded-full transition-all duration-1000"
-                    style={{ width: `${stats.avg_completion_rate}%` }}
+                    style={{ width: `${stats.avg_completion_rate || 0}%` }}
                   />
                 </div>
               </div>
@@ -304,12 +304,12 @@ export default function ReportsPage() {
                 </div>
               </div>
               <div className="text-4xl font-black text-white mb-1">
-                {stats.total_certificates.toLocaleString()}
+                {(stats.total_certificates || 0).toLocaleString()}
               </div>
               <div className="text-purple-300 font-semibold">Certificados Emitidos</div>
               <div className="mt-3 flex gap-2 text-sm">
                 <span className="px-2 py-1 bg-purple-500/20 rounded-lg text-purple-300">
-                  {stats.total_enrollments} Inscrições
+                  {stats.total_enrollments || 0} Inscrições
                 </span>
               </div>
             </div>
@@ -329,7 +329,7 @@ export default function ReportsPage() {
                 <Users className="w-6 h-6 text-blue-400" />
                 Distribuição de Utilizadores
               </h3>
-              <div className="text-sm text-gray-400">Total: {stats.total_users}</div>
+              <div className="text-sm text-gray-400">Total: {stats.total_users || 0}</div>
             </div>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -493,7 +493,7 @@ export default function ReportsPage() {
                   </div>
                   <div>
                     <div className="text-sm text-gray-400">Cursos Ativos</div>
-                    <div className="text-2xl font-bold text-white">{stats.active_courses}</div>
+                    <div className="text-2xl font-bold text-white">{stats.active_courses || 0}</div>
                   </div>
                 </div>
                 <ArrowUp className="w-5 h-5 text-green-400" />
@@ -506,7 +506,7 @@ export default function ReportsPage() {
                   </div>
                   <div>
                     <div className="text-sm text-gray-400">Planos Ativos</div>
-                    <div className="text-2xl font-bold text-white">{stats.active_training_plans}</div>
+                    <div className="text-2xl font-bold text-white">{stats.active_training_plans || 0}</div>
                   </div>
                 </div>
                 <ArrowUp className="w-5 h-5 text-green-400" />
@@ -521,7 +521,7 @@ export default function ReportsPage() {
                   </div>
                   <div>
                     <div className="text-sm text-gray-400">Inscrições Totais</div>
-                    <div className="text-2xl font-bold text-white">{stats.total_enrollments}</div>
+                    <div className="text-2xl font-bold text-white">{stats.total_enrollments || 0}</div>
                   </div>
                 </div>
                 <ArrowUp className="w-5 h-5 text-green-400" />
@@ -534,7 +534,7 @@ export default function ReportsPage() {
                   </div>
                   <div>
                     <div className="text-sm text-gray-400">Pendentes</div>
-                    <div className="text-2xl font-bold text-white">{stats.pending_trainers}</div>
+                    <div className="text-2xl font-bold text-white">{stats.pending_trainers || 0}</div>
                   </div>
                 </div>
               </div>
@@ -548,7 +548,7 @@ export default function ReportsPage() {
                   </div>
                   <div>
                     <div className="text-sm text-gray-400">Horas de Estudo</div>
-                    <div className="text-2xl font-bold text-white">{stats.total_study_hours.toLocaleString()}h</div>
+                    <div className="text-2xl font-bold text-white">{(stats.total_study_hours || 0).toLocaleString()}h</div>
                   </div>
                 </div>
                 <ArrowUp className="w-5 h-5 text-green-400" />
@@ -561,7 +561,7 @@ export default function ReportsPage() {
                   </div>
                   <div>
                     <div className="text-sm text-gray-400">Certificados</div>
-                    <div className="text-2xl font-bold text-white">{stats.total_certificates}</div>
+                    <div className="text-2xl font-bold text-white">{stats.total_certificates || 0}</div>
                   </div>
                 </div>
                 <Zap className="w-5 h-5 text-yellow-400" />
