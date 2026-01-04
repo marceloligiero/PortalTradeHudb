@@ -729,6 +729,49 @@ async def get_admin_stats(
         models.Enrollment.enrolled_at >= month_ago
     ).distinct().count()
     
+    # Challenge statistics
+    total_challenges = db.query(models.Challenge).count()
+    total_submissions = db.query(models.ChallengeSubmission).count()
+    approved_submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.is_approved == True
+    ).count()
+    approval_rate = (approved_submissions / total_submissions * 100) if total_submissions > 0 else 0
+    
+    # Average MPU across all submissions
+    avg_mpu = db.query(func.avg(models.ChallengeSubmission.calculated_mpu)).filter(
+        models.ChallengeSubmission.calculated_mpu.isnot(None)
+    ).scalar() or 0
+    
+    # Submissions this month
+    submissions_this_month = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.created_at >= month_ago
+    ).count()
+    
+    # Banks and Products counts
+    total_banks = db.query(models.Bank).filter(models.Bank.is_active == True).count()
+    total_products = db.query(models.Product).filter(models.Product.is_active == True).count()
+    
+    # Lessons count
+    total_lessons = db.query(models.Lesson).count()
+    
+    # Recent submissions (last 5)
+    recent_submissions = db.query(models.ChallengeSubmission).order_by(
+        models.ChallengeSubmission.created_at.desc()
+    ).limit(5).all()
+    
+    recent_submissions_data = []
+    for sub in recent_submissions:
+        student = db.query(models.User).filter(models.User.id == sub.user_id).first()
+        challenge = db.query(models.Challenge).filter(models.Challenge.id == sub.challenge_id).first()
+        recent_submissions_data.append({
+            "id": sub.id,
+            "challenge_title": challenge.title if challenge else "N/A",
+            "student_name": student.full_name if student else "N/A",
+            "is_approved": sub.is_approved,
+            "calculated_mpu": sub.calculated_mpu,
+            "submitted_at": sub.created_at.isoformat() if sub.created_at else None
+        })
+    
     return {
         "total_users": total_students + total_trainers,
         "total_students": total_students,
@@ -743,7 +786,18 @@ async def get_admin_stats(
         "avg_completion_rate": round(avg_completion_rate, 2),
         "total_study_hours": round(total_study_hours, 2),
         "active_students": active_students,
-        "certificates_issued": total_certificates
+        "certificates_issued": total_certificates,
+        # New fields
+        "total_challenges": total_challenges,
+        "total_submissions": total_submissions,
+        "approved_submissions": approved_submissions,
+        "approval_rate": round(approval_rate, 2),
+        "avg_mpu": round(float(avg_mpu), 2),
+        "submissions_this_month": submissions_this_month,
+        "total_banks": total_banks,
+        "total_products": total_products,
+        "total_lessons": total_lessons,
+        "recent_submissions": recent_submissions_data
     }
 
 @router.get("/reports/courses")

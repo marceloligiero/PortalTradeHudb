@@ -3,8 +3,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Users, BookOpen, GraduationCap, UserCheck, Shield, TrendingUp, 
-  Target, Clock, CheckCircle, XCircle, Calendar, 
-  BarChart3, FileText, AlertCircle, ArrowRight, Play
+  Target, Clock, CheckCircle, XCircle, Calendar, Award,
+  BarChart3, FileText, AlertCircle, ArrowRight, Play, Building2, Package, Layers
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -15,6 +15,15 @@ interface ActivePlan {
   trainer_name: string;
   days_remaining: number;
   total_courses: number;
+}
+
+interface RecentSubmission {
+  id: number;
+  challenge_title: string;
+  student_name: string;
+  is_approved: boolean;
+  calculated_mpu: number;
+  submitted_at: string;
 }
 
 export default function AdminDashboard() {
@@ -28,9 +37,23 @@ export default function AdminDashboard() {
     totalStudents: 0,
     activePlans: 0,
     pendingTrainers: 0,
+    // New fields from expanded API
+    totalChallenges: 0,
+    totalSubmissions: 0,
+    approvedSubmissions: 0,
+    approvalRate: 0,
+    avgMpu: 0,
+    submissionsThisMonth: 0,
+    totalBanks: 0,
+    totalProducts: 0,
+    totalLessons: 0,
+    totalCertificates: 0,
+    totalStudyHours: 0,
+    activeStudents: 0,
   });
 
   const [activePlans, setActivePlans] = useState<ActivePlan[]>([]);
+  const [recentSubmissions, setRecentSubmissions] = useState<RecentSubmission[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -59,7 +82,23 @@ export default function AdminDashboard() {
           totalStudents: statsData.total_students ?? 0,
           activePlans: activePlansData.length,
           pendingTrainers: statsData.pending_trainers ?? 0,
+          // New fields
+          totalChallenges: statsData.total_challenges ?? 0,
+          totalSubmissions: statsData.total_submissions ?? 0,
+          approvedSubmissions: statsData.approved_submissions ?? 0,
+          approvalRate: statsData.approval_rate ?? 0,
+          avgMpu: statsData.avg_mpu ?? 0,
+          submissionsThisMonth: statsData.submissions_this_month ?? 0,
+          totalBanks: statsData.total_banks ?? 0,
+          totalProducts: statsData.total_products ?? 0,
+          totalLessons: statsData.total_lessons ?? 0,
+          totalCertificates: statsData.total_certificates ?? 0,
+          totalStudyHours: statsData.total_study_hours ?? 0,
+          activeStudents: statsData.active_students ?? 0,
         });
+
+        // Set recent submissions from API
+        setRecentSubmissions(statsData.recent_submissions ?? []);
 
         setActivePlans(activePlansData.slice(0, 5).map((p: any) => ({
           id: p.id,
@@ -152,48 +191,72 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* Secondary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Secondary Stats - 6 cards now */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {/* Active Training Plans */}
-          <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-gray-300 font-semibold">Planos Ativos</span>
+          <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-5 border border-white/10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                <Calendar className="w-4 h-4 text-white" />
               </div>
-              <span className="text-3xl font-bold text-orange-400">{stats.activePlans}</span>
+              <span className="text-gray-400 text-xs font-semibold uppercase">Planos Ativos</span>
             </div>
-            <p className="text-gray-500 text-sm">Planos de formação em curso</p>
+            <p className="text-2xl font-bold text-orange-400">{stats.activePlans}</p>
           </div>
 
           {/* Pending Trainers */}
-          <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-yellow-500 rounded-xl flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-gray-300 font-semibold">Validações Pendentes</span>
+          <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-5 border border-white/10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-yellow-500 rounded-lg flex items-center justify-center">
+                <Clock className="w-4 h-4 text-white" />
               </div>
-              <span className="text-3xl font-bold text-yellow-400">{stats.pendingTrainers}</span>
+              <span className="text-gray-400 text-xs font-semibold uppercase">Pendentes</span>
             </div>
-            <p className="text-gray-500 text-sm">Formadores aguardando aprovação</p>
+            <p className="text-2xl font-bold text-yellow-400">{stats.pendingTrainers}</p>
           </div>
 
-          {/* Total Plans */}
-          <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-6 border border-white/10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-gray-300 font-semibold">Total Formadores</span>
+          {/* Challenges */}
+          <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-5 border border-white/10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center">
+                <Target className="w-4 h-4 text-white" />
               </div>
-              <span className="text-3xl font-bold text-green-400">{stats.totalTrainers + stats.pendingTrainers}</span>
+              <span className="text-gray-400 text-xs font-semibold uppercase">Desafios</span>
             </div>
-            <p className="text-gray-500 text-sm">Ativos e pendentes</p>
+            <p className="text-2xl font-bold text-pink-400">{stats.totalChallenges}</p>
+          </div>
+
+          {/* Approval Rate */}
+          <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-5 border border-white/10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-gray-400 text-xs font-semibold uppercase">Aprovação</span>
+            </div>
+            <p className="text-2xl font-bold text-green-400">{stats.approvalRate}%</p>
+          </div>
+
+          {/* Average MPU */}
+          <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-5 border border-white/10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-cyan-500 rounded-lg flex items-center justify-center">
+                <BarChart3 className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-gray-400 text-xs font-semibold uppercase">MPU Médio</span>
+            </div>
+            <p className="text-2xl font-bold text-cyan-400">{stats.avgMpu}</p>
+          </div>
+
+          {/* Certificates */}
+          <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-5 border border-white/10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center">
+                <Award className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-gray-400 text-xs font-semibold uppercase">Certificados</span>
+            </div>
+            <p className="text-2xl font-bold text-amber-400">{stats.totalCertificates}</p>
           </div>
         </div>
 
@@ -257,45 +320,94 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Quick Stats Panel */}
+          {/* Quick Stats Panel - now with more data */}
           <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 overflow-hidden">
             <div className="p-6 border-b border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center">
-                  <Target className="w-5 h-5 text-white" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center">
+                    <Target className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-xl font-bold text-white">Últimos Desafios</h2>
                 </div>
-                <h2 className="text-xl font-bold text-white">Resumo do Sistema</h2>
+                <button 
+                  onClick={() => navigate('/reports')}
+                  className="text-purple-400 hover:text-purple-300 text-sm font-medium flex items-center gap-1"
+                >
+                  Ver relatórios <ArrowRight className="w-4 h-4" />
+                </button>
               </div>
             </div>
-            <div className="p-6 space-y-4">
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  <span className="text-gray-300">Formadores Validados</span>
+            <div className="divide-y divide-white/5">
+              {recentSubmissions.length > 0 ? (
+                recentSubmissions.map((sub) => (
+                  <div key={sub.id} className="p-4 hover:bg-white/5 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h3 className="text-white font-medium">{sub.challenge_title}</h3>
+                        <p className="text-sm text-gray-400">{sub.student_name}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-gray-400">
+                          MPU: <span className="text-white font-medium">{sub.calculated_mpu?.toFixed(2) ?? '-'}</span>
+                        </span>
+                        {sub.is_approved ? (
+                          <CheckCircle className="w-5 h-5 text-green-400" />
+                        ) : (
+                          <XCircle className="w-5 h-5 text-red-400" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-8 text-center text-gray-400">
+                  <Target className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Nenhum desafio submetido</p>
                 </div>
-                <span className="text-xl font-bold text-white">{stats.totalTrainers}</span>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-yellow-400" />
-                  <span className="text-gray-300">Aguardando Validação</span>
-                </div>
-                <span className="text-xl font-bold text-white">{stats.pendingTrainers}</span>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <GraduationCap className="w-5 h-5 text-blue-400" />
-                  <span className="text-gray-300">Formandos Inscritos</span>
-                </div>
-                <span className="text-xl font-bold text-white">{stats.totalStudents}</span>
-              </div>
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <BookOpen className="w-5 h-5 text-purple-400" />
-                  <span className="text-gray-300">Cursos no Catálogo</span>
-                </div>
-                <span className="text-xl font-bold text-white">{stats.totalCourses}</span>
-              </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Platform Overview - Catalog Info */}
+        <div className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center">
+              <Layers className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="text-xl font-bold text-white">Catálogo da Plataforma</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <div className="bg-white/5 rounded-xl p-4 text-center">
+              <Building2 className="w-6 h-6 text-blue-400 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-white">{stats.totalBanks}</p>
+              <p className="text-xs text-gray-400">Bancos</p>
+            </div>
+            <div className="bg-white/5 rounded-xl p-4 text-center">
+              <Package className="w-6 h-6 text-green-400 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-white">{stats.totalProducts}</p>
+              <p className="text-xs text-gray-400">Produtos</p>
+            </div>
+            <div className="bg-white/5 rounded-xl p-4 text-center">
+              <BookOpen className="w-6 h-6 text-purple-400 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-white">{stats.totalCourses}</p>
+              <p className="text-xs text-gray-400">Cursos</p>
+            </div>
+            <div className="bg-white/5 rounded-xl p-4 text-center">
+              <FileText className="w-6 h-6 text-orange-400 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-white">{stats.totalLessons}</p>
+              <p className="text-xs text-gray-400">Aulas</p>
+            </div>
+            <div className="bg-white/5 rounded-xl p-4 text-center">
+              <Target className="w-6 h-6 text-pink-400 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-white">{stats.totalChallenges}</p>
+              <p className="text-xs text-gray-400">Desafios</p>
+            </div>
+            <div className="bg-white/5 rounded-xl p-4 text-center">
+              <Clock className="w-6 h-6 text-cyan-400 mx-auto mb-2" />
+              <p className="text-2xl font-bold text-white">{stats.totalStudyHours.toFixed(0)}h</p>
+              <p className="text-xs text-gray-400">Horas Estudo</p>
             </div>
           </div>
         </div>
