@@ -29,8 +29,15 @@ jobs:
             
             # Update frontend
             cd ../frontend
+            
+            # Ensure .env exists with correct API config
+            echo "VITE_API_BASE_URL=/api" > .env
+            
             npm install
             npm run build
+            
+            # Fix any hardcoded URLs in build
+            sed -i 's|http://72.60.188.172/api|/api|g' dist/assets/*.js 2>/dev/null || true
             
             # Restart services
             pm2 restart tradehub-backend
