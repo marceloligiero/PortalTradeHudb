@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Check, AlertCircle, TrendingUp, Target, Clock } from 'lucide-react';
+import { ArrowLeft, Check, AlertCircle, TrendingUp, Target, Clock, User } from 'lucide-react';
 import api from '../../lib/axios';
 
 interface Challenge {
@@ -19,6 +19,8 @@ const ChallengeExecutionSummary: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { challengeId } = useParams<{ challengeId: string }>();
+  const [searchParams] = useSearchParams();
+  const planId = searchParams.get('planId');
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -26,6 +28,7 @@ const ChallengeExecutionSummary: React.FC = () => {
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [planStudent, setPlanStudent] = useState<{id: number, full_name: string, email: string} | null>(null);
   const [students, setStudents] = useState<any[]>([]);
   
   const [formData, setFormData] = useState({
@@ -38,8 +41,32 @@ const ChallengeExecutionSummary: React.FC = () => {
 
   useEffect(() => {
     loadChallenge();
-    loadStudents();
-  }, [challengeId]);
+    if (planId) {
+      loadPlanStudent();
+    } else {
+      loadStudents();
+    }
+  }, [challengeId, planId]);
+
+  const loadPlanStudent = async () => {
+    try {
+      const response = await api.get(`/api/training-plans/${planId}`);
+      const plan = response.data;
+      if (plan.student) {
+        setPlanStudent(plan.student);
+        setSelectedStudentId(plan.student.id);
+      } else if (plan.student_id) {
+        // Fallback: buscar dados do student
+        const userResp = await api.get(`/api/admin/users/${plan.student_id}`);
+        const user = userResp.data;
+        setPlanStudent({ id: user.id, full_name: user.full_name, email: user.email });
+        setSelectedStudentId(user.id);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar student do plano:', err);
+      loadStudents(); // fallback
+    }
+  };
 
   useEffect(() => {
     // Calcular MPU automaticamente
@@ -223,26 +250,36 @@ const ChallengeExecutionSummary: React.FC = () => {
 
         {/* Formulário */}
         <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-6 space-y-6">
-          {/* Selecionar Estudante */}
+          {/* Formando do Plano ou Selecionar Estudante */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Estudante *
+              Formando *
             </label>
-            <select
-              value={selectedStudentId ?? ''}
-              onChange={(e) => {
-                const v = e.target.value;
-                setSelectedStudentId(v ? parseInt(v, 10) : null);
-              }}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-            >
-              <option value="">{t('placeholders.selectStudent')}</option>
-              {students.map((student) => (
-                <option key={student.id} value={student.id}>
-                  {student.full_name} ({student.email})
-                </option>
-              ))}
-            </select>
+            {planStudent ? (
+              <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                <User className="w-6 h-6 text-green-500" />
+                <div>
+                  <p className="text-white font-medium">{planStudent.full_name}</p>
+                  <p className="text-gray-400 text-sm">{planStudent.email}</p>
+                </div>
+              </div>
+            ) : (
+              <select
+                value={selectedStudentId ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setSelectedStudentId(v ? parseInt(v, 10) : null);
+                }}
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                <option value="">{t('placeholders.selectStudent')}</option>
+                {students.map((student) => (
+                  <option key={student.id} value={student.id}>
+                    {student.full_name} ({student.email})
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="h-px bg-white/10"></div>

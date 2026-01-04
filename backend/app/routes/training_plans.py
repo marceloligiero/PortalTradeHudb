@@ -370,6 +370,17 @@ async def get_training_plan(
                 days_remaining = None
                 status_str = None
 
+        # Get student info (1 student per plan)
+        student_info = None
+        if plan.student_id:
+            student = db.query(models.User).filter(models.User.id == plan.student_id).first()
+            if student:
+                student_info = {
+                    "id": student.id,
+                    "full_name": student.full_name,
+                    "email": student.email
+                }
+
         resp = {
             "id": plan.id,
             "title": plan.title,
@@ -390,6 +401,8 @@ async def get_training_plan(
             "days_total": days_total,
             "days_remaining": days_remaining,
             "status": status_str,
+            "student_id": plan.student_id,
+            "student": student_info,
         }
         return resp
     except Exception as e:

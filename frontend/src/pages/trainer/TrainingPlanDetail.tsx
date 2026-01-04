@@ -279,8 +279,8 @@ export default function TrainingPlanDetail() {
                                 <button
                                   onClick={() => {
                                     const route = ch.challenge_type === 'COMPLETE'
-                                      ? `/challenges/${ch.id}/execute/complete`
-                                      : `/challenges/${ch.id}/execute/summary`;
+                                      ? `/challenges/${ch.id}/execute/complete?planId=${id}`
+                                      : `/challenges/${ch.id}/execute/summary?planId=${id}`;
                                     navigate(route);
                                   }}
                                   className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-sm hover:shadow-md group"

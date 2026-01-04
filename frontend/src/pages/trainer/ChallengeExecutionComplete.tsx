@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Play, StopCircle, Check, AlertCircle, TrendingUp, Target, Clock } from 'lucide-react';
+import { ArrowLeft, Play, StopCircle, Check, AlertCircle, TrendingUp, Target, Clock, User } from 'lucide-react';
 import api from '../../lib/axios';
 
 interface Challenge {
@@ -26,6 +26,8 @@ const ChallengeExecutionComplete: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { challengeId } = useParams<{ challengeId: string }>();
+  const [searchParams] = useSearchParams();
+  const planId = searchParams.get('planId');
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -46,13 +48,38 @@ const ChallengeExecutionComplete: React.FC = () => {
   });
 
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [planStudent, setPlanStudent] = useState<{id: number, full_name: string, email: string} | null>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [errorsCount, setErrorsCount] = useState<number>(0);
 
   useEffect(() => {
     loadChallenge();
-    loadStudents();
-  }, [challengeId]);
+    if (planId) {
+      loadPlanStudent();
+    } else {
+      loadStudents();
+    }
+  }, [challengeId, planId]);
+
+  const loadPlanStudent = async () => {
+    try {
+      const response = await api.get(`/api/training-plans/${planId}`);
+      const plan = response.data;
+      if (plan.student) {
+        setPlanStudent(plan.student);
+        setSelectedStudentId(plan.student.id);
+      } else if (plan.student_id) {
+        // Fallback: buscar dados do student
+        const userResp = await api.get(`/api/admin/users/${plan.student_id}`);
+        const user = userResp.data;
+        setPlanStudent({ id: user.id, full_name: user.full_name, email: user.email });
+        setSelectedStudentId(user.id);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar student do plano:', err);
+      loadStudents(); // fallback
+    }
+  };
 
   const loadChallenge = async () => {
     try {
@@ -277,32 +304,51 @@ const ChallengeExecutionComplete: React.FC = () => {
         {/* Seleção de Estudante (se ainda não iniciou) */}
         {!submissionId && (
           <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-6 mb-6">
-            <h3 className="text-xl font-semibold text-white mb-4">Selecionar Estudante</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <select
-                value={selectedStudentId ?? ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setSelectedStudentId(v ? parseInt(v, 10) : null);
-                }}
-                className="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-              >
-                <option value="">{t('placeholders.selectStudent')}</option>
-                {students.map((student) => (
-                  <option key={student.id} value={student.id}>
-                    {student.full_name} ({student.email})
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={startSubmission}
-                disabled={!selectedStudentId}
-                className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <Play className="w-5 h-5" />
-                Iniciar Desafio
-              </button>
-            </div>
+            <h3 className="text-xl font-semibold text-white mb-4">Formando</h3>
+            {planStudent ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/30 rounded-lg flex-1 mr-4">
+                  <User className="w-6 h-6 text-green-500" />
+                  <div>
+                    <p className="text-white font-medium">{planStudent.full_name}</p>
+                    <p className="text-gray-400 text-sm">{planStudent.email}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={startSubmission}
+                  className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all flex items-center justify-center gap-2"
+                >
+                  <Play className="w-5 h-5" />
+                  Iniciar Desafio
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <select
+                  value={selectedStudentId ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setSelectedStudentId(v ? parseInt(v, 10) : null);
+                  }}
+                  className="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  <option value="">{t('placeholders.selectStudent')}</option>
+                  {students.map((student) => (
+                    <option key={student.id} value={student.id}>
+                      {student.full_name} ({student.email})
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={startSubmission}
+                  disabled={!selectedStudentId}
+                  className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <Play className="w-5 h-5" />
+                  Iniciar Desafio
+                </button>
+              </div>
+            )}
           </div>
         )}
 
