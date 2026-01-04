@@ -570,6 +570,46 @@ async def get_admin_challenge(
         "completion_rate": completion_rate
     }
 
+@router.put("/courses/{course_id}/challenges/{challenge_id}")
+async def update_admin_challenge(
+    course_id: int,
+    challenge_id: int,
+    challenge_data: schemas.ChallengeUpdate,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    """Update a challenge"""
+    challenge = db.query(models.Challenge).filter(
+        models.Challenge.id == challenge_id,
+        models.Challenge.course_id == course_id
+    ).first()
+    
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+    
+    # Update only provided fields
+    update_data = challenge_data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(challenge, field, value)
+    
+    db.commit()
+    db.refresh(challenge)
+    
+    return {
+        "id": challenge.id,
+        "course_id": challenge.course_id,
+        "title": challenge.title,
+        "description": challenge.description,
+        "challenge_type": challenge.challenge_type,
+        "operations_required": challenge.operations_required,
+        "time_limit_minutes": challenge.time_limit_minutes,
+        "target_mpu": challenge.target_mpu,
+        "max_errors": challenge.max_errors,
+        "is_active": challenge.is_active,
+        "created_at": challenge.created_at.isoformat() if challenge.created_at else None,
+        "updated_at": challenge.updated_at.isoformat() if challenge.updated_at else None
+    }
+
 @router.delete("/courses/{course_id}/challenges/{challenge_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_admin_challenge(
     course_id: int,

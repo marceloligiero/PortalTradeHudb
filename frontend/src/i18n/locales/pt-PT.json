@@ -23,6 +23,8 @@
     "view": "Ver",
     "active": "Ativo",
     "inactive": "Inativo",
+    "saving": "A guardar...",
+    "creating": "A criar...",
     "backToCourse": "Voltar ao Curso"
   },
   "auth": {
@@ -229,6 +231,12 @@
   "challenges": {
     "title": "Desafios",
     "createNew": "Criar Novo Desafio",
+    "createChallenge": "Criar Desafio",
+    "editChallenge": "Editar Desafio",
+    "formDescription": "Defina metas de operações, tempo e MPU para avaliar o desempenho",
+    "loadError": "Erro ao carregar desafio",
+    "createError": "Erro ao criar desafio",
+    "updateError": "Erro ao atualizar desafio",
     "operations": "Operações",
     "mpu": "MPU",
     "submitted": "Submetido",

@@ -23,6 +23,8 @@
     "view": "Ver",
     "active": "Activo",
     "inactive": "Inactivo",
+    "saving": "Guardando...",
+    "creating": "Creando...",
     "backToCourse": "Volver al Curso"
   },
   "auth": {
@@ -231,6 +233,9 @@
   "challenges": {
     "title": "Desafíos",
     "createNew": "Crear Nuevo Desafío",
+    "createChallenge": "Crear Desafío",
+    "editChallenge": "Editar Desafío",
+    "formDescription": "Define metas de operaciones, tiempo y MPU para evaluar el desempeño",
     "operations": "Operaciones",
     "mpu": "MPU",
     "submitted": "Presentado",
@@ -246,6 +251,7 @@
     "addPartError": "Error al añadir parte",
     "finalizeError": "Error al finalizar",
     "createError": "Error al crear desafío",
+    "updateError": "Error al actualizar desafío",
     "loadResultError": "Error al cargar resultado"
   },
   "certificates": {

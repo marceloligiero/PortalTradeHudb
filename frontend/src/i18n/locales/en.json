@@ -23,6 +23,8 @@
     "view": "View",
     "active": "Active",
     "inactive": "Inactive",
+    "saving": "Saving...",
+    "creating": "Creating...",
     "backToCourse": "Back to Course"
   },
   "auth": {
@@ -231,6 +233,9 @@
   "challenges": {
     "title": "Challenges",
     "createNew": "Create New Challenge",
+    "createChallenge": "Create Challenge",
+    "editChallenge": "Edit Challenge",
+    "formDescription": "Define targets for operations, time and MPU to evaluate performance",
     "operations": "Operations",
     "mpu": "MPU",
     "submitted": "Submitted",
@@ -246,6 +251,7 @@
     "addPartError": "Error adding part",
     "finalizeError": "Error finalizing",
     "createError": "Error creating challenge",
+    "updateError": "Error updating challenge",
     "loadResultError": "Error loading result"
   },
   "certificates": {

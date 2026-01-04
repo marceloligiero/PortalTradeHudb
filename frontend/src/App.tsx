@@ -88,6 +88,7 @@ function App() {
             <Route path="courses/:courseId" element={<AdminCourseDetail />} />
             <Route path="course/new" element={<AdminCourseForm />} />
             <Route path="courses/:courseId/challenges/new" element={<ChallengeForm />} />
+            <Route path="courses/:courseId/challenges/:challengeId/edit" element={<ChallengeForm />} />
             <Route path="courses/:courseId/challenges/:challengeId" element={<ChallengeDetail />} />
             <Route path="courses/:courseId/lessons/new" element={<LessonForm />} />
             <Route path="courses/:courseId/lessons/:lessonId" element={<LessonDetail />} />

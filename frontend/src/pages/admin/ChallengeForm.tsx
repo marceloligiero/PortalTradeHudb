@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save, Target, Clock, TrendingUp, AlertCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import api from '../../lib/axios';
 
 interface ChallengeFormData {
@@ -11,13 +12,17 @@ interface ChallengeFormData {
   time_limit_minutes: number;
   target_mpu: number;
   max_errors: number;
+  is_active: boolean;
 }
 
 const ChallengeForm: React.FC = () => {
   const navigate = useNavigate();
-  const { courseId } = useParams<{ courseId: string }>();
+  const { courseId, challengeId } = useParams<{ courseId: string; challengeId: string }>();
+  const { t } = useTranslation();
+  const isEditing = !!challengeId;
   
   const [loading, setLoading] = useState(false);
+  const [loadingChallenge, setLoadingChallenge] = useState(isEditing);
   const [error, setError] = useState('');
   
   const [formData, setFormData] = useState<ChallengeFormData>({
@@ -28,7 +33,38 @@ const ChallengeForm: React.FC = () => {
     time_limit_minutes: 60,
     target_mpu: 1.67, // 100 operações / 60 minutos
     max_errors: 0,
+    is_active: true,
   });
+
+  // Fetch challenge data if editing
+  useEffect(() => {
+    if (isEditing && courseId && challengeId) {
+      fetchChallenge();
+    }
+  }, [isEditing, courseId, challengeId]);
+
+  const fetchChallenge = async () => {
+    try {
+      setLoadingChallenge(true);
+      const response = await api.get(`/api/admin/courses/${courseId}/challenges/${challengeId}`);
+      const challenge = response.data;
+      setFormData({
+        title: challenge.title || '',
+        description: challenge.description || '',
+        challenge_type: challenge.challenge_type || 'COMPLETE',
+        operations_required: challenge.operations_required || 100,
+        time_limit_minutes: challenge.time_limit_minutes || 60,
+        target_mpu: challenge.target_mpu || 1.67,
+        max_errors: challenge.max_errors || 0,
+        is_active: challenge.is_active !== undefined ? challenge.is_active : true,
+      });
+    } catch (err: any) {
+      console.error('Erro ao carregar desafio:', err);
+      setError(err.response?.data?.detail || t('challenges.loadError'));
+    } finally {
+      setLoadingChallenge(false);
+    }
+  };
 
   // Calcular MPU automaticamente quando operações ou tempo mudam
   const handleOperationsOrTimeChange = (field: 'operations_required' | 'time_limit_minutes', value: number) => {
@@ -50,19 +86,34 @@ const ChallengeForm: React.FC = () => {
     setLoading(true);
 
     try {
-      await api.post('/api/challenges', {
-        ...formData,
-        course_id: parseInt(courseId || '0'),
-      });
+      if (isEditing) {
+        await api.put(`/api/admin/courses/${courseId}/challenges/${challengeId}`, formData);
+      } else {
+        await api.post('/api/challenges', {
+          ...formData,
+          course_id: parseInt(courseId || '0'),
+        });
+      }
 
       navigate(`/courses/${courseId}`);
     } catch (err: any) {
-      console.error('Erro ao criar desafio:', err);
-      setError(err.response?.data?.detail || t('challenges.createError'));
+      console.error('Erro ao salvar desafio:', err);
+      setError(err.response?.data?.detail || (isEditing ? t('challenges.updateError') : t('challenges.createError')));
     } finally {
       setLoading(false);
     }
   };
+
+  if (loadingChallenge) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-400">{t('common.loading')}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-gray-900 py-8 px-4">
@@ -74,14 +125,14 @@ const ChallengeForm: React.FC = () => {
             className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
           >
             <ArrowLeft className="w-5 h-5" />
-            Voltar ao Curso
+            {t('common.backToCourse')}
           </button>
           
           <h1 className="text-4xl font-bold bg-gradient-to-r from-red-500 to-yellow-500 bg-clip-text text-transparent">
-            Criar Novo Desafio
+            {isEditing ? t('challenges.editChallenge') : t('challenges.createChallenge')}
           </h1>
           <p className="text-gray-400 mt-2">
-            Defina metas de operações, tempo e MPU para avaliar o desempenho
+            {t('challenges.formDescription')}
           </p>
         </div>
 
@@ -270,6 +321,43 @@ const ChallengeForm: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Status (only in edit mode) */}
+            {isEditing && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-3">
+                  {t('admin.status')}
+                </label>
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, is_active: true })}
+                    className={`flex-1 p-4 rounded-lg border-2 transition-all ${
+                      formData.is_active
+                        ? 'border-green-500 bg-green-500/10'
+                        : 'border-white/10 bg-white/5 hover:border-white/20'
+                    }`}
+                  >
+                    <span className={formData.is_active ? 'text-green-400' : 'text-gray-400'}>
+                      {t('admin.active')}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, is_active: false })}
+                    className={`flex-1 p-4 rounded-lg border-2 transition-all ${
+                      !formData.is_active
+                        ? 'border-red-500 bg-red-500/10'
+                        : 'border-white/10 bg-white/5 hover:border-white/20'
+                    }`}
+                  >
+                    <span className={!formData.is_active ? 'text-red-400' : 'text-gray-400'}>
+                      {t('admin.inactive')}
+                    </span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Actions */}
@@ -279,7 +367,7 @@ const ChallengeForm: React.FC = () => {
               onClick={() => navigate(`/courses/${courseId}`)}
               className="px-6 py-3 bg-white/5 text-white rounded-lg hover:bg-white/10 transition-colors"
             >
-              Cancelar
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -289,12 +377,12 @@ const ChallengeForm: React.FC = () => {
               {loading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  A criar...
+                  {isEditing ? t('common.saving') : t('common.creating')}
                 </>
               ) : (
                 <>
                   <Save className="w-5 h-5" />
-                  Criar Desafio
+                  {isEditing ? t('common.save') : t('challenges.createChallenge')}
                 </>
               )}
             </button>
