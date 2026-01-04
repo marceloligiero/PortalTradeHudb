@@ -9,6 +9,104 @@ from datetime import datetime, timedelta
 
 router = APIRouter()
 
+
+# Dashboard Stats
+@router.get("/stats")
+async def get_trainer_stats(
+    current_user: models.User = Depends(auth.require_role(["TRAINER"])),
+    db: Session = Depends(get_db)
+):
+    """Get trainer dashboard statistics"""
+    trainer_id = current_user.id
+    
+    # Courses created by trainer
+    total_courses = db.query(models.Course).filter(
+        models.Course.created_by == trainer_id
+    ).count()
+    
+    # Training plans where trainer is responsible
+    training_plans = db.query(models.TrainingPlan).filter(
+        models.TrainingPlan.trainer_id == trainer_id
+    ).all()
+    
+    total_training_plans = len(training_plans)
+    active_training_plans = len([p for p in training_plans if p.is_active])
+    
+    # Students assigned to trainer's plans
+    plan_ids = [p.id for p in training_plans]
+    total_students = 0
+    if plan_ids:
+        # Count unique students assigned to trainer's plans
+        total_students = db.query(models.TrainingPlan).filter(
+            models.TrainingPlan.trainer_id == trainer_id,
+            models.TrainingPlan.student_id.isnot(None)
+        ).count()
+    
+    # Challenges created by trainer
+    total_challenges = db.query(models.Challenge).filter(
+        models.Challenge.created_by == trainer_id
+    ).count()
+    
+    # Challenge submissions for trainer's challenges
+    trainer_challenge_ids = db.query(models.Challenge.id).filter(
+        models.Challenge.created_by == trainer_id
+    ).subquery()
+    
+    total_submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id.in_(trainer_challenge_ids)
+    ).count()
+    
+    approved_submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id.in_(trainer_challenge_ids),
+        models.ChallengeSubmission.is_approved == True
+    ).count()
+    
+    # Average MPU from submissions
+    avg_mpu_result = db.query(func.avg(models.ChallengeSubmission.calculated_mpu)).filter(
+        models.ChallengeSubmission.challenge_id.in_(trainer_challenge_ids),
+        models.ChallengeSubmission.calculated_mpu.isnot(None)
+    ).scalar()
+    avg_mpu = round(avg_mpu_result, 2) if avg_mpu_result else 0
+    
+    # Certificates issued for trainer's plans
+    certificates_issued = 0
+    if plan_ids:
+        certificates_issued = db.query(models.Certificate).filter(
+            models.Certificate.training_plan_id.in_(plan_ids)
+        ).count()
+    
+    # Lessons count from trainer's courses
+    trainer_course_ids = db.query(models.Course.id).filter(
+        models.Course.created_by == trainer_id
+    ).subquery()
+    
+    total_lessons = db.query(models.Lesson).filter(
+        models.Lesson.course_id.in_(trainer_course_ids)
+    ).count()
+    
+    # Recent activity - last 7 days submissions
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    recent_submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id.in_(trainer_challenge_ids),
+        models.ChallengeSubmission.created_at >= seven_days_ago
+    ).count()
+    
+    return {
+        "total_courses": total_courses,
+        "total_lessons": total_lessons,
+        "total_training_plans": total_training_plans,
+        "active_training_plans": active_training_plans,
+        "total_students": total_students,
+        "total_challenges": total_challenges,
+        "total_submissions": total_submissions,
+        "approved_submissions": approved_submissions,
+        "approval_rate": round((approved_submissions / total_submissions * 100) if total_submissions > 0 else 0, 1),
+        "avg_mpu": avg_mpu,
+        "certificates_issued": certificates_issued,
+        "recent_submissions": recent_submissions
+    }
+
+
 # Courses
 @router.get("/courses", response_model=PaginatedResponse[schemas.Course])
 async def list_courses(

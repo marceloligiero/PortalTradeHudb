@@ -8,6 +8,83 @@ from datetime import datetime, timedelta
 
 router = APIRouter()
 
+
+# Dashboard Stats
+@router.get("/stats")
+async def get_student_stats(
+    current_user: models.User = Depends(auth.get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get student dashboard statistics"""
+    student_id = current_user.id
+    
+    # Enrollments
+    enrollments = db.query(models.Enrollment).filter(
+        models.Enrollment.user_id == student_id
+    ).all()
+    
+    total_enrollments = len(enrollments)
+    completed_enrollments = len([e for e in enrollments if e.completed_at])
+    
+    # Training plans assigned to student
+    assigned_plans = db.query(models.TrainingPlan).filter(
+        models.TrainingPlan.student_id == student_id
+    ).all()
+    
+    total_training_plans = len(assigned_plans)
+    active_training_plans = len([p for p in assigned_plans if p.is_active])
+    
+    # Lesson progress
+    enrollment_ids = [e.id for e in enrollments]
+    lesson_progress = []
+    if enrollment_ids:
+        lesson_progress = db.query(models.LessonProgress).filter(
+            models.LessonProgress.enrollment_id.in_(enrollment_ids)
+        ).all()
+    
+    total_lessons_started = len(lesson_progress)
+    completed_lessons = len([lp for lp in lesson_progress if lp.completed_at])
+    
+    # Study time
+    total_study_minutes = sum(lp.actual_time_minutes or 0 for lp in lesson_progress)
+    total_study_hours = round(total_study_minutes / 60, 1)
+    
+    # Certificates
+    certificates = db.query(models.Certificate).filter(
+        models.Certificate.user_id == student_id
+    ).count()
+    
+    # Challenge submissions
+    submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.user_id == student_id
+    ).all()
+    
+    total_submissions = len(submissions)
+    approved_submissions = len([s for s in submissions if s.is_approved])
+    
+    # Average MPU
+    mpu_values = [s.calculated_mpu for s in submissions if s.calculated_mpu]
+    avg_mpu = round(sum(mpu_values) / len(mpu_values), 2) if mpu_values else 0
+    
+    # Completion rate
+    completion_rate = round((completed_lessons / total_lessons_started * 100) if total_lessons_started > 0 else 0, 1)
+    
+    return {
+        "total_enrollments": total_enrollments,
+        "completed_enrollments": completed_enrollments,
+        "total_training_plans": total_training_plans,
+        "active_training_plans": active_training_plans,
+        "total_lessons_started": total_lessons_started,
+        "completed_lessons": completed_lessons,
+        "total_study_hours": total_study_hours,
+        "certificates": certificates,
+        "total_submissions": total_submissions,
+        "approved_submissions": approved_submissions,
+        "avg_mpu": avg_mpu,
+        "completion_rate": completion_rate
+    }
+
+
 @router.get("/courses")
 async def get_my_courses(
     current_user: models.User = Depends(auth.get_current_active_user),

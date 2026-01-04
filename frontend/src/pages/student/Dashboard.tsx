@@ -1,137 +1,322 @@
-import { useTranslation } from 'react-i18next';
-import { GraduationCap, BookOpen, Award, Clock } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { 
+  GraduationCap, 
+  BookOpen, 
+  Award, 
+  Clock, 
+  Target,
+  CheckCircle2,
+  TrendingUp,
+  PlayCircle,
+  ChevronRight,
+  Zap
+} from 'lucide-react';
 import api from '../../lib/axios';
-import TrainingPlanCard from '../../components/plans/TrainingPlanCard';
 import { useAuthStore } from '../../stores/authStore';
+import TrainingPlanCard from '../../components/plans/TrainingPlanCard';
+import { PremiumHeader, AnimatedStatCard, FloatingOrbs } from '../../components/premium';
+
+interface StudentStats {
+  total_enrollments: number;
+  completed_enrollments: number;
+  total_training_plans: number;
+  active_training_plans: number;
+  total_lessons_started: number;
+  completed_lessons: number;
+  total_study_hours: number;
+  certificates: number;
+  total_submissions: number;
+  approved_submissions: number;
+  avg_mpu: number;
+  completion_rate: number;
+}
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08 }
+  }
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0 }
+};
 
 export default function StudentDashboard() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { token, user } = useAuthStore();
+  const [stats, setStats] = useState<StudentStats | null>(null);
   const [plans, setPlans] = useState<any[]>([]);
-  const [loadingPlans, setLoadingPlans] = useState(true);
-
-  const stats = [
-    {
-      icon: BookOpen,
-      title: t('dashboard.student.activeCourses'),
-      value: '0',
-      color: 'from-red-600 to-red-700',
-    },
-    {
-      icon: Clock,
-      title: t('dashboard.student.studyHours'),
-      value: '0h',
-      color: 'from-red-700 to-red-800',
-    },
-    {
-      icon: Award,
-      title: t('dashboard.student.certificates'),
-      value: '0',
-      color: 'from-red-800 to-red-900',
-    },
-  ];
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!token || !user) return;
-    fetchPlans();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    fetchData();
   }, [token, user]);
 
-  const fetchPlans = async () => {
+  const fetchData = async () => {
     try {
-      setLoadingPlans(true);
-      const resp = await api.get('/api/training-plans/');
-      setPlans(resp.data || []);
-    } catch (err) {
-      console.error('Error fetching assigned training plans', err);
-      setPlans([]);
+      setLoading(true);
+      const [statsRes, plansRes] = await Promise.all([
+        api.get('/api/student/stats'),
+        api.get('/api/training-plans/')
+      ]);
+      setStats(statsRes.data);
+      setPlans(plansRes.data?.slice(0, 6) || []);
+    } catch (error) {
+      console.error('Error fetching student data:', error);
     } finally {
-      setLoadingPlans(false);
+      setLoading(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full"
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-10">
-      {/* Welcome Section */}
-      <div className="glass-morphism-dark rounded-[32px] p-10 border border-white/10 animate-scale-in relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-red-600/10 rounded-full blur-3xl -mr-32 -mt-32 group-hover:bg-red-600/20 transition-colors duration-500" />
-        
-        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
-          <div className="w-24 h-24 bg-red-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-red-600/20 animate-pulse-glow">
-            <GraduationCap className="w-12 h-12 text-white" />
-          </div>
-          <div className="text-center md:text-left">
-            <h1 className="text-4xl font-black tracking-tight mb-2">
-              {t('dashboard.student.title')}
-            </h1>
-            <p className="text-gray-400 text-lg font-medium">
-              {t('dashboard.student.subtitle')}
-            </p>
-          </div>
-        </div>
+    <div className="space-y-6">
+      {/* Premium Header */}
+      <PremiumHeader
+        icon={GraduationCap}
+        title={t('dashboard.student.title')}
+        subtitle={t('dashboard.student.subtitle')}
+        badge="Área do Formando"
+        iconColor="from-red-500 to-red-700"
+      />
+
+      {/* Main Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <AnimatedStatCard
+          icon={BookOpen}
+          label={t('dashboard.student.activeCourses')}
+          value={stats?.total_enrollments || 0}
+          color="from-red-500 to-red-700"
+          delay={0}
+        />
+        <AnimatedStatCard
+          icon={Clock}
+          label={t('dashboard.student.studyHours')}
+          value={stats?.total_study_hours || 0}
+          suffix="h"
+          color="from-blue-500 to-blue-700"
+          delay={0.1}
+        />
+        <AnimatedStatCard
+          icon={Award}
+          label={t('dashboard.student.certificates')}
+          value={stats?.certificates || 0}
+          color="from-yellow-500 to-orange-600"
+          delay={0.2}
+        />
+        <AnimatedStatCard
+          icon={Target}
+          label="Taxa de Conclusão"
+          value={stats?.completion_rate || 0}
+          suffix="%"
+          color="from-green-500 to-emerald-600"
+          delay={0.3}
+        />
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {stats.map((stat, index) => (
-          <div
-            key={index}
-            className="glass-morphism-dark rounded-[32px] p-8 border border-white/10 hover:border-red-500/30 transition-all duration-500 group animate-scale-in"
-            style={{ animationDelay: `${index * 100}ms` }}
-          >
-            <div className={`w-14 h-14 bg-gradient-to-br ${stat.color} rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-500`}>
-              <stat.icon className="w-7 h-7 text-white" />
-            </div>
-            <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">
-              {stat.title}
-            </h3>
-            <p className="text-4xl font-black text-white tracking-tight">{stat.value}</p>
+      {/* Secondary Stats */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
+      >
+        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <GraduationCap className="w-4 h-4 text-indigo-400" />
+            <span className="text-xs text-gray-400">Planos Atribuídos</span>
           </div>
-        ))}
-      </div>
+          <div className="text-2xl font-bold text-white">{stats?.total_training_plans || 0}</div>
+        </motion.div>
+        
+        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <PlayCircle className="w-4 h-4 text-green-400" />
+            <span className="text-xs text-gray-400">Planos Ativos</span>
+          </div>
+          <div className="text-2xl font-bold text-green-400">{stats?.active_training_plans || 0}</div>
+        </motion.div>
+        
+        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <BookOpen className="w-4 h-4 text-blue-400" />
+            <span className="text-xs text-gray-400">Aulas Iniciadas</span>
+          </div>
+          <div className="text-2xl font-bold text-white">{stats?.total_lessons_started || 0}</div>
+        </motion.div>
+        
+        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle2 className="w-4 h-4 text-green-400" />
+            <span className="text-xs text-gray-400">Aulas Concluídas</span>
+          </div>
+          <div className="text-2xl font-bold text-green-400">{stats?.completed_lessons || 0}</div>
+        </motion.div>
+        
+        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Zap className="w-4 h-4 text-yellow-400" />
+            <span className="text-xs text-gray-400">Desafios Feitos</span>
+          </div>
+          <div className="text-2xl font-bold text-white">{stats?.total_submissions || 0}</div>
+        </motion.div>
+        
+        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="w-4 h-4 text-purple-400" />
+            <span className="text-xs text-gray-400">MPU Médio</span>
+          </div>
+          <div className="text-2xl font-bold text-purple-400">{stats?.avg_mpu || 0}</div>
+        </motion.div>
+      </motion.div>
 
       {/* Assigned Training Plans */}
-      <div className="glass-morphism-dark rounded-[32px] p-10 border border-white/10 animate-slide-up" style={{ animationDelay: '200ms' }}>
-        <div className="flex items-center justify-between mb-10">
-          <h2 className="text-3xl font-black tracking-tight">{t('trainingPlan.myPlans')}</h2>
-          <div className="h-1 flex-1 mx-8 bg-gradient-to-r from-red-600/50 to-transparent rounded-full hidden md:block" />
-        </div>
-
-        {loadingPlans ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="glass-morphism-dark rounded-3xl p-8 border border-white/5 space-y-6">
-                <div className="h-8 bg-white/5 rounded-xl w-3/4 animate-pulse" />
-                <div className="space-y-3">
-                  <div className="h-4 bg-white/5 rounded-lg w-full animate-pulse" />
-                  <div className="h-4 bg-white/5 rounded-lg w-5/6 animate-pulse" />
-                </div>
-                <div className="flex gap-3 pt-4">
-                  <div className="h-10 bg-white/5 rounded-xl w-24 animate-pulse" />
-                  <div className="h-10 bg-white/5 rounded-xl w-24 animate-pulse" />
-                </div>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="relative overflow-hidden bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6"
+      >
+        <FloatingOrbs variant="subtle" />
+        
+        <div className="relative">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center">
+                <GraduationCap className="w-5 h-5 text-white" />
               </div>
-            ))}
-          </div>
-        ) : plans.length === 0 ? (
-          <div className="text-center py-20 animate-scale-in">
-            <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-8">
-              <BookOpen className="w-12 h-12 text-gray-600 animate-float" />
+              <div>
+                <h2 className="text-xl font-bold text-white">{t('trainingPlan.myPlans')}</h2>
+                <p className="text-sm text-gray-400">Formações atribuídas a si</p>
+              </div>
             </div>
-            <p className="text-gray-400 text-xl font-bold mb-2">{t('trainingPlan.noAssignedPlans')}</p>
-            <p className="text-gray-500 font-medium">{t('trainingPlan.contactTrainer')}</p>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigate('/courses')}
+              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-gray-300 rounded-xl hover:bg-white/10 transition-all text-sm"
+            >
+              Ver Cursos
+              <ChevronRight className="w-4 h-4" />
+            </motion.button>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {plans.map((p, index) => (
-              <div key={p.id} className="animate-scale-in" style={{ animationDelay: `${index * 100}ms` }}>
-                <TrainingPlanCard plan={p} />
-              </div>
-            ))}
+
+          {plans.length === 0 ? (
+            <div className="text-center py-12">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", damping: 15 }}
+              >
+                <BookOpen className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+              </motion.div>
+              <p className="text-gray-400 text-lg mb-2">{t('trainingPlan.noAssignedPlans')}</p>
+              <p className="text-gray-500">{t('trainingPlan.contactTrainer')}</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {plans.map((plan, index) => (
+                <motion.div
+                  key={plan.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 + index * 0.1 }}
+                  whileHover={{ y: -4 }}
+                >
+                  <TrainingPlanCard plan={plan} />
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      {/* Quick Actions */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
+        className="grid grid-cols-2 md:grid-cols-4 gap-4"
+      >
+        <motion.button
+          whileHover={{ scale: 1.02, y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => navigate('/courses')}
+          className="flex items-center gap-3 p-4 bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 hover:border-red-500/30 transition-all text-left group"
+        >
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center">
+            <BookOpen className="w-5 h-5 text-white" />
           </div>
-        )}
-      </div>
+          <div>
+            <p className="text-sm font-medium text-white group-hover:text-red-400 transition-colors">Meus Cursos</p>
+            <p className="text-xs text-gray-500">Ver formações</p>
+          </div>
+        </motion.button>
+
+        <motion.button
+          whileHover={{ scale: 1.02, y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => navigate('/certificates')}
+          className="flex items-center gap-3 p-4 bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 hover:border-yellow-500/30 transition-all text-left group"
+        >
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center">
+            <Award className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-white group-hover:text-yellow-400 transition-colors">Certificados</p>
+            <p className="text-xs text-gray-500">Ver conquistas</p>
+          </div>
+        </motion.button>
+
+        <motion.button
+          whileHover={{ scale: 1.02, y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => navigate('/reports')}
+          className="flex items-center gap-3 p-4 bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 hover:border-green-500/30 transition-all text-left group"
+        >
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center">
+            <TrendingUp className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-white group-hover:text-green-400 transition-colors">Relatórios</p>
+            <p className="text-xs text-gray-500">Ver progresso</p>
+          </div>
+        </motion.button>
+
+        <motion.button
+          whileHover={{ scale: 1.02, y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          className="flex items-center gap-3 p-4 bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 hover:border-blue-500/30 transition-all text-left group"
+        >
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+            <Clock className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-white group-hover:text-blue-400 transition-colors">{stats?.total_study_hours || 0}h</p>
+            <p className="text-xs text-gray-500">Tempo de estudo</p>
+          </div>
+        </motion.button>
+      </motion.div>
     </div>
   );
 }
