@@ -124,11 +124,9 @@ async def get_eligible_students(
         if current_user.role == 'TRAINER' and plan.trainer_id != current_user.id:
             continue
 
-        assigns = db.query(models.TrainingPlanAssignment).filter(
-            models.TrainingPlanAssignment.training_plan_id == plan.id
-        ).all()
-        for a in assigns:
-            student_ids.add(a.user_id)
+        # Usar student_id diretamente do plano (1 aluno por plano)
+        if plan.student_id:
+            student_ids.add(plan.student_id)
 
     if not student_ids:
         return []
@@ -171,11 +169,9 @@ async def get_eligible_students_debug(
 
     student_ids = set()
     for plan in plans:
-        assigns = db.query(models.TrainingPlanAssignment).filter(
-            models.TrainingPlanAssignment.training_plan_id == plan.id
-        ).all()
-        for a in assigns:
-            student_ids.add(a.user_id)
+        # Usar student_id diretamente do plano (1 aluno por plano)
+        if plan.student_id:
+            student_ids.add(plan.student_id)
 
     if not student_ids:
         return []
@@ -267,14 +263,11 @@ async def submit_challenge_summary(
         # Se o curso não está em nenhum plano, rejeitamos por segurança
         raise HTTPException(status_code=400, detail="Curso do desafio não está associado a nenhum plano de formação")
 
-    # Verificar se existe pelo menos um plano onde o estudante esteja atribuído
+    # Verificar se existe pelo menos um plano onde o estudante seja o student_id
     assignment_found = False
     for plan in plans_with_course:
-        assign = db.query(models.TrainingPlanAssignment).filter(
-            models.TrainingPlanAssignment.training_plan_id == plan.id,
-            models.TrainingPlanAssignment.user_id == submission.user_id
-        ).first()
-        if assign:
+        # Agora usamos student_id diretamente no plano (1 aluno por plano)
+        if plan.student_id == submission.user_id:
             # Se o aplicador for TRAINER, garantir que o plan pertence ao trainer atual
             if current_user.role == 'TRAINER' and plan.trainer_id != current_user.id:
                 # este plano não pertence ao trainer atual — ignorar e continuar procurando
@@ -369,11 +362,8 @@ async def start_challenge_complete(
 
     assignment_found = False
     for plan in plans_with_course:
-        assign = db.query(models.TrainingPlanAssignment).filter(
-            models.TrainingPlanAssignment.training_plan_id == plan.id,
-            models.TrainingPlanAssignment.user_id == user_id
-        ).first()
-        if assign:
+        # Usar student_id diretamente do plano (1 aluno por plano)
+        if plan.student_id == user_id:
             if current_user.role == 'TRAINER' and plan.trainer_id != current_user.id:
                 continue
             assignment_found = True
