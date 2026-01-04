@@ -60,7 +60,7 @@ export default function AdminTrainingPlanForm() {
     end_date: '',
     trainer_id: 0,
     course_ids: [] as number[],
-    student_ids: [] as number[],
+    student_id: null as number | null,
   });
 
   useEffect(() => {
@@ -193,7 +193,7 @@ export default function AdminTrainingPlanForm() {
         end_date: formData.end_date || null,
         trainer_id: formData.trainer_id,
         course_ids: formData.course_ids,
-        student_ids: formData.student_ids
+        student_id: formData.student_id
       };
 
       console.log('📤 Enviando plano de formação:', payload);
@@ -604,12 +604,12 @@ export default function AdminTrainingPlanForm() {
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-6">
                 <Users className="w-6 h-6 text-green-400" />
-                <h2 className="text-xl font-semibold text-white">Selecionar Formandos</h2>
+                <h2 className="text-xl font-semibold text-white">{t('trainingPlans.selectStudent')}</h2>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-3">
-                  Selecione os formandos que participarão deste plano (opcional)
+                  {t('trainingPlans.selectStudentDesc')}
                 </label>
                 <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                   {students.length === 0 ? (
@@ -622,22 +622,17 @@ export default function AdminTrainingPlanForm() {
                       <label 
                         key={student.id}
                         className={`flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition-all ${
-                          formData.student_ids.includes(student.id)
+                          formData.student_id === student.id
                             ? 'bg-green-500/10 border-green-500/50'
                             : 'bg-white/5 border-white/10 hover:border-green-500/50'
                         }`}
                       >
                         <input
-                          type="checkbox"
-                          checked={formData.student_ids.includes(student.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setFormData({ ...formData, student_ids: [...formData.student_ids, student.id] });
-                            } else {
-                              setFormData({ ...formData, student_ids: formData.student_ids.filter(id => id !== student.id) });
-                            }
-                          }}
-                          className="w-5 h-5 rounded border-white/20 text-green-600 focus:ring-2 focus:ring-green-500/20"
+                          type="radio"
+                          name="student"
+                          checked={formData.student_id === student.id}
+                          onChange={() => setFormData({ ...formData, student_id: student.id })}
+                          className="w-5 h-5 border-white/20 text-green-600 focus:ring-2 focus:ring-green-500/20"
                         />
                         <div className="flex-1">
                           <div className="text-white font-medium">{student.full_name}</div>
@@ -647,16 +642,16 @@ export default function AdminTrainingPlanForm() {
                     ))
                   )}
                 </div>
-                {formData.student_ids.length > 0 && (
+                {formData.student_id && (
                   <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
                     <div className="text-green-300 font-medium">
-                      {formData.student_ids.length} {t('errors.studentsSelected')}
+                      {t('trainingPlans.studentSelected')}: {students.find(s => s.id === formData.student_id)?.full_name}
                     </div>
                   </div>
                 )}
               </div>
             </div>
-          )}
+          )}}
 
           {/* Step 5: Review */}
           {currentStep === 5 && (
@@ -714,9 +709,11 @@ export default function AdminTrainingPlanForm() {
                 </div>
 
                 <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                  <div className="text-sm text-gray-400 mb-1">Formandos</div>
+                  <div className="text-sm text-gray-400 mb-1">{t('trainingPlans.student')}</div>
                   <div className="text-white font-medium">
-                    {formData.student_ids.length} {t('errors.studentsSelected')}
+                    {formData.student_id 
+                      ? students.find(s => s.id === formData.student_id)?.full_name 
+                      : t('trainingPlans.noStudentSelected')}
                   </div>
                 </div>
               </div>

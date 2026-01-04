@@ -121,6 +121,7 @@ class TrainingPlanBase(BaseModel):
     title: str
     description: Optional[str] = None
     trainer_id: int
+    student_id: Optional[int] = None  # 1 aluno por plano
     bank_id: Optional[int] = None
     product_id: Optional[int] = None
     # Use string dates (ISO) for API responses to match frontend expectations
@@ -130,12 +131,12 @@ class TrainingPlanBase(BaseModel):
 
 class TrainingPlanCreate(TrainingPlanBase):
     course_ids: Optional[list[int]] = []
-    student_ids: Optional[list[int]] = []
 
 class TrainingPlanUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     trainer_id: Optional[int] = None
+    student_id: Optional[int] = None
     is_active: Optional[bool] = None
     course_ids: Optional[list[int]] = None
 

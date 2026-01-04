@@ -126,6 +126,7 @@ class TrainingPlan(Base):
     description = Column(Text)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     trainer_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Formador responsável
+    student_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Aluno (1 por plano)
     bank_id = Column(Integer, ForeignKey("banks.id"))
     product_id = Column(Integer, ForeignKey("products.id"))
     start_date = Column(DateTime(timezone=True))
@@ -138,6 +139,7 @@ class TrainingPlan(Base):
     assignments = relationship("TrainingPlanAssignment", back_populates="training_plan")
     certificates = relationship("Certificate", back_populates="training_plan")
     trainer = relationship("User", foreign_keys=[trainer_id])
+    student = relationship("User", foreign_keys=[student_id])
     bank = relationship("Bank")
     product = relationship("Product")
 

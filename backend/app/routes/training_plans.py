@@ -178,6 +178,7 @@ async def create_training_plan(
             title=plan.title,
             description=plan.description,
             trainer_id=plan.trainer_id,
+            student_id=plan.student_id,  # 1 aluno por plano
             bank_id=plan.bank_id,
             product_id=plan.product_id,
             start_date=start_date_dt,
@@ -210,34 +211,6 @@ async def create_training_plan(
                 db.add(plan_course)
         db.commit()
     
-    # Adicionar formandos (assignments) se fornecidos
-    if plan.student_ids:
-        try:
-            for student_id in plan.student_ids:
-                # Verificar se o usuário é realmente um formando
-                student = db.query(models.User).filter(
-                    models.User.id == student_id,
-                    models.User.role == "STUDENT"
-                ).first()
-                if student:
-                    assignment = models.TrainingPlanAssignment(
-                        training_plan_id=db_plan.id,
-                        user_id=student_id,
-                        assigned_by=current_user.id  # Campo obrigatório!
-                    )
-                    db.add(assignment)
-                else:
-                    logger.warning(f"Student ID {student_id} not found or not a STUDENT")
-            db.commit()
-            logger.info(f"Added students to training plan")
-        except Exception as e:
-            logger.error(f"Error adding students: {str(e)}")
-            db.rollback()
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error adding students: {str(e)}"
-            )
-    
     # Refresh para carregar relationships
     try:
         db.refresh(db_plan)
@@ -249,6 +222,7 @@ async def create_training_plan(
             "title": db_plan.title,
             "description": db_plan.description,
             "trainer_id": db_plan.trainer_id,
+            "student_id": db_plan.student_id,
             "bank_id": db_plan.bank_id,
             "product_id": db_plan.product_id,
             "start_date": db_plan.start_date.isoformat() if db_plan.start_date else None,
