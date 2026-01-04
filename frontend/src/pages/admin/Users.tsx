@@ -20,7 +20,6 @@ import {
   XCircle,
   Eye,
   Edit3,
-  Trash2,
   RefreshCw,
   X,
   Save,

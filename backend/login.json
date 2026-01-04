@@ -1,1 +1,0 @@
-{"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkB0cmFkZWh1Yi5jb20iLCJleHAiOjE3NjU5ODY3OTh9.EBR3TMhzyyQ9cvwcfPatgx9vxE7QGAk3S_UNIkdBKG4","token_type":"bearer","user":{"id":1,"email":"admin@tradehub.com","full_name":"System Admin","role":"ADMIN","is_active":true,"is_pending":false}}
