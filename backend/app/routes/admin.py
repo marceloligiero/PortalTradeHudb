@@ -386,8 +386,8 @@ async def get_admin_course(
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     
-    # Get trainer info
-    trainer = db.query(models.User).filter(models.User.id == course.trainer_id).first() if course.trainer_id else None
+    # Get creator/trainer info (created_by is the trainer)
+    trainer = db.query(models.User).filter(models.User.id == course.created_by).first() if course.created_by else None
     
     # Get bank info
     bank = db.query(models.Bank).filter(models.Bank.id == course.bank_id).first() if course.bank_id else None
@@ -414,7 +414,7 @@ async def get_admin_course(
         "product_id": course.product_id,
         "product_code": product.code if product else None,
         "product_name": product.name if product else None,
-        "trainer_id": course.trainer_id,
+        "trainer_id": course.created_by,
         "trainer_name": trainer.full_name if trainer else None,
         "total_students": total_students,
         "total_lessons": len(lessons),
@@ -426,8 +426,8 @@ async def get_admin_course(
                 "id": l.id,
                 "title": l.title,
                 "description": l.description,
-                "content_type": l.content_type,
-                "duration_minutes": l.duration_minutes,
+                "content_type": l.lesson_type,
+                "duration_minutes": l.estimated_minutes,
                 "order_index": l.order_index
             } for l in lessons
         ],
