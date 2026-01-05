@@ -89,7 +89,7 @@ const ChallengeForm: React.FC = () => {
       if (isEditing) {
         await api.put(`/api/admin/courses/${courseId}/challenges/${challengeId}`, formData);
       } else {
-        await api.post('/api/challenges', {
+        await api.post('/api/challenges/', {
           ...formData,
           course_id: parseInt(courseId || '0'),
         });
