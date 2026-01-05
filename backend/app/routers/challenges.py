@@ -248,7 +248,7 @@ async def submit_challenge_summary(
     # Validar estudante existe
     student = db.query(models.User).filter(
         models.User.id == submission.user_id,
-        models.User.role == "STUDENT"
+        models.User.role == "TRAINEE"
     ).first()
     
     if not student:
@@ -346,7 +346,7 @@ async def start_challenge_complete(
     # Validar estudante
     student = db.query(models.User).filter(
         models.User.id == user_id,
-        models.User.role == "STUDENT"
+        models.User.role == "TRAINEE"
     ).first()
     
     if not student:
