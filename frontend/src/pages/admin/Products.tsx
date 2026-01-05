@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Plus, CheckCircle2, XCircle, X, Sparkles, Tag, FileText } from 'lucide-react';
 import api from '../../lib/axios';
@@ -32,6 +33,7 @@ const cardVariants = {
 export default function ProductsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -138,7 +140,7 @@ export default function ProductsPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative overflow-hidden bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-12 text-center"
+            className={`relative overflow-hidden backdrop-blur-xl rounded-2xl p-12 text-center ${isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-gray-200'}`}
           >
             <FloatingOrbs variant="subtle" />
             <motion.div
@@ -148,10 +150,10 @@ export default function ProductsPage() {
             >
               <Package className="w-20 h-20 text-gray-600 mx-auto mb-4" />
             </motion.div>
-            <h3 className="text-xl font-semibold text-white mb-2">
+            <h3 className={`text-xl font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               {t('admin.noProductsRegistered')}
             </h3>
-            <p className="text-gray-400 mb-6">
+            <p className={`mb-6 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
               {t('admin.createFirstProduct')}
             </p>
             <motion.button
@@ -181,7 +183,7 @@ export default function ProductsPage() {
                 {/* Glow effect */}
                 <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-pink-600/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 
-                <div className="relative bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 hover:border-purple-500/30 transition-all h-full">
+                <div className={`relative backdrop-blur-xl rounded-2xl p-6 hover:border-purple-500/30 transition-all h-full ${isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-gray-200'}`}>
                   <div className="flex items-start justify-between mb-4">
                     <motion.div
                       whileHover={{ rotate: 5, scale: 1.1 }}
@@ -215,17 +217,17 @@ export default function ProductsPage() {
                     <p className="font-mono text-purple-400 font-medium">{product.code}</p>
                   </div>
                   
-                  <h3 className="text-lg font-bold text-white mb-2 group-hover:text-purple-400 transition-colors">
+                  <h3 className={`text-lg font-bold mb-2 group-hover:text-purple-400 transition-colors ${isDark ? 'text-white' : 'text-gray-900'}`}>
                     {product.name}
                   </h3>
                   
-                  <p className="text-gray-400 text-sm line-clamp-2 min-h-[2.5rem]">
+                  <p className={`text-sm line-clamp-2 min-h-[2.5rem] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                     {product.description || (
                       <span className="text-gray-600 italic">{t('admin.noDescription')}</span>
                     )}
                   </p>
                   
-                  <div className="mt-4 pt-4 border-t border-white/10 flex items-center gap-2 text-gray-500">
+                  <div className={`mt-4 pt-4 flex items-center gap-2 text-gray-500 ${isDark ? 'border-t border-white/10' : 'border-t border-gray-100'}`}>
                     <FileText className="w-3 h-3" />
                     <span className="text-xs">
                       {t('courses.createdAt')} {new Date(product.created_at).toLocaleDateString('pt-PT', {
@@ -257,25 +259,25 @@ export default function ProductsPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl w-full max-w-md overflow-hidden"
+              className={`relative backdrop-blur-xl rounded-2xl shadow-2xl w-full max-w-md overflow-hidden ${isDark ? 'bg-gray-900/95 border border-white/10' : 'bg-white border border-gray-200'}`}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
               <div className="relative overflow-hidden">
                 <GridBackground opacity={0.2} color="139, 92, 246" />
-                <div className="relative flex items-center justify-between px-6 py-4 border-b border-white/10">
+                <div className={`relative flex items-center justify-between px-6 py-4 ${isDark ? 'border-b border-white/10' : 'border-b border-gray-200'}`}>
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center">
                       <Package className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold text-white">{t('admin.createNewProduct')}</h2>
-                      <p className="text-xs text-gray-400">Adicionar novo produto ao catálogo</p>
+                      <h2 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('admin.createNewProduct')}</h2>
+                      <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Adicionar novo produto ao catálogo</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setShowModal(false)}
-                    className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isDark ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-100 hover:bg-gray-200'}`}
                   >
                     <X className="w-4 h-4 text-gray-400" />
                   </button>
@@ -285,40 +287,40 @@ export default function ProductsPage() {
               {/* Modal Body */}
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                     {t('admin.productCode')} *
                   </label>
                   <input
                     type="text"
                     value={formData.code}
                     onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className={`w-full px-4 py-3 rounded-xl placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all ${isDark ? 'bg-white/5 border border-white/10 text-white' : 'bg-gray-50 border border-gray-200 text-gray-900'}`}
                     placeholder="Ex: CARTOES, CREDITO, SEGUROS"
                     maxLength={50}
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                     {t('admin.productName')} *
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    className={`w-full px-4 py-3 rounded-xl placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all ${isDark ? 'bg-white/5 border border-white/10 text-white' : 'bg-gray-50 border border-gray-200 text-gray-900'}`}
                     placeholder="Nome do produto"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className={`block text-sm font-medium mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                     {t('courses.description')}
                   </label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none"
+                    className={`w-full px-4 py-3 rounded-xl placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all resize-none ${isDark ? 'bg-white/5 border border-white/10 text-white' : 'bg-gray-50 border border-gray-200 text-gray-900'}`}
                     placeholder="Descrição do produto (opcional)"
                     rows={3}
                   />
@@ -329,7 +331,7 @@ export default function ProductsPage() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setShowModal(false)}
-                    className="flex-1 px-4 py-3 bg-white/5 border border-white/10 text-gray-300 rounded-xl hover:bg-white/10 transition-all font-medium"
+                    className={`flex-1 px-4 py-3 rounded-xl transition-all font-medium ${isDark ? 'bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10' : 'bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200'}`}
                   >
                     {t('common.cancel')}
                   </motion.button>

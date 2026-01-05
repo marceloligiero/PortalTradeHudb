@@ -7,6 +7,7 @@ import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 import TrainingPlanCard from '../../components/plans/TrainingPlanCard';
 import { PremiumHeader, AnimatedStatCard, FloatingOrbs } from '../../components/premium';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface TrainingPlan {
   id: number;
@@ -38,6 +39,7 @@ export default function TrainingPlans() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { token, user } = useAuthStore();
+  const { isDark } = useTheme();
 
   const [plans, setPlans] = useState<TrainingPlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -163,7 +165,7 @@ export default function TrainingPlans() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative overflow-hidden bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-12 text-center"
+            className={`relative overflow-hidden ${isDark ? 'bg-white/5' : 'bg-white'} backdrop-blur-xl rounded-2xl border ${isDark ? 'border-white/10' : 'border-gray-200'} p-12 text-center`}
           >
             <FloatingOrbs variant="subtle" />
             <motion.div
@@ -173,10 +175,10 @@ export default function TrainingPlans() {
             >
               <GraduationCap className="w-20 h-20 text-gray-600 mx-auto mb-4" />
             </motion.div>
-            <h3 className="text-xl font-semibold text-white mb-2">
+            <h3 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>
               {t('trainingPlan.noPlan')}
             </h3>
-            <p className="text-gray-400 mb-6">
+            <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'} mb-6`}>
               {t('trainingPlan.createFirstPlan')}
             </p>
             <motion.button

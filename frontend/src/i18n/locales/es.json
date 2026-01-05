@@ -25,6 +25,7 @@
     "inactive": "Inactivo",
     "saving": "Guardando...",
     "creating": "Creando...",
+    "allBanks": "Todos los Bancos",
     "backToCourse": "Volver al Curso"
   },
   "auth": {

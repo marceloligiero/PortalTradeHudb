@@ -44,6 +44,12 @@ interface TrainerStats {
   bank_code: string;
 }
 
+interface Bank {
+  id: number;
+  code: string;
+  name: string;
+}
+
 const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6'];
 
 export default function ReportsPage() {
@@ -52,6 +58,7 @@ export default function ReportsPage() {
   const [courseStats, setCourseStats] = useState<CourseStats[]>([]);
   const [trainerStats, setTrainerStats] = useState<TrainerStats[]>([]);
   const [trainingPlanStats, setTrainingPlanStats] = useState<TrainingPlanStats[]>([]);
+  const [banks, setBanks] = useState<Bank[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -64,17 +71,19 @@ export default function ReportsPage() {
   const fetchReports = async () => {
     try {
       setLoading(true);
-      const [statsRes, coursesRes, trainersRes, plansRes] = await Promise.all([
+      const [statsRes, coursesRes, trainersRes, plansRes, banksRes] = await Promise.all([
         api.get('/api/admin/reports/stats'),
         api.get('/api/admin/reports/courses'),
         api.get('/api/admin/reports/trainers'),
         api.get('/api/admin/reports/training-plans'),
+        api.get('/api/admin/banks'),
       ]);
 
       setStats(statsRes.data || {});
       setCourseStats(coursesRes.data || []);
       setTrainerStats(trainersRes.data || []);
       setTrainingPlanStats(plansRes.data || []);
+      setBanks(banksRes.data || []);
     } catch (err) {
       console.error('Error fetching reports:', err);
     } finally {
@@ -377,10 +386,10 @@ export default function ReportsPage() {
                 onChange={(e) => setSelectedBank(e.target.value)}
                 className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:border-red-500 focus:outline-none"
               >
-                <option value="ALL">Todos os Bancos</option>
-                <option value="PT">Portugal</option>
-                <option value="ES">Espanha</option>
-                <option value="BR">Brasil</option>
+                <option value="ALL">{t('common.allBanks')}</option>
+                {banks.map((bank) => (
+                  <option key={bank.id} value={bank.code}>{bank.name}</option>
+                ))}
               </select>
             </div>
             <ResponsiveContainer width="100%" height={300}>

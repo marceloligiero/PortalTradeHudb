@@ -25,6 +25,7 @@
     "inactive": "Inactive",
     "saving": "Saving...",
     "creating": "Creating...",
+    "allBanks": "All Banks",
     "backToCourse": "Back to Course"
   },
   "auth": {
