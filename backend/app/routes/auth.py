@@ -64,10 +64,10 @@ async def register(
     """
     try:
         # Validate role
-        if user_in.role not in ["TRAINER", "STUDENT"]:
+        if user_in.role not in ["TRAINER", "TRAINEE"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Role must be either 'TRAINER' or 'STUDENT'"
+                detail="Role must be either 'TRAINER' or 'TRAINEE'"
             )
         
         # Check if user already exists

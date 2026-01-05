@@ -24,7 +24,7 @@ async def get_dashboard_summary(
     """Complete dashboard summary with all key metrics"""
     
     # Basic counts
-    total_students = db.query(models.User).filter(models.User.role == "STUDENT").count()
+    total_students = db.query(models.User).filter(models.User.role == "TRAINEE").count()
     total_trainers = db.query(models.User).filter(
         models.User.role == "TRAINER", 
         models.User.is_pending == False
@@ -106,7 +106,7 @@ async def get_student_performance_report(
     """Detailed student performance analytics"""
     
     # Base query
-    query = db.query(models.User).filter(models.User.role == "STUDENT")
+    query = db.query(models.User).filter(models.User.role == "TRAINEE")
     
     students = query.all()
     performance_reports = []

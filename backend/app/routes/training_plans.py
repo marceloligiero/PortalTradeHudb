@@ -91,7 +91,7 @@ async def list_training_plans(
                     "full_name": plan.trainer.full_name if plan.trainer else None
                 } if hasattr(plan, 'trainer') else None,
                 "total_courses": total_courses,
-                "student": student_info,
+                "TRAINEE": student_info,
                 "total_duration_hours": total_hours,
                 "start_date": plan.start_date.isoformat() if plan.start_date else None,
                 "end_date": plan.end_date.isoformat() if plan.end_date else None,
@@ -272,7 +272,7 @@ async def get_training_plan(
         raise HTTPException(status_code=404, detail="Training plan not found")
 
     # Verificar permissões
-    if current_user.role == "STUDENT":
+    if current_user.role == "TRAINEE":
         # Verificar se o formando está atribuído
         assignment = db.query(models.TrainingPlanAssignment).filter(
             models.TrainingPlanAssignment.training_plan_id == plan_id,
@@ -402,7 +402,7 @@ async def get_training_plan(
             "days_remaining": days_remaining,
             "status": status_str,
             "student_id": plan.student_id,
-            "student": student_info,
+            "TRAINEE": student_info,
         }
         return resp
     except Exception as e:
@@ -538,7 +538,7 @@ async def assign_student_to_plan(
     # Verificar se o formando existe e tem role STUDENT
     student = db.query(models.User).filter(
         models.User.id == assignment.student_id,
-        models.User.role == "STUDENT"
+        models.User.role == "TRAINEE"
     ).first()
     
     if not student:

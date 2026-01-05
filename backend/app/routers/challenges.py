@@ -133,7 +133,7 @@ async def get_eligible_students(
 
     students = db.query(models.User).filter(
         models.User.id.in_(list(student_ids)),
-        models.User.role == 'STUDENT',
+        models.User.role == 'TRAINEE',
         models.User.is_active == True
     ).all()
 
@@ -178,7 +178,7 @@ async def get_eligible_students_debug(
 
     students = db.query(models.User).filter(
         models.User.id.in_(list(student_ids)),
-        models.User.role == 'STUDENT',
+        models.User.role == 'TRAINEE',
         models.User.is_active == True
     ).all()
 

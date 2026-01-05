@@ -15,7 +15,7 @@ async def get_kpis(db: Session = Depends(get_db)):
     """Retorna KPIs principais da plataforma"""
     
     # Total de usuários por role
-    total_students = db.query(func.count(User.id)).filter(User.role == 'STUDENT').scalar() or 0
+    total_students = db.query(func.count(User.id)).filter(User.role == 'TRAINEE').scalar() or 0
     total_trainers = db.query(func.count(User.id)).filter(User.role == 'TRAINER').scalar() or 0
     total_admins = db.query(func.count(User.id)).filter(User.role == 'ADMIN').scalar() or 0
     
