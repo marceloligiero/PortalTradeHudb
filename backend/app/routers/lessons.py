@@ -865,6 +865,7 @@ async def get_lesson_detail(
         "id": lesson.id,
         "title": lesson.title,
         "description": lesson.description,
+        "content": lesson.content,
         "estimated_minutes": lesson.estimated_minutes,
         "lesson_type": lesson.lesson_type,
         "materials_url": lesson.materials_url,

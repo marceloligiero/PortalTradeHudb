@@ -41,6 +41,7 @@ import SubmissionReview from './pages/trainer/SubmissionReview';
 import PendingReviews from './pages/trainer/PendingReviews';
 import ChallengeExecution from './pages/student/ChallengeExecution';
 import StudentChallengeExecutionComplete from './pages/student/ChallengeExecutionComplete';
+import LessonView from './pages/student/LessonView';
 import CertificateView from './pages/certificates/CertificateView';
 import Layout from './components/layout/Layout';
 
@@ -71,6 +72,7 @@ function App() {
             <Route path="certificates" element={<CertificatesPage />} />
             <Route path="reports" element={<StudentReportsPage />} />
             <Route path="training-plan/:id" element={<TrainingPlanDetail />} />
+            <Route path="lessons/:lessonId/view" element={<LessonView />} />
             {/* Formando executa desafios COMPLETE (linha a linha) */}
             <Route path="challenges/:challengeId/execute" element={<ChallengeExecution />} />
             <Route path="challenges/:challengeId/execute/complete" element={<StudentChallengeExecutionComplete />} />
