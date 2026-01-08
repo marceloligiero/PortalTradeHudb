@@ -939,7 +939,7 @@ export default function TradeDatahubLanding() {
               <img 
                 src="/logo-sds.png"
                 alt="Santander Digital Services"
-                className={`h-8 w-auto ${isDark ? "filter brightness-0 invert opacity-60" : "opacity-80"}`}
+                className={`h-8 w-auto transition-all ${isDark ? "filter brightness-0 invert opacity-60" : "filter brightness-0 opacity-80"}`}
               />
               <span className={isDark ? "text-white/40" : "text-gray-300"}>|</span>
               <span className={`font-medium ${isDark ? "text-white/60" : "text-gray-600"}`}>Trade Datahub</span>
