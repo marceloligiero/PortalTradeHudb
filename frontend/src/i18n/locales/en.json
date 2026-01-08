@@ -680,68 +680,171 @@
     "keepLearning": "Keep learning to unlock achievements!"
   },
   "landing": {
-    "hero": {
-      "subtitle": "Professional training platform by Santander Digital Services. Develop your skills with practical courses and official certificates.",
-      "cta": "Get Started",
-      "login": "Login"
-    },
+    "badge": "Santander Digital Services | Shared Services",
+    "heroTitle1": "Training",
+    "heroTitle2": "Portal",
+    "heroTitle3": "Trade Datahub",
+    "heroSubtitle": "Operational excellence training for Trade Finance teams.",
+    "heroSubtitle2": "Standardized processes. Centralized knowledge. Consistent results.",
+    "startTraining": "Start Training",
+    "exploreProcesses": "Explore Processes",
     "stats": {
-      "students": "Active Students",
-      "courses": "Available Courses",
-      "satisfaction": "Satisfaction Rate",
-      "support": "Support Available"
+      "areas": "Operational Areas",
+      "processes": "Mapped Processes",
+      "access": "Access Available",
+      "satisfaction": "Satisfaction"
     },
-    "features": {
-      "title": "What We Offer",
-      "subtitle": "Everything you need to grow professionally",
-      "training": {
-        "title": "Specialized Training",
-        "description": "Courses built by banking experts focused on real products and processes"
+    "navbar": {
+      "portalTitle": "TRAINING PORTAL",
+      "login": "Login",
+      "register": "Register"
+    },
+    "intro": {
+      "title": "What is the Training Portal?",
+      "p1": "The Trade Datahub Training Portal is the official operational training platform for teams working in foreign trade processes. Developed within Santander Digital Services' Shared Services context, the portal centralizes all knowledge necessary for correct, standardized, and efficient execution of Trade Finance operations.",
+      "p2": "Through structured training paths by operational area, employees develop technical competencies aligned with official processes, international regulations, and industry best practices."
+    },
+    "processes": {
+      "badge": "4 Specialized Areas",
+      "title": "Trade Operational Areas",
+      "subtitle": "Specialized training for each stage of the Trade Finance process",
+      "focus": "Focus",
+      "remittances": {
+        "title": "International Remittances",
+        "description": "Execution of financial flows associated with foreign trade operations, ensuring correct fund movement between originator and beneficiary.",
+        "items": [
+          "Processing inbound and outbound remittances",
+          "Validating originator and beneficiary data",
+          "Sending and receiving SWIFT messages",
+          "Compliance and sanctions validation",
+          "Exception and refund handling",
+          "Settlement and reconciliation of operations"
+        ],
+        "focus": "Correct execution, error reduction, and global standardization"
       },
-      "personalized": {
-        "title": "Personalized Paths",
-        "description": "Learning journeys adapted to your level and career goals"
+      "collections": {
+        "title": "International Collections (Eurocobros)",
+        "description": "International collection operations where the bank acts as intermediary between exporter and importer, ensuring documentary and financial flow.",
+        "items": [
+          "Receipt and verification of commercial documents",
+          "Document dispatch to importer's bank",
+          "D/P and D/A modality control",
+          "Acceptance and payment monitoring",
+          "Deadline and client instruction management",
+          "Non-payment or return handling",
+          "Settlement of received amounts"
+        ],
+        "focus": "Deadline control and collection cycle monitoring"
       },
-      "analytics": {
-        "title": "Performance Analytics",
-        "description": "Track your evolution with detailed metrics and MPU reports"
+      "lcs": {
+        "title": "Letters of Credit (Trade Finance – LCs)",
+        "description": "Operations where the bank acts as payment guarantor, upon compliance with documentary conditions established by UCP 600.",
+        "items": [
+          "Letter of credit issuance and advising",
+          "Amendment processing",
+          "Documentary verification per UCP 600 and ISBP",
+          "Discrepancy identification and handling",
+          "SWIFT message sending and receiving",
+          "Deadline, maturity, and settlement control",
+          "Operational interface with correspondent banks"
+        ],
+        "focus": "Documentary rigor and adherence to international rules"
       },
-      "certificates": {
-        "title": "Official Certification",
-        "description": "Certificates recognized by Santander Digital Services when you complete each training"
+      "financing": {
+        "title": "Trade Finance Financing",
+        "description": "Operational management of credit products linked to import and export operations, ensuring correct control and settlement.",
+        "items": [
+          "Resource release per contract",
+          "Active contract control",
+          "Interest and charges calculation",
+          "Operational interface with FX area",
+          "Settlement at maturity",
+          "Extension and anticipation management",
+          "Operation closure and write-off"
+        ],
+        "focus": "Precise execution and contract control"
       }
     },
-    "benefits": {
-      "title": "Why Choose TradeHub",
-      "subtitle": "Invest in your future with the leading training platform",
-      "flexible": "24/7 flexible access to every training resource",
-      "practical": "Hands-on exercises based on daily real cases",
-      "certified": "Official certification recognized in the banking sector",
-      "mentorship": "Direct mentoring with experienced trainers",
-      "community": "Active community of learners and knowledge sharing",
-      "updates": "Content constantly updated with the latest practices"
+    "integration": {
+      "badge": "Full Integration",
+      "title": "Integration with Trade Datahub",
+      "description": "The Training Portal is fully integrated with Trade Datahub, ensuring all training content faithfully reflects official processes, operational flows, and global organization standards.",
+      "items": [
+        "Content aligned with documented official processes",
+        "Continuous updates as flows evolve",
+        "Single source of operational knowledge",
+        "Compliance with international standards (UCP, SWIFT)"
+      ],
+      "platform": "Central Data Platform",
+      "documented": "Documented Processes",
+      "documentedDesc": "Official flows by operational area",
+      "realtime": "Real-Time Updates",
+      "realtimeDesc": "Automatic content synchronization",
+      "compliance": "Integrated Compliance",
+      "complianceDesc": "Guaranteed regulatory alignment"
     },
-    "community": {
-      "students": "1000+",
-      "active": "Active Students",
-      "growth": "+25%",
-      "monthly": "Monthly Growth"
+    "howItWorks": {
+      "badge": "Step by Step",
+      "title": "How It Works",
+      "subtitle": "Simple and direct access to operational knowledge",
+      "steps": [
+        {
+          "title": "Select the Trade Area",
+          "description": "Choose your operational area: Remittances, Eurocobros, Letters of Credit, or Financing. Each area has specific training paths."
+        },
+        {
+          "title": "Access Training Modules",
+          "description": "Explore modules structured by process, from fundamental concepts to advanced procedures. Content developed by operational specialists."
+        },
+        {
+          "title": "Apply Daily",
+          "description": "Use acquired knowledge in your daily activities. Consult materials whenever needed as reference."
+        },
+        {
+          "title": "Stay Updated",
+          "description": "Follow content updates reflecting process evolutions and Trade Finance sector regulations."
+        }
+      ]
+    },
+    "benefits": {
+      "badge": "Advantages",
+      "title": "Benefits for Operational Teams",
+      "subtitle": "Training focused on concrete operational results",
+      "items": {
+        "clarity": {
+          "title": "Process Clarity",
+          "description": "Complete understanding of each operational stage, eliminating doubts and ambiguities in execution."
+        },
+        "standardization": {
+          "title": "Standardization",
+          "description": "Uniformity in operations execution, ensuring consistency across teams and shifts."
+        },
+        "errors": {
+          "title": "Error Reduction",
+          "description": "Significant decrease in operational failures through precise procedural knowledge."
+        },
+        "autonomy": {
+          "title": "Greater Autonomy",
+          "description": "Employees better prepared to make decisions and resolve daily situations."
+        },
+        "onboarding": {
+          "title": "Efficient Onboarding",
+          "description": "Faster integration of new team members with immediate access to structured knowledge."
+        },
+        "certification": {
+          "title": "Certification",
+          "description": "Formal recognition of acquired competencies through completion certificates."
+        }
+      }
     },
     "cta": {
-      "title": "Ready to Get Started?",
-      "subtitle": "Join hundreds of professionals that have already transformed their careers with TradeHub",
-      "button": "Create Free Account"
+      "title": "Access the Training Portal",
+      "subtitle": "Explore training paths by Trade process and develop essential competencies for operational excellence.",
+      "startNow": "Start Now",
+      "haveAccount": "I already have an account"
     },
     "footer": {
-      "description": "Professional training platform by Santander Digital Services",
-      "links": "Quick Links",
-      "about": "About Us",
-      "courses": "Courses",
-      "contact": "Contact",
-      "legal": "Legal",
-      "privacy": "Privacy Policy",
-      "terms": "Terms of Use",
-      "rights": "All rights reserved"
+      "copyright": "© {{year}} Santander Digital Services. Training Portal - Trade Datahub."
     }
   }
 }

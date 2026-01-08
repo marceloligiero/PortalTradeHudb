@@ -727,5 +727,173 @@
     "endDateMustBeAfterStartDate": "A data de fim deve ser posterior à data de início",
     "createError": "Falha ao criar plano de formação",
     "newLesson": "Nova Aula"
+  },
+  "landing": {
+    "badge": "Santander Digital Services | Shared Services",
+    "heroTitle1": "Portal de",
+    "heroTitle2": "Formações",
+    "heroTitle3": "Trade Datahub",
+    "heroSubtitle": "Capacitação operacional de excelência para equipas de Trade Finance.",
+    "heroSubtitle2": "Processos padronizados. Conhecimento centralizado. Resultados consistentes.",
+    "startTraining": "Começar Formação",
+    "exploreProcesses": "Explorar Processos",
+    "stats": {
+      "areas": "Áreas Operacionais",
+      "processes": "Processos Mapeados",
+      "access": "Acesso Disponível",
+      "satisfaction": "Satisfação"
+    },
+    "navbar": {
+      "portalTitle": "PORTAL DE FORMAÇÕES",
+      "login": "Entrar",
+      "register": "Registar"
+    },
+    "intro": {
+      "title": "O que é o Portal de Formações",
+      "p1": "O Portal de Formações do Trade Datahub é a plataforma oficial de capacitação operacional para as equipas que atuam nos processos de comércio exterior. Desenvolvido no contexto de Shared Services do Santander Digital Services, o portal centraliza todo o conhecimento necessário para a execução correta, padronizada e eficiente das operações de Trade Finance.",
+      "p2": "Através de trilhas de formação estruturadas por área operacional, os colaboradores desenvolvem competências técnicas alinhadas com os processos oficiais, regulamentações internacionais e melhores práticas do setor."
+    },
+    "processes": {
+      "badge": "4 Áreas Especializadas",
+      "title": "Áreas Operacionais de Trade",
+      "subtitle": "Formação especializada para cada etapa do processo de Trade Finance",
+      "focus": "Foco",
+      "remittances": {
+        "title": "Remessas Internacionais",
+        "description": "Execução dos fluxos financeiros associados às operações de comércio exterior, garantindo a correta movimentação de fundos entre ordenante e beneficiário.",
+        "items": [
+          "Processamento de remessas de entrada e saída",
+          "Validação de dados do ordenante e beneficiário",
+          "Envio e receção de mensagens SWIFT",
+          "Validação de compliance e sanções",
+          "Tratamento de exceções e devoluções",
+          "Liquidação e conciliação de operações"
+        ],
+        "focus": "Execução correta, redução de falhas e padronização global"
+      },
+      "collections": {
+        "title": "Cobranças Internacionais (Eurocobros)",
+        "description": "Operações de cobrança internacional onde o banco atua como intermediário entre exportador e importador, garantindo o fluxo documental e financeiro.",
+        "items": [
+          "Receção e conferência de documentos comerciais",
+          "Envio de documentos ao banco do importador",
+          "Controlo das modalidades D/P e D/A",
+          "Acompanhamento de aceite e pagamento",
+          "Gestão de prazos e instruções do cliente",
+          "Tratamento de não pagamento ou devoluções",
+          "Liquidação dos valores recebidos"
+        ],
+        "focus": "Controlo de prazos e acompanhamento do ciclo da cobrança"
+      },
+      "lcs": {
+        "title": "Cartas de Crédito (Trade Finance – LCs)",
+        "description": "Operações em que o banco atua como garantidor do pagamento, mediante cumprimento das condições documentais estabelecidas pela UCP 600.",
+        "items": [
+          "Emissão e avisamento de cartas de crédito",
+          "Processamento de alterações (amendments)",
+          "Conferência documental conforme UCP 600 e ISBP",
+          "Identificação e tratamento de discrepâncias",
+          "Envio e receção de mensagens SWIFT",
+          "Controlo de prazos, vencimentos e liquidação",
+          "Interface operacional com bancos correspondentes"
+        ],
+        "focus": "Rigor documental e aderência às regras internacionais"
+      },
+      "financing": {
+        "title": "Financiamentos ao Comércio Exterior",
+        "description": "Gestão operacional dos produtos de crédito vinculados às operações de importação e exportação, assegurando o correto controlo e liquidação.",
+        "items": [
+          "Liberação de recursos conforme contrato",
+          "Controlo de contratos ativos",
+          "Cálculo de juros e encargos",
+          "Interface operacional com área de câmbio",
+          "Liquidação no vencimento",
+          "Gestão de prorrogações e antecipações",
+          "Encerramento e baixa de operações"
+        ],
+        "focus": "Execução precisa e controlo de contratos"
+      }
+    },
+    "integration": {
+      "badge": "Integração Total",
+      "title": "Integração com o Trade Datahub",
+      "description": "O Portal de Formações está totalmente integrado ao Trade Datahub, garantindo que todo o conteúdo de capacitação reflete fielmente os processos oficiais, fluxos operacionais e padrões globais da organização.",
+      "items": [
+        "Conteúdo alinhado com processos oficiais documentados",
+        "Atualização contínua conforme evolução dos fluxos",
+        "Fonte única de conhecimento operacional",
+        "Conformidade com padrões internacionais (UCP, SWIFT)"
+      ],
+      "platform": "Plataforma Central de Dados",
+      "documented": "Processos Documentados",
+      "documentedDesc": "Fluxos oficiais por área operacional",
+      "realtime": "Atualização em Tempo Real",
+      "realtimeDesc": "Sincronização automática de conteúdos",
+      "compliance": "Compliance Integrado",
+      "complianceDesc": "Alinhamento regulatório garantido"
+    },
+    "howItWorks": {
+      "badge": "Passo a Passo",
+      "title": "Como Funciona",
+      "subtitle": "Acesso simples e direto ao conhecimento operacional",
+      "steps": [
+        {
+          "title": "Selecione a Área de Trade",
+          "description": "Escolha a área operacional onde atua: Remessas, Eurocobros, Cartas de Crédito ou Financiamentos. Cada área possui trilhas de formação específicas."
+        },
+        {
+          "title": "Aceda aos Módulos de Formação",
+          "description": "Explore os módulos estruturados por processo, desde conceitos fundamentais até procedimentos avançados. Conteúdo desenvolvido por especialistas operacionais."
+        },
+        {
+          "title": "Aplique no Dia a Dia",
+          "description": "Utilize o conhecimento adquirido na execução das suas atividades diárias. Consulte os materiais sempre que necessário como referência."
+        },
+        {
+          "title": "Mantenha-se Atualizado",
+          "description": "Acompanhe as atualizações de conteúdo que refletem as evoluções dos processos e regulamentações do setor de Trade Finance."
+        }
+      ]
+    },
+    "benefits": {
+      "badge": "Vantagens",
+      "title": "Benefícios para as Equipas Operacionais",
+      "subtitle": "Capacitação focada em resultados concretos para a operação",
+      "items": {
+        "clarity": {
+          "title": "Clareza de Processo",
+          "description": "Compreensão completa de cada etapa operacional, eliminando dúvidas e ambiguidades na execução."
+        },
+        "standardization": {
+          "title": "Padronização",
+          "description": "Uniformidade na execução das operações, garantindo consistência entre equipas e turnos."
+        },
+        "errors": {
+          "title": "Redução de Erros",
+          "description": "Diminuição significativa de falhas operacionais através do conhecimento preciso dos procedimentos."
+        },
+        "autonomy": {
+          "title": "Maior Autonomia",
+          "description": "Colaboradores mais preparados para tomar decisões e resolver situações do dia a dia."
+        },
+        "onboarding": {
+          "title": "Onboarding Eficiente",
+          "description": "Integração mais rápida de novos membros da equipa com acesso imediato ao conhecimento estruturado."
+        },
+        "certification": {
+          "title": "Certificação",
+          "description": "Reconhecimento formal das competências adquiridas através de certificados de conclusão."
+        }
+      }
+    },
+    "cta": {
+      "title": "Aceda ao Portal de Formações",
+      "subtitle": "Explore as trilhas de capacitação por processo de Trade e desenvolva as competências essenciais para a excelência operacional.",
+      "startNow": "Começar Agora",
+      "haveAccount": "Já tenho conta"
+    },
+    "footer": {
+      "copyright": "© {{year}} Santander Digital Services. Portal de Formações - Trade Datahub."
+    }
   }
 }

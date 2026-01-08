@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, Variants, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowRight,
   Globe,
@@ -29,6 +30,13 @@ import {
   Star,
   Play
 } from 'lucide-react';
+
+// Language options with flags
+const languages = [
+  { code: 'pt-PT', name: 'Português', flag: '🇵🇹' },
+  { code: 'es', name: 'Español', flag: '🇪🇸' },
+  { code: 'en', name: 'English', flag: '🇬🇧' }
+];
 
 // Animation variants
 const fadeInUp: Variants = {
@@ -284,10 +292,12 @@ const StatCounter = ({ value, suffix, label, isDark }: { value: number; suffix: 
 
 export default function TradeDatahubLanding() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('theme');
     return saved === null || saved === 'dark';
   });
+  const [showLangMenu, setShowLangMenu] = useState(false);
   
   const { scrollYProgress } = useScroll();
   const heroOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
@@ -298,6 +308,14 @@ export default function TradeDatahubLanding() {
     setIsDark(newTheme);
     localStorage.setItem('theme', newTheme ? 'dark' : 'light');
   };
+
+  const changeLanguage = (langCode: string) => {
+    i18n.changeLanguage(langCode);
+    localStorage.setItem('language', langCode);
+    setShowLangMenu(false);
+  };
+
+  const currentLang = languages.find(l => l.code === i18n.language) || languages[0];
 
   return (
     <div className={`min-h-screen transition-colors duration-500 ${
@@ -371,7 +389,7 @@ export default function TradeDatahubLanding() {
               />
               <div className={`hidden md:block h-8 w-px ${isDark ? 'bg-white/20' : 'bg-gray-300'}`} />
               <div className="hidden md:flex flex-col">
-                <span className="text-xs font-medium text-red-500">PORTAL DE FORMAÇÕES</span>
+                <span className="text-xs font-medium text-red-500">{t('landing.navbar.portalTitle')}</span>
                 <span className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Trade Datahub</span>
               </div>
             </motion.div>
@@ -414,6 +432,59 @@ export default function TradeDatahubLanding() {
                 </AnimatePresence>
               </motion.button>
 
+              {/* Language Selector */}
+              <div className="relative">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowLangMenu(!showLangMenu)}
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl font-medium transition-all ${
+                    isDark 
+                      ? 'bg-white/10 hover:bg-white/20 border border-white/10' 
+                      : 'bg-gray-100 hover:bg-gray-200 border border-gray-200'
+                  }`}
+                >
+                  <span className="text-xl">{currentLang.flag}</span>
+                  <span className={`hidden sm:inline text-sm ${isDark ? 'text-white/80' : 'text-gray-700'}`}>
+                    {currentLang.code.toUpperCase().split('-')[0]}
+                  </span>
+                </motion.button>
+
+                <AnimatePresence>
+                  {showLangMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className={`absolute right-0 top-full mt-2 py-2 rounded-xl shadow-2xl border z-50 min-w-[160px] ${
+                        isDark 
+                          ? 'bg-[#1a1a1a] border-white/10' 
+                          : 'bg-white border-gray-200'
+                      }`}
+                    >
+                      {languages.map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => changeLanguage(lang.code)}
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 transition-colors ${
+                            i18n.language === lang.code 
+                              ? (isDark ? 'bg-red-600/20 text-red-400' : 'bg-red-50 text-red-600')
+                              : (isDark ? 'hover:bg-white/10 text-white/80' : 'hover:bg-gray-100 text-gray-700')
+                          }`}
+                        >
+                          <span className="text-xl">{lang.flag}</span>
+                          <span className="font-medium">{lang.name}</span>
+                          {i18n.language === lang.code && (
+                            <CheckCircle className="w-4 h-4 ml-auto" />
+                          )}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               {/* Login Button */}
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -426,7 +497,7 @@ export default function TradeDatahubLanding() {
                 }`}
               >
                 <LogIn className="w-4 h-4" />
-                Entrar
+                {t('landing.navbar.login')}
               </motion.button>
 
               {/* Register Button */}
@@ -437,7 +508,7 @@ export default function TradeDatahubLanding() {
                 className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold shadow-lg shadow-red-600/20 hover:shadow-red-600/40 transition-all"
               >
                 <UserPlus className="w-4 h-4" />
-                <span className="hidden sm:inline">Registar</span>
+                <span className="hidden sm:inline">{t('landing.navbar.register')}</span>
                 <ArrowRight className="w-4 h-4" />
               </motion.button>
             </div>
@@ -468,7 +539,7 @@ export default function TradeDatahubLanding() {
             >
               <Sparkles className="w-5 h-5 text-red-500" />
               <span className={`text-sm font-semibold ${isDark ? 'text-red-300' : 'text-red-600'}`}>
-                Santander Digital Services | Shared Services
+                {t('landing.badge')}
               </span>
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             </motion.div>
@@ -476,13 +547,13 @@ export default function TradeDatahubLanding() {
             {/* Main Title */}
             <motion.h1 variants={fadeInUp} className="text-6xl md:text-8xl font-black leading-[0.9]">
               <span className={`block ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                Portal de
+                {t('landing.heroTitle1')}
               </span>
               <span className="block bg-gradient-to-r from-red-600 via-red-500 to-orange-500 bg-clip-text text-transparent">
-                Formações
+                {t('landing.heroTitle2')}
               </span>
               <span className={`block text-4xl md:text-5xl font-bold mt-4 ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
-                Trade Datahub
+                {t('landing.heroTitle3')}
               </span>
             </motion.h1>
 
@@ -490,9 +561,9 @@ export default function TradeDatahubLanding() {
             <motion.p variants={fadeInUp} className={`text-xl md:text-2xl max-w-3xl mx-auto leading-relaxed ${
               isDark ? 'text-white/60' : 'text-gray-600'
             }`}>
-              Capacitação operacional de excelência para equipas de Trade Finance.
+              {t('landing.heroSubtitle')}
               <br className="hidden md:block" />
-              Processos padronizados. Conhecimento centralizado. Resultados consistentes.
+              {t('landing.heroSubtitle2')}
             </motion.p>
 
             {/* CTA Buttons */}
@@ -504,7 +575,7 @@ export default function TradeDatahubLanding() {
                 className="group flex items-center justify-center gap-3 px-10 py-5 rounded-2xl bg-gradient-to-r from-red-600 via-red-600 to-red-700 font-bold text-lg text-white shadow-2xl shadow-red-600/30"
               >
                 <Play className="w-5 h-5" />
-                Começar Formação
+                {t('landing.startTraining')}
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
               </motion.button>
               <motion.button
@@ -517,7 +588,7 @@ export default function TradeDatahubLanding() {
                     : 'bg-gray-100 border border-gray-200 hover:bg-gray-200 text-gray-900'
                 }`}
               >
-                Explorar Processos
+                {t('landing.exploreProcesses')}
                 <ChevronRight className="w-5 h-5" />
               </motion.button>
             </motion.div>
@@ -529,10 +600,10 @@ export default function TradeDatahubLanding() {
                   ? 'bg-white/5 backdrop-blur-xl border border-white/10' 
                   : 'bg-white shadow-2xl border border-gray-100'
               }`}>
-                <StatCounter value={4} suffix="" label="Áreas Operacionais" isDark={isDark} />
-                <StatCounter value={100} suffix="%" label="Processos Mapeados" isDark={isDark} />
-                <StatCounter value={24} suffix="/7" label="Acesso Disponível" isDark={isDark} />
-                <StatCounter value={98} suffix="%" label="Satisfação" isDark={isDark} />
+                <StatCounter value={4} suffix="" label={t('landing.stats.areas')} isDark={isDark} />
+                <StatCounter value={100} suffix="%" label={t('landing.stats.processes')} isDark={isDark} />
+                <StatCounter value={24} suffix="/7" label={t('landing.stats.access')} isDark={isDark} />
+                <StatCounter value={98} suffix="%" label={t('landing.stats.satisfaction')} isDark={isDark} />
               </div>
             </motion.div>
           </motion.div>
@@ -572,16 +643,13 @@ export default function TradeDatahubLanding() {
             </div>
           </motion.div>
           <motion.h2 variants={fadeInUp} className={`text-3xl md:text-5xl font-bold mb-8 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            O que é o Portal de Formações
+            {t('landing.intro.title')}
           </motion.h2>
           <motion.p variants={fadeInUp} className={`text-lg leading-relaxed mb-8 ${isDark ? 'text-white/70' : 'text-gray-600'}`}>
-            O Portal de Formações do Trade Datahub é a plataforma oficial de capacitação operacional para as equipas 
-            que atuam nos processos de comércio exterior. Desenvolvido no contexto de Shared Services do Santander Digital Services, 
-            o portal centraliza todo o conhecimento necessário para a execução correta, padronizada e eficiente das operações de Trade Finance.
+            {t('landing.intro.p1')}
           </motion.p>
           <motion.p variants={fadeInUp} className={`text-lg leading-relaxed ${isDark ? 'text-white/70' : 'text-gray-600'}`}>
-            Através de trilhas de formação estruturadas por área operacional, os colaboradores desenvolvem competências técnicas 
-            alinhadas com os processos oficiais, regulamentações internacionais e melhores práticas do setor.
+            {t('landing.intro.p2')}
           </motion.p>
         </div>
       </Section>
@@ -594,13 +662,13 @@ export default function TradeDatahubLanding() {
               isDark ? 'bg-red-600/10 border border-red-600/20' : 'bg-red-50 border border-red-200'
             }`}>
               <Zap className="w-4 h-4 text-red-500" />
-              <span className={`text-sm font-semibold ${isDark ? 'text-red-300' : 'text-red-600'}`}>4 Áreas Especializadas</span>
+              <span className={`text-sm font-semibold ${isDark ? 'text-red-300' : 'text-red-600'}`}>{t('landing.processes.badge')}</span>
             </div>
             <h2 className={`text-4xl md:text-6xl font-black mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              Áreas Operacionais de Trade
+              {t('landing.processes.title')}
             </h2>
             <p className={`text-xl max-w-3xl mx-auto ${isDark ? 'text-white/60' : 'text-gray-600'}`}>
-              Formação especializada para cada etapa do processo de Trade Finance
+              {t('landing.processes.subtitle')}
             </p>
           </motion.div>
 
@@ -608,17 +676,10 @@ export default function TradeDatahubLanding() {
             {/* Remessas Internacionais */}
             <ProcessCard
               icon={Globe}
-              title="Remessas Internacionais"
-              description="Execução dos fluxos financeiros associados às operações de comércio exterior, garantindo a correta movimentação de fundos entre ordenante e beneficiário."
-              items={[
-                "Processamento de remessas de entrada e saída",
-                "Validação de dados do ordenante e beneficiário",
-                "Envio e receção de mensagens SWIFT",
-                "Validação de compliance e sanções",
-                "Tratamento de exceções e devoluções",
-                "Liquidação e conciliação de operações"
-              ]}
-              focus="Execução correta, redução de falhas e padronização global"
+              title={t('landing.processes.remittances.title')}
+              description={t('landing.processes.remittances.description')}
+              items={t('landing.processes.remittances.items', { returnObjects: true }) as string[]}
+              focus={t('landing.processes.remittances.focus')}
               gradient="from-blue-600 to-blue-700"
               isDark={isDark}
               index={0}
@@ -627,18 +688,10 @@ export default function TradeDatahubLanding() {
             {/* Cobranças Internacionais */}
             <ProcessCard
               icon={FileText}
-              title="Cobranças Internacionais (Eurocobros)"
-              description="Operações de cobrança internacional onde o banco atua como intermediário entre exportador e importador, garantindo o fluxo documental e financeiro."
-              items={[
-                "Receção e conferência de documentos comerciais",
-                "Envio de documentos ao banco do importador",
-                "Controlo das modalidades D/P e D/A",
-                "Acompanhamento de aceite e pagamento",
-                "Gestão de prazos e instruções do cliente",
-                "Tratamento de não pagamento ou devoluções",
-                "Liquidação dos valores recebidos"
-              ]}
-              focus="Controlo de prazos e acompanhamento do ciclo da cobrança"
+              title={t('landing.processes.collections.title')}
+              description={t('landing.processes.collections.description')}
+              items={t('landing.processes.collections.items', { returnObjects: true }) as string[]}
+              focus={t('landing.processes.collections.focus')}
               gradient="from-green-600 to-green-700"
               isDark={isDark}
               index={1}
@@ -647,18 +700,10 @@ export default function TradeDatahubLanding() {
             {/* Cartas de Crédito */}
             <ProcessCard
               icon={CreditCard}
-              title="Cartas de Crédito (Trade Finance – LCs)"
-              description="Operações em que o banco atua como garantidor do pagamento, mediante cumprimento das condições documentais estabelecidas pela UCP 600."
-              items={[
-                "Emissão e avisamento de cartas de crédito",
-                "Processamento de alterações (amendments)",
-                "Conferência documental conforme UCP 600 e ISBP",
-                "Identificação e tratamento de discrepâncias",
-                "Envio e receção de mensagens SWIFT",
-                "Controlo de prazos, vencimentos e liquidação",
-                "Interface operacional com bancos correspondentes"
-              ]}
-              focus="Rigor documental e aderência às regras internacionais"
+              title={t('landing.processes.lcs.title')}
+              description={t('landing.processes.lcs.description')}
+              items={t('landing.processes.lcs.items', { returnObjects: true }) as string[]}
+              focus={t('landing.processes.lcs.focus')}
               gradient="from-red-600 to-red-700"
               isDark={isDark}
               index={2}
@@ -667,18 +712,10 @@ export default function TradeDatahubLanding() {
             {/* Financiamentos */}
             <ProcessCard
               icon={Landmark}
-              title="Financiamentos ao Comércio Exterior"
-              description="Gestão operacional dos produtos de crédito vinculados às operações de importação e exportação, assegurando o correto controlo e liquidação."
-              items={[
-                "Liberação de recursos conforme contrato",
-                "Controlo de contratos ativos",
-                "Cálculo de juros e encargos",
-                "Interface operacional com área de câmbio",
-                "Liquidação no vencimento",
-                "Gestão de prorrogações e antecipações",
-                "Encerramento e baixa de operações"
-              ]}
-              focus="Execução precisa e controlo de contratos"
+              title={t('landing.processes.financing.title')}
+              description={t('landing.processes.financing.description')}
+              items={t('landing.processes.financing.items', { returnObjects: true }) as string[]}
+              focus={t('landing.processes.financing.focus')}
               gradient="from-purple-600 to-purple-700"
               isDark={isDark}
               index={3}
@@ -698,22 +735,16 @@ export default function TradeDatahubLanding() {
                   : "bg-red-50 border border-red-200"
               }`}>
                 <Workflow className={isDark ? "w-4 h-4 text-red-400" : "w-4 h-4 text-red-600"} />
-                <span className={`text-sm font-medium ${isDark ? "text-red-300" : "text-red-600"}`}>Integração Total</span>
+                <span className={`text-sm font-medium ${isDark ? "text-red-300" : "text-red-600"}`}>{t('landing.integration.badge')}</span>
               </div>
               <h2 className={`text-3xl md:text-4xl font-bold mb-6 ${isDark ? "text-white" : "text-gray-900"}`}>
-                Integração com o Trade Datahub
+                {t('landing.integration.title')}
               </h2>
               <p className={`text-lg leading-relaxed mb-6 ${isDark ? "text-white/70" : "text-gray-600"}`}>
-                O Portal de Formações está totalmente integrado ao Trade Datahub, garantindo que todo o conteúdo 
-                de capacitação reflete fielmente os processos oficiais, fluxos operacionais e padrões globais da organização.
+                {t('landing.integration.description')}
               </p>
               <div className="space-y-4">
-                {[
-                  "Conteúdo alinhado com processos oficiais documentados",
-                  "Atualização contínua conforme evolução dos fluxos",
-                  "Fonte única de conhecimento operacional",
-                  "Conformidade com padrões internacionais (UCP, SWIFT)"
-                ].map((item, idx) => (
+                {(t('landing.integration.items', { returnObjects: true }) as string[]).map((item, idx) => (
                   <div key={idx} className="flex items-start gap-3">
                     <CheckCircle className={`w-6 h-6 flex-shrink-0 mt-0.5 ${isDark ? "text-green-400" : "text-green-600"}`} />
                     <p className={isDark ? "text-white/80" : "text-gray-700"}>{item}</p>
@@ -737,14 +768,14 @@ export default function TradeDatahubLanding() {
                   </div>
                   <div>
                     <h3 className={`text-xl font-bold ${isDark ? "text-white" : "text-gray-900"}`}>Trade Datahub</h3>
-                    <p className={`text-sm ${isDark ? "text-white/60" : "text-gray-500"}`}>Plataforma Central de Dados</p>
+                    <p className={`text-sm ${isDark ? "text-white/60" : "text-gray-500"}`}>{t('landing.integration.platform')}</p>
                   </div>
                 </div>
                 <div className="space-y-4">
                   {[
-                    { icon: Layers, color: "blue", title: "Processos Documentados", desc: "Fluxos oficiais por área operacional" },
-                    { icon: RefreshCw, color: "green", title: "Atualização em Tempo Real", desc: "Sincronização automática de conteúdos" },
-                    { icon: Shield, color: "purple", title: "Compliance Integrado", desc: "Alinhamento regulatório garantido" }
+                    { icon: Layers, color: "blue", title: t('landing.integration.documented'), desc: t('landing.integration.documentedDesc') },
+                    { icon: RefreshCw, color: "green", title: t('landing.integration.realtime'), desc: t('landing.integration.realtimeDesc') },
+                    { icon: Shield, color: "purple", title: t('landing.integration.compliance'), desc: t('landing.integration.complianceDesc') }
                   ].map((item, idx) => {
                     const Icon = item.icon;
                     const colorClass = item.color === "blue" ? (isDark ? "text-blue-400" : "text-blue-600") 
@@ -779,41 +810,27 @@ export default function TradeDatahubLanding() {
                 : "bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200"
             }`}>
               <Play className={isDark ? "w-4 h-4 text-blue-400" : "w-4 h-4 text-blue-600"} />
-              <span className={`text-sm font-medium ${isDark ? "text-blue-300" : "text-blue-600"}`}>Passo a Passo</span>
+              <span className={`text-sm font-medium ${isDark ? "text-blue-300" : "text-blue-600"}`}>{t('landing.howItWorks.badge')}</span>
             </div>
             <h2 className={`text-3xl md:text-4xl font-bold mb-4 ${isDark ? "text-white" : "text-gray-900"}`}>
-              Como Funciona
+              {t('landing.howItWorks.title')}
             </h2>
             <p className={`text-xl ${isDark ? "text-white/60" : "text-gray-600"}`}>
-              Acesso simples e direto ao conhecimento operacional
+              {t('landing.howItWorks.subtitle')}
             </p>
           </motion.div>
 
           <div className="space-y-6">
-            <StepCard 
-              number="1" 
-              title="Selecione a Área de Trade" 
-              description="Escolha a área operacional onde atua: Remessas, Eurocobros, Cartas de Crédito ou Financiamentos. Cada área possui trilhas de formação específicas."
-              isDark={isDark}
-            />
-            <StepCard 
-              number="2" 
-              title="Aceda aos Módulos de Formação" 
-              description="Explore os módulos estruturados por processo, desde conceitos fundamentais até procedimentos avançados. Conteúdo desenvolvido por especialistas operacionais."
-              isDark={isDark}
-            />
-            <StepCard 
-              number="3" 
-              title="Aplique no Dia a Dia" 
-              description="Utilize o conhecimento adquirido na execução das suas atividades diárias. Consulte os materiais sempre que necessário como referência."
-              isDark={isDark}
-            />
-            <StepCard 
-              number="4" 
-              title="Mantenha-se Atualizado" 
-              description="Acompanhe as atualizações de conteúdo que refletem as evoluções dos processos e regulamentações do setor de Trade Finance."
-              isDark={isDark}
-            />
+            {(t('landing.howItWorks.steps', { returnObjects: true }) as Array<{title: string; description: string}>).map((step, idx) => (
+              <StepCard 
+                key={idx}
+                number={String(idx + 1)} 
+                title={step.title} 
+                description={step.description}
+                isDark={isDark}
+                index={idx}
+              />
+            ))}
           </div>
         </div>
       </Section>
@@ -828,51 +845,51 @@ export default function TradeDatahubLanding() {
                 : "bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200"
             }`}>
               <Award className={isDark ? "w-4 h-4 text-green-400" : "w-4 h-4 text-green-600"} />
-              <span className={`text-sm font-medium ${isDark ? "text-green-300" : "text-green-600"}`}>Vantagens</span>
+              <span className={`text-sm font-medium ${isDark ? "text-green-300" : "text-green-600"}`}>{t('landing.benefits.badge')}</span>
             </div>
             <h2 className={`text-3xl md:text-4xl font-bold mb-4 ${isDark ? "text-white" : "text-gray-900"}`}>
-              Benefícios para as Equipas Operacionais
+              {t('landing.benefits.title')}
             </h2>
             <p className={`text-xl max-w-3xl mx-auto ${isDark ? "text-white/60" : "text-gray-600"}`}>
-              Capacitação focada em resultados concretos para a operação
+              {t('landing.benefits.subtitle')}
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <BenefitCard
               icon={BookOpen}
-              title="Clareza de Processo"
-              description="Compreensão completa de cada etapa operacional, eliminando dúvidas e ambiguidades na execução."
+              title={t('landing.benefits.items.clarity.title')}
+              description={t('landing.benefits.items.clarity.description')}
               isDark={isDark}
             />
             <BenefitCard
               icon={Layers}
-              title="Padronização"
-              description="Uniformidade na execução das operações, garantindo consistência entre equipas e turnos."
+              title={t('landing.benefits.items.standardization.title')}
+              description={t('landing.benefits.items.standardization.description')}
               isDark={isDark}
             />
             <BenefitCard
               icon={Shield}
-              title="Redução de Erros"
-              description="Diminuição significativa de falhas operacionais através do conhecimento preciso dos procedimentos."
+              title={t('landing.benefits.items.errors.title')}
+              description={t('landing.benefits.items.errors.description')}
               isDark={isDark}
             />
             <BenefitCard
               icon={Award}
-              title="Maior Autonomia"
-              description="Colaboradores mais preparados para tomar decisões e resolver situações do dia a dia."
+              title={t('landing.benefits.items.autonomy.title')}
+              description={t('landing.benefits.items.autonomy.description')}
               isDark={isDark}
             />
             <BenefitCard
               icon={Clock}
-              title="Onboarding Eficiente"
-              description="Integração mais rápida de novos membros da equipa com acesso imediato ao conhecimento estruturado."
+              title={t('landing.benefits.items.onboarding.title')}
+              description={t('landing.benefits.items.onboarding.description')}
               isDark={isDark}
             />
             <BenefitCard
               icon={GraduationCap}
-              title="Certificação"
-              description="Reconhecimento formal das competências adquiridas através de certificados de conclusão."
+              title={t('landing.benefits.items.certification.title')}
+              description={t('landing.benefits.items.certification.description')}
               isDark={isDark}
             />
           </div>
@@ -896,11 +913,10 @@ export default function TradeDatahubLanding() {
               <GraduationCap className={`w-10 h-10 ${isDark ? "text-red-400" : "text-red-600"}`} />
             </div>
             <h2 className={`text-3xl md:text-5xl font-bold mb-6 ${isDark ? "text-white" : "text-gray-900"}`}>
-              Aceda ao Portal de Formações
+              {t('landing.cta.title')}
             </h2>
             <p className={`text-xl mb-8 max-w-2xl mx-auto ${isDark ? "text-white/70" : "text-gray-600"}`}>
-              Explore as trilhas de capacitação por processo de Trade e desenvolva as competências 
-              essenciais para a excelência operacional.
+              {t('landing.cta.subtitle')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <motion.button
@@ -910,7 +926,7 @@ export default function TradeDatahubLanding() {
                 className="group flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-bold text-lg shadow-xl shadow-red-600/20"
               >
                 <Sparkles className="w-5 h-5" />
-                Começar Agora
+                {t('landing.cta.startNow')}
                 <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </motion.button>
               <motion.button
@@ -924,7 +940,7 @@ export default function TradeDatahubLanding() {
                 }`}
               >
                 <LogIn className="w-5 h-5" />
-                Já tenho conta
+                {t('landing.cta.haveAccount')}
               </motion.button>
             </div>
           </motion.div>
@@ -945,7 +961,7 @@ export default function TradeDatahubLanding() {
               <span className={`font-medium ${isDark ? "text-white/60" : "text-gray-600"}`}>Trade Datahub</span>
             </div>
             <p className={`text-sm ${isDark ? "text-white/40" : "text-gray-400"}`}>
-              © {new Date().getFullYear()} Santander Digital Services. Portal de Formações - Trade Datahub.
+              {t('landing.footer.copyright', { year: new Date().getFullYear() })}
             </p>
           </div>
         </div>
