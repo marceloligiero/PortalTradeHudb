@@ -31,11 +31,11 @@ import {
   Play
 } from 'lucide-react';
 
-// Language options with flags
+// Language options with flags (using FlagCDN images)
 const languages = [
-  { code: 'pt-PT', name: 'Português', flag: '🇵🇹' },
-  { code: 'es', name: 'Español', flag: '🇪🇸' },
-  { code: 'en', name: 'English', flag: '🇬🇧' }
+  { code: 'pt-PT', name: 'Português', flag: 'https://flagcdn.com/w40/pt.png' },
+  { code: 'es', name: 'Español', flag: 'https://flagcdn.com/w40/es.png' },
+  { code: 'en', name: 'English', flag: 'https://flagcdn.com/w40/gb.png' }
 ];
 
 // Animation variants
@@ -471,7 +471,7 @@ export default function TradeDatahubLanding() {
                       : 'bg-gray-100 hover:bg-gray-200 border border-gray-200'
                   }`}
                 >
-                  <span className="text-2xl">{currentLang.flag}</span>
+                  <img src={currentLang.flag} alt={currentLang.name} className="w-7 h-5 object-cover rounded-sm" />
                 </motion.button>
 
                 <AnimatePresence>
@@ -497,7 +497,7 @@ export default function TradeDatahubLanding() {
                               : (isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100')
                           }`}
                         >
-                          <span className="text-2xl">{lang.flag}</span>
+                          <img src={lang.flag} alt={lang.name} className="w-7 h-5 object-cover rounded-sm" />
                         </button>
                       ))}
                     </motion.div>
