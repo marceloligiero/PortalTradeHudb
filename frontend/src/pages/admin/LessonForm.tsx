@@ -339,57 +339,7 @@ const LessonForm: React.FC = () => {
                     />
                   </div>
 
-                  {/* Lesson Type */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-3">
-                      Tipo de Aula
-                    </label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, lesson_type: 'THEORETICAL' })}
-                        className={`p-4 rounded-xl border-2 transition-all ${
-                          formData.lesson_type === 'THEORETICAL'
-                            ? 'border-purple-500 bg-purple-500/10'
-                            : 'border-white/10 bg-white/5 hover:border-white/20'
-                        }`}
-                      >
-                        <div className={`w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center ${
-                          formData.lesson_type === 'THEORETICAL' ? 'bg-purple-500' : 'bg-white/10'
-                        }`}>
-                          <BookOpen className={`w-6 h-6 ${formData.lesson_type === 'THEORETICAL' ? 'text-white' : 'text-gray-400'}`} />
-                        </div>
-                        <h3 className={`font-semibold mb-1 ${formData.lesson_type === 'THEORETICAL' ? 'text-white' : 'text-gray-400'}`}>
-                          Teórica
-                        </h3>
-                        <p className="text-xs text-gray-500">
-                          Conceitos e fundamentos
-                        </p>
-                      </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, lesson_type: 'PRACTICAL' })}
-                        className={`p-4 rounded-xl border-2 transition-all ${
-                          formData.lesson_type === 'PRACTICAL'
-                            ? 'border-green-500 bg-green-500/10'
-                            : 'border-white/10 bg-white/5 hover:border-white/20'
-                        }`}
-                      >
-                        <div className={`w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center ${
-                          formData.lesson_type === 'PRACTICAL' ? 'bg-green-500' : 'bg-white/10'
-                        }`}>
-                          <Play className={`w-6 h-6 ${formData.lesson_type === 'PRACTICAL' ? 'text-white' : 'text-gray-400'}`} />
-                        </div>
-                        <h3 className={`font-semibold mb-1 ${formData.lesson_type === 'PRACTICAL' ? 'text-white' : 'text-gray-400'}`}>
-                          Prática
-                        </h3>
-                        <p className="text-xs text-gray-500">
-                          Exercícios e simulações
-                        </p>
-                      </button>
-                    </div>
-                  </div>
 
                   {/* Description */}
                   <div>
