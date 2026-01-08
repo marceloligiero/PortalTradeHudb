@@ -402,9 +402,9 @@ export default function CertificateView() {
         {showCelebration && <CelebrationOverlay />}
       </AnimatePresence>
 
-      {/* Back Button and Print Button - Fixed at top */}
+      {/* Back Button - Fixed at top */}
       <div className="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-white/10 print:hidden">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 py-4">
           <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 px-4 py-2 text-white/70 hover:text-white transition-all"
@@ -412,15 +412,6 @@ export default function CertificateView() {
             <ArrowLeft className="w-5 h-5" />
             Voltar
           </button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handlePrint}
-            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-red-600/30 transition-all"
-          >
-            <Printer className="w-5 h-5" />
-            Imprimir Certificado
-          </motion.button>
         </div>
       </div>
 
