@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText,
   ArrowLeft,
@@ -15,7 +15,10 @@ import {
   AlertCircle,
   CheckCircle2,
   Sparkles,
-  Play
+  Play,
+  ChevronLeft,
+  ChevronRight,
+  Check
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -36,6 +39,9 @@ interface Lesson {
   updated_at: string;
 }
 
+// Characters per page for pagination
+const CHARS_PER_PAGE = 2500;
+
 export default function LessonDetail() {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
   const { t } = useTranslation();
@@ -45,6 +51,92 @@ export default function LessonDetail() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [visitedPages, setVisitedPages] = useState<Set<number>>(new Set([1]));
+
+  // Split content into pages
+  const contentPages = useMemo(() => {
+    if (!lesson?.content) return [];
+    
+    const content = lesson.content;
+    const pages: string[] = [];
+    
+    // Split by paragraphs or block elements to avoid cutting mid-sentence
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
+    const blocks = Array.from(tempDiv.children);
+    
+    let currentPageContent = '';
+    let currentLength = 0;
+    
+    blocks.forEach((block) => {
+      const blockHtml = block.outerHTML;
+      const blockText = block.textContent || '';
+      
+      if (currentLength + blockText.length > CHARS_PER_PAGE && currentPageContent) {
+        pages.push(currentPageContent);
+        currentPageContent = blockHtml;
+        currentLength = blockText.length;
+      } else {
+        currentPageContent += blockHtml;
+        currentLength += blockText.length;
+      }
+    });
+    
+    if (currentPageContent) {
+      pages.push(currentPageContent);
+    }
+    
+    // If no blocks were found (plain text), split by character count
+    if (pages.length === 0 && content.length > 0) {
+      for (let i = 0; i < content.length; i += CHARS_PER_PAGE) {
+        pages.push(content.slice(i, i + CHARS_PER_PAGE));
+      }
+    }
+    
+    return pages.length > 0 ? pages : [content];
+  }, [lesson?.content]);
+
+  const totalPages = contentPages.length;
+  const allPagesVisited = visitedPages.size >= totalPages;
+
+  // Load visited pages from localStorage
+  useEffect(() => {
+    if (lessonId) {
+      const saved = localStorage.getItem(`lesson_${lessonId}_visited`);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setVisitedPages(new Set(parsed));
+        } catch (e) {
+          console.error('Error parsing visited pages:', e);
+        }
+      }
+    }
+  }, [lessonId]);
+
+  // Save visited pages to localStorage
+  const markPageVisited = useCallback((page: number) => {
+    setVisitedPages(prev => {
+      const newSet = new Set(prev);
+      newSet.add(page);
+      if (lessonId) {
+        localStorage.setItem(`lesson_${lessonId}_visited`, JSON.stringify(Array.from(newSet)));
+      }
+      return newSet;
+    });
+  }, [lessonId]);
+
+  // Mark page as visited when changing
+  useEffect(() => {
+    markPageVisited(currentPage);
+  }, [currentPage, markPageVisited]);
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
   const fetchLesson = async () => {
     try {
@@ -246,26 +338,183 @@ export default function LessonDetail() {
       {/* Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          {/* Lesson Content */}
+          {/* Lesson Content with Pagination */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl border border-gray-200 p-6"
+            className="bg-white rounded-xl border border-gray-200 overflow-hidden"
           >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.lessonContent')}</h3>
-            {lesson.content ? (
-              <div 
-                className="prose prose-slate max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-gray-700 prose-p:leading-relaxed prose-ul:list-disc prose-ol:list-decimal prose-li:text-gray-700 prose-blockquote:border-l-4 prose-blockquote:border-gray-300 prose-blockquote:pl-4 prose-blockquote:italic prose-a:text-red-600 prose-a:underline prose-code:bg-gray-100 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-900 prose-pre:text-gray-100"
-                dangerouslySetInnerHTML={{ __html: lesson.content }}
-              />
-            ) : (
-              <p className="text-gray-500 italic">{t('admin.noContentYet')}</p>
+            {/* Header with Progress */}
+            <div className="p-4 border-b border-gray-100 bg-gray-50">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold text-gray-900">{t('admin.lessonContent')}</h3>
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">
+                      Página {currentPage} de {totalPages}
+                    </span>
+                    {allPagesVisited && (
+                      <span className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Concluído
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Page Indicators */}
+              {totalPages > 1 && (
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => goToPage(page)}
+                      className={`relative w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium transition-all ${
+                        currentPage === page
+                          ? 'bg-red-600 text-white shadow-lg shadow-red-200'
+                          : visitedPages.has(page)
+                          ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                      }`}
+                    >
+                      {visitedPages.has(page) && currentPage !== page && (
+                        <Check className="w-4 h-4 absolute" />
+                      )}
+                      {currentPage === page && page}
+                      {!visitedPages.has(page) && currentPage !== page && page}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Content Area */}
+            <div className="p-6">
+              {lesson.content ? (
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentPage}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="prose prose-slate max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-gray-700 prose-p:leading-relaxed prose-ul:list-disc prose-ol:list-decimal prose-li:text-gray-700 prose-blockquote:border-l-4 prose-blockquote:border-gray-300 prose-blockquote:pl-4 prose-blockquote:italic prose-a:text-red-600 prose-a:underline prose-code:bg-gray-100 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-900 prose-pre:text-gray-100 min-h-[300px]"
+                    dangerouslySetInnerHTML={{ __html: contentPages[currentPage - 1] || '' }}
+                  />
+                </AnimatePresence>
+              ) : (
+                <p className="text-gray-500 italic">{t('admin.noContentYet')}</p>
+              )}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="p-4 border-t border-gray-100 bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={() => goToPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                      currentPage === 1
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+                    }`}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Anterior
+                  </button>
+
+                  {/* Progress Bar */}
+                  <div className="flex-1 mx-4">
+                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(visitedPages.size / totalPages) * 100}%` }}
+                        className="h-full bg-gradient-to-r from-green-500 to-emerald-500"
+                      />
+                    </div>
+                    <p className="text-center text-xs text-gray-500 mt-1">
+                      {visitedPages.size} de {totalPages} páginas visitadas ({Math.round((visitedPages.size / totalPages) * 100)}%)
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => goToPage(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                      currentPage === totalPages
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-200'
+                    }`}
+                  >
+                    Próxima
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             )}
           </motion.div>
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Reading Progress */}
+          {totalPages > 1 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-6"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
+                  <BookOpen className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">Progresso de Leitura</h3>
+                  <p className="text-sm text-gray-500">{visitedPages.size} de {totalPages} páginas</p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <div
+                    key={page}
+                    className={`flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer ${
+                      currentPage === page ? 'bg-blue-100' : 'hover:bg-white/50'
+                    }`}
+                    onClick={() => goToPage(page)}
+                  >
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${
+                      visitedPages.has(page)
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gray-200 text-gray-500'
+                    }`}>
+                      {visitedPages.has(page) ? <Check className="w-3 h-3" /> : page}
+                    </div>
+                    <span className={`text-sm ${currentPage === page ? 'font-medium text-blue-700' : 'text-gray-600'}`}>
+                      Página {page}
+                    </span>
+                    {currentPage === page && (
+                      <span className="ml-auto text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
+                        Atual
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {allPagesVisited && (
+                <div className="mt-4 p-3 bg-green-100 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2 text-green-700">
+                    <CheckCircle2 className="w-5 h-5" />
+                    <span className="font-medium text-sm">Leitura completa!</span>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
           {/* Resources */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
