@@ -432,59 +432,6 @@ export default function TradeDatahubLanding() {
                 </AnimatePresence>
               </motion.button>
 
-              {/* Language Selector */}
-              <div className="relative">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowLangMenu(!showLangMenu)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl font-medium transition-all ${
-                    isDark 
-                      ? 'bg-white/10 hover:bg-white/20 border border-white/10' 
-                      : 'bg-gray-100 hover:bg-gray-200 border border-gray-200'
-                  }`}
-                >
-                  <span className="text-xl">{currentLang.flag}</span>
-                  <span className={`hidden sm:inline text-sm ${isDark ? 'text-white/80' : 'text-gray-700'}`}>
-                    {currentLang.code.toUpperCase().split('-')[0]}
-                  </span>
-                </motion.button>
-
-                <AnimatePresence>
-                  {showLangMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      className={`absolute right-0 top-full mt-2 py-2 rounded-xl shadow-2xl border z-50 min-w-[160px] ${
-                        isDark 
-                          ? 'bg-[#1a1a1a] border-white/10' 
-                          : 'bg-white border-gray-200'
-                      }`}
-                    >
-                      {languages.map((lang) => (
-                        <button
-                          key={lang.code}
-                          onClick={() => changeLanguage(lang.code)}
-                          className={`w-full flex items-center gap-3 px-4 py-2.5 transition-colors ${
-                            i18n.language === lang.code 
-                              ? (isDark ? 'bg-red-600/20 text-red-400' : 'bg-red-50 text-red-600')
-                              : (isDark ? 'hover:bg-white/10 text-white/80' : 'hover:bg-gray-100 text-gray-700')
-                          }`}
-                        >
-                          <span className="text-xl">{lang.flag}</span>
-                          <span className="font-medium">{lang.name}</span>
-                          {i18n.language === lang.code && (
-                            <CheckCircle className="w-4 h-4 ml-auto" />
-                          )}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
               {/* Login Button */}
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -511,6 +458,52 @@ export default function TradeDatahubLanding() {
                 <span className="hidden sm:inline">{t('landing.navbar.register')}</span>
                 <ArrowRight className="w-4 h-4" />
               </motion.button>
+
+              {/* Language Selector - Flag Only */}
+              <div className="relative">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowLangMenu(!showLangMenu)}
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all ${
+                    isDark 
+                      ? 'bg-white/10 hover:bg-white/20 border border-white/10' 
+                      : 'bg-gray-100 hover:bg-gray-200 border border-gray-200'
+                  }`}
+                >
+                  <span className="text-2xl">{currentLang.flag}</span>
+                </motion.button>
+
+                <AnimatePresence>
+                  {showLangMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className={`absolute right-0 top-full mt-2 py-2 rounded-xl shadow-2xl border z-50 ${
+                        isDark 
+                          ? 'bg-[#1a1a1a] border-white/10' 
+                          : 'bg-white border-gray-200'
+                      }`}
+                    >
+                      {languages.map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => changeLanguage(lang.code)}
+                          className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 transition-colors ${
+                            i18n.language === lang.code 
+                              ? (isDark ? 'bg-red-600/20' : 'bg-red-50')
+                              : (isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100')
+                          }`}
+                        >
+                          <span className="text-2xl">{lang.flag}</span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           </div>
         </div>
