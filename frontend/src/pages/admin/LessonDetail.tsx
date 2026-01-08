@@ -48,6 +48,9 @@ export default function LessonDetail() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'ADMIN';
+  const isTrainer = user?.role === 'TRAINER';
+  const isStudent = user?.role === 'STUDENT';
+  const showProgress = isStudent; // Only show progress tracking for students
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -353,7 +356,7 @@ export default function LessonDetail() {
                     <span className="text-sm text-gray-500">
                       Página {currentPage} de {totalPages}
                     </span>
-                    {allPagesVisited && (
+                    {showProgress && allPagesVisited && (
                       <span className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                         <CheckCircle2 className="w-3 h-3" />
                         Concluído
@@ -373,16 +376,16 @@ export default function LessonDetail() {
                       className={`relative w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium transition-all ${
                         currentPage === page
                           ? 'bg-red-600 text-white shadow-lg shadow-red-200'
-                          : visitedPages.has(page)
+                          : showProgress && visitedPages.has(page)
                           ? 'bg-green-100 text-green-700 hover:bg-green-200'
                           : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                       }`}
                     >
-                      {visitedPages.has(page) && currentPage !== page && (
-                        <Check className="w-4 h-4 absolute" />
+                      {showProgress && visitedPages.has(page) && currentPage !== page ? (
+                        <Check className="w-4 h-4" />
+                      ) : (
+                        page
                       )}
-                      {currentPage === page && page}
-                      {!visitedPages.has(page) && currentPage !== page && page}
                     </button>
                   ))}
                 </div>
@@ -425,19 +428,27 @@ export default function LessonDetail() {
                     Anterior
                   </button>
 
-                  {/* Progress Bar */}
-                  <div className="flex-1 mx-4">
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(visitedPages.size / totalPages) * 100}%` }}
-                        className="h-full bg-gradient-to-r from-green-500 to-emerald-500"
-                      />
+                  {/* Progress Bar - Only for students */}
+                  {showProgress ? (
+                    <div className="flex-1 mx-4">
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${(visitedPages.size / totalPages) * 100}%` }}
+                          className="h-full bg-gradient-to-r from-green-500 to-emerald-500"
+                        />
+                      </div>
+                      <p className="text-center text-xs text-gray-500 mt-1">
+                        {visitedPages.size} de {totalPages} páginas visitadas ({Math.round((visitedPages.size / totalPages) * 100)}%)
+                      </p>
                     </div>
-                    <p className="text-center text-xs text-gray-500 mt-1">
-                      {visitedPages.size} de {totalPages} páginas visitadas ({Math.round((visitedPages.size / totalPages) * 100)}%)
-                    </p>
-                  </div>
+                  ) : (
+                    <div className="flex-1 mx-4 text-center">
+                      <span className="text-sm text-gray-500">
+                        Página {currentPage} de {totalPages}
+                      </span>
+                    </div>
+                  )}
 
                   <button
                     onClick={() => goToPage(currentPage + 1)}
@@ -459,8 +470,8 @@ export default function LessonDetail() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Reading Progress */}
-          {totalPages > 1 && (
+          {/* Reading Progress - Only for students */}
+          {showProgress && totalPages > 1 && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
