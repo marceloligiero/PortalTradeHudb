@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Calendar, Clock, BookOpen, 
-  CheckCircle2, Shield, Star, GraduationCap, Sparkles
+  CheckCircle2, Shield, Star, GraduationCap, Sparkles, Printer
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -62,7 +62,7 @@ export default function CertificateView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCelebration, setShowCelebration] = useState(true);
-  const [celebrationPhase, setCelebrationPhase] = useState<'intro' | 'reveal' | 'complete'>('intro');
+  const [celebrationPhase, setCelebrationPhase] = useState<'intro' | 'rolling' | 'unrolling' | 'complete'>('intro');
 
   useEffect(() => {
     if (!token) {
@@ -72,31 +72,42 @@ export default function CertificateView() {
     fetchCertificate();
   }, [id, token]);
 
-  // Celebration animation sequence
+  // Celebration animation sequence - longer timings
   useEffect(() => {
     if (!loading && certificate && showCelebration) {
-      // Phase 1: Intro (person appears)
+      // Phase 1: Intro (person appears with certificate) - 3 seconds
       const timer1 = setTimeout(() => {
-        setCelebrationPhase('reveal');
-      }, 1500);
+        setCelebrationPhase('rolling');
+      }, 3000);
       
-      // Phase 2: Certificate reveal
+      // Phase 2: Rolling into tube - 3 seconds
       const timer2 = setTimeout(() => {
-        setCelebrationPhase('complete');
-      }, 3500);
+        setCelebrationPhase('unrolling');
+      }, 6000);
       
-      // Phase 3: Hide celebration, show certificate
+      // Phase 3: Unrolling and revealing - 2.5 seconds
       const timer3 = setTimeout(() => {
+        setCelebrationPhase('complete');
+      }, 8500);
+      
+      // Phase 4: Hide celebration, show certificate - 1.5 seconds
+      const timer4 = setTimeout(() => {
         setShowCelebration(false);
-      }, 4500);
+      }, 10000);
 
       return () => {
         clearTimeout(timer1);
         clearTimeout(timer2);
         clearTimeout(timer3);
+        clearTimeout(timer4);
       };
     }
   }, [loading, certificate, showCelebration]);
+
+  // Print function
+  const handlePrint = () => {
+    window.print();
+  };
 
   const fetchCertificate = async () => {
     try {
@@ -171,80 +182,81 @@ export default function CertificateView() {
       })
     : 'N/A';
 
-  // Celebration Animation Component
+  // Celebration Animation Component with Scroll/Tube Effect
   const CelebrationOverlay = () => (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] bg-gradient-to-br from-slate-900 via-red-900/20 to-slate-900 flex items-center justify-center print:hidden"
+      className="fixed inset-0 z-[100] bg-gradient-to-br from-slate-900 via-red-900/30 to-slate-900 flex items-center justify-center print:hidden"
     >
       {/* Skip Button */}
       <motion.button
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 1 }}
         onClick={() => setShowCelebration(false)}
-        className="absolute top-6 right-6 px-4 py-2 text-white/60 hover:text-white bg-white/10 hover:bg-white/20 rounded-xl transition-all text-sm"
+        className="absolute top-6 right-6 px-4 py-2 text-white/60 hover:text-white bg-white/10 hover:bg-white/20 rounded-xl transition-all text-sm z-50"
       >
         Pular animação →
       </motion.button>
 
       {/* Confetti/Sparkles Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
+        {[...Array(30)].map((_, i) => (
           <motion.div
             key={i}
             initial={{ 
               opacity: 0, 
               y: -100,
-              x: Math.random() * window.innerWidth,
-              rotate: 0 
+              x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1000),
+              rotate: 0,
+              scale: 0.5 + Math.random() * 0.5
             }}
             animate={{ 
               opacity: [0, 1, 1, 0], 
-              y: window.innerHeight + 100,
+              y: (typeof window !== 'undefined' ? window.innerHeight : 800) + 100,
               rotate: 360 * (Math.random() > 0.5 ? 1 : -1)
             }}
             transition={{ 
-              duration: 3 + Math.random() * 2,
-              delay: Math.random() * 2,
+              duration: 4 + Math.random() * 3,
+              delay: Math.random() * 4,
               ease: "easeOut"
             }}
             className="absolute"
           >
-            <Sparkles className={`w-6 h-6 ${
-              ['text-yellow-400', 'text-red-400', 'text-orange-400', 'text-amber-400'][Math.floor(Math.random() * 4)]
+            <Sparkles className={`w-8 h-8 ${
+              ['text-yellow-400', 'text-red-400', 'text-orange-400', 'text-amber-400', 'text-pink-400'][Math.floor(Math.random() * 5)]
             }`} />
           </motion.div>
         ))}
       </div>
 
       <div className="relative text-center">
-        {/* Person/Graduate Animation */}
         <AnimatePresence mode="wait">
+          {/* Phase 1: Graduate Person with Certificate */}
           {celebrationPhase === 'intro' && (
             <motion.div
               key="intro"
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
+              exit={{ scale: 0.8, opacity: 0, y: -50 }}
               transition={{ type: "spring", damping: 12 }}
-              className="mb-8"
+              className="flex flex-col items-center"
             >
               <motion.div
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
+                animate={{ y: [0, -15, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
                 className="relative"
               >
-                {/* Graduate Person SVG */}
-                <svg viewBox="0 0 200 200" className="w-48 h-48 mx-auto">
+                {/* Larger Graduate Person SVG */}
+                <svg viewBox="0 0 200 250" className="w-72 h-72 mx-auto">
                   {/* Body */}
                   <motion.ellipse
                     initial={{ scaleY: 0 }}
                     animate={{ scaleY: 1 }}
                     transition={{ delay: 0.2 }}
-                    cx="100" cy="150" rx="35" ry="45"
+                    cx="100" cy="180" rx="40" ry="55"
                     className="fill-red-600"
                   />
                   {/* Head */}
@@ -252,138 +264,278 @@ export default function CertificateView() {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", delay: 0.3 }}
-                    cx="100" cy="75" r="30"
+                    cx="100" cy="85" r="35"
                     className="fill-amber-200"
                   />
                   {/* Graduation Cap */}
                   <motion.g
-                    initial={{ y: -50, opacity: 0 }}
+                    initial={{ y: -60, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
-                    transition={{ type: "spring", delay: 0.5 }}
+                    transition={{ type: "spring", delay: 0.5, bounce: 0.5 }}
                   >
-                    <rect x="65" y="50" width="70" height="8" className="fill-gray-800" rx="2" />
-                    <polygon points="100,35 125,50 100,55 75,50" className="fill-gray-900" />
-                    <line x1="125" y1="50" x2="135" y2="70" stroke="#fbbf24" strokeWidth="2" />
-                    <circle cx="135" cy="72" r="4" className="fill-yellow-400" />
+                    <rect x="55" y="55" width="90" height="10" className="fill-gray-800" rx="3" />
+                    <polygon points="100,35 135,55 100,62 65,55" className="fill-gray-900" />
+                    <line x1="135" y1="55" x2="150" y2="80" stroke="#fbbf24" strokeWidth="3" />
+                    <circle cx="150" cy="82" r="6" className="fill-yellow-400" />
+                    <motion.circle
+                      animate={{ scale: [1, 1.3, 1] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                      cx="150" cy="82" r="3" className="fill-yellow-300"
+                    />
                   </motion.g>
                   {/* Happy Face */}
-                  <circle cx="90" cy="72" r="3" className="fill-gray-800" />
-                  <circle cx="110" cy="72" r="3" className="fill-gray-800" />
+                  <circle cx="85" cy="82" r="4" className="fill-gray-800" />
+                  <circle cx="115" cy="82" r="4" className="fill-gray-800" />
+                  {/* Smile */}
                   <motion.path
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
-                    transition={{ delay: 0.6 }}
-                    d="M 88 85 Q 100 95 112 85"
+                    transition={{ delay: 0.6, duration: 0.5 }}
+                    d="M 82 100 Q 100 118 118 100"
                     fill="none"
                     stroke="#374151"
-                    strokeWidth="2"
+                    strokeWidth="3"
                     strokeLinecap="round"
                   />
-                  {/* Arms reaching up */}
+                  {/* Arms holding certificate */}
                   <motion.path
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
-                    transition={{ delay: 0.4, duration: 0.5 }}
-                    d="M 70 130 Q 50 100 55 80"
+                    transition={{ delay: 0.4, duration: 0.6 }}
+                    d="M 65 155 Q 40 130 50 100"
                     fill="none"
                     stroke="#dc2626"
-                    strokeWidth="10"
+                    strokeWidth="12"
                     strokeLinecap="round"
                   />
                   <motion.path
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
-                    transition={{ delay: 0.4, duration: 0.5 }}
-                    d="M 130 130 Q 150 100 145 80"
+                    transition={{ delay: 0.4, duration: 0.6 }}
+                    d="M 135 155 Q 160 130 150 100"
                     fill="none"
                     stroke="#dc2626"
-                    strokeWidth="10"
+                    strokeWidth="12"
                     strokeLinecap="round"
                   />
                   {/* Hands */}
                   <motion.circle
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ delay: 0.7 }}
-                    cx="55" cy="78" r="8"
+                    transition={{ delay: 0.8 }}
+                    cx="50" cy="98" r="10"
                     className="fill-amber-200"
                   />
                   <motion.circle
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ delay: 0.7 }}
-                    cx="145" cy="78" r="8"
+                    transition={{ delay: 0.8 }}
+                    cx="150" cy="98" r="10"
                     className="fill-amber-200"
                   />
+                  {/* Certificate being held */}
+                  <motion.g
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 1, type: "spring" }}
+                  >
+                    <rect x="55" y="95" width="90" height="60" rx="3" className="fill-red-50" stroke="#dc2626" strokeWidth="2" />
+                    <text x="100" y="115" textAnchor="middle" className="fill-red-700 text-[8px] font-bold">CERTIFICADO</text>
+                    <line x1="70" y1="125" x2="130" y2="125" stroke="#f87171" strokeWidth="1" />
+                    <line x1="75" y1="135" x2="125" y2="135" stroke="#fca5a5" strokeWidth="1" />
+                    <line x1="80" y1="145" x2="120" y2="145" stroke="#fca5a5" strokeWidth="1" />
+                  </motion.g>
                 </svg>
               </motion.div>
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-                className="text-2xl font-bold text-white mt-4"
+                transition={{ delay: 1.2 }}
+                className="text-3xl font-bold text-white mt-6"
               >
                 🎓 Parabéns, {certificate.student_name}!
+              </motion.p>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.8 }}
+                className="text-xl text-white/70 mt-2"
+              >
+                Você conquistou seu certificado!
               </motion.p>
             </motion.div>
           )}
 
-          {celebrationPhase === 'reveal' && (
+          {/* Phase 2: Certificate Rolling into Tube */}
+          {celebrationPhase === 'rolling' && (
             <motion.div
-              key="reveal"
-              initial={{ scale: 0, rotateY: 180 }}
-              animate={{ scale: 1, rotateY: 0 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: "spring", damping: 15 }}
-              className="relative"
+              key="rolling"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center"
             >
-              {/* Mini Certificate Preview */}
-              <motion.div
-                animate={{ 
-                  boxShadow: ["0 0 20px rgba(239, 68, 68, 0.3)", "0 0 60px rgba(239, 68, 68, 0.6)", "0 0 20px rgba(239, 68, 68, 0.3)"]
-                }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="bg-gradient-to-br from-red-50 via-white to-red-50 rounded-2xl p-8 max-w-md mx-auto border-4 border-red-300"
-              >
-                <div className="text-center">
-                  <GraduationCap className="w-16 h-16 text-red-600 mx-auto mb-4" />
-                  <h3 className="text-2xl font-serif font-bold text-red-800 mb-2">CERTIFICADO</h3>
-                  <p className="text-gray-600 text-sm mb-3">de Conclusão</p>
-                  <div className="border-t border-b border-red-200 py-3 my-3">
-                    <p className="text-xl font-bold text-gray-800">{certificate.student_name}</p>
+              <div className="relative w-80 h-64">
+                {/* Certificate Paper */}
+                <motion.div
+                  initial={{ rotateX: 0, scaleY: 1 }}
+                  animate={{ 
+                    rotateX: [0, 0, 90, 180],
+                    scaleY: [1, 1, 0.5, 0],
+                    y: [0, 0, 30, 60]
+                  }}
+                  transition={{ duration: 2.5, ease: "easeInOut" }}
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-48 bg-gradient-to-br from-red-50 via-white to-red-50 rounded-lg border-2 border-red-300 shadow-2xl origin-top"
+                  style={{ transformStyle: 'preserve-3d' }}
+                >
+                  <div className="p-4 text-center">
+                    <GraduationCap className="w-10 h-10 text-red-600 mx-auto mb-2" />
+                    <h3 className="text-lg font-serif font-bold text-red-800">CERTIFICADO</h3>
+                    <p className="text-xs text-gray-600">de Conclusão</p>
+                    <div className="border-t border-red-200 mt-2 pt-2">
+                      <p className="text-sm font-bold text-gray-800 truncate">{certificate.student_name}</p>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600">
-                    Concluiu com êxito<br/>
-                    <span className="font-semibold text-red-700">"{certificate.training_plan_title}"</span>
-                  </p>
-                </div>
-              </motion.div>
+                </motion.div>
 
-              <motion.div
+                {/* Scroll Tube */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 1.5, duration: 0.5 }}
+                  className="absolute bottom-0 left-1/2 -translate-x-1/2"
+                >
+                  {/* Tube Body */}
+                  <div className="relative">
+                    <div className="w-20 h-48 bg-gradient-to-b from-amber-700 via-amber-600 to-amber-800 rounded-full shadow-2xl" />
+                    {/* Tube Cap Top */}
+                    <motion.div
+                      initial={{ y: 0 }}
+                      animate={{ y: [-5, 0, -5] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                      className="absolute -top-4 left-1/2 -translate-x-1/2 w-24 h-8 bg-gradient-to-r from-amber-900 via-amber-700 to-amber-900 rounded-full shadow-lg"
+                    />
+                    {/* Tube Cap Bottom */}
+                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 h-6 bg-gradient-to-r from-amber-900 via-amber-700 to-amber-900 rounded-full" />
+                    {/* Ribbon */}
+                    <motion.div
+                      animate={{ rotate: [0, 5, -5, 0] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="absolute top-1/2 -left-6 w-16 h-3 bg-gradient-to-r from-red-600 to-red-500 rounded-full shadow-md origin-right"
+                      style={{ transform: 'rotate(-30deg)' }}
+                    />
+                  </div>
+                </motion.div>
+              </div>
+
+              <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="mt-6 text-center"
+                className="text-2xl font-bold text-white mt-8"
               >
-                <p className="text-white/80 text-lg">Seu certificado está pronto!</p>
-              </motion.div>
+                📜 Preparando seu certificado...
+              </motion.p>
             </motion.div>
           )}
 
+          {/* Phase 3: Certificate Unrolling from Tube */}
+          {celebrationPhase === 'unrolling' && (
+            <motion.div
+              key="unrolling"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, scale: 1.5 }}
+              className="flex flex-col items-center"
+            >
+              <div className="relative">
+                {/* Certificate Unrolling */}
+                <motion.div
+                  initial={{ scaleY: 0, opacity: 0 }}
+                  animate={{ scaleY: 1, opacity: 1 }}
+                  transition={{ duration: 1.5, ease: "easeOut" }}
+                  className="origin-top"
+                >
+                  <motion.div
+                    animate={{ 
+                      boxShadow: ["0 0 30px rgba(239, 68, 68, 0.4)", "0 0 80px rgba(239, 68, 68, 0.8)", "0 0 30px rgba(239, 68, 68, 0.4)"]
+                    }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="bg-gradient-to-br from-red-50 via-white to-red-50 rounded-2xl p-8 max-w-lg mx-auto border-4 border-red-300 shadow-2xl"
+                  >
+                    <div className="text-center">
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ delay: 0.3, type: "spring" }}
+                      >
+                        <GraduationCap className="w-20 h-20 text-red-600 mx-auto mb-4" />
+                      </motion.div>
+                      <motion.h3
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5 }}
+                        className="text-3xl font-serif font-bold text-red-800 mb-2"
+                      >
+                        CERTIFICADO
+                      </motion.h3>
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.7 }}
+                        className="text-gray-600 text-lg mb-4"
+                      >
+                        de Conclusão
+                      </motion.p>
+                      <motion.div
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: 1 }}
+                        transition={{ delay: 0.9 }}
+                        className="border-t-2 border-b-2 border-red-200 py-4 my-4"
+                      >
+                        <p className="text-2xl font-bold text-gray-800">{certificate.student_name}</p>
+                      </motion.div>
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 1.1 }}
+                        className="text-gray-600"
+                      >
+                        Concluiu com êxito o plano de formação<br/>
+                        <span className="font-semibold text-red-700">"{certificate.training_plan_title}"</span>
+                      </motion.p>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              </div>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+                className="text-xl text-white/80 mt-6"
+              >
+                ✨ Seu certificado está pronto!
+              </motion.p>
+            </motion.div>
+          )}
+
+          {/* Phase 4: Complete - Transition */}
           {celebrationPhase === 'complete' && (
             <motion.div
               key="complete"
-              initial={{ scale: 1.2, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
+              initial={{ scale: 1, opacity: 1 }}
+              animate={{ scale: 2, opacity: 0 }}
+              transition={{ duration: 1 }}
               className="text-center"
             >
               <motion.div
-                animate={{ scale: [1, 1.1, 1] }}
-                transition={{ duration: 0.5, repeat: 3 }}
+                animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 0.5, repeat: 2 }}
               >
-                <CheckCircle2 className="w-24 h-24 text-green-400 mx-auto mb-4" />
+                <CheckCircle2 className="w-32 h-32 text-green-400 mx-auto mb-4" />
               </motion.div>
-              <p className="text-2xl font-bold text-white">Carregando seu certificado...</p>
+              <p className="text-3xl font-bold text-white">Exibindo certificado...</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -398,9 +550,9 @@ export default function CertificateView() {
         {showCelebration && <CelebrationOverlay />}
       </AnimatePresence>
 
-      {/* Back Button - Fixed at top */}
+      {/* Back Button and Print Button - Fixed at top */}
       <div className="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-white/10 print:hidden">
-        <div className="max-w-6xl mx-auto px-4 py-4">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <button
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 px-4 py-2 text-white/70 hover:text-white transition-all"
@@ -408,6 +560,15 @@ export default function CertificateView() {
             <ArrowLeft className="w-5 h-5" />
             Voltar
           </button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handlePrint}
+            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-medium hover:shadow-lg hover:shadow-red-600/30 transition-all"
+          >
+            <Printer className="w-5 h-5" />
+            Imprimir Certificado
+          </motion.button>
         </div>
       </div>
 
@@ -616,24 +777,11 @@ export default function CertificateView() {
           </div>
         </motion.div>
 
-        {/* Course Details Section - Anexo do Certificado */}
+        {/* Course Details Section - NOT printed (only certificate is printed) */}
         {certificate.courses && certificate.courses.length > 0 && (
-          <div className="mt-8 print:mt-0 print:page-break-before">
-            {/* Page break header for print */}
-            <div className="hidden print:block print:mb-6">
-              <div className="border-b-2 border-red-300 pb-4 mb-6">
-                <div className="flex items-center justify-between">
-                  <img src="/logo-sds.png" alt="Logo" className="h-12" />
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">Anexo ao Certificado</p>
-                    <p className="font-mono text-red-700 font-bold">{certificate.certificate_number}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <h3 className="text-2xl font-bold text-white print:text-gray-800 flex items-center gap-3 mb-6">
-              <BookOpen className="w-6 h-6 text-red-400 print:text-red-600" />
+          <div className="mt-8 print:hidden">
+            <h3 className="text-2xl font-bold text-white flex items-center gap-3 mb-6">
+              <BookOpen className="w-6 h-6 text-red-400" />
               Detalhes da Formação
             </h3>
             
@@ -644,17 +792,17 @@ export default function CertificateView() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="bg-white/5 print:bg-white backdrop-blur-xl rounded-2xl print:rounded-xl border border-white/10 print:border-red-200 overflow-hidden print:shadow-sm"
+                  className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden"
                 >
                   {/* Course Header */}
-                  <div className="bg-gradient-to-r from-red-500/10 to-red-400/10 print:from-red-100 print:to-red-50 px-6 py-4 border-b border-white/10 print:border-red-200">
+                  <div className="bg-gradient-to-r from-red-500/10 to-red-400/10 px-6 py-4 border-b border-white/10">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white font-bold print:shadow-md">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center text-white font-bold">
                         {index + 1}
                       </div>
                       <div>
-                        <h4 className="text-lg font-bold text-white print:text-gray-800">{course.title}</h4>
-                        <p className="text-sm text-gray-400 print:text-gray-600">
+                        <h4 className="text-lg font-bold text-white">{course.title}</h4>
+                        <p className="text-sm text-gray-400">
                           {course.total_lessons} aulas • {course.total_challenges} desafios
                         </p>
                       </div>
@@ -670,7 +818,7 @@ export default function CertificateView() {
                   <div className="p-6 grid md:grid-cols-2 gap-6">
                     {/* Lessons */}
                     <div>
-                      <h5 className="text-sm font-semibold text-red-400 print:text-red-700 uppercase tracking-wide mb-3 flex items-center gap-2">
+                      <h5 className="text-sm font-semibold text-red-400 uppercase tracking-wide mb-3 flex items-center gap-2">
                         <BookOpen className="w-4 h-4" />
                         Aulas Completadas
                       </h5>
@@ -678,11 +826,11 @@ export default function CertificateView() {
                         {course.lessons.map((lesson) => (
                           <div 
                             key={lesson.id}
-                            className="flex items-center gap-3 p-3 rounded-xl bg-white/5 print:bg-gray-50 border border-white/5 print:border-gray-200"
+                            className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5"
                           >
-                            <CheckCircle2 className="w-5 h-5 text-green-400 print:text-green-600 flex-shrink-0" />
-                            <span className="text-sm text-gray-300 print:text-gray-700 flex-1">{lesson.title}</span>
-                            <span className="text-xs text-gray-500 print:text-gray-600 bg-white/10 print:bg-gray-200 px-2 py-1 rounded">
+                            <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
+                            <span className="text-sm text-gray-300 flex-1">{lesson.title}</span>
+                            <span className="text-xs text-gray-500 bg-white/10 px-2 py-1 rounded">
                               {lesson.estimated_minutes} min
                             </span>
                           </div>
@@ -692,7 +840,7 @@ export default function CertificateView() {
                     
                     {/* Challenges */}
                     <div>
-                      <h5 className="text-sm font-semibold text-red-400 print:text-red-700 uppercase tracking-wide mb-3 flex items-center gap-2">
+                      <h5 className="text-sm font-semibold text-red-400 uppercase tracking-wide mb-3 flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4" />
                         Desafios Aprovados
                       </h5>
@@ -700,11 +848,11 @@ export default function CertificateView() {
                         {course.challenges.map((challenge) => (
                           <div 
                             key={challenge.id}
-                            className="flex items-center gap-3 p-3 rounded-xl bg-white/5 print:bg-gray-50 border border-white/5 print:border-gray-200"
+                            className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5"
                           >
-                            <CheckCircle2 className="w-5 h-5 text-green-400 print:text-green-600 flex-shrink-0" />
-                            <span className="text-sm text-gray-300 print:text-gray-700 flex-1">{challenge.title}</span>
-                            <span className="text-xs px-2 py-1 rounded bg-green-500/20 print:bg-green-100 text-green-400 print:text-green-700 border border-green-500/30 print:border-green-300">
+                            <CheckCircle2 className="w-5 h-5 text-green-400 flex-shrink-0" />
+                            <span className="text-sm text-gray-300 flex-1">{challenge.title}</span>
+                            <span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-400 border border-green-500/30">
                               Aprovado
                             </span>
                           </div>
