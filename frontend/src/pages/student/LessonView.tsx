@@ -15,7 +15,9 @@ import {
   Check,
   Play,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  Flag,
+  Loader2
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -48,6 +50,8 @@ export default function LessonView() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [visitedPages, setVisitedPages] = useState<Set<number>>(new Set([1]));
+  const [isFinished, setIsFinished] = useState(false);
+  const [finishLoading, setFinishLoading] = useState(false);
 
   // Split content into pages
   const contentPages = useMemo(() => {
@@ -95,9 +99,10 @@ export default function LessonView() {
   const totalPages = contentPages.length;
   const allPagesVisited = visitedPages.size >= totalPages;
 
-  // Load visited pages from localStorage
+  // Load visited pages and last page from localStorage
   useEffect(() => {
     if (lessonId) {
+      // Load visited pages
       const saved = localStorage.getItem(`lesson_${lessonId}_visited`);
       if (saved) {
         try {
@@ -107,20 +112,69 @@ export default function LessonView() {
           console.error('Error parsing visited pages:', e);
         }
       }
+      
+      // Load last page (to resume from where stopped)
+      const lastPage = localStorage.getItem(`lesson_${lessonId}_lastPage`);
+      if (lastPage) {
+        const pageNum = parseInt(lastPage, 10);
+        if (!isNaN(pageNum) && pageNum > 0) {
+          setCurrentPage(pageNum);
+        }
+      }
+      
+      // Check if already finished
+      const finished = localStorage.getItem(`lesson_${lessonId}_finished`);
+      if (finished === 'true') {
+        setIsFinished(true);
+      }
     }
   }, [lessonId]);
 
-  // Save visited pages to localStorage
+  // Save visited pages and current page to localStorage
   const markPageVisited = useCallback((page: number) => {
     setVisitedPages(prev => {
       const newSet = new Set(prev);
       newSet.add(page);
       if (lessonId) {
         localStorage.setItem(`lesson_${lessonId}_visited`, JSON.stringify(Array.from(newSet)));
+        // Save last page for resuming
+        localStorage.setItem(`lesson_${lessonId}_lastPage`, page.toString());
       }
       return newSet;
     });
   }, [lessonId]);
+
+  // Handle finish lesson
+  const handleFinishLesson = async () => {
+    if (!allPagesVisited || isFinished) return;
+    
+    setFinishLoading(true);
+    try {
+      // Try to call API to finish lesson (if available)
+      if (planId) {
+        try {
+          await api.post(`/api/lessons/${lessonId}/finish`, {
+            training_plan_id: parseInt(planId)
+          });
+        } catch (err) {
+          console.log('API finish not available, saving locally');
+        }
+      }
+      
+      // Save locally
+      localStorage.setItem(`lesson_${lessonId}_finished`, 'true');
+      setIsFinished(true);
+      
+      // Navigate back to training plan
+      if (planId) {
+        navigate(`/training-plan/${planId}`);
+      }
+    } catch (err) {
+      console.error('Error finishing lesson:', err);
+    } finally {
+      setFinishLoading(false);
+    }
+  };
 
   // Mark page as visited when changing
   useEffect(() => {
@@ -388,18 +442,40 @@ export default function LessonView() {
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => goToPage(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                      currentPage === totalPages
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-200'
-                    }`}
-                  >
-                    Próxima
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
+                  {/* Show Finish button when all pages visited, otherwise show Next button */}
+                  {allPagesVisited && currentPage === totalPages ? (
+                    <button
+                      onClick={handleFinishLesson}
+                      disabled={finishLoading || isFinished}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all ${
+                        isFinished
+                          ? 'bg-green-100 text-green-700 cursor-default'
+                          : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-200'
+                      }`}
+                    >
+                      {finishLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : isFinished ? (
+                        <CheckCircle2 className="w-4 h-4" />
+                      ) : (
+                        <Flag className="w-4 h-4" />
+                      )}
+                      {isFinished ? 'Aula Concluída' : 'Finalizar Aula'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => goToPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                        currentPage === totalPages
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-200'
+                      }`}
+                    >
+                      Próxima
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -454,11 +530,34 @@ export default function LessonView() {
               </div>
 
               {allPagesVisited && (
-                <div className="mt-4 p-3 bg-green-100 rounded-lg border border-green-200">
-                  <div className="flex items-center gap-2 text-green-700">
-                    <CheckCircle2 className="w-5 h-5" />
-                    <span className="font-medium text-sm">Leitura completa!</span>
+                <div className="mt-4 space-y-3">
+                  <div className="p-3 bg-green-100 rounded-lg border border-green-200">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span className="font-medium text-sm">Leitura completa!</span>
+                    </div>
                   </div>
+                  
+                  {/* Finish Button in Sidebar */}
+                  {!isFinished ? (
+                    <button
+                      onClick={handleFinishLesson}
+                      disabled={finishLoading}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 disabled:opacity-50"
+                    >
+                      {finishLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Flag className="w-5 h-5" />
+                      )}
+                      Finalizar Aula
+                    </button>
+                  ) : (
+                    <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-100 text-green-700 rounded-lg font-medium border border-green-200">
+                      <CheckCircle2 className="w-5 h-5" />
+                      Aula Concluída
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>
