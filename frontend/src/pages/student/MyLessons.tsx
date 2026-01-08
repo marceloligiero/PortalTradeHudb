@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   BookOpen, 
@@ -8,7 +9,8 @@ import {
   FileText,
   Video,
   Check,
-  AlertCircle
+  AlertCircle,
+  Eye
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -41,6 +43,7 @@ interface MyLesson {
 
 export default function MyLessons() {
   const { token, user } = useAuthStore();
+  const navigate = useNavigate();
   const [lessons, setLessons] = useState<MyLesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
@@ -243,11 +246,19 @@ export default function MyLessons() {
                       )}
                     </div>
                     
-                    <button
-                      onClick={() => handleConfirmLesson(lesson.lesson_id)}
-                      disabled={confirmingId === lesson.lesson_id}
-                      className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
-                    >
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => navigate(`/lessons/${lesson.lesson_id}/view`)}
+                        className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg font-medium transition-colors flex items-center gap-2 border border-blue-500/30"
+                      >
+                        <Eye className="w-4 h-4" />
+                        Ver Aula
+                      </button>
+                      <button
+                        onClick={() => handleConfirmLesson(lesson.lesson_id)}
+                        disabled={confirmingId === lesson.lesson_id}
+                        className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                      >
                       {confirmingId === lesson.lesson_id ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -259,7 +270,8 @@ export default function MyLessons() {
                           Confirmar
                         </>
                       )}
-                    </button>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -282,28 +294,37 @@ export default function MyLessons() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="relative overflow-hidden bg-blue-500/10 backdrop-blur-xl rounded-2xl border border-blue-500/30"
+                onClick={() => navigate(`/lessons/${lesson.lesson_id}/view`)}
+                className="relative overflow-hidden bg-blue-500/10 backdrop-blur-xl rounded-2xl border border-blue-500/30 cursor-pointer hover:bg-blue-500/20 transition-colors"
               >
                 <div className="p-6">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-bold text-white">
-                      {lesson.lesson_title}
-                    </h3>
-                    {getStatusBadge(lesson)}
-                  </div>
-                  {lesson.lesson_description && (
-                    <p className="text-gray-400 text-sm mb-3 line-clamp-2">{stripHtml(lesson.lesson_description)}</p>
-                  )}
-                  <div className="flex items-center gap-4 text-sm text-gray-400">
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-4 h-4" />
-                      Estimado: {lesson.estimated_minutes} min
-                    </span>
-                    {lesson.started_at && (
-                      <span>
-                        Iniciada: {new Date(lesson.started_at).toLocaleString()}
-                      </span>
-                    )}
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-bold text-white">
+                          {lesson.lesson_title}
+                        </h3>
+                        {getStatusBadge(lesson)}
+                      </div>
+                      {lesson.lesson_description && (
+                        <p className="text-gray-400 text-sm mb-3 line-clamp-2">{stripHtml(lesson.lesson_description)}</p>
+                      )}
+                      <div className="flex items-center gap-4 text-sm text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          Estimado: {lesson.estimated_minutes} min
+                        </span>
+                        {lesson.started_at && (
+                          <span>
+                            Iniciada: {new Date(lesson.started_at).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-blue-400">
+                      <Eye className="w-5 h-5" />
+                      <span className="text-sm font-medium">Continuar</span>
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -357,6 +378,13 @@ export default function MyLessons() {
                     
                     {/* Materiais */}
                     <div className="flex gap-2">
+                      <button
+                        onClick={() => navigate(`/lessons/${lesson.lesson_id}/view`)}
+                        className="p-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg text-blue-400 transition-colors"
+                        title="Ver Aula"
+                      >
+                        <Eye className="w-5 h-5" />
+                      </button>
                       {lesson.materials_url && (
                         <a
                           href={lesson.materials_url}
