@@ -367,7 +367,7 @@ export default function TradeDatahubLanding() {
               <img 
                 src="/logo-sds.png"
                 alt="Santander Digital Services"
-                className={`h-10 w-auto transition-all ${isDark ? 'filter brightness-0 invert' : ''}`}
+                className={`h-10 w-auto transition-all ${isDark ? 'filter brightness-0 invert' : 'filter brightness-0'}`}
               />
               <div className={`hidden md:block h-8 w-px ${isDark ? 'bg-white/20' : 'bg-gray-300'}`} />
               <div className="hidden md:flex flex-col">
