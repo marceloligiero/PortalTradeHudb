@@ -253,16 +253,14 @@ export default function LessonDetail() {
             className="bg-white rounded-xl border border-gray-200 p-6"
           >
             <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.lessonContent')}</h3>
-            <div className="prose max-w-none">
-              {lesson.content ? (
-                <div 
-                  className="text-gray-700 whitespace-pre-wrap"
-                  dangerouslySetInnerHTML={{ __html: lesson.content }}
-                />
-              ) : (
-                <p className="text-gray-500 italic">{t('admin.noContentYet')}</p>
-              )}
-            </div>
+            {lesson.content ? (
+              <div 
+                className="prose prose-slate max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-gray-700 prose-p:leading-relaxed prose-ul:list-disc prose-ol:list-decimal prose-li:text-gray-700 prose-blockquote:border-l-4 prose-blockquote:border-gray-300 prose-blockquote:pl-4 prose-blockquote:italic prose-a:text-red-600 prose-a:underline prose-code:bg-gray-100 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-900 prose-pre:text-gray-100"
+                dangerouslySetInnerHTML={{ __html: lesson.content }}
+              />
+            ) : (
+              <p className="text-gray-500 italic">{t('admin.noContentYet')}</p>
+            )}
           </motion.div>
         </div>
 
