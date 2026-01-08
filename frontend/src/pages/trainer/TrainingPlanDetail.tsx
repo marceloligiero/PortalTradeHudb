@@ -755,20 +755,18 @@ export default function TrainingPlanDetail() {
                                           </button>
                                         )}
 
-                                        {/* Ver aula (se tiver vídeo/materiais) */}
-                                        {(lesson.video_url || lesson.materials_url) && progress && (
-                                          <button
-                                            onClick={() => navigate(`/lessons/${lesson.id}/view?planId=${id}`)}
-                                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                                              isDark 
-                                                ? 'bg-white/10 text-white hover:bg-white/20' 
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                            }`}
-                                          >
-                                            <Eye className="w-4 h-4" />
-                                            Ver Aula
-                                          </button>
-                                        )}
+                                        {/* Ver aula - sempre disponível para estudante */}
+                                        <button
+                                          onClick={() => navigate(`/lessons/${lesson.id}/view?planId=${id}`)}
+                                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                            isDark 
+                                              ? 'bg-white/10 text-white hover:bg-white/20' 
+                                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                          }`}
+                                        >
+                                          <Eye className="w-4 h-4" />
+                                          Ver Aula
+                                        </button>
                                       </>
                                     )}
 
