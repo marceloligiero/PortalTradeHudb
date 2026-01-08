@@ -62,7 +62,7 @@ export default function CertificateView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCelebration, setShowCelebration] = useState(true);
-  const [celebrationPhase, setCelebrationPhase] = useState<'intro' | 'rolling' | 'unrolling' | 'complete'>('intro');
+  const [celebrationPhase, setCelebrationPhase] = useState<'intro' | 'generating'>('intro');
 
   useEffect(() => {
     if (!token) {
@@ -72,34 +72,22 @@ export default function CertificateView() {
     fetchCertificate();
   }, [id, token]);
 
-  // Celebration animation sequence - longer timings
+  // Celebration animation sequence - simplified
   useEffect(() => {
     if (!loading && certificate && showCelebration) {
-      // Phase 1: Intro (person appears with certificate) - 3 seconds
+      // Phase 1: Intro (person appears) - 3.5 seconds
       const timer1 = setTimeout(() => {
-        setCelebrationPhase('rolling');
-      }, 3000);
+        setCelebrationPhase('generating');
+      }, 3500);
       
-      // Phase 2: Rolling into tube - 3 seconds
+      // Phase 2: Generating - 2.5 seconds then show certificate
       const timer2 = setTimeout(() => {
-        setCelebrationPhase('unrolling');
-      }, 6000);
-      
-      // Phase 3: Unrolling and revealing - 2.5 seconds
-      const timer3 = setTimeout(() => {
-        setCelebrationPhase('complete');
-      }, 8500);
-      
-      // Phase 4: Hide celebration, show certificate - 1.5 seconds
-      const timer4 = setTimeout(() => {
         setShowCelebration(false);
-      }, 10000);
+      }, 6000);
 
       return () => {
         clearTimeout(timer1);
         clearTimeout(timer2);
-        clearTimeout(timer3);
-        clearTimeout(timer4);
       };
     }
   }, [loading, certificate, showCelebration]);
@@ -182,7 +170,7 @@ export default function CertificateView() {
       })
     : 'N/A';
 
-  // Celebration Animation Component with Scroll/Tube Effect
+  // Celebration Animation Component - Simplified (2 phases only)
   const CelebrationOverlay = () => (
     <motion.div
       initial={{ opacity: 0 }}
@@ -249,7 +237,7 @@ export default function CertificateView() {
                 transition={{ duration: 2, repeat: Infinity }}
                 className="relative"
               >
-                {/* Larger Graduate Person SVG */}
+                {/* Graduate Person SVG */}
                 <svg viewBox="0 0 200 250" className="w-72 h-72 mx-auto">
                   {/* Body */}
                   <motion.ellipse
@@ -366,176 +354,40 @@ export default function CertificateView() {
             </motion.div>
           )}
 
-          {/* Phase 2: Certificate Rolling into Tube */}
-          {celebrationPhase === 'rolling' && (
+          {/* Phase 2: Generating Certificate */}
+          {celebrationPhase === 'generating' && (
             <motion.div
-              key="rolling"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              key="generating"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.2 }}
+              transition={{ duration: 0.5 }}
               className="flex flex-col items-center"
             >
-              <div className="relative w-80 h-64">
-                {/* Certificate Paper */}
-                <motion.div
-                  initial={{ rotateX: 0, scaleY: 1 }}
-                  animate={{ 
-                    rotateX: [0, 0, 90, 180],
-                    scaleY: [1, 1, 0.5, 0],
-                    y: [0, 0, 30, 60]
-                  }}
-                  transition={{ duration: 2.5, ease: "easeInOut" }}
-                  className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-48 bg-gradient-to-br from-red-50 via-white to-red-50 rounded-lg border-2 border-red-300 shadow-2xl origin-top"
-                  style={{ transformStyle: 'preserve-3d' }}
-                >
-                  <div className="p-4 text-center">
-                    <GraduationCap className="w-10 h-10 text-red-600 mx-auto mb-2" />
-                    <h3 className="text-lg font-serif font-bold text-red-800">CERTIFICADO</h3>
-                    <p className="text-xs text-gray-600">de Conclusão</p>
-                    <div className="border-t border-red-200 mt-2 pt-2">
-                      <p className="text-sm font-bold text-gray-800 truncate">{certificate.student_name}</p>
-                    </div>
-                  </div>
-                </motion.div>
-
-                {/* Scroll Tube */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 1.5, duration: 0.5 }}
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2"
-                >
-                  {/* Tube Body */}
-                  <div className="relative">
-                    <div className="w-20 h-48 bg-gradient-to-b from-amber-700 via-amber-600 to-amber-800 rounded-full shadow-2xl" />
-                    {/* Tube Cap Top */}
-                    <motion.div
-                      initial={{ y: 0 }}
-                      animate={{ y: [-5, 0, -5] }}
-                      transition={{ duration: 1, repeat: Infinity }}
-                      className="absolute -top-4 left-1/2 -translate-x-1/2 w-24 h-8 bg-gradient-to-r from-amber-900 via-amber-700 to-amber-900 rounded-full shadow-lg"
-                    />
-                    {/* Tube Cap Bottom */}
-                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 h-6 bg-gradient-to-r from-amber-900 via-amber-700 to-amber-900 rounded-full" />
-                    {/* Ribbon */}
-                    <motion.div
-                      animate={{ rotate: [0, 5, -5, 0] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="absolute top-1/2 -left-6 w-16 h-3 bg-gradient-to-r from-red-600 to-red-500 rounded-full shadow-md origin-right"
-                      style={{ transform: 'rotate(-30deg)' }}
-                    />
-                  </div>
-                </motion.div>
-              </div>
-
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="text-2xl font-bold text-white mt-8"
-              >
-                📜 Preparando seu certificado...
-              </motion.p>
-            </motion.div>
-          )}
-
-          {/* Phase 3: Certificate Unrolling from Tube */}
-          {celebrationPhase === 'unrolling' && (
-            <motion.div
-              key="unrolling"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, scale: 1.5 }}
-              className="flex flex-col items-center"
-            >
-              <div className="relative">
-                {/* Certificate Unrolling */}
-                <motion.div
-                  initial={{ scaleY: 0, opacity: 0 }}
-                  animate={{ scaleY: 1, opacity: 1 }}
-                  transition={{ duration: 1.5, ease: "easeOut" }}
-                  className="origin-top"
-                >
-                  <motion.div
-                    animate={{ 
-                      boxShadow: ["0 0 30px rgba(239, 68, 68, 0.4)", "0 0 80px rgba(239, 68, 68, 0.8)", "0 0 30px rgba(239, 68, 68, 0.4)"]
-                    }}
-                    transition={{ duration: 1.5, repeat: Infinity }}
-                    className="bg-gradient-to-br from-red-50 via-white to-red-50 rounded-2xl p-8 max-w-lg mx-auto border-4 border-red-300 shadow-2xl"
-                  >
-                    <div className="text-center">
-                      <motion.div
-                        initial={{ scale: 0, rotate: -180 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{ delay: 0.3, type: "spring" }}
-                      >
-                        <GraduationCap className="w-20 h-20 text-red-600 mx-auto mb-4" />
-                      </motion.div>
-                      <motion.h3
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.5 }}
-                        className="text-3xl font-serif font-bold text-red-800 mb-2"
-                      >
-                        CERTIFICADO
-                      </motion.h3>
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.7 }}
-                        className="text-gray-600 text-lg mb-4"
-                      >
-                        de Conclusão
-                      </motion.p>
-                      <motion.div
-                        initial={{ scaleX: 0 }}
-                        animate={{ scaleX: 1 }}
-                        transition={{ delay: 0.9 }}
-                        className="border-t-2 border-b-2 border-red-200 py-4 my-4"
-                      >
-                        <p className="text-2xl font-bold text-gray-800">{certificate.student_name}</p>
-                      </motion.div>
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 1.1 }}
-                        className="text-gray-600"
-                      >
-                        Concluiu com êxito o plano de formação<br/>
-                        <span className="font-semibold text-red-700">"{certificate.training_plan_title}"</span>
-                      </motion.p>
-                    </div>
-                  </motion.div>
-                </motion.div>
-              </div>
-
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1 }}
-                className="text-xl text-white/80 mt-6"
-              >
-                ✨ Seu certificado está pronto!
-              </motion.p>
-            </motion.div>
-          )}
-
-          {/* Phase 4: Complete - Transition */}
-          {celebrationPhase === 'complete' && (
-            <motion.div
-              key="complete"
-              initial={{ scale: 1, opacity: 1 }}
-              animate={{ scale: 2, opacity: 0 }}
-              transition={{ duration: 1 }}
-              className="text-center"
-            >
+              {/* Loading Spinner */}
               <motion.div
-                animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 0.5, repeat: 2 }}
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                className="w-24 h-24 border-4 border-white/20 border-t-red-500 rounded-full"
+              />
+              
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-3xl font-bold text-white mt-8"
               >
-                <CheckCircle2 className="w-32 h-32 text-green-400 mx-auto mb-4" />
+                📜 Gerando certificado...
+              </motion.p>
+              
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="mt-4"
+              >
+                <GraduationCap className="w-12 h-12 text-red-400" />
               </motion.div>
-              <p className="text-3xl font-bold text-white">Exibindo certificado...</p>
             </motion.div>
           )}
         </AnimatePresence>
