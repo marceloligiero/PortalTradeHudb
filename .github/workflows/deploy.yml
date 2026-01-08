@@ -23,10 +23,14 @@ jobs:
             git fetch origin
             git reset --hard origin/main
             
-            # Build frontend
+            # Build frontend locally and copy to nginx dir
             cd frontend
             npm run build
             cp -r dist/* /var/www/tradehub/frontend/dist/
+            
+            # Rebuild Docker containers if needed
+            # cd ..
+            # docker compose up -d --build
             
             echo "✅ Deploy completed successfully at $(date)!"
 
