@@ -55,13 +55,13 @@ interface CertificateData {
 export default function CertificateView() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
   const certificateRef = useRef<HTMLDivElement>(null);
 
   const [certificate, setCertificate] = useState<CertificateData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showCelebration, setShowCelebration] = useState(true);
+  const [showCelebration, setShowCelebration] = useState(false); // Start false, set true only for student
   const [celebrationPhase, setCelebrationPhase] = useState<'intro' | 'generating'>('intro');
 
   useEffect(() => {
@@ -102,6 +102,11 @@ export default function CertificateView() {
       setLoading(true);
       const resp = await api.get(`/api/certificates/${id}`);
       setCertificate(resp.data);
+      
+      // Show celebration only if the logged user is the certificate owner (student)
+      if (user && resp.data.student_email === user.email) {
+        setShowCelebration(true);
+      }
     } catch (err: any) {
       console.error('Error fetching certificate:', err);
       setError(err?.response?.data?.detail || 'Erro ao carregar certificado');
