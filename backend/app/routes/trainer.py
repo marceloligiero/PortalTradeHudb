@@ -5,6 +5,7 @@ from typing import List, Dict, Any
 from app.database import get_db
 from app import models, schemas, auth
 from app.pagination import paginate, PaginatedResponse
+from app.routers.challenges import reopen_completed_training_plans
 from datetime import datetime, timedelta
 
 router = APIRouter()
@@ -422,6 +423,11 @@ async def create_lesson(
     db.add(db_lesson)
     db.commit()
     db.refresh(db_lesson)
+    
+    # Reabrir planos de formação concluídos que contêm este curso
+    reopened_count = reopen_completed_training_plans(db, lesson.course_id, "new_lesson")
+    if reopened_count > 0:
+        print(f"[INFO] {reopened_count} plano(s) de formação reaberto(s) devido a nova aula no curso {lesson.course_id}")
     
     return db_lesson
 
