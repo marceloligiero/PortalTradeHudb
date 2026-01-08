@@ -697,7 +697,8 @@
     "navbar": {
       "portalTitle": "TRAINING PORTAL",
       "login": "Login",
-      "register": "Register"
+      "register": "Register",
+      "selectLanguage": "Language"
     },
     "intro": {
       "title": "What is the Training Portal?",

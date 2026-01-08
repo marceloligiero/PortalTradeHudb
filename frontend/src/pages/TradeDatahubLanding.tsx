@@ -459,19 +459,24 @@ export default function TradeDatahubLanding() {
                 <ArrowRight className="w-4 h-4" />
               </motion.button>
 
-              {/* Language Selector - Flag Only */}
+              {/* Language Selector - Premium */}
               <div className="relative">
                 <motion.button
-                  whileHover={{ scale: 1.1 }}
+                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setShowLangMenu(!showLangMenu)}
-                  className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all ${
+                  className={`h-11 px-3 rounded-xl flex items-center gap-2 transition-all ${
                     isDark 
                       ? 'bg-white/10 hover:bg-white/20 border border-white/10' 
                       : 'bg-gray-100 hover:bg-gray-200 border border-gray-200'
                   }`}
                 >
-                  <img src={currentLang.flag} alt={currentLang.name} className="w-7 h-5 object-cover rounded-sm" />
+                  <img 
+                    src={currentLang.flag} 
+                    alt={currentLang.name} 
+                    className="w-8 h-6 object-cover rounded shadow-sm" 
+                  />
+                  <ChevronRight className={`w-4 h-4 transition-transform ${showLangMenu ? 'rotate-90' : ''} ${isDark ? 'text-white/60' : 'text-gray-500'}`} />
                 </motion.button>
 
                 <AnimatePresence>
@@ -480,25 +485,44 @@ export default function TradeDatahubLanding() {
                       initial={{ opacity: 0, y: -10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      className={`absolute right-0 top-full mt-2 py-2 rounded-xl shadow-2xl border z-50 ${
+                      transition={{ duration: 0.2 }}
+                      className={`absolute right-0 top-full mt-3 p-2 rounded-2xl shadow-2xl border z-50 min-w-[180px] backdrop-blur-xl ${
                         isDark 
-                          ? 'bg-[#1a1a1a] border-white/10' 
-                          : 'bg-white border-gray-200'
+                          ? 'bg-[#1a1a1a]/95 border-white/10' 
+                          : 'bg-white/95 border-gray-200'
                       }`}
                     >
+                      <div className={`px-3 py-2 mb-1 text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-white/40' : 'text-gray-400'}`}>
+                        {t('landing.navbar.selectLanguage') || 'Idioma'}
+                      </div>
                       {languages.map((lang) => (
-                        <button
+                        <motion.button
                           key={lang.code}
+                          whileHover={{ x: 4 }}
                           onClick={() => changeLanguage(lang.code)}
-                          className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 transition-colors ${
+                          className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${
                             i18n.language === lang.code 
-                              ? (isDark ? 'bg-red-600/20' : 'bg-red-50')
-                              : (isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100')
+                              ? (isDark ? 'bg-red-600/20 border border-red-500/30' : 'bg-red-50 border border-red-200')
+                              : (isDark ? 'hover:bg-white/10 border border-transparent' : 'hover:bg-gray-100 border border-transparent')
                           }`}
                         >
-                          <img src={lang.flag} alt={lang.name} className="w-7 h-5 object-cover rounded-sm" />
-                        </button>
+                          <img 
+                            src={lang.flag} 
+                            alt={lang.name} 
+                            className="w-10 h-7 object-cover rounded shadow-md" 
+                          />
+                          <div className="flex flex-col items-start">
+                            <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                              {lang.name}
+                            </span>
+                            <span className={`text-xs ${isDark ? 'text-white/50' : 'text-gray-400'}`}>
+                              {lang.code.toUpperCase()}
+                            </span>
+                          </div>
+                          {i18n.language === lang.code && (
+                            <CheckCircle className={`w-5 h-5 ml-auto ${isDark ? 'text-red-400' : 'text-red-500'}`} />
+                          )}
+                        </motion.button>
                       ))}
                     </motion.div>
                   )}

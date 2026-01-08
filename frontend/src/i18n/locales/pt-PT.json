@@ -746,7 +746,8 @@
     "navbar": {
       "portalTitle": "PORTAL DE FORMAÇÕES",
       "login": "Entrar",
-      "register": "Registar"
+      "register": "Registar",
+      "selectLanguage": "Idioma"
     },
     "intro": {
       "title": "O que é o Portal de Formações",
