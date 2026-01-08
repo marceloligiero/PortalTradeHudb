@@ -1,229 +1,345 @@
-# 🎓 Portal Trade DataHub - Sistema de Gestão de Formações
+# 🎓 Portal TradeHub
 
-![Version](https://img.shields.io/badge/version-2.0.0-red)
-![Python](https://img.shields.io/badge/python-3.11+-blue)
-![React](https://img.shields.io/badge/react-18.2-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.109-green)
+Sistema completo de gestão de formações e cursos online com funcionalidades avançadas de gestão de utilizadores, planos de treino, e certificados.
 
-Sistema completo de gestão de formações para Trade DataHub da **Santander Digital Services**.
+## 🌟 Características
 
----
+- **Gestão de Utilizadores** - Sistema completo de CRUD com ativação/desativação
+- **Planos de Treino** - Criação e gestão de módulos e lições
+- **Sistema de Certificados** - Geração automática de certificados após conclusão
+- **Dashboard Administrativo** - Estatísticas e gestão completa
+- **Autenticação Segura** - Sistema robusto com bcrypt e JWT
+- **Design Moderno** - Interface premium com Tailwind CSS e Framer Motion
 
-## 📋 Visão Geral
+## 🛠️ Stack Tecnológico
 
-Portal moderno e profissional para gestão de formações bancárias com:
+### Backend
+- **Python 3.13**
+- **FastAPI** - Framework web moderno e rápido
+- **SQLAlchemy 2.0** - ORM para banco de dados
+- **MySQL 8.4** - Banco de dados
+- **Uvicorn** - Servidor ASGI
+- **JWT** - Autenticação
+- **bcrypt** - Hash de senhas
 
-### ✨ Funcionalidades Principais
+### Frontend
+- **React 18** - Biblioteca UI
+- **TypeScript** - Type-safety
+- **Vite 5** - Build tool
+- **Tailwind CSS** - Estilização
+- **Framer Motion** - Animações
+- **React Router** - Navegação
 
-- ✅ **Autenticação JWT** com 3 tipos de usuários (Admin, Trainer, Student)
-- ✅ **Gestão de Cursos** e Lições com materiais e vídeos
-- ✅ **Planos de Formação** personalizados por banco e produto
-- ✅ **Sistema de Desafios MPU** (Movimentos Por Unidade) com métricas de performance
-- ✅ **Certificados Digitais** automáticos em PDF
-- ✅ **Dashboards Específicos** para cada perfil de usuário
-- ✅ **Sistema de Auditoria** para rastreamento de ações críticas
-- ✅ **Paginação Inteligente** para listas grandes
-- ✅ **Internacionalização** (pt-PT, es, en)
-- ✅ **Testes Automatizados** com cobertura de código
+### DevOps
+- **PM2** - Gerenciador de processos
+- **Nginx** - Servidor web e proxy reverso
+- **Certbot** - Certificados SSL
 
-### 🆕 Melhorias Implementadas (v2.0)
+## 🚀 Deploy no VPS
 
-- 🔐 **Segurança Aprimorada**: Senhas com hash bcrypt, SECRET_KEY forte
-- 📊 **Paginação**: Endpoints otimizados com limite de 100 itens por página
-- 🎨 **UX Melhorada**: Componentes de Loading e Toast para feedback visual
-- 📝 **Auditoria Completa**: Logs de todas as ações críticas (login, CRUD)
-- 🧪 **Testes Automatizados**: Suite completa de testes unitários e de integração
-- 📖 **Documentação Atualizada**: Guias completos e evidências de testes
+### Informações do Servidor
 
----
+- **IP**: 72.60.188.172
+- **Domínio**: srv1242193.hstgr.cloud
+- **OS**: Ubuntu 25.10
+- **URLs**:
+  - Frontend: https://srv1242193.hstgr.cloud
+  - Backend API: https://srv1242193.hstgr.cloud/api
 
-## 🚀 Instalação Rápida
+### Script Unificado de Deploy
 
-### Opção 1: Docker (Recomendado)
+O projeto inclui um script unificado para facilitar o gerenciamento no VPS.
+
+#### Comandos Disponíveis
 
 ```bash
-# 1. Configurar ambiente
-cp backend/.env.example backend/.env
-# Edite .env e gere SECRET_KEY forte:
-# python -c "import secrets; print(secrets.token_urlsafe(32))"
+# No VPS
+cd /var/www/tradehub
 
-# 2. Iniciar (Windows)
-.\start-docker.ps1
+# Ver status atual
+./start-vps.sh status
 
-# Ou (Linux/Mac)
-bash start-docker.sh
+# Deploy completo (pull + deps + build + restart)
+./start-vps.sh update
 
-# 3. Acessar
-# Frontend: http://localhost:3000
-# Backend: http://localhost:8000/docs
+# Atualização rápida (sem rebuild do frontend)
+./start-vps.sh quick
+
+# Atualizar apenas frontend
+./start-vps.sh frontend
+
+# Reiniciar serviços
+./start-vps.sh restart
+
+# Parar serviços
+./start-vps.sh stop
 ```
 
-### Opção 2: Local (Desenvolvimento)
+#### O que cada comando faz
 
-**Backend:**
+| Comando | Ações |
+|---------|-------|
+| `update` | Pull do código + Atualiza deps Python + Build frontend + Restart PM2 |
+| `quick` | Pull do código + Atualiza deps Python + Restart backend |
+| `frontend` | Pull do código + Build frontend |
+| `status` | Mostra status PM2 + últimos 20 logs |
+| `restart` | Reinicia todos os serviços |
+| `stop` | Para todos os serviços |
+
+### Deploy Manual (Passo a Passo)
+
+#### 1. Primeiro Deploy (Configuração Inicial)
+
+```bash
+# Conectar ao VPS
+ssh root@72.60.188.172
+
+# Clonar repositório
+cd /var/www
+git clone https://github.com/marceloligiero/PortalTradeHudb.git tradehub
+cd tradehub
+
+# Backend - Instalar dependências
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# Frontend - Build
+cd ../frontend
+npm install
+npm run build
+
+# Configurar PM2
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup
+
+# Configurar Nginx (se ainda não estiver)
+sudo ln -s /etc/nginx/sites-available/tradehub /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+#### 2. Deploys Subsequentes
+
+Simplesmente use o script:
+```bash
+./start-vps.sh update
+```
+
+## 🔧 Desenvolvimento Local
+
+### Pré-requisitos
+
+- Python 3.13+
+- Node.js 18+
+- MySQL 8.0+
+
+### Configuração
+
+1. **Clone o repositório**
+```bash
+git clone https://github.com/marceloligiero/PortalTradeHudb.git
+cd PortalTradeHudb
+```
+
+2. **Backend**
 ```bash
 cd backend
-python -m venv venv
-venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env
-python main.py
+
+# Criar arquivo .env
+echo "DATABASE_URL=mysql+pymysql://root:password@localhost/tradehub_db" > .env
+
+# Iniciar
+uvicorn main:app --reload
 ```
 
-**Frontend:**
+3. **Frontend**
 ```bash
 cd frontend
 npm install
-cp .env.example .env
 npm run dev
 ```
 
----
+4. **Acesso**
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- Docs API: http://localhost:8000/docs
 
-## 📚 Documentação Completa
-
-Para documentação detalhada, veja:
-- [**API Documentation**](http://localhost:8000/docs) - Swagger interativo
-- [**SERVIDOR-GUIA.md**](SERVIDOR-GUIA.md) - Guia do servidor
-- [**backend/tests/README.md**](backend/tests/README.md) - Guia de testes
-
----
-
-## 🏗️ Arquitetura
+## 📁 Estrutura do Projeto
 
 ```
-Portal Trade DataHub/
-├── frontend/           # React 18 + TypeScript + Tailwind
-├── backend/            # FastAPI + SQLAlchemy + SQL Server
-├── database/           # Scripts SQL
-└── docs/               # Documentação
+PortalTradeHudb/
+├── backend/              # Backend FastAPI
+│   ├── app/
+│   │   ├── models.py    # Modelos SQLAlchemy
+│   │   ├── routes/      # Endpoints da API
+│   │   └── ...
+│   ├── main.py          # Ponto de entrada
+│   └── requirements.txt
+├── frontend/            # Frontend React
+│   ├── src/
+│   │   ├── pages/       # Páginas
+│   │   ├── components/  # Componentes
+│   │   └── lib/         # Utilidades
+│   ├── index.html
+│   └── package.json
+├── deploy/              # Scripts e configs de deploy
+├── database/            # Scripts SQL
+├── start-vps.sh        # Script unificado
+└── README.md
 ```
-
-**Stack:**
-- Backend: Python 3.11, FastAPI, SQLAlchemy, SQL Server
-- Frontend: React 18, TypeScript, Vite, Tailwind CSS
-- Auth: JWT (python-jose + passlib bcrypt)
-- Deploy: Docker + Docker Compose
-
----
-
-## 👥 Roles e Permissões
-
-### ADMIN
-Gerencia todo o sistema, valida trainers, cria cursos e planos
-
-### TRAINER (Formador)
-Cria cursos, lições, desafios MPU, gerencia formandos
-⚠️ Requer validação do Admin
-
-### STUDENT (Formando)
-Acessa cursos, realiza desafios, visualiza certificados
-
----
 
 ## 🔐 Credenciais Padrão
 
-**Admin:**
-- Email: `admin@tradehub.com`
-- Senha: `admin123`
+**Admin**
+- Email: admin@tradehub.com
+- Password: admin123
 
-*Outros usuários devem se registrar via interface*
-
----
-
-## 📊 Sistema MPU (Movimentos Por Unidade)
-
-Métrica de performance:
-```
-MPU = Total de Operações / Tempo em Minutos
-```
-
-**Tipos de Desafio:**
-- **SUMMARY**: Entrada resumida (totais)
-- **COMPLETE**: Entrada detalhada (por partes)
-
----
-
-## 🧪 Testes
-
-```bash
-cd backend
-
-# Executar testes
-pytest -v
-
-# Gerar relatório de evidências
-python tests/run_tests.py
-# Abre: test_evidence_report.html
-```
-
-**Cobertura:** Autenticação, CRUD, Paginação, Permissões, Auditoria
-
----
-
-## 📝 Auditoria
-
-Todas as ações críticas são registradas em `backend/audit.log`:
-- LOGIN_SUCCESS / LOGIN_FAILED
-- USER_CREATED / USER_DELETED
-- TRAINER_VALIDATED
-
----
-
-## 🌐 Servidor de Produção
-
-**IP**: 192.168.1.78  
-**URLs:**
-- Frontend: http://192.168.1.78:5173
-- Backend: http://192.168.1.78:8000
-
-Veja [SERVIDOR-GUIA.md](SERVIDOR-GUIA.md)
-
----
-
-## 🔧 Configuração
-
-### Variáveis de Ambiente Críticas
-
-**Backend (.env):**
-```env
-DATABASE_URL=mssql+pyodbc://sa:Password@localhost/TradeHub?driver=ODBC+Driver+17+for+SQL+Server
-SECRET_KEY=<GERE_UMA_CHAVE_FORTE>
-ACCESS_TOKEN_EXPIRE_MINUTES=60
-```
-
-**Frontend (.env):**
-```env
-VITE_API_BASE_URL=http://localhost:8000
-```
-
----
+> ⚠️ **Importante**: Altere a senha padrão em produção!
 
 ## 🐛 Troubleshooting
 
-### Backend
-```bash
-# Verificar Python e dependências
-python --version
-pip list
+### Backend não inicia (SQLAlchemy error)
 
-# Testar DB
-python -c "import pyodbc; print(pyodbc.drivers())"
+Problema: Python 3.13 incompatível com SQLAlchemy < 2.0.40
+
+**Solução:**
+```bash
+cd /var/www/tradehub/backend
+source .venv/bin/activate
+pip install 'sqlalchemy>=2.0.40' --upgrade
+pm2 restart tradehub-backend
 ```
+
+Ou simplesmente:
+```bash
+./start-vps.sh quick
+```
+
+### Frontend não atualiza
+
+**Solução:**
+```bash
+./start-vps.sh frontend
+```
+
+### Ver logs de erros
+
+```bash
+# Backend
+pm2 logs tradehub-backend
+
+# Backend (últimas 50 linhas)
+pm2 logs tradehub-backend --lines 50
+
+# Status
+pm2 status
+```
+
+### Reiniciar tudo
+
+```bash
+./start-vps.sh restart
+```
+
+## 📊 Monitoramento
+
+### PM2 Status
+```bash
+pm2 status
+```
+
+Mostra:
+- Status (online/stopped)
+- Uso de CPU/memória
+- Uptime
+- Número de restarts
+
+### Logs em Tempo Real
+```bash
+pm2 logs
+```
+
+## 🔄 Workflow de Desenvolvimento
+
+1. **Fazer mudanças localmente**
+2. **Testar localmente**
+3. **Commit e push**
+```bash
+git add .
+git commit -m "Descrição das mudanças"
+git push origin main
+```
+
+4. **Deploy no VPS**
+```bash
+ssh root@72.60.188.172
+cd /var/www/tradehub
+./start-vps.sh update
+```
+
+## 📝 Scripts Úteis
+
+### Resetar senha de admin
+```bash
+cd /var/www/tradehub/backend
+source .venv/bin/activate
+python reset_admin_password.py
+```
+
+### Verificar conexão com banco
+```bash
+cd /var/www/tradehub/backend
+source .venv/bin/activate
+python test_db_connection.py
+```
+
+## 🔗 Links Úteis
+
+- **Repositório**: https://github.com/marceloligiero/PortalTradeHudb
+- **Frontend Produção**: https://srv1242193.hstgr.cloud
+- **API Produção**: https://srv1242193.hstgr.cloud/api
+- **API Docs**: https://srv1242193.hstgr.cloud/api/docs
+
+## 📦 Dependências Principais
+
+### Backend
+- fastapi==0.109.0
+- sqlalchemy>=2.0.40 (compatível com Python 3.13)
+- uvicorn[standard]==0.27.0
+- pymysql==1.1.0
+- bcrypt (para hashing de senhas)
+- python-jose (JWT)
 
 ### Frontend
-```bash
-# Limpar cache
-rm -rf node_modules
-npm install
-```
+- react@18.3.1
+- vite@5.4.21
+- typescript@5.6.3
+- tailwindcss@3.4.17
+- framer-motion@11.15.0
 
----
+## 🎯 Roadmap
+
+- [ ] Sistema de notificações
+- [ ] Chat em tempo real
+- [ ] Integração com payment gateway
+- [ ] App mobile (React Native)
+- [ ] Análise avançada de progresso
+- [ ] Gamificação
+
+## 👥 Contribuição
+
+Este é um projeto privado. Para contribuir, contacte o administrador.
 
 ## 📄 Licença
 
-Propriedade privada - Santander Digital Services © 2024
+Propriedade privada. Todos os direitos reservados.
 
 ---
 
-**Desenvolvido com ❤️ para Santander Digital Services**
+**Desenvolvido com ❤️ para TradeHub**

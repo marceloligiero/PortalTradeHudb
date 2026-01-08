@@ -9,6 +9,7 @@
     "edit": "Edit",
     "create": "Create",
     "back": "Back",
+    "next": "Next",
     "backToHome": "Back to home",
     "confirm": "Confirm",
     "language": "Language",
@@ -21,7 +22,11 @@
     "actions": "Actions",
     "view": "View",
     "active": "Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "saving": "Saving...",
+    "creating": "Creating...",
+    "allBanks": "All Banks",
+    "backToCourse": "Back to Course"
   },
   "auth": {
     "login": "Login",
@@ -58,10 +63,13 @@
     "certificates": "Certificates",
     "students": "Students",
     "trainers": "Trainers",
-    "reports": "Reports",
     "users": "Users",
     "challenges": "Challenges",
-    "settings": "Settings"
+    "reports": "Reports",
+    "settings": "Settings",
+    "trainingPlans": "Training Plans",
+    "banks": "Banks",
+    "products": "Products"
   },
   "roles": {
     "ADMIN": "Administrator",
@@ -98,6 +106,60 @@
       "students": "Students"
     }
   },
+  "landing": {
+    "heroTitle": "Trade & International Commerce Training Platform",
+    "heroSubtitle": "Develop expertise in documentary credits, guarantees, foreign exchange and international commerce operations. Specialized training for Santander Trade professionals.",
+    "getStarted": "Access Platform",
+    "learnMore": "Discover Plans",
+    "featuresTitle": "Why choose TradeHub?",
+    "feature1Title": "Trade Specialization",
+    "feature1Desc": "Training developed by experts in documentary credits, bank guarantees and international commerce operations.",
+    "feature2Title": "Internal Certification",
+    "feature2Desc": "Certificates and badges recognizing competencies in Trade operations, LC, ACC and foreign exchange operations.",
+    "feature3Title": "Practical Learning",
+    "feature3Desc": "Real case studies, operation simulations and practical challenges based on market scenarios.",
+    "statsUsers": "Trained Professionals",
+    "statsCourses": "Training Plans",
+    "statsCertificates": "Certificates Issued",
+    "journeyTitle": "Development Journey",
+    "journeyStep1": "Registration",
+    "journeyStep1Desc": "Access the platform and choose your Trade training plan.",
+    "journeyStep2": "Learning",
+    "journeyStep2Desc": "Specialized modules in LC, ACC, foreign exchange and bank guarantees.",
+    "journeyStep3": "Practice",
+    "journeyStep3Desc": "Operation simulations and real market case studies.",
+    "journeyStep4": "Certification",
+    "journeyStep4Desc": "Get your Trade and International Commerce specialization certificate.",
+    "ctaTitle": "Transform your team with specialized training",
+    "ctaSubtitle": "More qualified professionals in Trade operations, credits and foreign exchange.",
+    "faqTitle": "Frequently Asked Questions",
+    "faq1Q": "How do I access the training plans?",
+    "faq1A": "After authentication, you will have access to all available plans. Register for the modules of your interest.",
+    "faq2Q": "Are the certificates recognized internally?",
+    "faq2A": "Yes, all certificates are recognized by Santander and included in your professional development records.",
+    "faq3Q": "Can I do the plans at my own pace?",
+    "faq3A": "Yes, the platform allows flexible learning. You control your study schedule.",
+    "trainingPlansTitle": "Specialized Training Plans",
+    "trainingPlansSubtitle": "Choose the plan suited to your professional profile",
+    "viewAllPlans": "View All Plans",
+    "planDuration": "Duration",
+    "planLevel": "Level",
+    "planModules": "Modules",
+    "searchPlaceholder": "Search training plan...",
+    "categories": "Areas of Specialization",
+    "trustedBy": "Santander training platform for Trade and International Commerce",
+    "viewCourse": "View Plan",
+    "bestseller": "Most Requested",
+    "new": "New",
+    "rating": "Rating",
+    "explore": "Explore",
+    "business": "Trade Finance",
+    "finance": "Foreign Exchange Operations",
+    "technology": "Documentation",
+    "compliance": "Regulation & Compliance",
+    "marketing": "Commercial Strategy",
+    "leadership": "Team Leadership"
+  },
   "courses": {
     "title": "Courses",
     "createNew": "Create New Course",
@@ -108,8 +170,11 @@
     "product": "Product",
     "lessons": "Lessons",
     "enroll": "Enroll",
+    "enrolling": "Enrolling...",
     "enrolled": "Enrolled",
-    "completionRate": "Completion Rate"
+    "enrollError": "Error enrolling in course",
+    "completionRate": "Completion Rate",
+    "createdAt": "Created At"
   },
   "trainingPlan": {
     "create": "Create Training Plan",
@@ -118,11 +183,20 @@
     "createFirst": "Create First Plan",
     "myPlans": "My Training Plans",
     "managePlans": "Manage your plans and track progress",
+    "managePlansDescription": "Manage your plans and track progress",
+    "manageAllPlans": "Manage all training plans in the platform",
+    "noPlan": "No training plan",
+    "createFirstPlan": "Create the first training plan to get started",
+    "createPlan": "Create Plan",
     "basicInfo": "Basic Information",
     "title": "Title",
+    "titlePlaceholder": "E.g.: Complete Training Plan",
     "description": "Description",
+    "descriptionPlaceholder": "Describe the training plan objectives...",
     "bank": "Bank",
+    "selectBank": "Select a bank",
     "productType": "Product Type",
+    "selectProduct": "Select a product",
     "startDate": "Start Date",
     "endDate": "End Date",
     "maxStudents": "Maximum Students",
@@ -136,7 +210,15 @@
     "createButton": "Create Training Plan",
     "totalPlans": "Total Plans",
     "totalStudents": "Total Students",
-    "totalCapacity": "Total Capacity"
+    "totalCapacity": "Total Capacity",
+    "selectCourses": "Select Courses",
+    "coursesSelected": "courses selected",
+    "noStudentsAvailable": "No students available",
+    "studentsSelected": "students selected",
+    "selectAtLeastOneCourse": "Select at least one course",
+    "endDateMustBeAfterStartDate": "End date must be after start date",
+    "createError": "Failed to create training plan",
+    "newLesson": "New Lesson"
   },
   "lessons": {
     "title": "Lessons",
@@ -145,16 +227,33 @@
     "duration": "Duration",
     "minutes": "minutes",
     "completed": "Completed",
-    "inProgress": "In Progress"
+    "inProgress": "In Progress",
+    "createError": "Error creating lesson",
+    "fillSteps": "Fill in the steps to register the lesson"
   },
   "challenges": {
     "title": "Challenges",
     "createNew": "Create New Challenge",
+    "createChallenge": "Create Challenge",
+    "editChallenge": "Edit Challenge",
+    "formDescription": "Define targets for operations, time and MPU to evaluate performance",
     "operations": "Operations",
     "mpu": "MPU",
     "submitted": "Submitted",
     "approved": "Approved",
-    "pending": "Pending"
+    "pending": "Pending",
+    "selectStudent": "Select a student",
+    "fillOperationsTime": "Fill in operations and time",
+    "fillOperations": "Fill in operations before finishing",
+    "loadError": "Error loading challenge",
+    "loadStudentsError": "Error loading students",
+    "submitError": "Error submitting challenge",
+    "startError": "Error starting",
+    "addPartError": "Error adding part",
+    "finalizeError": "Error finalizing",
+    "createError": "Error creating challenge",
+    "updateError": "Error updating challenge",
+    "loadResultError": "Error loading result"
   },
   "certificates": {
     "title": "Certificates",
@@ -186,6 +285,7 @@
     "pendingTrainerValidations": "Pending Trainer Validations",
     "trainersPendingValidation": "Trainers waiting for validation",
     "noTrainersPending": "No trainers waiting for validation",
+    "allTrainersValidated": "All trainers have been validated. Check back later for new registrations.",
     "awaitingValidation": "Awaiting validation",
     "confirmApproveTrainer": "Are you sure you want to approve",
     "confirmRejectTrainer": "Are you sure you want to reject",
@@ -193,8 +293,17 @@
     "rejectedTrainer": "was rejected",
     "approve": "Approve",
     "reject": "Reject",
+    "trainerManagement": "Trainer Management",
+    "trainerValidationDescription": "Review and approve new trainer registrations so they can start creating courses on the platform.",
+    "pendingValidations": "Pending Validations",
+    "approvedThisMonth": "Approved this month",
+    "totalActiveTrainers": "Active Trainers",
+    "requiresAdminApproval": "Requires admin approval to create courses",
+    "dateNotAvailable": "Date not available",
     "manageUsers": "Manage users and permissions",
     "manageCourses": "Manage courses and content",
+    "manageBanks": "Manage banks and institutions",
+    "manageProducts": "Manage products and categories",
     "systemConfiguration": "General system settings",
     "name": "Name",
     "status": "Status",
@@ -207,6 +316,7 @@
       "inactive": "Inactive"
     },
     "totalUsers": "Total Users",
+    "totalCourses": "Total Courses",
     "pendingApproval": "Pending Approval",
     "activeUsers": "Active Users",
     "totalTrainers": "Total Trainers",
@@ -214,10 +324,17 @@
     "createFirstCourse": "Create your first course to get started",
     "newCourse": "New Course",
     "newTrainingPlan": "New Training Plan",
+    "newBank": "New Bank",
+    "newProduct": "New Product",
+    "products": "Products",
     "createNewCourse": "Create new training course",
     "createNewPlan": "Create new training plan",
+    "createNewBank": "Create New Bank",
+    "createNewProduct": "Create New Product",
     "createCourse": "Create Course",
     "createPlan": "Create Plan",
+    "createBank": "Create Bank",
+    "createProduct": "Create Product",
     "courseCreatedSuccess": "Course created successfully!",
     "planCreatedSuccess": "Training plan created successfully!",
     "courseTitle": "Course Title",
@@ -229,14 +346,33 @@
     "planDescription": "Plan Description",
     "planDescriptionPlaceholder": "Describe the objectives and structure of the plan...",
     "bank": "Bank",
+    "banks": "Banks",
+    "selectBank": "Select a bank",
     "productType": "Product Type",
+    "selectProduct": "Select a product",
     "productTypePlaceholder": "E.g.: Forex, Stocks, CFDs",
+    "productCode": "Product Code",
+    "productCodePlaceholder": "E.g.: CARD001",
+    "productName": "Product Name",
+    "productNamePlaceholder": "E.g.: Credit Cards",
+    "productDescription": "Description",
+    "productDescriptionPlaceholder": "Product description",
     "trainer": "Trainer",
     "selectTrainer": "Select a trainer",
     "maxStudents": "Maximum Students",
     "startDate": "Start Date",
     "endDate": "End Date",
     "basicInfo": "Basic Information",
+    "details": "Details",
+    "configuration": "Configuration",
+    "review": "Review",
+    "redirecting": "Redirecting...",
+    "titleRequired": "Title is required",
+    "descriptionRequired": "Description is required",
+    "bankRequired": "Bank is required",
+    "productTypeRequired": "Product type is required",
+    "trainerRequired": "Please select a trainer",
+    "maxStudentsInvalid": "Invalid maximum students number",
     "lessons": "Lessons",
     "lesson": "Lesson",
     "addLesson": "Add Lesson",
@@ -260,7 +396,152 @@
     "allowSelfRegistrationDesc": "Allow new users to register on the system",
     "maxStudentsPerCourse": "Maximum Students per Course",
     "saveSettings": "Save Settings",
-    "settingsSaved": "Settings saved successfully"
+    "settingsSaved": "Settings saved successfully",
+    "bankCode": "Bank Code",
+    "bankCodePlaceholder": "E.g.: UK001",
+    "bankName": "Bank Name",
+    "bankNamePlaceholder": "E.g.: Santander UK",
+    "country": "Country",
+    "totalBanks": "Total Banks",
+    "activeBanks": "Active Banks",
+    "totalProducts": "Total Products",
+    "activeProducts": "Active Products",
+    "inactiveProducts": "Inactive Products",
+    "countries": "Countries",
+    "noProductsRegistered": "No products registered",
+    "createFirstProduct": "Create the first product to get started",
+    "noDescription": "No description",
+    "overview": "Overview",
+    "challenges": "Challenges",
+    "courseDetails": "Course Details",
+    "quickActions": "Quick Actions",
+    "addLessonDesc": "Add a new lesson to the course",
+    "addChallenge": "Add Challenge",
+    "addChallengeDesc": "Create a new practical challenge",
+    "courseStatus": "Course Status",
+    "courseLessons": "Course Lessons",
+    "noLessonsYet": "No lessons yet",
+    "noLessonsDesc": "Start by adding the first lesson to this course",
+    "createFirstLesson": "Create First Lesson",
+    "courseChallenges": "Course Challenges",
+    "noChallengesYet": "No challenges yet",
+    "noChallengesDesc": "Add practical challenges to test students",
+    "createFirstChallenge": "Create First Challenge",
+    "enrolledStudents": "Enrolled Students",
+    "createdAt": "Created at",
+    "confirmDeleteCourse": "Are you sure you want to delete this course?",
+    "confirmDeleteLesson": "Are you sure you want to delete this lesson?",
+    "confirmDeleteChallenge": "Are you sure you want to delete this challenge?",
+    "product": "Product",
+    "theoretical": "Theoretical",
+    "practical": "Practical",
+    "estimatedMinutes": "Estimated Minutes",
+    "course": "Course",
+    "lessonContent": "Lesson Content",
+    "noContentYet": "No content yet",
+    "resources": "Resources",
+    "videoLesson": "Lesson Video",
+    "clickToWatch": "Click to watch",
+    "noVideo": "No video",
+    "materials": "Materials",
+    "clickToAccess": "Click to access",
+    "noMaterials": "No materials",
+    "lessonStatus": "Lesson Status",
+    "content": "Content",
+    "complete": "Complete",
+    "pending": "Pending",
+    "video": "Video",
+    "added": "Added",
+    "notAdded": "Not added",
+    "completeChallenge": "Complete Challenge",
+    "summaryChallenge": "Summary Challenge",
+    "active": "Active",
+    "inactive": "Inactive",
+    "operationsRequired": "Operations Required",
+    "minutesLimit": "Minutes Limit",
+    "targetMPU": "Target MPU",
+    "maxErrors": "Max Errors",
+    "challengeDetails": "Challenge Details",
+    "type": "Type",
+    "submissions": "Submissions",
+    "description": "Description",
+    "executeChallenge": "Execute Challenge",
+    "startNow": "Start now",
+    "summaryMode": "Summary Mode",
+    "completeMode": "Complete Mode",
+    "selectStudent": "Select Student",
+    "selectStudentDesc": "Select the student who will take this plan",
+    "studentSelected": "Student selected",
+    "noStudentSelected": "No student selected",
+    "student": "Student",
+    "viewResults": "View Results",
+    "seeSubmissions": "See submissions",
+    "performance": "Performance",
+    "totalSubmissions": "Total Submissions",
+    "avgScore": "Average Score",
+    "completionRate": "Completion Rate",
+    "requirements": "Requirements",
+    "minOperations": "Min Operations",
+    "maxTime": "Max Time",
+    "maxErrorsAllowed": "Max Errors Allowed",
+    "users": "Users",
+    "usersDescription": "Manage users and system permissions",
+    "noBanksRegistered": "No banks registered",
+    "createFirstBank": "Create the first bank to get started",
+    "courseManagement": "Course Management",
+    "courseManagementDescription": "Manage courses and platform content",
+    "searchCourses": "Search courses..."
+  },
+  "trainingPlan": {
+    "title": "Training Plans",
+    "management": "Training Management",
+    "managementDescription": "Manage all training plans on the platform",
+    "create": "Create Training Plan",
+    "createDescription": "Create a new training plan for your students",
+    "createNew": "New Training Plan",
+    "createFirst": "Create First Plan",
+    "myPlans": "My Training Plans",
+    "managePlans": "Manage your plans and track progress",
+    "managePlansDescription": "Manage your plans and track progress",
+    "manageAllPlans": "Manage all training plans on the platform",
+    "noPlan": "No training plan",
+    "createFirstPlan": "Create the first training plan to get started",
+    "createPlan": "Create Plan",
+    "basicInfo": "Basic Information",
+    "totalPlans": "Total Plans",
+    "activePlans": "Active Plans",
+    "students": "Students",
+    "courses": "Courses",
+    "totalHours": "Total Hours",
+    "titleField": "Title",
+    "titlePlaceholder": "E.g.: Complete Training Plan",
+    "descriptionField": "Description",
+    "descriptionPlaceholder": "Describe the objectives of the training plan...",
+    "bank": "Bank",
+    "selectBank": "Select a bank",
+    "productType": "Product Type",
+    "selectProduct": "Select a product",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "maxStudents": "Maximum Students",
+    "lessons": "Lessons",
+    "addLesson": "Add Lesson",
+    "noLessons": "No lessons added",
+    "addFirstLesson": "Click 'Add Lesson' to get started",
+    "lesson": "Lesson",
+    "lessonTitle": "Lesson title",
+    "lessonDescription": "Lesson description",
+    "createButton": "Create Training Plan",
+    "totalStudents": "Total Students",
+    "totalCapacity": "Total Capacity",
+    "selectCourses": "Select Courses",
+    "coursesSelected": "courses selected",
+    "noStudentsAvailable": "No students available",
+    "studentsSelected": "students selected",
+    "selectAtLeastOneCourse": "Select at least one course",
+    "endDateMustBeAfterStartDate": "End date must be after start date",
+    "createError": "Failed to create training plan",
+    "newLesson": "New Lesson"
   },
   "reports": {
     "title": "Reports and Statistics",
@@ -343,7 +624,25 @@
     "inProgress": "In Progress",
     "notStarted": "Not Started",
     "avgTime": "Average Time",
-    "noLessons": "No lessons available"
+    "noLessons": "No lessons available",
+    "remaining": "remaining"
+  },
+  "errors": {
+    "loadData": "Error loading data",
+    "selectTrainer": "Select a trainer",
+    "createPlan": "Error creating training plan",
+    "noBanks": "No banks found",
+    "noProducts": "No products found",
+    "noTrainers": "No trainers available",
+    "noCourses": "No courses available",
+    "noStudents": "No students available",
+    "coursesSelected": "course(s) selected",
+    "studentsSelected": "student(s) selected"
+  },
+  "placeholders": {
+    "selectBank": "Select a bank",
+    "selectProduct": "Select a product",
+    "selectStudent": "Select a student"
   },
   "studentReports": {
     "title": "My Progress",
@@ -381,68 +680,172 @@
     "keepLearning": "Keep learning to unlock achievements!"
   },
   "landing": {
-    "hero": {
-      "subtitle": "Professional training platform by Santander Digital Services. Develop your skills with practical courses and official certificates.",
-      "cta": "Get Started",
-      "login": "Login"
-    },
+    "badge": "Santander Digital Services | Shared Services",
+    "heroTitle1": "Training",
+    "heroTitle2": "Portal",
+    "heroTitle3": "Trade Datahub",
+    "heroSubtitle": "Operational excellence training for Trade Finance teams.",
+    "heroSubtitle2": "Standardized processes. Centralized knowledge. Consistent results.",
+    "startTraining": "Start Training",
+    "exploreProcesses": "Explore Processes",
     "stats": {
-      "students": "Active Students",
-      "courses": "Available Courses",
-      "satisfaction": "Satisfaction Rate",
-      "support": "Support Available"
+      "areas": "Operational Areas",
+      "processes": "Mapped Processes",
+      "access": "Access Available",
+      "satisfaction": "Satisfaction"
     },
-    "features": {
-      "title": "What We Offer",
-      "subtitle": "Everything you need to grow professionally",
-      "training": {
-        "title": "Specialized Training",
-        "description": "Courses built by banking experts focused on real products and processes"
+    "navbar": {
+      "portalTitle": "TRAINING PORTAL",
+      "login": "Login",
+      "register": "Register",
+      "selectLanguage": "Language"
+    },
+    "intro": {
+      "title": "What is the Training Portal?",
+      "p1": "The Trade Datahub Training Portal is the official operational training platform for teams working in foreign trade processes. Developed within Santander Digital Services' Shared Services context, the portal centralizes all knowledge necessary for correct, standardized, and efficient execution of Trade Finance operations.",
+      "p2": "Through structured training paths by operational area, employees develop technical competencies aligned with official processes, international regulations, and industry best practices."
+    },
+    "processes": {
+      "badge": "4 Specialized Areas",
+      "title": "Trade Operational Areas",
+      "subtitle": "Specialized training for each stage of the Trade Finance process",
+      "focus": "Focus",
+      "remittances": {
+        "title": "International Remittances",
+        "description": "Execution of financial flows associated with foreign trade operations, ensuring correct fund movement between originator and beneficiary.",
+        "items": [
+          "Processing inbound and outbound remittances",
+          "Validating originator and beneficiary data",
+          "Sending and receiving SWIFT messages",
+          "Compliance and sanctions validation",
+          "Exception and refund handling",
+          "Settlement and reconciliation of operations"
+        ],
+        "focus": "Correct execution, error reduction, and global standardization"
       },
-      "personalized": {
-        "title": "Personalized Paths",
-        "description": "Learning journeys adapted to your level and career goals"
+      "collections": {
+        "title": "International Collections (Eurocobros)",
+        "description": "International collection operations where the bank acts as intermediary between exporter and importer, ensuring documentary and financial flow.",
+        "items": [
+          "Receipt and verification of commercial documents",
+          "Document dispatch to importer's bank",
+          "D/P and D/A modality control",
+          "Acceptance and payment monitoring",
+          "Deadline and client instruction management",
+          "Non-payment or return handling",
+          "Settlement of received amounts"
+        ],
+        "focus": "Deadline control and collection cycle monitoring"
       },
-      "analytics": {
-        "title": "Performance Analytics",
-        "description": "Track your evolution with detailed metrics and MPU reports"
+      "lcs": {
+        "title": "Letters of Credit (Trade Finance – LCs)",
+        "description": "Operations where the bank acts as payment guarantor, upon compliance with documentary conditions established by UCP 600.",
+        "items": [
+          "Letter of credit issuance and advising",
+          "Amendment processing",
+          "Documentary verification per UCP 600 and ISBP",
+          "Discrepancy identification and handling",
+          "SWIFT message sending and receiving",
+          "Deadline, maturity, and settlement control",
+          "Operational interface with correspondent banks"
+        ],
+        "focus": "Documentary rigor and adherence to international rules"
       },
-      "certificates": {
-        "title": "Official Certification",
-        "description": "Certificates recognized by Santander Digital Services when you complete each training"
+      "financing": {
+        "title": "Trade Finance Financing",
+        "description": "Operational management of credit products linked to import and export operations, ensuring correct control and settlement.",
+        "items": [
+          "Resource release per contract",
+          "Active contract control",
+          "Interest and charges calculation",
+          "Operational interface with FX area",
+          "Settlement at maturity",
+          "Extension and anticipation management",
+          "Operation closure and write-off"
+        ],
+        "focus": "Precise execution and contract control"
       }
     },
-    "benefits": {
-      "title": "Why Choose TradeHub",
-      "subtitle": "Invest in your future with the leading training platform",
-      "flexible": "24/7 flexible access to every training resource",
-      "practical": "Hands-on exercises based on daily real cases",
-      "certified": "Official certification recognized in the banking sector",
-      "mentorship": "Direct mentoring with experienced trainers",
-      "community": "Active community of learners and knowledge sharing",
-      "updates": "Content constantly updated with the latest practices"
+    "integration": {
+      "badge": "Full Integration",
+      "title": "Integration with Trade Datahub",
+      "description": "The Training Portal is fully integrated with Trade Datahub, ensuring all training content faithfully reflects official processes, operational flows, and global organization standards.",
+      "items": [
+        "Content aligned with documented official processes",
+        "Continuous updates as flows evolve",
+        "Single source of operational knowledge",
+        "Compliance with international standards (UCP, SWIFT)"
+      ],
+      "platform": "Central Data Platform",
+      "documented": "Documented Processes",
+      "documentedDesc": "Official flows by operational area",
+      "realtime": "Real-Time Updates",
+      "realtimeDesc": "Automatic content synchronization",
+      "compliance": "Integrated Compliance",
+      "complianceDesc": "Guaranteed regulatory alignment"
     },
-    "community": {
-      "students": "1000+",
-      "active": "Active Students",
-      "growth": "+25%",
-      "monthly": "Monthly Growth"
+    "howItWorks": {
+      "badge": "Step by Step",
+      "title": "How It Works",
+      "subtitle": "Simple and direct access to operational knowledge",
+      "steps": [
+        {
+          "title": "Select the Trade Area",
+          "description": "Choose your operational area: Remittances, Eurocobros, Letters of Credit, or Financing. Each area has specific training paths."
+        },
+        {
+          "title": "Access Training Modules",
+          "description": "Explore modules structured by process, from fundamental concepts to advanced procedures. Content developed by operational specialists."
+        },
+        {
+          "title": "Apply Daily",
+          "description": "Use acquired knowledge in your daily activities. Consult materials whenever needed as reference."
+        },
+        {
+          "title": "Stay Updated",
+          "description": "Follow content updates reflecting process evolutions and Trade Finance sector regulations."
+        }
+      ]
+    },
+    "benefits": {
+      "badge": "Advantages",
+      "title": "Benefits for Operational Teams",
+      "subtitle": "Training focused on concrete operational results",
+      "items": {
+        "clarity": {
+          "title": "Process Clarity",
+          "description": "Complete understanding of each operational stage, eliminating doubts and ambiguities in execution."
+        },
+        "standardization": {
+          "title": "Standardization",
+          "description": "Uniformity in operations execution, ensuring consistency across teams and shifts."
+        },
+        "errors": {
+          "title": "Error Reduction",
+          "description": "Significant decrease in operational failures through precise procedural knowledge."
+        },
+        "autonomy": {
+          "title": "Greater Autonomy",
+          "description": "Employees better prepared to make decisions and resolve daily situations."
+        },
+        "onboarding": {
+          "title": "Efficient Onboarding",
+          "description": "Faster integration of new team members with immediate access to structured knowledge."
+        },
+        "certification": {
+          "title": "Certification",
+          "description": "Formal recognition of acquired competencies through completion certificates."
+        }
+      }
     },
     "cta": {
-      "title": "Ready to Get Started?",
-      "subtitle": "Join hundreds of professionals that have already transformed their careers with TradeHub",
-      "button": "Create Free Account"
+      "title": "Access the Training Portal",
+      "subtitle": "Explore training paths by Trade process and develop essential competencies for operational excellence.",
+      "startNow": "Start Now",
+      "haveAccount": "I already have an account"
     },
     "footer": {
-      "description": "Professional training platform by Santander Digital Services",
-      "links": "Quick Links",
-      "about": "About Us",
-      "courses": "Courses",
-      "contact": "Contact",
-      "legal": "Legal",
-      "privacy": "Privacy Policy",
-      "terms": "Terms of Use",
-      "rights": "All rights reserved"
+      "copyright": "© {{year}} Santander Digital Services. Training Portal - Trade Datahub."
     }
   }
 }

@@ -1,0 +1,52 @@
+# Git
+.git
+.gitignore
+
+# Docker
+docker-compose*.yml
+Dockerfile
+.dockerignore
+
+# Logs
+logs/
+*.log
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Backend
+backend/__pycache__/
+backend/.venv/
+backend/venv/
+backend/*.pyc
+backend/.pytest_cache/
+backend/reports*.txt
+backend/training_plans*.txt
+backend/*.json
+backend/*.sql
+!backend/requirements.txt
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/package-lock.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archives
+archive/
+
+# Backups
+*.backup
+*.bak

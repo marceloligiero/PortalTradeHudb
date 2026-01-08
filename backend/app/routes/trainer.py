@@ -5,11 +5,307 @@ from typing import List, Dict, Any
 from app.database import get_db
 from app import models, schemas, auth
 from app.pagination import paginate, PaginatedResponse
+from app.routers.challenges import reopen_completed_training_plans
 from datetime import datetime, timedelta
 
 router = APIRouter()
 
-# Courses
+
+# Dashboard Stats
+@router.get("/stats")
+async def get_trainer_stats(
+    current_user: models.User = Depends(auth.require_role(["TRAINER"])),
+    db: Session = Depends(get_db)
+):
+    """Get trainer dashboard statistics"""
+    trainer_id = current_user.id
+    
+    # Courses created by trainer
+    total_courses = db.query(models.Course).filter(
+        models.Course.created_by == trainer_id
+    ).count()
+    
+    # Training plans where trainer is responsible
+    training_plans = db.query(models.TrainingPlan).filter(
+        models.TrainingPlan.trainer_id == trainer_id
+    ).all()
+    
+    total_training_plans = len(training_plans)
+    active_training_plans = len([p for p in training_plans if p.is_active])
+    
+    # Students assigned to trainer's plans
+    plan_ids = [p.id for p in training_plans]
+    total_students = 0
+    if plan_ids:
+        # Count unique students assigned to trainer's plans
+        total_students = db.query(models.TrainingPlan).filter(
+            models.TrainingPlan.trainer_id == trainer_id,
+            models.TrainingPlan.student_id.isnot(None)
+        ).count()
+    
+    # Challenges created by trainer
+    total_challenges = db.query(models.Challenge).filter(
+        models.Challenge.created_by == trainer_id
+    ).count()
+    
+    # Challenge submissions for trainer's challenges
+    trainer_challenge_ids = db.query(models.Challenge.id).filter(
+        models.Challenge.created_by == trainer_id
+    ).subquery()
+    
+    total_submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id.in_(trainer_challenge_ids)
+    ).count()
+    
+    approved_submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id.in_(trainer_challenge_ids),
+        models.ChallengeSubmission.is_approved == True
+    ).count()
+    
+    # Average MPU from submissions
+    avg_mpu_result = db.query(func.avg(models.ChallengeSubmission.calculated_mpu)).filter(
+        models.ChallengeSubmission.challenge_id.in_(trainer_challenge_ids),
+        models.ChallengeSubmission.calculated_mpu.isnot(None)
+    ).scalar()
+    avg_mpu = round(avg_mpu_result, 2) if avg_mpu_result else 0
+    
+    # Certificates issued for trainer's plans
+    certificates_issued = 0
+    if plan_ids:
+        certificates_issued = db.query(models.Certificate).filter(
+            models.Certificate.training_plan_id.in_(plan_ids)
+        ).count()
+    
+    # Lessons count from trainer's courses
+    trainer_course_ids = db.query(models.Course.id).filter(
+        models.Course.created_by == trainer_id
+    ).subquery()
+    
+    total_lessons = db.query(models.Lesson).filter(
+        models.Lesson.course_id.in_(trainer_course_ids)
+    ).count()
+    
+    # Recent activity - last 7 days submissions
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    recent_submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id.in_(trainer_challenge_ids),
+        models.ChallengeSubmission.created_at >= seven_days_ago
+    ).count()
+    
+    return {
+        "total_courses": total_courses,
+        "total_lessons": total_lessons,
+        "total_training_plans": total_training_plans,
+        "active_training_plans": active_training_plans,
+        "total_students": total_students,
+        "total_challenges": total_challenges,
+        "total_submissions": total_submissions,
+        "approved_submissions": approved_submissions,
+        "approval_rate": round((approved_submissions / total_submissions * 100) if total_submissions > 0 else 0, 1),
+        "avg_mpu": avg_mpu,
+        "certificates_issued": certificates_issued,
+        "recent_submissions": recent_submissions
+    }
+
+
+# All courses available on platform (for trainers to view catalog)
+@router.get("/courses/all")
+async def list_all_courses(
+    current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
+    db: Session = Depends(get_db)
+) -> List[Dict[str, Any]]:
+    """List all courses available on platform for trainer viewing"""
+    courses = db.query(models.Course).all()
+    
+    courses_list = []
+    for course in courses:
+        # Get trainer info
+        trainer = db.query(models.User).filter(models.User.id == course.created_by).first()
+        
+        # Count students enrolled
+        total_students = db.query(models.Enrollment).filter(
+            models.Enrollment.course_id == course.id
+        ).count()
+        
+        courses_list.append({
+            "id": course.id,
+            "title": course.title,
+            "description": course.description,
+            "bank_code": course.bank_id,
+            "trainer_id": course.created_by,
+            "trainer_name": trainer.full_name if trainer else "N/A",
+            "total_students": total_students,
+            "created_at": course.created_at.isoformat() if course.created_at else None
+        })
+    
+    return courses_list
+
+
+# Course details (any course, for trainer viewing catalog)
+@router.get("/courses/details/{course_id}")
+async def get_course_details(
+    course_id: int,
+    current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Get course details with lessons and challenges (read-only for trainers)"""
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Get creator/trainer info
+    trainer = db.query(models.User).filter(models.User.id == course.created_by).first() if course.created_by else None
+    
+    # Get bank info
+    bank = db.query(models.Bank).filter(models.Bank.id == course.bank_id).first() if course.bank_id else None
+    
+    # Get product info  
+    product = db.query(models.Product).filter(models.Product.id == course.product_id).first() if course.product_id else None
+    
+    # Get lessons
+    lessons = db.query(models.Lesson).filter(models.Lesson.course_id == course_id).order_by(models.Lesson.order_index).all()
+    
+    # Get challenges
+    challenges = db.query(models.Challenge).filter(models.Challenge.course_id == course_id).all()
+    
+    # Count enrolled students
+    total_students = db.query(models.Enrollment).filter(models.Enrollment.course_id == course_id).count()
+    
+    return {
+        "id": course.id,
+        "title": course.title,
+        "description": course.description,
+        "bank_id": course.bank_id,
+        "bank_code": bank.code if bank else None,
+        "bank_name": bank.name if bank else None,
+        "product_id": course.product_id,
+        "product_code": product.code if product else None,
+        "product_name": product.name if product else None,
+        "trainer_id": course.created_by,
+        "trainer_name": trainer.full_name if trainer else None,
+        "total_students": total_students,
+        "total_lessons": len(lessons),
+        "total_challenges": len(challenges),
+        "created_at": course.created_at.isoformat() if course.created_at else None,
+        "updated_at": course.updated_at.isoformat() if course.updated_at else None,
+        "lessons": [
+            {
+                "id": l.id,
+                "title": l.title,
+                "description": l.description,
+                "content_type": l.lesson_type,
+                "duration_minutes": l.estimated_minutes,
+                "order_index": l.order_index
+            } for l in lessons
+        ],
+        "challenges": [
+            {
+                "id": c.id,
+                "title": c.title,
+                "description": c.description,
+                "challenge_type": c.challenge_type,
+                "difficulty": "medium",
+                "max_score": c.operations_required,
+                "time_limit_minutes": c.time_limit_minutes
+            } for c in challenges
+        ]
+    }
+
+
+# Challenge details (for trainer viewing catalog)
+@router.get("/courses/{course_id}/challenges/{challenge_id}")
+async def get_challenge_details(
+    course_id: int,
+    challenge_id: int,
+    current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Get challenge details with stats (read-only for trainers)"""
+    challenge = db.query(models.Challenge).filter(
+        models.Challenge.id == challenge_id,
+        models.Challenge.course_id == course_id
+    ).first()
+    
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+    
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    
+    # Get submission stats
+    total_submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id == challenge_id
+    ).count()
+    
+    from sqlalchemy import func as sql_func
+    avg_score_result = db.query(sql_func.avg(models.ChallengeSubmission.calculated_mpu)).filter(
+        models.ChallengeSubmission.challenge_id == challenge_id
+    ).scalar()
+    
+    passed_submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id == challenge_id,
+        models.ChallengeSubmission.is_approved == True
+    ).count()
+    
+    completion_rate = (passed_submissions / total_submissions * 100) if total_submissions > 0 else 0
+    
+    return {
+        "id": challenge.id,
+        "course_id": challenge.course_id,
+        "course_title": course.title if course else None,
+        "title": challenge.title,
+        "description": challenge.description,
+        "challenge_type": challenge.challenge_type,
+        "operations_required": challenge.operations_required,
+        "time_limit_minutes": challenge.time_limit_minutes,
+        "target_mpu": challenge.target_mpu,
+        "max_errors": challenge.max_errors,
+        "is_active": challenge.is_active,
+        "created_at": challenge.created_at.isoformat() if challenge.created_at else None,
+        "updated_at": challenge.updated_at.isoformat() if challenge.updated_at else None,
+        "total_submissions": total_submissions,
+        "avg_score": avg_score_result or 0,
+        "completion_rate": completion_rate
+    }
+
+
+# Lesson details (for trainer viewing catalog)
+@router.get("/courses/{course_id}/lessons/{lesson_id}")
+async def get_lesson_details(
+    course_id: int,
+    lesson_id: int,
+    current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Get lesson details (read-only for trainers)"""
+    lesson = db.query(models.Lesson).filter(
+        models.Lesson.id == lesson_id,
+        models.Lesson.course_id == course_id
+    ).first()
+    
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    
+    return {
+        "id": lesson.id,
+        "course_id": lesson.course_id,
+        "course_title": course.title if course else None,
+        "title": lesson.title,
+        "description": lesson.description,
+        "content": lesson.content,
+        "lesson_type": lesson.lesson_type,
+        "order_index": lesson.order_index,
+        "estimated_minutes": lesson.estimated_minutes,
+        "video_url": lesson.video_url,
+        "materials_url": lesson.materials_url,
+        "created_at": lesson.created_at.isoformat() if lesson.created_at else None,
+        "updated_at": lesson.updated_at.isoformat() if lesson.updated_at else None
+    }
+
+
+# Courses (trainer's own courses)
 @router.get("/courses", response_model=PaginatedResponse[schemas.Course])
 async def list_courses(
     page: int = Query(1, ge=1, description="Page number"),
@@ -127,6 +423,11 @@ async def create_lesson(
     db.add(db_lesson)
     db.commit()
     db.refresh(db_lesson)
+    
+    # Reabrir planos de formação concluídos que contêm este curso
+    reopened_count = reopen_completed_training_plans(db, lesson.course_id, "new_lesson")
+    if reopened_count > 0:
+        print(f"[INFO] {reopened_count} plano(s) de formação reaberto(s) devido a nova aula no curso {lesson.course_id}")
     
     return db_lesson
 
