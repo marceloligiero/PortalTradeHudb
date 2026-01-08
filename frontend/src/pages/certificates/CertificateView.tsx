@@ -1,9 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Calendar, Clock, BookOpen, 
-  CheckCircle2, Shield, Star, GraduationCap
+  CheckCircle2, Shield, Star, GraduationCap, Sparkles
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -61,6 +61,8 @@ export default function CertificateView() {
   const [certificate, setCertificate] = useState<CertificateData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showCelebration, setShowCelebration] = useState(true);
+  const [celebrationPhase, setCelebrationPhase] = useState<'intro' | 'reveal' | 'complete'>('intro');
 
   useEffect(() => {
     if (!token) {
@@ -69,6 +71,32 @@ export default function CertificateView() {
     }
     fetchCertificate();
   }, [id, token]);
+
+  // Celebration animation sequence
+  useEffect(() => {
+    if (!loading && certificate && showCelebration) {
+      // Phase 1: Intro (person appears)
+      const timer1 = setTimeout(() => {
+        setCelebrationPhase('reveal');
+      }, 1500);
+      
+      // Phase 2: Certificate reveal
+      const timer2 = setTimeout(() => {
+        setCelebrationPhase('complete');
+      }, 3500);
+      
+      // Phase 3: Hide celebration, show certificate
+      const timer3 = setTimeout(() => {
+        setShowCelebration(false);
+      }, 4500);
+
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+        clearTimeout(timer3);
+      };
+    }
+  }, [loading, certificate, showCelebration]);
 
   const fetchCertificate = async () => {
     try {
@@ -143,8 +171,233 @@ export default function CertificateView() {
       })
     : 'N/A';
 
+  // Celebration Animation Component
+  const CelebrationOverlay = () => (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] bg-gradient-to-br from-slate-900 via-red-900/20 to-slate-900 flex items-center justify-center print:hidden"
+    >
+      {/* Skip Button */}
+      <motion.button
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        onClick={() => setShowCelebration(false)}
+        className="absolute top-6 right-6 px-4 py-2 text-white/60 hover:text-white bg-white/10 hover:bg-white/20 rounded-xl transition-all text-sm"
+      >
+        Pular animação →
+      </motion.button>
+
+      {/* Confetti/Sparkles Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            initial={{ 
+              opacity: 0, 
+              y: -100,
+              x: Math.random() * window.innerWidth,
+              rotate: 0 
+            }}
+            animate={{ 
+              opacity: [0, 1, 1, 0], 
+              y: window.innerHeight + 100,
+              rotate: 360 * (Math.random() > 0.5 ? 1 : -1)
+            }}
+            transition={{ 
+              duration: 3 + Math.random() * 2,
+              delay: Math.random() * 2,
+              ease: "easeOut"
+            }}
+            className="absolute"
+          >
+            <Sparkles className={`w-6 h-6 ${
+              ['text-yellow-400', 'text-red-400', 'text-orange-400', 'text-amber-400'][Math.floor(Math.random() * 4)]
+            }`} />
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="relative text-center">
+        {/* Person/Graduate Animation */}
+        <AnimatePresence mode="wait">
+          {celebrationPhase === 'intro' && (
+            <motion.div
+              key="intro"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", damping: 12 }}
+              className="mb-8"
+            >
+              <motion.div
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+                className="relative"
+              >
+                {/* Graduate Person SVG */}
+                <svg viewBox="0 0 200 200" className="w-48 h-48 mx-auto">
+                  {/* Body */}
+                  <motion.ellipse
+                    initial={{ scaleY: 0 }}
+                    animate={{ scaleY: 1 }}
+                    transition={{ delay: 0.2 }}
+                    cx="100" cy="150" rx="35" ry="45"
+                    className="fill-red-600"
+                  />
+                  {/* Head */}
+                  <motion.circle
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", delay: 0.3 }}
+                    cx="100" cy="75" r="30"
+                    className="fill-amber-200"
+                  />
+                  {/* Graduation Cap */}
+                  <motion.g
+                    initial={{ y: -50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ type: "spring", delay: 0.5 }}
+                  >
+                    <rect x="65" y="50" width="70" height="8" className="fill-gray-800" rx="2" />
+                    <polygon points="100,35 125,50 100,55 75,50" className="fill-gray-900" />
+                    <line x1="125" y1="50" x2="135" y2="70" stroke="#fbbf24" strokeWidth="2" />
+                    <circle cx="135" cy="72" r="4" className="fill-yellow-400" />
+                  </motion.g>
+                  {/* Happy Face */}
+                  <circle cx="90" cy="72" r="3" className="fill-gray-800" />
+                  <circle cx="110" cy="72" r="3" className="fill-gray-800" />
+                  <motion.path
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ delay: 0.6 }}
+                    d="M 88 85 Q 100 95 112 85"
+                    fill="none"
+                    stroke="#374151"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                  {/* Arms reaching up */}
+                  <motion.path
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ delay: 0.4, duration: 0.5 }}
+                    d="M 70 130 Q 50 100 55 80"
+                    fill="none"
+                    stroke="#dc2626"
+                    strokeWidth="10"
+                    strokeLinecap="round"
+                  />
+                  <motion.path
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ delay: 0.4, duration: 0.5 }}
+                    d="M 130 130 Q 150 100 145 80"
+                    fill="none"
+                    stroke="#dc2626"
+                    strokeWidth="10"
+                    strokeLinecap="round"
+                  />
+                  {/* Hands */}
+                  <motion.circle
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.7 }}
+                    cx="55" cy="78" r="8"
+                    className="fill-amber-200"
+                  />
+                  <motion.circle
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.7 }}
+                    cx="145" cy="78" r="8"
+                    className="fill-amber-200"
+                  />
+                </svg>
+              </motion.div>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+                className="text-2xl font-bold text-white mt-4"
+              >
+                🎓 Parabéns, {certificate.student_name}!
+              </motion.p>
+            </motion.div>
+          )}
+
+          {celebrationPhase === 'reveal' && (
+            <motion.div
+              key="reveal"
+              initial={{ scale: 0, rotateY: 180 }}
+              animate={{ scale: 1, rotateY: 0 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 15 }}
+              className="relative"
+            >
+              {/* Mini Certificate Preview */}
+              <motion.div
+                animate={{ 
+                  boxShadow: ["0 0 20px rgba(239, 68, 68, 0.3)", "0 0 60px rgba(239, 68, 68, 0.6)", "0 0 20px rgba(239, 68, 68, 0.3)"]
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="bg-gradient-to-br from-red-50 via-white to-red-50 rounded-2xl p-8 max-w-md mx-auto border-4 border-red-300"
+              >
+                <div className="text-center">
+                  <GraduationCap className="w-16 h-16 text-red-600 mx-auto mb-4" />
+                  <h3 className="text-2xl font-serif font-bold text-red-800 mb-2">CERTIFICADO</h3>
+                  <p className="text-gray-600 text-sm mb-3">de Conclusão</p>
+                  <div className="border-t border-b border-red-200 py-3 my-3">
+                    <p className="text-xl font-bold text-gray-800">{certificate.student_name}</p>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Concluiu com êxito<br/>
+                    <span className="font-semibold text-red-700">"{certificate.training_plan_title}"</span>
+                  </p>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="mt-6 text-center"
+              >
+                <p className="text-white/80 text-lg">Seu certificado está pronto!</p>
+              </motion.div>
+            </motion.div>
+          )}
+
+          {celebrationPhase === 'complete' && (
+            <motion.div
+              key="complete"
+              initial={{ scale: 1.2, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="text-center"
+            >
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 0.5, repeat: 3 }}
+              >
+                <CheckCircle2 className="w-24 h-24 text-green-400 mx-auto mb-4" />
+              </motion.div>
+              <p className="text-2xl font-bold text-white">Carregando seu certificado...</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.div>
+  );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 print:bg-white">
+      {/* Celebration Overlay */}
+      <AnimatePresence>
+        {showCelebration && <CelebrationOverlay />}
+      </AnimatePresence>
+
       {/* Back Button - Fixed at top */}
       <div className="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/80 border-b border-white/10 print:hidden">
         <div className="max-w-6xl mx-auto px-4 py-4">
@@ -159,14 +412,14 @@ export default function CertificateView() {
       </div>
 
       {/* Certificate Container */}
-      <div className="max-w-5xl mx-auto px-4 py-8 print:p-0">
+      <div className="max-w-5xl mx-auto px-4 py-8 print:p-0 print:max-w-none">
         {/* Main Certificate */}
         <motion.div
           ref={certificateRef}
           initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
+          animate={{ opacity: showCelebration ? 0 : 1, y: showCelebration ? 30 : 0 }}
           transition={{ duration: 0.6 }}
-          className="relative print:shadow-none"
+          className="relative print:shadow-none certificate-container"
         >
           {/* Certificate Frame */}
           <div className="relative bg-gradient-to-br from-red-50 via-white to-red-50 rounded-3xl overflow-hidden shadow-2xl shadow-red-900/20 print:rounded-none print:shadow-none">

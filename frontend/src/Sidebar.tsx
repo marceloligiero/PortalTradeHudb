@@ -47,7 +47,7 @@ export default function Sidebar() {
       : adminLinks;
 
   return (
-    <aside className="w-72 bg-[#0a0a0a]/50 backdrop-blur-2xl border-r border-white/5 min-h-[calc(100vh-80px)] sticky top-20">
+    <aside className="w-72 bg-[#0a0a0a]/50 backdrop-blur-2xl border-r border-white/5 min-h-[calc(100vh-80px)] sticky top-20 print:hidden">
       <nav className="p-6 space-y-2">
         {links.map((link) => (
           <NavLink

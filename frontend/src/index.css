@@ -303,3 +303,69 @@
     -webkit-backdrop-filter: blur(20px);
   }
 }
+
+/* ==================== PRINT STYLES ==================== */
+@media print {
+  /* Hide everything except the certificate */
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide navigation, sidebar and other UI elements */
+  nav,
+  aside,
+  header,
+  footer,
+  .no-print,
+  .print\\:hidden,
+  [class*="sidebar"],
+  [class*="Sidebar"],
+  [class*="navigation"],
+  [class*="Navigation"],
+  button:not(.print-btn),
+  .sticky {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Make main content full width */
+  main,
+  .main-content,
+  [role="main"] {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Certificate specific print styles */
+  .certificate-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Remove animations for print */
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Page settings */
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+
+  /* Ensure colors print correctly */
+  .bg-gradient-to-br,
+  .bg-gradient-to-r,
+  .bg-gradient-to-l {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

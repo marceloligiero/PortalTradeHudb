@@ -11,7 +11,7 @@ export default function Header() {
   const { isDark, toggleTheme } = useTheme();
 
   return (
-    <header className={`backdrop-blur-2xl border-b px-2 py-3 sticky top-0 z-50 transition-colors duration-300 ${
+    <header className={`backdrop-blur-2xl border-b px-2 py-3 sticky top-0 z-50 transition-colors duration-300 print:hidden ${
       isDark 
         ? 'bg-[#0a0a0a]/80 border-white/5' 
         : 'bg-white/80 border-gray-200'
