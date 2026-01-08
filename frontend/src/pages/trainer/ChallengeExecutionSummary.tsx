@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Check, AlertCircle, TrendingUp, Target, Clock, User } from 'lucide-react';
+import { ArrowLeft, Check, AlertCircle, TrendingUp, Target, Clock, User, Plus, Trash2 } from 'lucide-react';
 import api from '../../lib/axios';
 
 interface Challenge {
@@ -13,7 +13,22 @@ interface Challenge {
   time_limit_minutes: number;
   target_mpu: number;
   max_errors?: number;
+  target_kpi?: string;
 }
+
+interface ErrorDetail {
+  id: number;
+  error_type: 'METHODOLOGY' | 'KNOWLEDGE' | 'DETAIL' | 'PROCEDURE';
+  description: string;
+  operation_reference: string;
+}
+
+const ERROR_TYPES = [
+  { value: 'METHODOLOGY', label: 'Metodologia', description: 'Erro na forma/método de execução' },
+  { value: 'KNOWLEDGE', label: 'Conhecimento', description: 'Erro por falta de conhecimento' },
+  { value: 'DETAIL', label: 'Detalhe', description: 'Erro de atenção ao detalhe' },
+  { value: 'PROCEDURE', label: 'Procedimento', description: 'Erro no procedimento/sequência' },
+];
 
 const ChallengeExecutionSummary: React.FC = () => {
   const { t } = useTranslation();
@@ -34,8 +49,13 @@ const ChallengeExecutionSummary: React.FC = () => {
   const [formData, setFormData] = useState({
     total_operations: 0,
     total_time_minutes: 0,
-    errors_count: 0,
+    operation_reference: '',
+    operations_with_errors: 0,  // Número de operações que tiveram erro
   });
+
+  // Lista de erros detalhados
+  const [errorDetails, setErrorDetails] = useState<ErrorDetail[]>([]);
+  const [nextErrorId, setNextErrorId] = useState(1);
 
   const [calculatedMpu, setCalculatedMpu] = useState(0);
 
@@ -139,6 +159,14 @@ const ChallengeExecutionSummary: React.FC = () => {
       return;
     }
 
+    // Contar erros por tipo
+    const errorCounts = {
+      methodology: errorDetails.filter(e => e.error_type === 'METHODOLOGY').length,
+      knowledge: errorDetails.filter(e => e.error_type === 'KNOWLEDGE').length,
+      detail: errorDetails.filter(e => e.error_type === 'DETAIL').length,
+      procedure: errorDetails.filter(e => e.error_type === 'PROCEDURE').length,
+    };
+
     setSubmitting(true);
     setError('');
 
@@ -149,7 +177,18 @@ const ChallengeExecutionSummary: React.FC = () => {
         submission_type: 'SUMMARY',
         total_operations: formData.total_operations,
         total_time_minutes: formData.total_time_minutes,
-        errors_count: formData.errors_count || 0,
+        // errors_count = número de OPERAÇÕES com erro (não total de erros individuais)
+        errors_count: formData.operations_with_errors,
+        error_methodology: errorCounts.methodology,
+        error_knowledge: errorCounts.knowledge,
+        error_detail: errorCounts.detail,
+        error_procedure: errorCounts.procedure,
+        error_details: errorDetails.map(e => ({ 
+          error_type: e.error_type, 
+          description: e.description,
+          operation_reference: e.operation_reference || null
+        })),
+        operation_reference: formData.operation_reference || null,
       });
 
       // Redirecionar para página de resultados
@@ -162,15 +201,33 @@ const ChallengeExecutionSummary: React.FC = () => {
     }
   };
 
+  // Funções para gerir erros detalhados
+  const addError = () => {
+    setErrorDetails([...errorDetails, { id: nextErrorId, error_type: 'METHODOLOGY', description: '', operation_reference: '' }]);
+    setNextErrorId(nextErrorId + 1);
+  };
+
+  const updateError = (id: number, field: keyof ErrorDetail, value: string) => {
+    setErrorDetails(errorDetails.map(e => 
+      e.id === id ? { ...e, [field]: value } : e
+    ));
+  };
+
+  const removeError = (id: number) => {
+    setErrorDetails(errorDetails.filter(e => e.id !== id));
+  };
+
   const getApprovalStatus = () => {
     if (!challenge || calculatedMpu === 0) return null;
     
     const isMpuOk = calculatedMpu >= challenge.target_mpu;
-    const errorsOk = (formData.errors_count || 0) <= (challenge.max_errors ?? 0);
+    // max_errors = máximo de OPERAÇÕES com erro, não total de erros individuais
+    const operationsWithErrors = formData.operations_with_errors;
+    const errorsOk = operationsWithErrors <= (challenge.max_errors ?? 0);
     const isApproved = isMpuOk && errorsOk;
     const percentage = (calculatedMpu / challenge.target_mpu) * 100;
 
-    return { isApproved, percentage };
+    return { isApproved, percentage, operationsWithErrors, totalIndividualErrors: errorDetails.length };
   };
 
   if (loading) {
@@ -322,6 +379,54 @@ const ChallengeExecutionSummary: React.FC = () => {
             <p className="text-xs text-gray-500 mt-1">Limite: {challenge.time_limit_minutes} minutos</p>
           </div>
 
+          {/* Referência da Operação */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              <div className="flex items-center gap-2">
+                <Target className="w-4 h-4 text-blue-500" />
+                Referência da Operação
+              </div>
+            </label>
+            <input
+              type="text"
+              value={formData.operation_reference}
+              onChange={(e) => setFormData({ ...formData, operation_reference: e.target.value })}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+              placeholder="Ex: OP-2024-001, REF-123456"
+            />
+            <p className="text-xs text-gray-500 mt-1">Identificador ou número de referência da operação realizada</p>
+          </div>
+
+          {/* Número de Operações com Erro */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-orange-500" />
+                Número de Operações com Erro *
+              </div>
+            </label>
+            <input
+              type="number"
+              value={formData.operations_with_errors}
+              onChange={(e) => setFormData({ ...formData, operations_with_errors: parseInt(e.target.value) || 0 })}
+              className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                formData.operations_with_errors > (challenge.max_errors ?? 0) 
+                  ? 'border-red-500' 
+                  : 'border-white/10'
+              }`}
+              placeholder="Ex: 2"
+              min="0"
+            />
+            <p className={`text-xs mt-1 ${
+              formData.operations_with_errors > (challenge.max_errors ?? 0) 
+                ? 'text-red-400' 
+                : 'text-gray-500'
+            }`}>
+              Máximo permitido: {challenge.max_errors ?? 0} operações com erro
+              {formData.operations_with_errors > (challenge.max_errors ?? 0) && ' (EXCEDIDO!)'}
+            </p>
+          </div>
+
           {/* MPU Calculado */}
           {calculatedMpu > 0 && (
             <div className={`rounded-lg p-6 border-2 ${
@@ -336,7 +441,7 @@ const ChallengeExecutionSummary: React.FC = () => {
                     <span className="text-sm font-medium text-gray-300">MPU Calculado</span>
                   </div>
                   <p className="text-4xl font-bold text-white">
-                    {calculatedMpu.toFixed(2)} <span className="text-lg text-gray-400">op/min</span>
+                    {calculatedMpu.toFixed(2)} <span className="text-lg text-gray-400">min/op</span>
                   </p>
                 </div>
                 <div className="text-right">
@@ -344,35 +449,103 @@ const ChallengeExecutionSummary: React.FC = () => {
                     {approvalStatus?.isApproved ? '✅ APROVADO' : '❌ REPROVADO'}
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
-                    {approvalStatus?.percentage.toFixed(1)}% da meta
+                    {approvalStatus?.percentage && approvalStatus.percentage >= 100 
+                      ? 'Meta atingida ✓' 
+                      : `${Math.min(approvalStatus?.percentage ?? 0, 100).toFixed(1)}% da meta`
+                    }
                   </p>
                 </div>
               </div>
               
               <div className="bg-white/5 rounded-lg p-3">
                 <p className="text-sm text-gray-400">
-                  Cálculo: {formData.total_operations} operações ÷ {formData.total_time_minutes} minutos
+                  Cálculo: {formData.total_time_minutes} minutos ÷ {formData.total_operations} operações
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Meta para aprovação: ≥ {challenge.target_mpu.toFixed(2)} op/min
+                  Meta para aprovação: ≤ {challenge.target_mpu.toFixed(2)} min/op
                 </p>
               </div>
             </div>
           )}
 
-          {/* Erros cometidos */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Erros cometidos pelo aluno
-            </label>
-            <input
-              type="number"
-              value={formData.errors_count}
-              onChange={(e) => setFormData({ ...formData, errors_count: parseInt(e.target.value || '0') })}
-              min="0"
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-            />
-            <p className="text-xs text-gray-500 mt-1">Máximo permitido: {challenge.max_errors ?? 0} erros</p>
+          {/* Erros Detalhados */}
+          <div className="bg-white/5 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-orange-500" />
+                <h3 className="font-semibold text-white">Erros Cometidos</h3>
+                <span className="text-xs text-gray-400 ml-2">
+                  ({errorDetails.length} erro{errorDetails.length !== 1 ? 's' : ''} registado{errorDetails.length !== 1 ? 's' : ''})
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={addError}
+                className="flex items-center gap-1 px-3 py-1.5 bg-orange-500/20 text-orange-400 rounded-lg hover:bg-orange-500/30 transition-colors text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Adicionar Erro
+              </button>
+            </div>
+
+            {errorDetails.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-4">
+                Nenhum erro registado. Clique em "Adicionar Erro" caso tenha ocorrido algum erro.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {errorDetails.map((err, index) => (
+                  <div key={err.id} className="bg-white/5 rounded-lg p-4 border border-white/10">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-medium text-gray-300">Erro #{index + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeError(err.id)}
+                        className="text-red-400 hover:text-red-300 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">Tipo de Erro *</label>
+                        <select
+                          value={err.error_type}
+                          onChange={(e) => updateError(err.id, 'error_type', e.target.value)}
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        >
+                          {ERROR_TYPES.map(type => (
+                            <option key={type.value} value={type.value}>
+                              {type.label} - {type.description}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">Referência da Operação</label>
+                        <input
+                          type="text"
+                          value={err.operation_reference}
+                          onChange={(e) => updateError(err.id, 'operation_reference', e.target.value)}
+                          placeholder="Ex: 4060ILC0001111"
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">Descrição do Erro *</label>
+                        <input
+                          type="text"
+                          value={err.description}
+                          onChange={(e) => updateError(err.id, 'description', e.target.value)}
+                          placeholder="Descreva o erro ocorrido..."
+                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Botão Submeter */}

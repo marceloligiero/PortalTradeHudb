@@ -18,6 +18,7 @@ import {
   Play
 } from 'lucide-react';
 import api from '../../lib/axios';
+import { useAuthStore } from '../../stores/authStore';
 
 interface Lesson {
   id: number;
@@ -39,21 +40,21 @@ export default function LessonDetail() {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'ADMIN';
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (courseId && lessonId) {
-      fetchLesson();
-    }
-  }, [courseId, lessonId]);
 
   const fetchLesson = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get(`/api/admin/courses/${courseId}/lessons/${lessonId}`);
+      // Use different API based on user role
+      const apiPath = isAdmin 
+        ? `/api/admin/courses/${courseId}/lessons/${lessonId}` 
+        : `/api/trainer/courses/${courseId}/lessons/${lessonId}`;
+      const response = await api.get(apiPath);
       setLesson(response.data);
     } catch (err: any) {
       console.error('Error fetching lesson:', err);
@@ -62,6 +63,12 @@ export default function LessonDetail() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (courseId && lessonId && user) {
+      fetchLesson();
+    }
+  }, [courseId, lessonId, user]);
 
   const handleDeleteLesson = async () => {
     if (!lesson || !window.confirm(t('admin.confirmDeleteLesson'))) return;
@@ -177,22 +184,24 @@ export default function LessonDetail() {
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate(`/courses/${courseId}/lessons/${lesson.id}/edit`)}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors flex items-center gap-2"
-              >
-                <Edit3 className="w-4 h-4" />
-                {t('common.edit')}
-              </button>
-              <button
-                onClick={handleDeleteLesson}
-                className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-lg transition-colors flex items-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                {t('common.delete')}
-              </button>
-            </div>
+            {isAdmin && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate(`/courses/${courseId}/lessons/${lesson.id}/edit`)}
+                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  {t('common.edit')}
+                </button>
+                <button
+                  onClick={handleDeleteLesson}
+                  className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {t('common.delete')}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Stats */}

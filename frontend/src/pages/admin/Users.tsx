@@ -906,14 +906,10 @@ export default function UsersPage() {
               </div>
 
               {!loading && filteredUsers.length > 0 && (
-                <div className="px-6 py-4 bg-white/5 border-t border-white/10 flex items-center justify-between">
+                <div className="px-6 py-4 bg-white/5 border-t border-white/10 flex items-center justify-center">
                   <p className="text-sm text-gray-400">
                     A mostrar <span className="text-white font-medium">{filteredUsers.length}</span> de <span className="text-white font-medium">{users.length}</span> utilizadores
                   </p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">Powered by</span>
-                    <span className="text-xs font-semibold text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500">TradeHub</span>
-                  </div>
                 </div>
               )}
             </div>

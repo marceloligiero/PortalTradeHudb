@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Award, 
-  Download, 
-  Printer, 
   Calendar, 
   Clock, 
-  TrendingUp,
+  GraduationCap,
   CheckCircle2,
   FileText,
   X,
@@ -45,6 +44,7 @@ const cardVariants = {
 
 export default function CertificatesPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCert, setSelectedCert] = useState<Certificate | null>(null);
@@ -66,20 +66,7 @@ export default function CertificatesPage() {
     }
   };
 
-  const handleDownload = (cert: Certificate) => {
-    // TODO: Implement PDF download
-    alert(`Download do certificado ${cert.certificate_number}`);
-  };
-
-  const handlePrint = (cert: Certificate) => {
-    // TODO: Implement print
-    window.print();
-  };
-
   const totalHours = certificates.reduce((acc, c) => acc + (c.total_hours || 0), 0);
-  const avgMpu = certificates.length > 0 
-    ? certificates.reduce((acc, c) => acc + (c.average_mpu || 0), 0) / certificates.length 
-    : 0;
 
   return (
     <div className="space-y-6">
@@ -110,9 +97,9 @@ export default function CertificatesPage() {
           delay={0.1}
         />
         <AnimatedStatCard
-          icon={TrendingUp}
-          label="MPU Médio"
-          value={Math.round(avgMpu)}
+          icon={GraduationCap}
+          label="Cursos Concluídos"
+          value={certificates.reduce((acc, c) => acc + (c.courses_completed || 0), 0)}
           color="from-green-500 to-emerald-600"
           delay={0.2}
         />
@@ -220,8 +207,8 @@ export default function CertificatesPage() {
                       <div className="text-sm font-semibold text-white">{cert.total_hours}h</div>
                     </div>
                     <div className="bg-white/5 rounded-lg p-2">
-                      <div className="text-xs text-gray-500 mb-1">MPU</div>
-                      <div className="text-sm font-semibold text-purple-400">{cert.average_mpu || 0}</div>
+                      <div className="text-xs text-gray-500 mb-1">Cursos</div>
+                      <div className="text-sm font-semibold text-green-400">{cert.courses_completed}</div>
                     </div>
                   </div>
                   
@@ -236,25 +223,15 @@ export default function CertificatesPage() {
                     </span>
                   </div>
                   
-                  <div className="flex gap-2">
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={(e) => { e.stopPropagation(); handleDownload(cert); }}
-                      className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-lg text-sm font-medium hover:shadow-lg hover:shadow-yellow-600/30 transition-all"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={(e) => { e.stopPropagation(); handlePrint(cert); }}
-                      className="px-3 py-2 bg-white/5 border border-white/10 text-gray-300 rounded-lg hover:bg-white/10 transition-all"
-                    >
-                      <Printer className="w-4 h-4" />
-                    </motion.button>
-                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={(e) => { e.stopPropagation(); navigate(`/certificates/${cert.id}`); }}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg text-sm font-medium hover:shadow-lg hover:shadow-red-600/30 transition-all"
+                  >
+                    <Award className="w-4 h-4" />
+                    Ver Certificado
+                  </motion.button>
                 </div>
               </motion.div>
             ))}
@@ -318,9 +295,9 @@ export default function CertificatesPage() {
                     <div className="text-xs text-gray-400">Horas de Formação</div>
                   </div>
                   <div className="bg-white/5 rounded-xl p-4 text-center">
-                    <TrendingUp className="w-5 h-5 text-purple-400 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-purple-400">{selectedCert.average_mpu}</div>
-                    <div className="text-xs text-gray-400">MPU Médio</div>
+                    <GraduationCap className="w-5 h-5 text-green-400 mx-auto mb-2" />
+                    <div className="text-2xl font-bold text-green-400">100%</div>
+                    <div className="text-xs text-gray-400">Aprovação</div>
                   </div>
                   <div className="bg-white/5 rounded-xl p-4 text-center">
                     <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto mb-2" />
@@ -336,24 +313,15 @@ export default function CertificatesPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-4">
+                <div className="pt-4">
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => handleDownload(selectedCert)}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-xl hover:shadow-lg hover:shadow-yellow-600/30 transition-all font-medium flex items-center justify-center gap-2"
+                    onClick={() => { setSelectedCert(null); navigate(`/certificates/${selectedCert.id}`); }}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:shadow-lg hover:shadow-red-600/30 transition-all font-medium flex items-center justify-center gap-2"
                   >
-                    <Download className="w-4 h-4" />
-                    Download PDF
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handlePrint(selectedCert)}
-                    className="px-4 py-3 bg-white/5 border border-white/10 text-gray-300 rounded-xl hover:bg-white/10 transition-all font-medium flex items-center justify-center gap-2"
-                  >
-                    <Printer className="w-4 h-4" />
-                    Imprimir
+                    <Award className="w-4 h-4" />
+                    Ver Certificado Completo
                   </motion.button>
                 </div>
               </div>

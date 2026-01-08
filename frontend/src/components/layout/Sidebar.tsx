@@ -1,4 +1,4 @@
-import { Home, BookOpen, Award, Users, Settings, Building2, Package, GraduationCap } from 'lucide-react';
+import { Home, BookOpen, Award, Users, Settings, Building2, Package, GraduationCap, Target, Presentation } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
@@ -11,7 +11,9 @@ export default function Sidebar() {
 
   const studentLinks = [
     { to: '/', icon: Home, label: t('navigation.dashboard') },
-    { to: '/courses', icon: BookOpen, label: t('navigation.myCourses') },
+    { to: '/my-plans', icon: GraduationCap, label: t('navigation.trainingPlans') },
+    { to: '/my-challenges', icon: Target, label: 'Meus Desafios' },
+    { to: '/my-lessons', icon: Presentation, label: 'Minhas Aulas' },
     { to: '/certificates', icon: Award, label: t('navigation.certificates') },
     { to: '/reports', icon: Settings, label: t('navigation.reports') },
   ];
@@ -37,7 +39,7 @@ export default function Sidebar() {
   ];
 
   const links =
-    user?.role === 'STUDENT'
+    user?.role === 'STUDENT' || user?.role === 'TRAINEE'
       ? studentLinks
       : user?.role === 'TRAINER'
       ? trainerLinks

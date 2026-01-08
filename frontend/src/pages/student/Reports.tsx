@@ -1,379 +1,525 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { 
-  BookOpen, Clock, Award, Target, Activity, Trophy,
-  BarChart3, Download
+import {
+  BarChart3,
+  Trophy,
+  Clock,
+  AlertTriangle,
+  CheckCircle2,
+  XCircle,
+  TrendingUp,
+  Flame,
+  GraduationCap,
+  Calendar,
+  Sparkles,
+  Zap,
 } from 'lucide-react';
 import api from '../../lib/axios';
 
-interface StudentOverview {
-  enrolled_courses: number;
-  active_courses: number;
-  completed_courses: number;
-  total_lessons: number;
-  completed_lessons: number;
-  certificates_earned: number;
-  total_study_hours: number;
-  avg_progress: number;
-  current_streak: number;
+interface DashboardData {
+  summary: {
+    total_submissions: number;
+    approved_submissions: number;
+    reproved_submissions: number;
+    pending_submissions: number;
+    approval_rate: number;
+    total_operations: number;
+    total_errors: number;
+    error_rate: number;
+    avg_time_seconds: number;
+    avg_mpu: number;
+    total_challenges: number;
+    completed_challenges: number;
+    certificates_count: number;
+    lessons_completed: number;
+  };
+  errors_by_type: {
+    methodology: number;
+    knowledge: number;
+    detail: number;
+    procedure: number;
+  };
+  evolution: Array<{
+    month: string;
+    submissions: number;
+    approved: number;
+    avg_mpu: number;
+  }>;
+  challenges: Array<{
+    id: number;
+    title: string;
+    submissions: number;
+    best_mpu: number;
+    best_time: number;
+    status: string;
+  }>;
+  recent_activity: Array<{
+    date: string;
+    challenge_title: string;
+    status: string;
+    mpu: number;
+    time_seconds: number;
+  }>;
+  best_performance: {
+    challenge_title: string;
+    mpu: number;
+    time_seconds: number;
+    operations_correct: number;
+    date: string;
+  } | null;
 }
 
-interface CourseProgress {
-  course_id: number;
-  course_title: string;
-  trainer_name: string;
-  bank_code: string;
-  progress: number;
-  completed_lessons: number;
-  total_lessons: number;
-  start_date: string;
-  expected_end_date: string;
-  last_activity: string;
-  status: 'active' | 'completed' | 'behind_schedule';
-}
-
-interface LessonActivity {
-  lesson_title: string;
-  course_title: string;
-  status: 'completed' | 'in_progress' | 'not_started';
-  completion_date: string | null;
-  time_spent: number;
-  score: number | null;
-}
-
-interface Achievement {
+const StatCard: React.FC<{
   title: string;
-  description: string;
-  icon: string;
-  earned_date: string;
-  type: 'course' | 'lesson' | 'streak' | 'certificate';
-}
+  value: string | number;
+  subtitle?: string;
+  icon: React.ReactNode;
+  color: string;
+  delay?: number;
+}> = ({ title, value, subtitle, icon, color, delay = 0 }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.4, delay }}
+    className={`bg-gradient-to-br ${color} rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow`}
+  >
+    <div className="flex items-start justify-between">
+      <div>
+        <p className="text-white/80 text-sm font-medium">{title}</p>
+        <p className="text-white text-3xl font-bold mt-1">{value}</p>
+        {subtitle && <p className="text-white/70 text-xs mt-1">{subtitle}</p>}
+      </div>
+      <div className="bg-white/20 rounded-xl p-3">{icon}</div>
+    </div>
+  </motion.div>
+);
 
-export default function StudentReportsPage() {
+const ErrorTypeBar: React.FC<{
+  label: string;
+  value: number;
+  total: number;
+  color: string;
+}> = ({ label, value, total, color }) => {
+  const percentage = total > 0 ? (value / total) * 100 : 0;
+  return (
+    <div className="mb-3">
+      <div className="flex justify-between text-sm mb-1">
+        <span className="text-gray-600">{label}</span>
+        <span className="font-medium text-gray-800">{value}</span>
+      </div>
+      <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+          className={`h-full ${color} rounded-full`}
+        />
+      </div>
+    </div>
+  );
+};
+
+const Reports: React.FC = () => {
   const { t } = useTranslation();
-  const [overview, setOverview] = useState<StudentOverview | null>(null);
-  const [courseProgress, setCourseProgress] = useState<CourseProgress[]>([]);
-  const [lessonActivity, setLessonActivity] = useState<LessonActivity[]>([]);
-  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedCourse, setSelectedCourse] = useState('ALL');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchReports();
-  }, []);
-
-  const fetchReports = async () => {
-    try {
-      setLoading(true);
-      const [overviewRes, coursesRes, lessonsRes, achievementsRes] = await Promise.all([
-        api.get('/api/student/reports/overview'),
-        api.get('/api/student/reports/courses'),
-        api.get('/api/student/reports/lessons'),
-        api.get('/api/student/reports/achievements'),
-      ]);
-
-      setOverview(overviewRes.data);
-      setCourseProgress(coursesRes.data);
-      setLessonActivity(lessonsRes.data);
-      setAchievements(achievementsRes.data);
-    } catch (error) {
-      console.error('Error fetching student reports:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleExportPDF = () => {
-    alert(t('studentReports.exportingPDF'));
-  };
-
-  const filteredLessons = selectedCourse === 'ALL' 
-    ? lessonActivity 
-    : lessonActivity.filter(lesson => lesson.course_title === selectedCourse);
-
-  const getStatusBadge = (status: string) => {
-    const styles = {
-      active: 'bg-green-500/20 text-green-400 border-green-500/30',
-      completed: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      behind_schedule: 'bg-red-500/20 text-red-400 border-red-500/30',
-      in_progress: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      not_started: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/api/student/reports/dashboard');
+        setData(response.data);
+      } catch (err: any) {
+        console.error('Error fetching reports:', err);
+        setError(err.response?.data?.detail || 'Erro ao carregar relatórios');
+      } finally {
+        setLoading(false);
+      }
     };
-    return styles[status as keyof typeof styles] || styles.active;
-  };
+
+    fetchData();
+  }, []);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent" />
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-red-500">
+        <AlertTriangle className="w-16 h-16 mb-4" />
+        <p className="text-lg font-medium">{error}</p>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const { summary, errors_by_type, evolution, challenges, recent_activity, best_performance } = data;
+  const totalErrors = Object.values(errors_by_type).reduce((a, b) => a + b, 0);
+
   return (
-    <div className="space-y-6">
+    <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
-            {t('studentReports.title')}
-          </h1>
-          <p className="text-gray-400 mt-1">{t('studentReports.subtitle')}</p>
-        </div>
-        <button
-          onClick={handleExportPDF}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg transition-all"
-        >
-          <Download className="w-4 h-4" />
-          {t('studentReports.downloadReport')}
-        </button>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8"
+      >
+        <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+          <BarChart3 className="w-8 h-8 text-indigo-600" />
+          Meus Relatórios
+        </h1>
+        <p className="text-gray-500 mt-1">
+          Acompanhe sua evolução e desempenho nos desafios
+        </p>
+      </motion.div>
+
+      {/* Main Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <StatCard
+          title="Total de Submissões"
+          value={summary.total_submissions}
+          subtitle={`${summary.approved_submissions} aprovadas`}
+          icon={<BarChart3 className="w-6 h-6 text-white" />}
+          color="from-blue-500 to-blue-600"
+          delay={0.1}
+        />
+        <StatCard
+          title="Taxa de Aprovação"
+          value={`${(summary.approval_rate ?? 0).toFixed(1)}%`}
+          subtitle={`${summary.reproved_submissions} reprovações`}
+          icon={<Trophy className="w-6 h-6 text-white" />}
+          color="from-green-500 to-green-600"
+          delay={0.2}
+        />
+        <StatCard
+          title="Tempo Médio"
+          value={`${Math.round(summary.avg_time_seconds)}s`}
+          subtitle="por submissão"
+          icon={<Clock className="w-6 h-6 text-white" />}
+          color="from-purple-500 to-purple-600"
+          delay={0.3}
+        />
+        <StatCard
+          title="MPU Médio"
+          value={(summary.avg_mpu ?? 0).toFixed(2)}
+          subtitle="segundos/operação"
+          icon={<Zap className="w-6 h-6 text-white" />}
+          color="from-amber-500 to-amber-600"
+          delay={0.4}
+        />
       </div>
 
-      {/* Overview Stats */}
-      {overview && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/20 rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">{t('studentReports.enrolledCourses')}</p>
-                <p className="text-3xl font-bold text-white mt-1">{overview.enrolled_courses}</p>
-                <p className="text-sm text-blue-400 mt-2">
-                  {overview.active_courses} {t('studentReports.active').toLowerCase()}
-                </p>
+      {/* Secondary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <StatCard
+          title="Operações Realizadas"
+          value={summary.total_operations}
+          subtitle={`${summary.total_errors ?? 0} erros (${(summary.error_rate ?? 0).toFixed(1)}%)`}
+          icon={<Sparkles className="w-6 h-6 text-white" />}
+          color="from-indigo-500 to-indigo-600"
+          delay={0.5}
+        />
+        <StatCard
+          title="Desafios Concluídos"
+          value={`${summary.completed_challenges}/${summary.total_challenges}`}
+          subtitle="desafios disponíveis"
+          icon={<Flame className="w-6 h-6 text-white" />}
+          color="from-orange-500 to-orange-600"
+          delay={0.6}
+        />
+        <StatCard
+          title="Certificados"
+          value={summary.certificates_count}
+          subtitle={`${summary.lessons_completed} lições concluídas`}
+          icon={<GraduationCap className="w-6 h-6 text-white" />}
+          color="from-teal-500 to-teal-600"
+          delay={0.7}
+        />
+      </div>
+
+      {/* Best Performance & Error Analysis */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Best Performance */}
+        {best_performance && (
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
+            className="bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200 rounded-2xl p-6"
+          >
+            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <Trophy className="w-6 h-6 text-yellow-500" />
+              🏆 Melhor Desempenho
+            </h3>
+            <div className="space-y-3">
+              <div className="bg-white rounded-xl p-4 shadow-sm">
+                <p className="text-sm text-gray-500">Desafio</p>
+                <p className="font-semibold text-gray-800">{best_performance.challenge_title}</p>
               </div>
-              <BookOpen className="w-12 h-12 text-blue-400 opacity-50" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/20 rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">{t('studentReports.avgProgress')}</p>
-                <p className="text-3xl font-bold text-white mt-1">{overview.avg_progress.toFixed(0)}%</p>
-                <p className="text-sm text-green-400 mt-2">
-                  {overview.completed_lessons}/{overview.total_lessons} {t('studentReports.lessons')}
-                </p>
-              </div>
-              <Target className="w-12 h-12 text-green-400 opacity-50" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border border-purple-500/20 rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">{t('studentReports.certificates')}</p>
-                <p className="text-3xl font-bold text-white mt-1">{overview.certificates_earned}</p>
-                <p className="text-sm text-purple-400 mt-2">
-                  {overview.completed_courses} {t('studentReports.completed')}
-                </p>
-              </div>
-              <Award className="w-12 h-12 text-purple-400 opacity-50" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 border border-orange-500/20 rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">{t('studentReports.studyTime')}</p>
-                <p className="text-3xl font-bold text-white mt-1">{overview.total_study_hours}h</p>
-                <p className="text-sm text-orange-400 mt-2">
-                  {overview.current_streak} {t('studentReports.dayStreak')}
-                </p>
-              </div>
-              <Clock className="w-12 h-12 text-orange-400 opacity-50" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Course Progress */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-6">
-          <BarChart3 className="w-5 h-5 text-red-400" />
-          <h2 className="text-xl font-semibold text-white">{t('studentReports.courseProgress')}</h2>
-        </div>
-        
-        {courseProgress.length > 0 ? (
-          <div className="space-y-4">
-            {courseProgress.map((course) => (
-              <div key={course.course_id} className="bg-white/5 border border-white/10 rounded-lg p-6 hover:bg-white/10 transition-all">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="text-lg font-semibold text-white">{course.course_title}</h3>
-                        <p className="text-sm text-gray-400">{course.trainer_name}</p>
-                      </div>
-                      <span className={`px-2 py-1 rounded text-sm border ${getStatusBadge(course.status)}`}>
-                        {t(`studentReports.${course.status}`)}
-                      </span>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                      <div>
-                        <p className="text-xs text-gray-400">{t('studentReports.progress')}</p>
-                        <p className="text-sm font-medium text-white">{course.progress.toFixed(0)}%</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400">{t('studentReports.lessons')}</p>
-                        <p className="text-sm font-medium text-white">{course.completed_lessons}/{course.total_lessons}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400">{t('studentReports.bank')}</p>
-                        <p className="text-sm font-medium text-white">{course.bank_code}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400">{t('studentReports.lastActivity')}</p>
-                        <p className="text-sm font-medium text-white">
-                          {new Date(course.last_activity).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-gray-400">{t('studentReports.progress')}</span>
-                        <span className="text-xs text-gray-400">
-                          {t('studentReports.expectedEnd')}: {new Date(course.expected_end_date).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div className="w-full bg-white/10 rounded-full h-2">
-                        <div
-                          className="bg-gradient-to-r from-red-500 to-red-600 h-2 rounded-full transition-all"
-                          style={{ width: `${course.progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white rounded-xl p-3 text-center shadow-sm">
+                  <p className="text-2xl font-bold text-green-600">{(best_performance.mpu ?? 0).toFixed(2)}</p>
+                  <p className="text-xs text-gray-500">MPU</p>
+                </div>
+                <div className="bg-white rounded-xl p-3 text-center shadow-sm">
+                  <p className="text-2xl font-bold text-blue-600">{best_performance.time_seconds}s</p>
+                  <p className="text-xs text-gray-500">Tempo</p>
+                </div>
+                <div className="bg-white rounded-xl p-3 text-center shadow-sm">
+                  <p className="text-2xl font-bold text-purple-600">{best_performance.operations_correct}</p>
+                  <p className="text-xs text-gray-500">Operações</p>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <BookOpen className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400">{t('studentReports.noCourses')}</p>
-          </div>
+              <p className="text-xs text-gray-400 text-right">
+                📅 {new Date(best_performance.date).toLocaleDateString('pt-BR')}
+              </p>
+            </div>
+          </motion.div>
         )}
+
+        {/* Error Analysis */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.6 }}
+          className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm"
+        >
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <AlertTriangle className="w-6 h-6 text-red-500" />
+            Análise de Erros
+          </h3>
+          {totalErrors === 0 ? (
+            <div className="text-center py-8 text-gray-400">
+              <CheckCircle2 className="w-12 h-12 mx-auto mb-2 text-green-500" />
+              <p>Nenhum erro registrado! 🎉</p>
+            </div>
+          ) : (
+            <div>
+              <ErrorTypeBar
+                label="📐 Metodologia"
+                value={errors_by_type.methodology ?? 0}
+                total={totalErrors}
+                color="bg-purple-500"
+              />
+              <ErrorTypeBar
+                label="💡 Conhecimento"
+                value={errors_by_type.knowledge ?? 0}
+                total={totalErrors}
+                color="bg-blue-500"
+              />
+              <ErrorTypeBar
+                label="🔍 Detalhe"
+                value={errors_by_type.detail ?? 0}
+                total={totalErrors}
+                color="bg-orange-500"
+              />
+              <ErrorTypeBar
+                label="📋 Procedimento"
+                value={errors_by_type.procedure ?? 0}
+                total={totalErrors}
+                color="bg-red-500"
+              />
+              <div className="mt-4 pt-4 border-t text-center">
+                <p className="text-sm text-gray-500">
+                  Total: <span className="font-bold text-gray-800">{totalErrors}</span> erros
+                </p>
+              </div>
+            </div>
+          )}
+        </motion.div>
       </div>
 
-      {/* Recent Lesson Activity */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Activity className="w-5 h-5 text-red-400" />
-            <h2 className="text-xl font-semibold text-white">{t('studentReports.recentActivity')}</h2>
+      {/* Challenge Performance Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
+        className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-8"
+      >
+        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <Flame className="w-6 h-6 text-orange-500" />
+          Desempenho por Desafio
+        </h3>
+        {challenges.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">
+            <BarChart3 className="w-12 h-12 mx-auto mb-2" />
+            <p>Nenhum desafio realizado ainda</p>
           </div>
-          <select
-            value={selectedCourse}
-            onChange={(e) => setSelectedCourse(e.target.value)}
-            className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-          >
-            <option value="ALL">{t('studentReports.allCourses')}</option>
-            {courseProgress.map((course) => (
-              <option key={course.course_id} value={course.course_title}>
-                {course.course_title}
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        {filteredLessons.length > 0 ? (
+        ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/10">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('studentReports.lessonName')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('studentReports.course')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('studentReports.status')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('studentReports.timeSpent')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('studentReports.score')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('studentReports.completionDate')}
-                  </th>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Desafio</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Submissões</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Melhor MPU</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Melhor Tempo</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredLessons.map((lesson, idx) => (
-                  <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="py-4 px-4 font-medium text-white">
-                      {lesson.lesson_title}
-                    </td>
-                    <td className="py-4 px-4 text-gray-400">
-                      {lesson.course_title}
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className={`px-2 py-1 rounded text-sm border ${getStatusBadge(lesson.status)}`}>
-                        {t(`studentReports.${lesson.status}`)}
+                {challenges.map((challenge, idx) => (
+                  <motion.tr
+                    key={challenge.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.8 + idx * 0.05 }}
+                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="py-3 px-4 font-medium text-gray-800">{challenge.title}</td>
+                    <td className="py-3 px-4 text-center text-gray-600">{challenge.submissions}</td>
+                    <td className="py-3 px-4 text-center">
+                      <span className="font-mono text-green-600 font-medium">
+                        {(challenge.best_mpu ?? 0).toFixed(2)}
                       </span>
                     </td>
-                    <td className="py-4 px-4 text-white">
-                      {lesson.time_spent}h
+                    <td className="py-3 px-4 text-center">
+                      <span className="font-mono text-blue-600">{challenge.best_time}s</span>
                     </td>
-                    <td className="py-4 px-4">
-                      {lesson.score !== null ? (
-                        <span className="text-white font-medium">{lesson.score}%</span>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
+                    <td className="py-3 px-4 text-center">
+                      <span
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                          challenge.status === 'COMPLETE'
+                            ? 'bg-green-100 text-green-700'
+                            : challenge.status === 'IN_PROGRESS'
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        {challenge.status === 'COMPLETE' ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4" /> Concluído
+                          </>
+                        ) : challenge.status === 'IN_PROGRESS' ? (
+                          <>
+                            <Clock className="w-4 h-4" /> Em Progresso
+                          </>
+                        ) : (
+                          'Disponível'
+                        )}
+                      </span>
                     </td>
-                    <td className="py-4 px-4 text-gray-400 text-sm">
-                      {lesson.completion_date 
-                        ? new Date(lesson.completion_date).toLocaleDateString()
-                        : '-'}
-                    </td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>
           </div>
-        ) : (
-          <p className="text-center text-gray-400 py-8">{t('studentReports.noActivity')}</p>
         )}
-      </div>
+      </motion.div>
 
-      {/* Achievements */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Trophy className="w-5 h-5 text-red-400" />
-          <h2 className="text-xl font-semibold text-white">{t('studentReports.achievements')}</h2>
-        </div>
-        
-        {achievements.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {achievements.map((achievement, idx) => (
-              <div key={idx} className="bg-gradient-to-br from-yellow-500/10 to-yellow-600/10 border border-yellow-500/20 rounded-lg p-4 hover:scale-105 transition-transform">
-                <div className="flex items-start gap-3">
-                  <div className="text-3xl">{achievement.icon}</div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-white mb-1">{achievement.title}</h3>
-                    <p className="text-sm text-gray-400 mb-2">{achievement.description}</p>
-                    <p className="text-xs text-yellow-400">
-                      {new Date(achievement.earned_date).toLocaleDateString()}
+      {/* Recent Activity */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.9 }}
+        className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-8"
+      >
+        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <Calendar className="w-6 h-6 text-indigo-500" />
+          Atividade Recente
+        </h3>
+        {recent_activity.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">
+            <Calendar className="w-12 h-12 mx-auto mb-2" />
+            <p>Nenhuma atividade recente</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {recent_activity.map((activity, idx) => (
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1 + idx * 0.05 }}
+                className={`flex items-center justify-between p-4 rounded-xl border ${
+                  activity.status === 'APPROVED'
+                    ? 'bg-green-50 border-green-200'
+                    : 'bg-red-50 border-red-200'
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  {activity.status === 'APPROVED' ? (
+                    <CheckCircle2 className="w-8 h-8 text-green-500" />
+                  ) : (
+                    <XCircle className="w-8 h-8 text-red-500" />
+                  )}
+                  <div>
+                    <p className="font-medium text-gray-800">{activity.challenge_title}</p>
+                    <p className="text-sm text-gray-500">
+                      {new Date(activity.date).toLocaleDateString('pt-BR', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </p>
                   </div>
                 </div>
-              </div>
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="text-center">
+                    <p className="font-bold text-gray-800">{(activity.mpu ?? 0).toFixed(2)}</p>
+                    <p className="text-xs text-gray-400">MPU</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-bold text-gray-800">{activity.time_seconds}s</p>
+                    <p className="text-xs text-gray-400">Tempo</p>
+                  </div>
+                </div>
+              </motion.div>
             ))}
           </div>
-        ) : (
-          <div className="text-center py-12">
-            <Trophy className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <p className="text-gray-400">{t('studentReports.noAchievements')}</p>
-            <p className="text-sm text-gray-500 mt-2">{t('studentReports.keepLearning')}</p>
-          </div>
         )}
-      </div>
+      </motion.div>
+
+      {/* Evolution Timeline */}
+      {evolution.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.1 }}
+          className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-6"
+        >
+          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <TrendingUp className="w-6 h-6 text-indigo-500" />
+            Evolução Mensal
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {evolution.map((item, idx) => (
+              <motion.div
+                key={item.month}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 1.2 + idx * 0.1 }}
+                className="bg-white rounded-xl p-4 text-center shadow-sm"
+              >
+                <p className="text-sm font-medium text-indigo-600 mb-2">{item.month}</p>
+                <p className="text-2xl font-bold text-gray-800">{item.submissions}</p>
+                <p className="text-xs text-gray-500">submissões</p>
+                <div className="mt-2 pt-2 border-t">
+                  <p className="text-xs">
+                    <span className="text-green-600 font-medium">{item.approved}</span> aprovadas
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    MPU: {(item.avg_mpu ?? 0).toFixed(2)}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
     </div>
   );
-}
+};
+
+export default Reports;

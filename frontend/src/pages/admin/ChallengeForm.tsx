@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Target, Clock, TrendingUp, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, Target, Clock, TrendingUp, AlertCircle, CheckSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../lib/axios';
 
@@ -13,6 +13,10 @@ interface ChallengeFormData {
   target_mpu: number;
   max_errors: number;
   is_active: boolean;
+  // KPIs selecionáveis
+  use_volume_kpi: boolean;
+  use_mpu_kpi: boolean;
+  use_errors_kpi: boolean;
 }
 
 const ChallengeForm: React.FC = () => {
@@ -34,6 +38,9 @@ const ChallengeForm: React.FC = () => {
     target_mpu: 1.67, // 100 operações / 60 minutos
     max_errors: 0,
     is_active: true,
+    use_volume_kpi: true,
+    use_mpu_kpi: true,
+    use_errors_kpi: true,
   });
 
   // Fetch challenge data if editing
@@ -57,6 +64,9 @@ const ChallengeForm: React.FC = () => {
         target_mpu: challenge.target_mpu || 1.67,
         max_errors: challenge.max_errors || 0,
         is_active: challenge.is_active !== undefined ? challenge.is_active : true,
+        use_volume_kpi: challenge.use_volume_kpi !== undefined ? challenge.use_volume_kpi : true,
+        use_mpu_kpi: challenge.use_mpu_kpi !== undefined ? challenge.use_mpu_kpi : true,
+        use_errors_kpi: challenge.use_errors_kpi !== undefined ? challenge.use_errors_kpi : true,
       });
     } catch (err: any) {
       console.error('Erro ao carregar desafio:', err);
@@ -285,7 +295,7 @@ const ChallengeForm: React.FC = () => {
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-pink-500" />
-                  Máximo de Erros Permitidos
+                  Máximo de Operações com Erro
                 </div>
               </label>
               <input
@@ -295,7 +305,93 @@ const ChallengeForm: React.FC = () => {
                 min="0"
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
-              <p className="text-xs text-gray-500 mt-1">Número máximo de erros permitidos para aprovação</p>
+              <p className="text-xs text-gray-500 mt-1">Número máximo de OPERAÇÕES com erro (não erros totais)</p>
+            </div>
+
+            {/* KPIs de Aprovação */}
+            <div className="bg-white/5 rounded-lg p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <CheckSquare className="w-5 h-5 text-green-500" />
+                <h3 className="text-lg font-medium text-white">KPIs para Aprovação</h3>
+              </div>
+              <p className="text-sm text-gray-400 mb-4">
+                Selecione quais critérios são decisivos para aprovação do formando neste desafio:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Volume KPI */}
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, use_volume_kpi: !formData.use_volume_kpi })}
+                  className={`p-4 rounded-lg border-2 transition-all text-left ${
+                    formData.use_volume_kpi
+                      ? 'border-green-500 bg-green-500/10'
+                      : 'border-white/10 bg-white/5 hover:border-white/20'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
+                      formData.use_volume_kpi ? 'bg-green-500 border-green-500' : 'border-gray-500'
+                    }`}>
+                      {formData.use_volume_kpi && <span className="text-white text-sm">✓</span>}
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Volume</p>
+                      <p className="text-xs text-gray-400">Nr de Operações</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* MPU KPI */}
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, use_mpu_kpi: !formData.use_mpu_kpi })}
+                  className={`p-4 rounded-lg border-2 transition-all text-left ${
+                    formData.use_mpu_kpi
+                      ? 'border-green-500 bg-green-500/10'
+                      : 'border-white/10 bg-white/5 hover:border-white/20'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
+                      formData.use_mpu_kpi ? 'bg-green-500 border-green-500' : 'border-gray-500'
+                    }`}>
+                      {formData.use_mpu_kpi && <span className="text-white text-sm">✓</span>}
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">MPU</p>
+                      <p className="text-xs text-gray-400">Op por Minuto</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Errors KPI */}
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, use_errors_kpi: !formData.use_errors_kpi })}
+                  className={`p-4 rounded-lg border-2 transition-all text-left ${
+                    formData.use_errors_kpi
+                      ? 'border-green-500 bg-green-500/10'
+                      : 'border-white/10 bg-white/5 hover:border-white/20'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
+                      formData.use_errors_kpi ? 'bg-green-500 border-green-500' : 'border-gray-500'
+                    }`}>
+                      {formData.use_errors_kpi && <span className="text-white text-sm">✓</span>}
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Erros</p>
+                      <p className="text-xs text-gray-400">Op. com Erro</p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+              {!formData.use_volume_kpi && !formData.use_mpu_kpi && !formData.use_errors_kpi && (
+                <p className="text-yellow-500 text-sm mt-3">
+                  ⚠️ Selecione pelo menos um KPI para aprovação
+                </p>
+              )}
             </div>
 
             {/* MPU Meta (calculado automaticamente) */}

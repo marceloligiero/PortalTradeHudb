@@ -6,6 +6,7 @@ import RegisterPage from './pages/RegisterPage';
 import StudentDashboard from './pages/student/Dashboard';
 import StudentCoursesPage from './pages/student/Courses';
 import CertificatesPage from './pages/student/Certificates';
+import MyPlans from './pages/student/MyPlans';
 import TrainerDashboard from './pages/trainer/Dashboard';
 import TrainerCoursesPage from './pages/trainer/Courses';
 import TrainerStudentsPage from './pages/trainer/Students';
@@ -33,6 +34,14 @@ import ChallengeDetail from './pages/admin/ChallengeDetail';
 import ChallengeExecutionComplete from './pages/trainer/ChallengeExecutionComplete';
 import ChallengeExecutionSummary from './pages/trainer/ChallengeExecutionSummary';
 import ChallengeResult from './pages/ChallengeResult';
+import MyChallenges from './pages/student/MyChallenges';
+import MyLessons from './pages/student/MyLessons';
+import LessonManagement from './pages/trainer/LessonManagement';
+import SubmissionReview from './pages/trainer/SubmissionReview';
+import PendingReviews from './pages/trainer/PendingReviews';
+import ChallengeExecution from './pages/student/ChallengeExecution';
+import StudentChallengeExecutionComplete from './pages/student/ChallengeExecutionComplete';
+import CertificateView from './pages/certificates/CertificateView';
 import Layout from './components/layout/Layout';
 
 function App() {
@@ -52,28 +61,43 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
-        {user?.role === 'STUDENT' && (
+        {(user?.role === 'STUDENT' || user?.role === 'TRAINEE') && (
           <>
             <Route index element={<StudentDashboard />} />
+            <Route path="my-plans" element={<MyPlans />} />
+            <Route path="my-challenges" element={<MyChallenges />} />
+            <Route path="my-lessons" element={<MyLessons />} />
             <Route path="courses" element={<StudentCoursesPage />} />
             <Route path="certificates" element={<CertificatesPage />} />
             <Route path="reports" element={<StudentReportsPage />} />
+            <Route path="training-plan/:id" element={<TrainingPlanDetail />} />
+            {/* Formando executa desafios COMPLETE (linha a linha) */}
+            <Route path="challenges/:challengeId/execute" element={<ChallengeExecution />} />
+            <Route path="challenges/:challengeId/execute/complete" element={<StudentChallengeExecutionComplete />} />
           </>
         )}
         {/* Rotas compartilhadas por todos os roles */}
         <Route path="challenges/result/:submissionId" element={<ChallengeResult />} />
+        <Route path="certificates/:id" element={<CertificateView />} />
         {user?.role === 'TRAINER' && (
           <>
             <Route index element={<TrainerDashboard />} />
             <Route path="courses" element={<TrainerCoursesPage />} />
+            <Route path="courses/:courseId" element={<AdminCourseDetail />} />
             <Route path="training-plans" element={<TrainingPlans />} />
             <Route path="training-plan/new" element={<TrainingPlanForm />} />
             <Route path="students" element={<TrainerStudentsPage />} />
             <Route path="reports" element={<TrainerReportsPage />} />
-            <Route path="challenges/:challengeId/execute/complete" element={<ChallengeExecutionComplete />} />
+            {/* Formador executa desafios SUMMARY e pode registar COMPLETE */}
             <Route path="challenges/:challengeId/execute/summary" element={<ChallengeExecutionSummary />} />
+            <Route path="challenges/:challengeId/execute/complete" element={<ChallengeExecutionComplete />} />
+            <Route path="pending-reviews" element={<PendingReviews />} />
             <Route path="courses/:courseId/lessons/new" element={<LessonForm />} />
+            <Route path="courses/:courseId/challenges/:challengeId" element={<ChallengeDetail />} />
+            <Route path="courses/:courseId/lessons/:lessonId" element={<LessonDetail />} />
             <Route path="training-plan/:id" element={<TrainingPlanDetail />} />
+            <Route path="lessons/:lessonId/manage" element={<LessonManagement />} />
+            <Route path="submissions/:submissionId/review" element={<SubmissionReview />} />
           </>
         )}
         {/* Support direct links that include a 'trainer/' or 'admin/' prefix used in some navigation code */}
@@ -95,8 +119,12 @@ function App() {
             <Route path="training-plans" element={<AdminTrainingPlans />} />
             <Route path="training-plan/new" element={<AdminTrainingPlanForm />} />
             <Route path="admin/training-plan/:id" element={<TrainingPlanDetail />} />
-            <Route path="challenges/:challengeId/execute/complete" element={<ChallengeExecutionComplete />} />
+            {/* Admin executa desafios SUMMARY e pode registar COMPLETE */}
             <Route path="challenges/:challengeId/execute/summary" element={<ChallengeExecutionSummary />} />
+            <Route path="challenges/:challengeId/execute/complete" element={<ChallengeExecutionComplete />} />
+            <Route path="pending-reviews" element={<PendingReviews />} />
+            <Route path="lessons/:lessonId/manage" element={<LessonManagement />} />
+            <Route path="submissions/:submissionId/review" element={<SubmissionReview />} />
             <Route path="reports" element={<AdminReportsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="banks" element={<AdminBanksPage />} />

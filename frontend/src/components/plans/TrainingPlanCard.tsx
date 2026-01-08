@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, Users, Calendar, Clock, ArrowRight, TrendingUp, Target } from 'lucide-react';
+import { useAuthStore } from '../../stores/authStore';
 
 interface PlanCardProps {
   plan: any;
@@ -10,14 +11,17 @@ interface PlanCardProps {
 export default function TrainingPlanCard({ plan }: PlanCardProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
 
   const start = plan?.start_date ? new Date(plan.start_date) : null;
   const end = plan?.end_date ? new Date(plan.end_date) : null;
   const today = new Date();
 
-  let status = 'UNKNOWN';
-  let daysRemaining: number | null = null;
-  if (start && end) {
+  let status = plan?.status || 'UNKNOWN';
+  let daysRemaining: number | null = plan?.days_remaining ?? null;
+  
+  // Se não tiver status calculado, calcular localmente
+  if (status === 'UNKNOWN' && start && end) {
     if (today < start) status = 'UPCOMING';
     else if (today > end) status = 'COMPLETED';
     else status = 'ONGOING';
@@ -25,22 +29,37 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
     daysRemaining = diff > 0 ? diff : 0;
   }
 
+  // Determinar a rota baseada no role do usuário
+  const getPlanRoute = () => {
+    if (user?.role === 'ADMIN') return `/admin/training-plan/${plan?.id}`;
+    if (user?.role === 'TRAINER') return `/trainer/training-plan/${plan?.id}`;
+    return `/training-plan/${plan?.id}`;
+  };
+
   return (
     <div
-      onClick={() => navigate(`/trainer/training-plan/${plan?.id}`)}
+      onClick={() => navigate(getPlanRoute())}
       className="group cursor-pointer h-full"
     >
       <div className="relative h-full overflow-hidden rounded-2xl shadow-lg bg-white border border-gray-200 hover:shadow-2xl hover:border-[#ec0000]/30 transition-all duration-300">
         {/* Status Badge */}
         <div className="absolute top-4 right-4 z-10">
           <div className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg ${
-            status === 'ONGOING' 
+            status === 'IN_PROGRESS' || status === 'ONGOING'
               ? 'bg-green-500 text-white' 
-              : status === 'UPCOMING' 
+              : status === 'PENDING' || status === 'UPCOMING'
                 ? 'bg-blue-500 text-white' 
-                : 'bg-gray-500 text-white'
+                : status === 'DELAYED'
+                  ? 'bg-red-500 text-white'
+                  : status === 'COMPLETED'
+                    ? 'bg-gray-500 text-white'
+                    : 'bg-gray-400 text-white'
           }`}>
-            {status === 'ONGOING' ? 'Ativo' : status === 'UPCOMING' ? 'Próximo' : 'Completo'}
+            {status === 'IN_PROGRESS' || status === 'ONGOING' ? 'Ativo' 
+              : status === 'PENDING' || status === 'UPCOMING' ? 'Pendente' 
+              : status === 'DELAYED' ? 'Atrasado'
+              : status === 'COMPLETED' ? 'Completo' 
+              : status}
           </div>
         </div>
 

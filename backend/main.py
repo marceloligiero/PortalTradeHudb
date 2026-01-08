@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import auth, admin, student, trainer, training_plans, advanced_reports
-from app.routers import challenges, stats
+from app.routes import auth, admin, student, trainer, training_plans, advanced_reports, certificates, student_reports
+from app.routers import challenges, stats, lessons, finalization
 
 app = FastAPI(title="Trade Data Hub API", version="1.0.0")
 
@@ -95,6 +95,14 @@ app.include_router(challenges.router)
 app.include_router(stats.router, tags=["stats"])
 # Mount advanced reports router
 app.include_router(advanced_reports.router, tags=["advanced_reports"])
+# Mount lessons router for pause/resume/start/finish
+app.include_router(lessons.router, tags=["lessons"])
+# Mount finalization router for course/plan finalization
+app.include_router(finalization.router, tags=["finalization"])
+# Mount certificates router for certificate management and PDF download
+app.include_router(certificates.router, prefix="/api/certificates", tags=["certificates"])
+# Mount student reports router
+app.include_router(student_reports.router, tags=["student-reports"])
 
 @app.get("/")
 async def root():

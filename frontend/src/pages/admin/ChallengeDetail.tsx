@@ -20,6 +20,7 @@ import {
   Zap
 } from 'lucide-react';
 import api from '../../lib/axios';
+import { useAuthStore } from '../../stores/authStore';
 
 interface Challenge {
   id: number;
@@ -44,21 +45,21 @@ export default function ChallengeDetail() {
   const { courseId, challengeId } = useParams<{ courseId: string; challengeId: string }>();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'ADMIN';
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (courseId && challengeId) {
-      fetchChallenge();
-    }
-  }, [courseId, challengeId]);
 
   const fetchChallenge = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get(`/api/admin/courses/${courseId}/challenges/${challengeId}`);
+      // Use different API based on user role
+      const apiPath = isAdmin 
+        ? `/api/admin/courses/${courseId}/challenges/${challengeId}` 
+        : `/api/trainer/courses/${courseId}/challenges/${challengeId}`;
+      const response = await api.get(apiPath);
       setChallenge(response.data);
     } catch (err: any) {
       console.error('Error fetching challenge:', err);
@@ -67,6 +68,12 @@ export default function ChallengeDetail() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (courseId && challengeId && user) {
+      fetchChallenge();
+    }
+  }, [courseId, challengeId, user]);
 
   const handleDeleteChallenge = async () => {
     if (!challenge || !window.confirm(t('admin.confirmDeleteChallenge'))) return;
@@ -188,22 +195,24 @@ export default function ChallengeDetail() {
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate(`/courses/${courseId}/challenges/${challenge.id}/edit`)}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors flex items-center gap-2"
-              >
-                <Edit3 className="w-4 h-4" />
-                {t('common.edit')}
-              </button>
-              <button
-                onClick={handleDeleteChallenge}
-                className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-lg transition-colors flex items-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                {t('common.delete')}
-              </button>
-            </div>
+            {isAdmin && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate(`/courses/${courseId}/challenges/${challenge.id}/edit`)}
+                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  {t('common.edit')}
+                </button>
+                <button
+                  onClick={handleDeleteChallenge}
+                  className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-300 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {t('common.delete')}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Stats */}

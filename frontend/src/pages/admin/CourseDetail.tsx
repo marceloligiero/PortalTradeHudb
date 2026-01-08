@@ -23,6 +23,7 @@ import {
   Play
 } from 'lucide-react';
 import api from '../../lib/axios';
+import { useAuthStore } from '../../stores/authStore';
 
 interface Lesson {
   id: number;
@@ -66,22 +67,22 @@ export default function CourseDetail() {
   const { courseId } = useParams<{ courseId: string }>();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'ADMIN';
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'lessons' | 'challenges'>('overview');
 
-  useEffect(() => {
-    if (courseId) {
-      fetchCourse();
-    }
-  }, [courseId]);
-
   const fetchCourse = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get(`/api/admin/courses/${courseId}`);
+      // Use different API based on user role
+      const apiPath = isAdmin 
+        ? `/api/admin/courses/${courseId}` 
+        : `/api/trainer/courses/details/${courseId}`;
+      const response = await api.get(apiPath);
       setCourse(response.data);
     } catch (err: any) {
       console.error('Error fetching course:', err);
@@ -90,6 +91,12 @@ export default function CourseDetail() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (courseId && user) {
+      fetchCourse();
+    }
+  }, [courseId, user]);
 
   const handleDeleteCourse = async () => {
     if (!course || !window.confirm(t('admin.confirmDeleteCourse'))) return;
@@ -197,22 +204,24 @@ export default function CourseDetail() {
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate(`/courses/${course.id}/edit`)}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center gap-2"
-              >
-                <Edit3 className="w-4 h-4" />
-                {t('common.edit')}
-              </button>
-              <button
-                onClick={handleDeleteCourse}
-                className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-colors flex items-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                {t('common.delete')}
-              </button>
-            </div>
+            {isAdmin && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate(`/courses/${course.id}/edit`)}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  {t('common.edit')}
+                </button>
+                <button
+                  onClick={handleDeleteCourse}
+                  className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  {t('common.delete')}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Stats */}
@@ -421,13 +430,15 @@ export default function CourseDetail() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">{t('admin.courseLessons')}</h3>
-              <button
-                onClick={() => navigate(`/courses/${course.id}/lessons/new`)}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                {t('admin.addLesson')}
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => navigate(`/courses/${course.id}/lessons/new`)}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  {t('admin.addLesson')}
+                </button>
+              )}
             </div>
 
             {course.lessons?.length === 0 ? (
@@ -435,13 +446,15 @@ export default function CourseDetail() {
                 <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h4 className="text-lg font-medium text-gray-900 mb-2">{t('admin.noLessonsYet')}</h4>
                 <p className="text-gray-500 mb-6">{t('admin.noLessonsDesc')}</p>
-                <button
-                  onClick={() => navigate(`/courses/${course.id}/lessons/new`)}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors inline-flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  {t('admin.createFirstLesson')}
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => navigate(`/courses/${course.id}/lessons/new`)}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors inline-flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    {t('admin.createFirstLesson')}
+                  </button>
+                )}
               </div>
             ) : (
               <div className="space-y-3">
@@ -484,13 +497,15 @@ export default function CourseDetail() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900">{t('admin.courseChallenges')}</h3>
-              <button
-                onClick={() => navigate(`/courses/${course.id}/challenges/new`)}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                {t('admin.addChallenge')}
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => navigate(`/courses/${course.id}/challenges/new`)}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  {t('admin.addChallenge')}
+                </button>
+              )}
             </div>
 
             {course.challenges?.length === 0 ? (
@@ -498,13 +513,15 @@ export default function CourseDetail() {
                 <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h4 className="text-lg font-medium text-gray-900 mb-2">{t('admin.noChallengesYet')}</h4>
                 <p className="text-gray-500 mb-6">{t('admin.noChallengesDesc')}</p>
-                <button
-                  onClick={() => navigate(`/courses/${course.id}/challenges/new`)}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors inline-flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  {t('admin.createFirstChallenge')}
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => navigate(`/courses/${course.id}/challenges/new`)}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors inline-flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    {t('admin.createFirstChallenge')}
+                  </button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

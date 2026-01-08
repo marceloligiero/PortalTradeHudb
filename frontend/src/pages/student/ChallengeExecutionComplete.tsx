@@ -10,10 +10,10 @@ import {
   TrendingUp, 
   Target, 
   Clock, 
-  User,
   Timer,
   Hash,
-  AlertTriangle
+  AlertTriangle,
+  Send
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -38,9 +38,10 @@ interface Operation {
   completedAt: Date | null;
   durationSeconds: number;
   status: 'pending' | 'in_progress' | 'completed';
+  backendId: number | null;  // ID da operação no backend
 }
 
-const ChallengeExecutionComplete: React.FC = () => {
+const StudentChallengeExecution: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { challengeId } = useParams<{ challengeId: string }>();
@@ -51,15 +52,11 @@ const ChallengeExecutionComplete: React.FC = () => {
   const [error, setError] = useState('');
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [submissionId, setSubmissionId] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState(false);
   
   const [operations, setOperations] = useState<Operation[]>([]);
   const [activeOperationIndex, setActiveOperationIndex] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
-
-  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
-  const [planStudent, setPlanStudent] = useState<{id: number, full_name: string, email: string} | null>(null);
-  const [students, setStudents] = useState<any[]>([]);
-  const [errorsCount, setErrorsCount] = useState<number>(0);
 
   // Inicializar operações baseado no challenge
   useEffect(() => {
@@ -72,7 +69,8 @@ const ChallengeExecutionComplete: React.FC = () => {
           startedAt: null,
           completedAt: null,
           durationSeconds: 0,
-          status: 'pending'
+          status: 'pending',
+          backendId: null
         });
       }
       setOperations(initialOperations);
@@ -98,32 +96,7 @@ const ChallengeExecutionComplete: React.FC = () => {
 
   useEffect(() => {
     loadChallenge();
-    if (planId) {
-      loadPlanStudent();
-    } else {
-      loadStudents();
-    }
-  }, [challengeId, planId]);
-
-  const loadPlanStudent = async () => {
-    try {
-      const response = await api.get(`/api/training-plans/${planId}`);
-      const plan = response.data;
-      if (plan.student) {
-        setPlanStudent(plan.student);
-        setSelectedStudentId(plan.student.id);
-      } else if (plan.student_id) {
-        // Fallback: buscar dados do student
-        const userResp = await api.get(`/api/admin/users/${plan.student_id}`);
-        const user = userResp.data;
-        setPlanStudent({ id: user.id, full_name: user.full_name, email: user.email });
-        setSelectedStudentId(user.id);
-      }
-    } catch (err) {
-      console.error('Erro ao carregar student do plano:', err);
-      loadStudents(); // fallback
-    }
-  };
+  }, [challengeId]);
 
   const loadChallenge = async () => {
     try {
@@ -137,59 +110,12 @@ const ChallengeExecutionComplete: React.FC = () => {
     }
   };
 
-  const loadStudents = async () => {
-    try {
-      // Prefer endpoint that returns students eligible for this challenge
-      const resp = await api.get(`/api/challenges/${challengeId}/eligible-students`);
-      const remote = resp.data ?? [];
-      const mapped = (Array.isArray(remote) ? remote : []).map((s: any) => ({
-        id: s.id,
-        full_name: s.full_name || s.name || s.fullName || s.full_name || s.name,
-        email: s.email,
-      }));
-
-      if (mapped.length > 0) {
-        setStudents(mapped);
-        return;
-      }
-
-      // If no eligible students found, fallback to trainer report and admin lists as a last resort
-      try {
-        const respTrainer = await api.get('/api/trainer/reports/students');
-        const remoteT = respTrainer.data ?? [];
-        const mappedT = (Array.isArray(remoteT) ? remoteT : []).map((s: any) => ({ id: s.id, full_name: s.full_name || s.name || s.fullName || s.name, email: s.email }));
-        if (mappedT.length > 0) {
-          setStudents(mappedT);
-          return;
-        }
-      } catch (e) {
-        // ignore
-      }
-
-      try {
-        const respAdmin = await api.get('/api/admin/students');
-        const remoteAdmin = respAdmin.data ?? [];
-        const mappedAdmin = (Array.isArray(remoteAdmin) ? remoteAdmin : []).map((s: any) => ({ id: s.id, full_name: s.full_name || s.name || s.full_name || s.fullName || s.name, email: s.email }));
-        setStudents(mappedAdmin);
-      } catch (e) {
-        // ignore
-        setStudents([]);
-      }
-    } catch (err) {
-      console.error('Erro ao carregar estudantes:', err);
-      setStudents([]);
-    }
-  };
-
   const startSubmission = async () => {
-    if (!selectedStudentId) {
-      setError('Selecione um estudante');
-      return;
-    }
-
     try {
+      // Usar endpoint /self para formando iniciar seu próprio desafio
       const response = await api.post(
-        `/api/challenges/submit/complete/start/${challengeId}?user_id=${selectedStudentId}`
+        `/api/challenges/submit/complete/start/${challengeId}/self`,
+        { training_plan_id: planId ? parseInt(planId) : null }
       );
       setSubmissionId(response.data.id);
       setError('');
@@ -205,71 +131,83 @@ const ChallengeExecutionComplete: React.FC = () => {
     setOperations(updated);
   };
 
-  const startOperation = (index: number) => {
+  const startOperation = async (index: number) => {
     if (!operations[index].reference.trim()) {
       setError(`Insira a referência da operação ${index + 1}`);
       return;
     }
 
-    // Verificar se há outra operação em progresso
     if (activeOperationIndex !== null) {
       setError('Termine a operação em progresso antes de iniciar outra');
       return;
     }
 
-    const updated = [...operations];
-    updated[index].startedAt = new Date();
-    updated[index].status = 'in_progress';
-    setOperations(updated);
-    setActiveOperationIndex(index);
-    setElapsedTime(0);
-    setError('');
+    try {
+      // Chamar API para iniciar operação
+      const response = await api.post(`/api/challenges/submissions/${submissionId}/operations/start`, {
+        operation_reference: operations[index].reference
+      });
+      
+      const updated = [...operations];
+      updated[index].startedAt = new Date();
+      updated[index].status = 'in_progress';
+      updated[index].backendId = response.data.id;
+      setOperations(updated);
+      setActiveOperationIndex(index);
+      setElapsedTime(0);
+      setError('');
+    } catch (err: any) {
+      console.error('Erro ao iniciar operação:', err);
+      setError(err.response?.data?.detail || 'Erro ao iniciar operação');
+    }
   };
 
-  const finishOperation = (index: number) => {
+  const finishOperation = async (index: number) => {
     const op = operations[index];
-    if (!op.startedAt) return;
+    if (!op.startedAt || !op.backendId) return;
 
-    const completedAt = new Date();
-    const durationSeconds = Math.floor((completedAt.getTime() - op.startedAt.getTime()) / 1000);
+    try {
+      // Chamar API para finalizar operação
+      await api.post(`/api/challenges/operations/${op.backendId}/finish`);
+      
+      const completedAt = new Date();
+      const durationSeconds = Math.floor((completedAt.getTime() - op.startedAt.getTime()) / 1000);
 
-    const updated = [...operations];
-    updated[index].completedAt = completedAt;
-    updated[index].durationSeconds = durationSeconds;
-    updated[index].status = 'completed';
-    setOperations(updated);
-    setActiveOperationIndex(null);
-    setElapsedTime(0);
+      const updated = [...operations];
+      updated[index].completedAt = completedAt;
+      updated[index].durationSeconds = durationSeconds;
+      updated[index].status = 'completed';
+      setOperations(updated);
+      setActiveOperationIndex(null);
+      setElapsedTime(0);
+    } catch (err: any) {
+      console.error('Erro ao finalizar operação:', err);
+      setError(err.response?.data?.detail || 'Erro ao finalizar operação');
+    }
   };
 
-  const finishSubmission = async () => {
+  const submitChallenge = async () => {
     const completedOps = operations.filter(op => op.status === 'completed');
     if (completedOps.length === 0) {
-      setError('Complete pelo menos uma operação antes de finalizar');
+      setError('Complete pelo menos uma operação antes de submeter');
+      return;
+    }
+
+    // Verificar se há operação em progresso
+    if (activeOperationIndex !== null) {
+      setError('Finalize a operação em progresso antes de submeter');
       return;
     }
 
     try {
-      // Enviar todas as operações para o backend
-      for (const op of completedOps) {
-        await api.post(`/api/challenges/submit/complete/${submissionId}/part`, {
-          part_number: op.operationNumber,
-          operations_count: 1,
-          operation_reference: op.reference,
-          started_at: op.startedAt?.toISOString(),
-          completed_at: op.completedAt?.toISOString(),
-        });
-      }
-
-      // Finalizar submissão
-      const response = await api.post(`/api/challenges/submit/complete/${submissionId}/finish`, {
-        errors_count: errorsCount || 0,
-      });
+      // As operações já foram criadas via startOperation/finishOperation
+      // Apenas marcar como submetido (pendente de revisão)
+      await api.post(`/api/challenges/submissions/${submissionId}/submit-for-review`);
       
-      navigate(`/challenges/result/${response.data.id}`);
+      setSubmitted(true);
     } catch (err: any) {
-      console.error('Erro ao finalizar:', err);
-      setError(err.response?.data?.detail || t('challenges.finalizeError'));
+      console.error('Erro ao submeter:', err);
+      setError(err.response?.data?.detail || 'Erro ao submeter desafio');
     }
   };
 
@@ -298,7 +236,7 @@ const ChallengeExecutionComplete: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-gray-900 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-12 h-12 border-4 border-white/30 border-t-red-500 rounded-full animate-spin" />
       </div>
     );
@@ -306,8 +244,29 @@ const ChallengeExecutionComplete: React.FC = () => {
 
   if (!challenge) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-gray-900 flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-white">Desafio não encontrado</div>
+      </div>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+        <div className="p-4 bg-green-500/20 rounded-full mb-6">
+          <Check className="w-16 h-16 text-green-400" />
+        </div>
+        <h1 className="text-3xl font-bold text-white mb-4">Desafio Submetido!</h1>
+        <p className="text-gray-400 mb-8 max-w-md">
+          O seu desafio foi submetido com sucesso e está pendente de revisão pelo formador.
+          Receberá o resultado assim que for avaliado.
+        </p>
+        <button
+          onClick={() => navigate('/student/my-challenges')}
+          className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors"
+        >
+          Ver Meus Desafios
+        </button>
       </div>
     );
   }
@@ -335,7 +294,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                 {challenge.title}
               </h1>
               <p className="text-gray-400">
-                {challenge.description} • Tipo: {challenge.challenge_type}
+                {challenge.description}
               </p>
             </div>
           </div>
@@ -353,9 +312,7 @@ const ChallengeExecutionComplete: React.FC = () => {
               <p className="text-2xl font-bold text-white">
                 {completedCount}/{challenge.operations_required}
               </p>
-              <p className="text-xs text-gray-400">
-                Operações {challenge.use_volume_kpi && <span className="text-blue-400">(KPI)</span>}
-              </p>
+              <p className="text-xs text-gray-400">Operações</p>
             </div>
           </div>
         </div>
@@ -369,25 +326,21 @@ const ChallengeExecutionComplete: React.FC = () => {
               <p className="text-2xl font-bold text-white">
                 {calculateMPU().toFixed(2)}
               </p>
-              <p className="text-xs text-gray-400">
-                MPU Atual {challenge.use_mpu_kpi && <span className="text-green-400">(Alvo: {challenge.target_mpu})</span>}
-              </p>
+              <p className="text-xs text-gray-400">MPU Atual</p>
             </div>
           </div>
         </div>
         
         <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${challenge.use_errors_kpi ? 'bg-red-500/20' : 'bg-gray-500/20'}`}>
-              <AlertTriangle className={`w-5 h-5 ${challenge.use_errors_kpi ? 'text-red-400' : 'text-gray-500'}`} />
+            <div className="p-2 bg-red-500/20 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-red-400" />
             </div>
             <div>
               <p className="text-2xl font-bold text-white">
-                {errorsCount}/{challenge.max_errors || 0}
+                {challenge.max_errors || 0}
               </p>
-              <p className="text-xs text-gray-400">
-                Erros Max {challenge.use_errors_kpi && <span className="text-red-400">(KPI)</span>}
-              </p>
+              <p className="text-xs text-gray-400">Erros Máx</p>
             </div>
           </div>
         </div>
@@ -401,7 +354,7 @@ const ChallengeExecutionComplete: React.FC = () => {
               <p className="text-2xl font-bold text-white">
                 {formatTime(calculateTotalTime())}
               </p>
-              <p className="text-xs text-gray-400">Tempo Total (Limite: {challenge.time_limit_minutes} min)</p>
+              <p className="text-xs text-gray-400">Tempo Total</p>
             </div>
           </div>
         </div>
@@ -428,57 +381,22 @@ const ChallengeExecutionComplete: React.FC = () => {
         </div>
       )}
 
-      {/* Seleção de Estudante (se ainda não iniciou) */}
+      {/* Iniciar Desafio */}
       {!submissionId && (
-        <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
-          <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-            <User className="w-5 h-5 text-blue-400" />
-            Formando
-          </h3>
-          {planStudent ? (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/30 rounded-lg flex-1 mr-4">
-                <User className="w-6 h-6 text-green-500" />
-                <div>
-                  <p className="text-white font-medium">{planStudent.full_name}</p>
-                  <p className="text-gray-400 text-sm">{planStudent.email}</p>
-                </div>
-              </div>
-              <button
-                onClick={startSubmission}
-                className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-colors"
-              >
-                <Play className="w-5 h-5" />
-                Iniciar Desafio
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <select
-                value={selectedStudentId ?? ''}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setSelectedStudentId(v ? parseInt(v, 10) : null);
-                }}
-                className="px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-              >
-                <option value="">Selecione um formando</option>
-                {students.map((student) => (
-                  <option key={student.id} value={student.id}>
-                    {student.full_name} ({student.email})
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={startSubmission}
-                disabled={!selectedStudentId}
-                className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors"
-              >
-                <Play className="w-5 h-5" />
-                Iniciar Desafio
-              </button>
-            </div>
-          )}
+        <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-8 text-center">
+          <Target className="w-16 h-16 text-green-400 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-white mb-2">Pronto para começar?</h3>
+          <p className="text-gray-400 mb-6">
+            Clique no botão abaixo para iniciar o desafio. 
+            Depois de iniciar, insira a referência de cada operação e controle o tempo.
+          </p>
+          <button
+            onClick={startSubmission}
+            className="flex items-center gap-2 px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-lg transition-colors mx-auto"
+          >
+            <Play className="w-6 h-6" />
+            Iniciar Desafio
+          </button>
         </div>
       )}
 
@@ -526,7 +444,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                     />
                   </div>
 
-                  {/* Timer (se em progresso ou concluído) */}
+                  {/* Timer */}
                   {op.status !== 'pending' && (
                     <div className="text-right min-w-[100px]">
                       <div className={`text-xl font-mono font-bold ${
@@ -576,35 +494,23 @@ const ChallengeExecutionComplete: React.FC = () => {
             ))}
           </div>
 
-          {/* Campo de Erros e Finalizar */}
+          {/* Submeter */}
           <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6 mt-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Total de Erros Cometidos
-                  </label>
-                  <input
-                    type="number"
-                    value={errorsCount}
-                    onChange={(e) => setErrorsCount(parseInt(e.target.value || '0'))}
-                    min={0}
-                    max={challenge.max_errors || 999}
-                    className="w-32 px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-red-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Máximo permitido: {challenge.max_errors ?? 0}
-                  </p>
-                </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Submeter para Revisão</h3>
+                <p className="text-gray-400 text-sm">
+                  Após submeter, o formador irá avaliar as suas operações e registar os erros.
+                </p>
               </div>
               
               <button
-                onClick={finishSubmission}
+                onClick={submitChallenge}
                 disabled={completedCount === 0}
-                className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg transition-all"
+                className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg transition-all"
               >
-                <Check className="w-6 h-6" />
-                Finalizar Desafio
+                <Send className="w-6 h-6" />
+                Submeter Desafio
               </button>
             </div>
           </div>
@@ -614,4 +520,4 @@ const ChallengeExecutionComplete: React.FC = () => {
   );
 };
 
-export default ChallengeExecutionComplete;
+export default StudentChallengeExecution;

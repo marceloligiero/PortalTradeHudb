@@ -1,4 +1,4 @@
-import { Home, BookOpen, Award, Users, Settings, Building2, Package, GraduationCap, BarChart3 } from 'lucide-react';
+import { Home, BookOpen, Award, Users, Settings, Building2, Package, GraduationCap, BarChart3, Target, Presentation, ClipboardCheck } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
@@ -9,7 +9,9 @@ export default function Sidebar() {
 
   const studentLinks = [
     { to: '/', icon: Home, label: t('navigation.dashboard') },
-    { to: '/courses', icon: BookOpen, label: t('navigation.myCourses') },
+    { to: '/my-plans', icon: GraduationCap, label: t('navigation.trainingPlans') },
+    { to: '/my-challenges', icon: Target, label: 'Meus Desafios' },
+    { to: '/my-lessons', icon: Presentation, label: 'Minhas Aulas' },
     { to: '/certificates', icon: Award, label: t('navigation.certificates') },
     { to: '/reports', icon: Settings, label: t('navigation.reports') },
   ];
@@ -18,6 +20,7 @@ export default function Sidebar() {
     { to: '/', icon: Home, label: t('navigation.dashboard') },
     { to: '/courses', icon: BookOpen, label: t('navigation.courses') },
     { to: '/training-plans', icon: GraduationCap, label: t('navigation.trainingPlans') },
+    { to: '/pending-reviews', icon: ClipboardCheck, label: 'Pendentes de Revisão' },
     { to: '/students', icon: Users, label: t('navigation.students') },
     { to: '/reports', icon: Settings, label: t('navigation.reports') },
   ];
@@ -28,6 +31,7 @@ export default function Sidebar() {
     { to: '/trainer-validation', icon: GraduationCap, label: t('navigation.trainers') },
     { to: '/courses', icon: BookOpen, label: t('navigation.courses') },
     { to: '/training-plans', icon: GraduationCap, label: t('navigation.trainingPlans') },
+    { to: '/pending-reviews', icon: ClipboardCheck, label: 'Pendentes de Revisão' },
     { to: '/banks', icon: Building2, label: t('navigation.banks') },
     { to: '/products', icon: Package, label: t('navigation.products') },
     { to: '/reports', icon: Award, label: t('navigation.reports') },
@@ -36,7 +40,7 @@ export default function Sidebar() {
   ];
 
   const links =
-    user?.role === 'STUDENT'
+    user?.role === 'STUDENT' || user?.role === 'TRAINEE'
       ? studentLinks
       : user?.role === 'TRAINER'
       ? trainerLinks

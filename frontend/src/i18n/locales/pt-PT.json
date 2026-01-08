@@ -242,7 +242,48 @@
     "mpu": "MPU",
     "submitted": "Submetido",
     "approved": "Aprovado",
-    "pending": "Pendente"
+    "pending": "Pendente",
+    "selectStudent": "Selecione um formando",
+    "fillOperationsTime": "Preencha as operações e tempo",
+    "submitError": "Erro ao submeter desafio"
+  },
+  "errors": {
+    "concepts": {
+      "title": "Erros por Conceito",
+      "methodology": "Metodologia",
+      "methodologyDesc": "Erros na forma/método de execução",
+      "knowledge": "Conhecimento",
+      "knowledgeDesc": "Erros por falta de conhecimento",
+      "detail": "Detalhe",
+      "detailDesc": "Erros de atenção ao detalhe",
+      "procedure": "Procedimento",
+      "procedureDesc": "Erros no procedimento/sequência",
+      "total": "Total de Erros",
+      "maxAllowed": "Máximo permitido"
+    }
+  },
+  "lessonProgress": {
+    "notStarted": "Não Iniciada",
+    "inProgress": "Em Progresso",
+    "paused": "Pausada",
+    "completed": "Concluída",
+    "start": "Iniciar",
+    "pause": "Pausar",
+    "resume": "Retomar",
+    "finish": "Finalizar",
+    "timeRemaining": "Tempo Restante",
+    "timeElapsed": "Tempo Decorrido",
+    "timeExceeded": "Tempo Excedido",
+    "estimatedTime": "Tempo Estimado"
+  },
+  "planStatus": {
+    "pending": "Pendente",
+    "inProgress": "Em Curso",
+    "completed": "Concluído",
+    "delayed": "Atrasado",
+    "daysRemaining": "dias restantes",
+    "daysDelayed": "dias de atraso",
+    "canFinalize": "Pronto para finalizar"
   },
   "certificates": {
     "title": "Certificados",

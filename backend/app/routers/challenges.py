@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from .. import models, schemas
 from fastapi import Body
@@ -10,21 +10,24 @@ from ..auth import get_current_user, require_role
 router = APIRouter(prefix="/api/challenges", tags=["challenges"])
 
 def calculate_mpu(operations: int, time_minutes: float) -> float:
-    """Calcula MPU (Movimentos Por Unidade de tempo)"""
-    if time_minutes <= 0:
+    """Calcula MPU (Minutos Por Unidade) = tempo / operações"""
+    if operations <= 0:
         return 0.0
-    return round(operations / time_minutes, 2)
+    return round(time_minutes / operations, 2)
 
 def calculate_approval(calculated_mpu: float, target_mpu: float) -> tuple[bool, float]:
     """
     Calcula aprovação e percentual vs meta
+    Para MPU (tempo/operações), quanto MENOR melhor
     Returns: (is_approved, mpu_vs_target_percentage)
     """
-    if target_mpu <= 0:
+    if calculated_mpu <= 0:
         return False, 0.0
     
-    mpu_vs_target = round((calculated_mpu / target_mpu) * 100, 2)
-    is_approved = calculated_mpu >= target_mpu
+    # Percentual: se target=0.2 e calculated=0.1, então 200% (2x mais rápido que a meta)
+    # Se calculated <= target, está aprovado (foi mais rápido ou igual à meta)
+    mpu_vs_target = round((target_mpu / calculated_mpu) * 100, 2)
+    is_approved = calculated_mpu <= target_mpu
     
     return is_approved, mpu_vs_target
 
@@ -219,6 +222,145 @@ async def update_challenge(
     
     return db_challenge
 
+
+# ===== LIBERAR Desafio para Formandos =====
+@router.post("/{challenge_id}/release", response_model=schemas.Challenge)
+async def release_challenge(
+    challenge_id: int,
+    release_data: schemas.ChallengeRelease = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+):
+    """
+    Liberar ou bloquear desafio para formandos
+    Apenas desafios liberados aparecem para o formando
+    """
+    challenge = db.query(models.Challenge).filter(
+        models.Challenge.id == challenge_id
+    ).first()
+    
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Desafio não encontrado")
+    
+    is_released = release_data.is_released if release_data else True
+    
+    challenge.is_released = is_released
+    if is_released:
+        challenge.released_at = datetime.now()
+        challenge.released_by = current_user.id
+    else:
+        challenge.released_at = None
+        challenge.released_by = None
+    
+    challenge.updated_at = datetime.now()
+    db.commit()
+    db.refresh(challenge)
+    
+    return challenge
+
+
+# ===== LISTAR Desafios Liberados para Formando =====
+@router.get("/student/released", response_model=List[schemas.Challenge])
+async def list_released_challenges(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Listar desafios liberados para o formando atual
+    Verifica na tabela challenge_releases se o desafio foi liberado para este estudante
+    """
+    if current_user.role not in ["TRAINEE", "STUDENT"]:
+        raise HTTPException(status_code=403, detail="Apenas formandos podem acessar")
+    
+    # Buscar desafios liberados para este estudante
+    releases = db.query(models.ChallengeRelease).filter(
+        models.ChallengeRelease.student_id == current_user.id
+    ).all()
+    
+    if not releases:
+        return []
+    
+    challenge_ids = [r.challenge_id for r in releases]
+    
+    # Buscar desafios ativos
+    challenges = db.query(models.Challenge).filter(
+        models.Challenge.id.in_(challenge_ids),
+        models.Challenge.is_active == True
+    ).all()
+    
+    return challenges
+
+
+# ===== FORMADOR: Liberar Desafio para Estudante =====
+@router.post("/{challenge_id}/release/{student_id}")
+async def release_challenge_for_student(
+    challenge_id: int,
+    student_id: int,
+    training_plan_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+):
+    """
+    Formador/Admin libera um desafio para um estudante específico
+    """
+    # Validar desafio existe
+    challenge = db.query(models.Challenge).filter(
+        models.Challenge.id == challenge_id
+    ).first()
+    
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Desafio não encontrado")
+    
+    # Validar estudante existe
+    student = db.query(models.User).filter(
+        models.User.id == student_id,
+        models.User.role == "TRAINEE"
+    ).first()
+    
+    if not student:
+        raise HTTPException(status_code=404, detail="Estudante não encontrado")
+    
+    # Verificar se já está liberado
+    existing = db.query(models.ChallengeRelease).filter(
+        models.ChallengeRelease.challenge_id == challenge_id,
+        models.ChallengeRelease.student_id == student_id
+    ).first()
+    
+    if existing:
+        return {"message": "Desafio já está liberado para este estudante", "released": True}
+    
+    # Criar liberação
+    release = models.ChallengeRelease(
+        challenge_id=challenge_id,
+        student_id=student_id,
+        training_plan_id=training_plan_id,
+        released_by=current_user.id
+    )
+    
+    db.add(release)
+    db.commit()
+    
+    return {"message": "Desafio liberado com sucesso", "released": True}
+
+
+# ===== VERIFICAR se Desafio está Liberado =====
+@router.get("/{challenge_id}/is-released/{student_id}")
+async def check_challenge_released(
+    challenge_id: int,
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Verificar se um desafio está liberado para um estudante
+    """
+    release = db.query(models.ChallengeRelease).filter(
+        models.ChallengeRelease.challenge_id == challenge_id,
+        models.ChallengeRelease.student_id == student_id
+    ).first()
+    
+    return {"released": release is not None}
+
 # ===== SUBMETER Desafio SUMMARY (Resumido) =====
 @router.post("/submit/summary", response_model=schemas.ChallengeSubmission, status_code=status.HTTP_201_CREATED)
 async def submit_challenge_summary(
@@ -284,11 +426,19 @@ async def submit_challenge_summary(
     # Verificar aprovação por MPU
     is_approved_mpu, mpu_vs_target = calculate_approval(calculated_mpu, challenge.target_mpu)
 
-    # Verificar aprovação por erros (se definido)
+    # Para SUMMARY: errors_count é o número de OPERAÇÕES com erro inserido pelo formador
+    # Os campos error_methodology, error_knowledge, etc são totais de erros por tipo (para relatório)
     max_errors = getattr(challenge, 'max_errors', 0) or 0
-    errors_ok = submission.errors_count <= max_errors
+    operations_with_errors = submission.errors_count or 0  # Número de operações com pelo menos 1 erro
+    errors_ok = operations_with_errors <= max_errors
 
     is_approved = is_approved_mpu and errors_ok
+    
+    # Total de erros individuais (para relatório) - não afeta aprovação
+    total_individual_errors = (submission.error_methodology or 0) + \
+                              (submission.error_knowledge or 0) + \
+                              (submission.error_detail or 0) + \
+                              (submission.error_procedure or 0)
     
     # Calcular score (0-100)
     score = min(mpu_vs_target, 100.0)
@@ -301,7 +451,12 @@ async def submit_challenge_summary(
         submission_type="SUMMARY",
         total_operations=submission.total_operations,
         total_time_minutes=submission.total_time_minutes,
-        errors_count=submission.errors_count,
+        errors_count=operations_with_errors,  # Número de OPERAÇÕES com erro
+        error_methodology=submission.error_methodology,
+        error_knowledge=submission.error_knowledge,
+        error_detail=submission.error_detail,
+        error_procedure=submission.error_procedure,
+        operation_reference=submission.operation_reference,
         started_at=now,
         completed_at=now,
         calculated_mpu=calculated_mpu,
@@ -315,7 +470,102 @@ async def submit_challenge_summary(
     db.commit()
     db.refresh(db_submission)
     
+    # Salvar detalhes dos erros (para SUMMARY)
+    if submission.error_details:
+        for err_detail in submission.error_details:
+            db_error = models.SubmissionError(
+                submission_id=db_submission.id,
+                error_type=err_detail.get('error_type', 'METHODOLOGY'),
+                description=err_detail.get('description', ''),
+                operation_reference=err_detail.get('operation_reference')
+            )
+            db.add(db_error)
+        db.commit()
+    
     return db_submission
+
+# ===== FORMANDO: INICIAR Desafio COMPLETE (por conta própria) =====
+@router.post("/submit/complete/start/{challenge_id}/self", response_model=schemas.ChallengeSubmission)
+async def start_challenge_complete_self(
+    challenge_id: int,
+    body: Optional[dict] = Body(default={}),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Formando inicia desafio tipo COMPLETE por conta própria
+    """
+    # Extrair training_plan_id do body
+    training_plan_id = body.get('training_plan_id') if body else None
+    
+    # Verificar se é formando
+    if current_user.role not in ["TRAINEE", "STUDENT"]:
+        raise HTTPException(status_code=403, detail="Apenas formandos podem iniciar desafios desta forma")
+    
+    # Validar challenge
+    challenge = db.query(models.Challenge).filter(
+        models.Challenge.id == challenge_id
+    ).first()
+    
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Desafio não encontrado")
+    
+    if challenge.challenge_type != "COMPLETE":
+        raise HTTPException(
+            status_code=400,
+            detail="Este desafio é tipo SUMMARY. Use o endpoint apropriado."
+        )
+    
+    # Verificar se o formando está atribuído a um plano que contenha o curso do desafio
+    plans_with_course = db.query(models.TrainingPlan).join(models.TrainingPlanCourse).filter(
+        models.TrainingPlanCourse.course_id == challenge.course_id,
+        models.TrainingPlan.student_id == current_user.id
+    ).all()
+    
+    if not plans_with_course:
+        raise HTTPException(status_code=403, detail="Não está atribuído a um plano que contenha este desafio")
+    
+    # Verificar se já existe submissão submetida ou concluída (não pode refazer)
+    completed_submission = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id == challenge_id,
+        models.ChallengeSubmission.user_id == current_user.id,
+        models.ChallengeSubmission.status.in_(["SUBMITTED", "COMPLETED", "PENDING_REVIEW", "APPROVED", "REJECTED"])
+    ).first()
+    
+    if completed_submission:
+        raise HTTPException(
+            status_code=400, 
+            detail="Você já submeteu este desafio. Não é possível refazer."
+        )
+    
+    # Verificar se já existe submission em aberto (retornar existente)
+    existing = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id == challenge_id,
+        models.ChallengeSubmission.user_id == current_user.id,
+        models.ChallengeSubmission.completed_at == None
+    ).first()
+    
+    if existing:
+        return existing
+    
+    # Criar nova submission
+    db_submission = models.ChallengeSubmission(
+        challenge_id=challenge_id,
+        user_id=current_user.id,
+        submission_type="COMPLETE",
+        status="IN_PROGRESS",
+        started_at=datetime.now(),
+        submitted_by=current_user.id,
+        training_plan_id=training_plan_id,
+        is_approved=False
+    )
+    
+    db.add(db_submission)
+    db.commit()
+    db.refresh(db_submission)
+    
+    return db_submission
+
 
 # ===== INICIAR Desafio COMPLETE (Com partes) =====
 @router.post("/submit/complete/start/{challenge_id}", response_model=schemas.ChallengeSubmission)
@@ -371,6 +621,19 @@ async def start_challenge_complete(
 
     if not assignment_found:
         raise HTTPException(status_code=403, detail="Estudante não está atribuído a um plano que contenha este curso ou sem permissão para aplicar")
+    
+    # Verificar se já existe submissão submetida ou concluída (não pode refazer)
+    completed_submission = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id == challenge_id,
+        models.ChallengeSubmission.user_id == user_id,
+        models.ChallengeSubmission.status.in_(["SUBMITTED", "COMPLETED", "PENDING_REVIEW", "APPROVED", "REJECTED"])
+    ).first()
+    
+    if completed_submission:
+        raise HTTPException(
+            status_code=400, 
+            detail="Este estudante já submeteu este desafio. Não é possível refazer."
+        )
     
     # Verificar se já existe submission em aberto
     existing = db.query(models.ChallengeSubmission).filter(
@@ -496,21 +759,52 @@ async def finish_challenge_complete(
     is_approved_mpu, mpu_vs_target = calculate_approval(calculated_mpu, challenge.target_mpu)
     score = min(mpu_vs_target, 100.0)
 
-    # Determine errors_count: prefer provided finish_input, else use submission.errors_count or 0
-    if finish_input and getattr(finish_input, 'errors_count', None) is not None:
-        errors_count = int(finish_input.errors_count or 0)
-    else:
-        errors_count = int(getattr(submission, 'errors_count', 0) or 0)
+    # Contar OPERAÇÕES com erro (não total de erros)
+    # Para COMPLETE: conta operations onde has_error=True
+    operations_with_errors = db.query(models.ChallengeOperation).filter(
+        models.ChallengeOperation.submission_id == submission.id,
+        models.ChallengeOperation.has_error == True
+    ).count()
+    
+    # errors_count guarda o número de OPERAÇÕES com erro
+    errors_count = operations_with_errors
 
-    # Approval by errors
+    # Também guardar totais de erros por tipo (para relatórios)
+    error_methodology = 0
+    error_knowledge = 0
+    error_detail = 0
+    error_procedure = 0
+    
+    # Buscar todos os erros de todas as operações desta submission
+    all_operations = db.query(models.ChallengeOperation).filter(
+        models.ChallengeOperation.submission_id == submission.id
+    ).all()
+    
+    for op in all_operations:
+        for err in op.errors:
+            if err.error_type == 'METHODOLOGY':
+                error_methodology += 1
+            elif err.error_type == 'KNOWLEDGE':
+                error_knowledge += 1
+            elif err.error_type == 'DETAIL':
+                error_detail += 1
+            elif err.error_type == 'PROCEDURE':
+                error_procedure += 1
+
+    # Aprovação por erros: max_errors refere-se a OPERAÇÕES com erro, não total de erros
     max_errors = getattr(challenge, 'max_errors', 0) or 0
-    errors_ok = errors_count <= max_errors
+    errors_ok = operations_with_errors <= max_errors
 
     is_approved = is_approved_mpu and errors_ok
     
     # Atualizar submission
     submission.total_operations = total_operations
     submission.total_time_minutes = int(total_time)
+    submission.errors_count = errors_count
+    submission.error_methodology = error_methodology
+    submission.error_knowledge = error_knowledge
+    submission.error_detail = error_detail
+    submission.error_procedure = error_procedure
     submission.completed_at = datetime.now()
     submission.calculated_mpu = calculated_mpu
     submission.mpu_vs_target = mpu_vs_target
@@ -577,15 +871,113 @@ async def finish_challenge_complete(
 @router.get("/{challenge_id}/submissions", response_model=List[schemas.ChallengeSubmission])
 async def list_challenge_submissions(
     challenge_id: int,
+    user_id: Optional[int] = None,
+    training_plan_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Listar submissions de um desafio
+    - Formador pode ver todas ou filtrar por user_id e training_plan_id
+    - Formando só pode ver as suas próprias
+    """
+    query = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id == challenge_id
+    )
+    
+    # Se é formando, só pode ver suas próprias submissions
+    if current_user.role in ["TRAINEE", "STUDENT"]:
+        query = query.filter(models.ChallengeSubmission.user_id == current_user.id)
+    else:
+        # Formador pode filtrar por user_id
+        if user_id:
+            query = query.filter(models.ChallengeSubmission.user_id == user_id)
+    
+    # Filtrar por training_plan_id se fornecido
+    if training_plan_id:
+        query = query.filter(models.ChallengeSubmission.training_plan_id == training_plan_id)
+    
+    submissions = query.order_by(models.ChallengeSubmission.created_at.desc()).all()
+    
+    return submissions
+
+
+# ===== LISTAR Submissions Pendentes de Revisão (para Formador) =====
+@router.get("/pending-review/list", response_model=List[schemas.ChallengeSubmissionDetail])
+async def list_pending_review_submissions(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
 ):
-    """Listar todas as submissions de um desafio"""
+    """
+    Listar todas as submissions pendentes de revisão
+    Ordenadas por data de submissão (mais antigas primeiro)
+    """
     submissions = db.query(models.ChallengeSubmission).filter(
-        models.ChallengeSubmission.challenge_id == challenge_id
-    ).all()
+        models.ChallengeSubmission.status == "PENDING_REVIEW"
+    ).order_by(models.ChallengeSubmission.updated_at.asc()).all()
     
-    return submissions
+    # Enriquecer com dados de challenge e user
+    result = []
+    for sub in submissions:
+        challenge = db.query(models.Challenge).filter(
+            models.Challenge.id == sub.challenge_id
+        ).first()
+        user = db.query(models.User).filter(
+            models.User.id == sub.user_id
+        ).first()
+        
+        # Contar operações
+        ops_count = db.query(models.ChallengeOperation).filter(
+            models.ChallengeOperation.submission_id == sub.id
+        ).count()
+        
+        result.append({
+            "id": sub.id,
+            "challenge_id": sub.challenge_id,
+            "user_id": sub.user_id,
+            "submission_type": sub.submission_type,
+            "status": getattr(sub, 'status', 'IN_PROGRESS'),
+            "total_operations": sub.total_operations or ops_count,
+            "total_time_minutes": sub.total_time_minutes,
+            "started_at": sub.started_at,
+            "completed_at": sub.completed_at,
+            "calculated_mpu": sub.calculated_mpu,
+            "mpu_vs_target": sub.mpu_vs_target,
+            "is_approved": sub.is_approved,
+            "score": sub.score,
+            "feedback": sub.feedback,
+            "submitted_by": sub.submitted_by,
+            "errors_count": sub.errors_count or 0,
+            "error_methodology": sub.error_methodology or 0,
+            "error_knowledge": sub.error_knowledge or 0,
+            "error_detail": sub.error_detail or 0,
+            "error_procedure": sub.error_procedure or 0,
+            "operation_reference": sub.operation_reference,
+            "created_at": sub.created_at,
+            "updated_at": sub.updated_at,
+            "parts": [],
+            "operations": [],
+            "challenge": {
+                "id": challenge.id,
+                "course_id": challenge.course_id,
+                "title": challenge.title,
+                "description": challenge.description,
+                "challenge_type": challenge.challenge_type,
+                "operations_required": challenge.operations_required,
+                "time_limit_minutes": challenge.time_limit_minutes,
+                "target_mpu": challenge.target_mpu,
+            } if challenge else None,
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "full_name": user.full_name,
+                "role": user.role
+            } if user else None,
+            "submitter": None
+        })
+    
+    return result
+
 
 # ===== VER Detalhes de uma Submission =====
 @router.get("/submissions/{submission_id}", response_model=schemas.ChallengeSubmissionDetail)
@@ -594,7 +986,7 @@ async def get_submission_detail(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
-    """Ver detalhes completos de uma submission incluindo partes"""
+    """Ver detalhes completos de uma submission incluindo partes e erros"""
     submission = db.query(models.ChallengeSubmission).filter(
         models.ChallengeSubmission.id == submission_id
     ).first()
@@ -602,12 +994,52 @@ async def get_submission_detail(
     if not submission:
         raise HTTPException(status_code=404, detail="Submission não encontrada")
     
+    # Formando só pode ver suas próprias submissions
+    if current_user.role in ["TRAINEE", "STUDENT"]:
+        if submission.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Sem permissão para ver esta submission")
+    
     # Buscar partes se for tipo COMPLETE
     parts = []
     if submission.submission_type == "COMPLETE":
         parts = db.query(models.ChallengePart).filter(
             models.ChallengePart.submission_id == submission_id
         ).all()
+    
+    # Buscar operações com seus erros
+    operations = db.query(models.ChallengeOperation).filter(
+        models.ChallengeOperation.submission_id == submission_id
+    ).order_by(models.ChallengeOperation.operation_number).all()
+    
+    # Contar operações completadas (para COMPLETE)
+    completed_operations_count = len([op for op in operations if op.completed_at])
+    
+    operations_data = []
+    for op in operations:
+        errors = db.query(models.OperationError).filter(
+            models.OperationError.operation_id == op.id
+        ).all()
+        operations_data.append({
+            "id": op.id,
+            "submission_id": op.submission_id,
+            "operation_number": op.operation_number,
+            "operation_reference": op.operation_reference,
+            "started_at": op.started_at.isoformat() if op.started_at else None,
+            "completed_at": op.completed_at.isoformat() if op.completed_at else None,
+            "duration_seconds": op.duration_seconds,
+            "has_error": op.has_error,
+            "is_approved": op.is_approved,
+            "created_at": op.created_at.isoformat() if op.created_at else None,
+            "errors": [
+                {
+                    "id": err.id,
+                    "operation_id": err.operation_id,
+                    "error_type": err.error_type,
+                    "description": err.description,
+                    "created_at": err.created_at.isoformat() if err.created_at else None
+                } for err in errors
+            ]
+        })
     
     # Buscar challenge
     challenge = db.query(models.Challenge).filter(
@@ -618,21 +1050,49 @@ async def get_submission_detail(
     user = db.query(models.User).filter(models.User.id == submission.user_id).first()
     submitter = db.query(models.User).filter(models.User.id == submission.submitted_by).first() if submission.submitted_by else None
     
+    # Buscar erros da submission (para SUMMARY)
+    submission_errors = db.query(models.SubmissionError).filter(
+        models.SubmissionError.submission_id == submission_id
+    ).all()
+    
+    # Calcular valores para COMPLETE baseado nas operações reais
+    actual_total_operations = completed_operations_count if submission.submission_type == "COMPLETE" else (submission.total_operations or 0)
+    
+    # Calcular tempo total e MPU para COMPLETE
+    total_time_calculated = submission.total_time_minutes or 0
+    calculated_mpu_value = submission.calculated_mpu or 0
+    
+    if submission.submission_type == "COMPLETE" and operations:
+        total_seconds = sum(op.duration_seconds or 0 for op in operations if op.completed_at)
+        total_time_calculated = round(total_seconds / 60, 2) if total_seconds > 0 else 0
+        if actual_total_operations > 0 and total_time_calculated > 0:
+            # MPU = tempo / operações (minutos por unidade)
+            calculated_mpu_value = round(total_time_calculated / actual_total_operations, 2)
+    
+    # Calcular erros para COMPLETE
+    errors_in_operations = len([op for op in operations if op.has_error])
+    actual_errors_count = errors_in_operations if submission.submission_type == "COMPLETE" else (submission.errors_count or 0)
+    
+    # Calcular mpu_vs_target (quanto menor o MPU calculado, melhor)
+    mpu_vs_target_value = (challenge.target_mpu / calculated_mpu_value * 100) if challenge and challenge.target_mpu and calculated_mpu_value else (submission.mpu_vs_target or 0)
+    
     resp = {
         "id": submission.id,
         "challenge_id": submission.challenge_id,
         "user_id": submission.user_id,
         "submission_type": submission.submission_type,
-        "total_operations": submission.total_operations,
-        "total_time_minutes": submission.total_time_minutes,
+        "status": submission.status,
+        "total_operations": actual_total_operations,
+        "total_time_minutes": total_time_calculated,
         "started_at": submission.started_at.isoformat() if submission.started_at else None,
         "completed_at": submission.completed_at.isoformat() if submission.completed_at else None,
-        "calculated_mpu": submission.calculated_mpu,
-        "mpu_vs_target": submission.mpu_vs_target,
+        "calculated_mpu": calculated_mpu_value,
+        "mpu_vs_target": mpu_vs_target_value,
         "is_approved": submission.is_approved,
         "score": submission.score,
         "feedback": submission.feedback,
         "submitted_by": submission.submitted_by,
+        "errors_count": actual_errors_count,
         "created_at": submission.created_at.isoformat() if submission.created_at else None,
         "updated_at": submission.updated_at.isoformat() if submission.updated_at else None,
         "parts": [
@@ -650,6 +1110,17 @@ async def get_submission_detail(
             }
             for p in parts
         ],
+        "operations": operations_data,  # Operações com erros detalhados (COMPLETE)
+        "submission_errors": [  # Erros detalhados (SUMMARY)
+            {
+                "id": se.id,
+                "error_type": se.error_type,
+                "description": se.description,
+                "operation_reference": se.operation_reference,
+                "created_at": se.created_at.isoformat() if se.created_at else None
+            }
+            for se in submission_errors
+        ],
         "challenge": {
             "id": challenge.id,
             "course_id": challenge.course_id,
@@ -660,6 +1131,9 @@ async def get_submission_detail(
             "time_limit_minutes": challenge.time_limit_minutes,
             "target_mpu": challenge.target_mpu,
             "max_errors": getattr(challenge, 'max_errors', 0) if challenge else 0,
+            "use_volume_kpi": getattr(challenge, 'use_volume_kpi', True) if challenge else True,
+            "use_mpu_kpi": getattr(challenge, 'use_mpu_kpi', True) if challenge else True,
+            "use_errors_kpi": getattr(challenge, 'use_errors_kpi', True) if challenge else True,
             "created_by": getattr(challenge, 'created_by', None) if challenge else None,
             "is_active": challenge.is_active if challenge else None,
             "created_at": challenge.created_at.isoformat() if challenge and challenge.created_at else None,
@@ -676,7 +1150,457 @@ async def get_submission_detail(
             "email": submitter.email,
             "full_name": submitter.full_name,
             "role": submitter.role
-        } if submitter else None
+        } if submitter else None,
+        # Resumo de erros (para formando ver claramente)
+        "errors_summary": {
+            "operations_with_errors": actual_errors_count,
+            "max_errors_allowed": getattr(challenge, 'max_errors', 0) if challenge else 0,
+            "error_methodology": submission.error_methodology or 0,
+            "error_knowledge": submission.error_knowledge or 0,
+            "error_detail": submission.error_detail or 0,
+            "error_procedure": submission.error_procedure or 0,
+            "total_individual_errors": (submission.error_methodology or 0) + 
+                                       (submission.error_knowledge or 0) + 
+                                       (submission.error_detail or 0) + 
+                                       (submission.error_procedure or 0)
+        }
     }
 
     return resp
+
+
+# ===== FORMANDO: Iniciar Operação (COMPLETE) =====
+@router.post("/submissions/{submission_id}/operations/start", response_model=schemas.ChallengeOperation)
+async def start_operation(
+    submission_id: int,
+    operation_data: schemas.ChallengeOperationStart,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Formando inicia uma operação com referência
+    Usado em desafios COMPLETE onde cada operação é registrada
+    """
+    # Validar submission
+    submission = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.id == submission_id
+    ).first()
+    
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    if submission.completed_at:
+        raise HTTPException(status_code=400, detail="Submission já foi finalizada")
+    
+    # Verificar se é o formando da submission ou formador/admin
+    if current_user.role in ["TRAINEE", "STUDENT"]:
+        if submission.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Sem permissão")
+    
+    # Contar operações existentes para determinar número
+    existing_count = db.query(models.ChallengeOperation).filter(
+        models.ChallengeOperation.submission_id == submission_id
+    ).count()
+    
+    # Validar limite de operações do desafio
+    challenge = db.query(models.Challenge).filter(
+        models.Challenge.id == submission.challenge_id
+    ).first()
+    
+    if challenge and challenge.operations_required:
+        if existing_count >= challenge.operations_required:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Limite de operações atingido ({challenge.operations_required}). Submeta o desafio para revisão."
+            )
+    
+    operation_number = existing_count + 1
+    
+    # Criar operação (is_approved=None significa pendente de revisão)
+    db_operation = models.ChallengeOperation(
+        submission_id=submission_id,
+        operation_number=operation_number,
+        operation_reference=operation_data.operation_reference,
+        started_at=datetime.now(),
+        has_error=False,
+        is_approved=None  # Pendente de revisão pelo formador
+    )
+    
+    db.add(db_operation)
+    db.commit()
+    db.refresh(db_operation)
+    
+    return db_operation
+
+
+# ===== FORMANDO: Finalizar Operação (COMPLETE) =====
+@router.post("/operations/{operation_id}/finish", response_model=schemas.ChallengeOperation)
+async def finish_operation(
+    operation_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Formando finaliza uma operação (para contagem de tempo)
+    """
+    operation = db.query(models.ChallengeOperation).filter(
+        models.ChallengeOperation.id == operation_id
+    ).first()
+    
+    if not operation:
+        raise HTTPException(status_code=404, detail="Operação não encontrada")
+    
+    if operation.completed_at:
+        raise HTTPException(status_code=400, detail="Operação já foi finalizada")
+    
+    # Verificar permissão
+    submission = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.id == operation.submission_id
+    ).first()
+    
+    if current_user.role in ["TRAINEE", "STUDENT"]:
+        if submission.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Sem permissão")
+    
+    now = datetime.now()
+    operation.completed_at = now
+    
+    # Calcular duração
+    if operation.started_at:
+        duration = (now - operation.started_at).total_seconds()
+        operation.duration_seconds = int(duration)
+    
+    db.commit()
+    db.refresh(operation)
+    
+    return operation
+
+
+# ===== FORMANDO: Submeter para Revisão =====
+@router.post("/submissions/{submission_id}/submit-for-review", response_model=schemas.ChallengeSubmission)
+async def submit_for_review(
+    submission_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Formando finaliza a execução e submete para revisão do formador
+    Todas as operações devem estar finalizadas
+    """
+    submission = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.id == submission_id
+    ).first()
+    
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    # Verificar permissão - formando só pode submeter sua própria
+    if current_user.role in ["TRAINEE", "STUDENT"]:
+        if submission.user_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Sem permissão")
+    
+    # Verificar se já foi submetida
+    if getattr(submission, 'status', None) == "PENDING_REVIEW":
+        raise HTTPException(status_code=400, detail="Já submetida para revisão")
+    
+    if submission.completed_at:
+        raise HTTPException(status_code=400, detail="Submission já foi finalizada")
+    
+    # Verificar se há operações
+    operations = db.query(models.ChallengeOperation).filter(
+        models.ChallengeOperation.submission_id == submission_id
+    ).all()
+    
+    if not operations:
+        raise HTTPException(status_code=400, detail="Nenhuma operação registrada")
+    
+    # Verificar se todas as operações foram finalizadas
+    incomplete = [op for op in operations if not op.completed_at]
+    if incomplete:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"{len(incomplete)} operação(ões) ainda não finalizadas"
+        )
+    
+    # Calcular totais parciais
+    total_operations = len(operations)
+    total_time_seconds = sum(op.duration_seconds or 0 for op in operations)
+    total_time_minutes = total_time_seconds / 60
+    
+    # Atualizar submission
+    submission.status = "PENDING_REVIEW"
+    submission.total_operations = total_operations
+    submission.total_time_minutes = int(total_time_minutes)
+    submission.updated_at = datetime.now()
+    
+    db.commit()
+    db.refresh(submission)
+    
+    return submission
+
+
+# ===== FORMADOR: Classificar Operação com Erros =====
+@router.post("/operations/{operation_id}/classify", response_model=schemas.ChallengeOperation)
+async def classify_operation(
+    operation_id: int,
+    classification: schemas.ChallengeOperationFinish,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+):
+    """
+    Formador classifica uma operação indicando se tem erro e os detalhes dos erros
+    Uma operação pode ter múltiplos erros, mas conta como 1 operação errada
+    """
+    operation = db.query(models.ChallengeOperation).filter(
+        models.ChallengeOperation.id == operation_id
+    ).first()
+    
+    if not operation:
+        raise HTTPException(status_code=404, detail="Operação não encontrada")
+    
+    operation.has_error = classification.has_error
+    operation.is_approved = not classification.has_error
+    
+    # Remover erros anteriores se existirem
+    db.query(models.OperationError).filter(
+        models.OperationError.operation_id == operation_id
+    ).delete()
+    
+    # Adicionar novos erros
+    if classification.has_error and classification.errors:
+        for err in classification.errors:
+            db_error = models.OperationError(
+                operation_id=operation_id,
+                error_type=err.error_type,
+                description=err.description[:160] if err.description else None
+            )
+            db.add(db_error)
+    
+    db.commit()
+    db.refresh(operation)
+    
+    # Buscar erros para retorno
+    operation.errors = db.query(models.OperationError).filter(
+        models.OperationError.operation_id == operation_id
+    ).all()
+    
+    return operation
+
+
+# ===== LISTAR Operações de uma Submission =====
+@router.get("/submissions/{submission_id}/operations", response_model=List[schemas.ChallengeOperation])
+async def list_submission_operations(
+    submission_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Listar todas as operações de uma submission
+    """
+    operations = db.query(models.ChallengeOperation).filter(
+        models.ChallengeOperation.submission_id == submission_id
+    ).order_by(models.ChallengeOperation.operation_number).all()
+    
+    # Buscar erros para cada operação
+    for op in operations:
+        op.errors = db.query(models.OperationError).filter(
+            models.OperationError.operation_id == op.id
+        ).all()
+    
+    return operations
+
+
+# ===== FORMANDO: Listar meus Desafios em Andamento =====
+@router.get("/student/my-submissions")
+async def list_my_submissions(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Listar todas as submissions do formando atual
+    Inclui desafios em andamento e finalizados
+    """
+    if current_user.role not in ["TRAINEE", "STUDENT"]:
+        raise HTTPException(status_code=403, detail="Apenas formandos podem acessar")
+    
+    submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.user_id == current_user.id
+    ).order_by(models.ChallengeSubmission.created_at.desc()).all()
+    
+    result = []
+    for sub in submissions:
+        challenge = db.query(models.Challenge).filter(
+            models.Challenge.id == sub.challenge_id
+        ).first()
+        
+        # Contar operações
+        operations_count = db.query(models.ChallengeOperation).filter(
+            models.ChallengeOperation.submission_id == sub.id
+        ).count()
+        
+        # Contar operações com erro
+        errors_count = db.query(models.ChallengeOperation).filter(
+            models.ChallengeOperation.submission_id == sub.id,
+            models.ChallengeOperation.has_error == True
+        ).count()
+        
+        result.append({
+            "id": sub.id,
+            "challenge_id": sub.challenge_id,
+            "challenge_title": challenge.title if challenge else None,
+            "submission_type": sub.submission_type,
+            "total_operations": sub.total_operations or operations_count,
+            "started_at": sub.started_at.isoformat() if sub.started_at else None,
+            "completed_at": sub.completed_at.isoformat() if sub.completed_at else None,
+            "is_approved": sub.is_approved,
+            "calculated_mpu": sub.calculated_mpu,
+            "errors_count": sub.errors_count or errors_count,
+            "is_in_progress": sub.started_at and not sub.completed_at
+        })
+    
+    return result
+
+# ===== FORMADOR: Finalizar Revisão de uma Submission =====
+@router.post("/submissions/{submission_id}/finalize-review")
+async def finalize_submission_review(
+    submission_id: int,
+    approve: bool = True,  # True = Aprovar, False = Reprovar (decisão manual do formador)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+):
+    """
+    Finalizar a revisão de uma submission.
+    - Verifica se todas as operações foram classificadas
+    - Calcula estatísticas finais (MPU, erros por tipo)
+    - O formador decide manualmente se aprova ou reprova
+    """
+    submission = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.id == submission_id
+    ).first()
+    
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    # Buscar challenge para os KPIs
+    challenge = db.query(models.Challenge).filter(
+        models.Challenge.id == submission.challenge_id
+    ).first()
+    
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Desafio não encontrado")
+    
+    # Buscar operações
+    operations = db.query(models.ChallengeOperation).filter(
+        models.ChallengeOperation.submission_id == submission_id
+    ).all()
+    
+    completed_ops = [op for op in operations if op.completed_at]
+    
+    if len(completed_ops) == 0:
+        raise HTTPException(status_code=400, detail="Não há operações concluídas para revisar")
+    
+    # Verificar se todas as operações foram classificadas (is_approved não é None)
+    pending_ops = [op for op in completed_ops if op.is_approved is None]
+    if len(pending_ops) > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Existem {len(pending_ops)} operações pendentes de classificação"
+        )
+    
+    # Calcular estatísticas
+    total_ops = len(completed_ops)
+    correct_ops = len([op for op in completed_ops if op.is_approved == True and not op.has_error])
+    error_ops = len([op for op in completed_ops if op.has_error])
+    
+    # Calcular erros por tipo (para relatórios)
+    error_methodology = 0
+    error_knowledge = 0
+    error_detail = 0
+    error_procedure = 0
+    
+    for op in completed_ops:
+        if op.has_error:
+            errors = db.query(models.OperationError).filter(
+                models.OperationError.operation_id == op.id
+            ).all()
+            for err in errors:
+                if err.error_type == "METODOLOGIA":
+                    error_methodology += 1
+                elif err.error_type == "CONHECIMENTO":
+                    error_knowledge += 1
+                elif err.error_type == "DETALHE":
+                    error_detail += 1
+                elif err.error_type == "PROCEDIMENTO":
+                    error_procedure += 1
+    
+    # O errors_count é o número de OPERAÇÕES com erro (não total de erros)
+    operations_with_error = error_ops
+    
+    # Calcular MPU (Movimentos Por Unidade de tempo)
+    # Prioridade: 1) soma dos duration_seconds das operações, 2) total_time_minutes, 3) diferença started_at/completed_at
+    total_time_minutes = None
+    
+    # Primeiro: calcular a partir das operações (mais preciso)
+    total_duration_seconds = sum(op.duration_seconds or 0 for op in completed_ops)
+    if total_duration_seconds > 0:
+        total_time_minutes = total_duration_seconds / 60.0
+    # Segundo: usar total_time_minutes da submission se existir
+    elif submission.total_time_minutes and submission.total_time_minutes > 0:
+        total_time_minutes = submission.total_time_minutes
+    # Terceiro: calcular a partir de started_at/completed_at
+    elif submission.started_at and submission.completed_at:
+        delta = submission.completed_at - submission.started_at
+        total_time_minutes = delta.total_seconds() / 60
+    
+    calculated_mpu = 0.0
+    if correct_ops > 0 and total_time_minutes and total_time_minutes > 0:
+        # MPU = tempo / operações (minutos por unidade)
+        calculated_mpu = round(total_time_minutes / correct_ops, 2)
+    
+    # Verificar aprovação - decisão manual do formador
+    target_mpu = challenge.target_mpu or 0
+    max_errors = challenge.max_errors
+    
+    # O formador decide manualmente se aprova ou reprova
+    is_approved = approve
+    
+    # Total de erros registados (para relatório)
+    total_errors_registered = error_methodology + error_knowledge + error_detail + error_procedure
+    
+    # Atualizar submission
+    submission.total_operations = total_ops
+    submission.total_time_minutes = int(total_time_minutes) if total_time_minutes else 0
+    submission.errors_count = operations_with_error  # Número de operações com erro
+    submission.error_methodology = error_methodology
+    submission.error_knowledge = error_knowledge
+    submission.error_detail = error_detail
+    submission.error_procedure = error_procedure
+    submission.calculated_mpu = calculated_mpu
+    submission.mpu_vs_target = round((calculated_mpu / target_mpu * 100) if target_mpu > 0 else 100, 1)
+    submission.is_approved = is_approved
+    submission.status = "APPROVED" if is_approved else "REJECTED"
+    submission.updated_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(submission)
+    
+    return {
+        "id": submission.id,
+        "status": submission.status,
+        "is_approved": submission.is_approved,
+        "total_operations": total_ops,
+        "correct_operations": correct_ops,
+        "operations_with_error": operations_with_error,
+        "total_errors_registered": total_errors_registered,
+        "error_breakdown": {
+            "methodology": error_methodology,
+            "knowledge": error_knowledge,
+            "detail": error_detail,
+            "procedure": error_procedure
+        },
+        "calculated_mpu": calculated_mpu,
+        "target_mpu": target_mpu,
+        "mpu_vs_target": submission.mpu_vs_target,
+        "max_errors": max_errors,
+        "message": f"Revisão finalizada. Submission {'aprovada' if is_approved else 'rejeitada'}."
+    }

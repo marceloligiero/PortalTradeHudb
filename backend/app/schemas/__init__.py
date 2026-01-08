@@ -178,6 +178,9 @@ class StudentAssignment(BaseModel):
     user_id: int
     assigned_at: datetime
     completed_at: Optional[datetime] = None
+    # Campos do utilizador
+    name: Optional[str] = None
+    email: Optional[str] = None
     
     model_config = {"from_attributes": True}
 
@@ -198,7 +201,11 @@ class ChallengeBase(BaseModel):
     operations_required: int  # Meta de operações
     time_limit_minutes: int  # Meta de tempo em minutos
     target_mpu: float  # Meta de MPU para aprovação
-    max_errors: int = 0  # Máximo de erros permitidos para aprovação
+    max_errors: int = 0  # Máximo de operações com erro permitidas
+    # KPIs selecionáveis
+    use_volume_kpi: bool = True  # Nr de operações é critério
+    use_mpu_kpi: bool = True  # MPU é critério
+    use_errors_kpi: bool = True  # Nr de operações com erro é critério
 
 class ChallengeCreate(ChallengeBase):
     course_id: int
@@ -212,16 +219,27 @@ class ChallengeUpdate(BaseModel):
     target_mpu: Optional[float] = None
     max_errors: Optional[int] = None
     is_active: Optional[bool] = None
+    use_volume_kpi: Optional[bool] = None
+    use_mpu_kpi: Optional[bool] = None
+    use_errors_kpi: Optional[bool] = None
 
 class Challenge(ChallengeBase):
     id: int
     course_id: int
     created_by: int
     is_active: bool
+    is_released: bool = False
+    released_at: Optional[datetime] = None
+    released_by: Optional[int] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     
     model_config = {"from_attributes": True}
+
+
+class ChallengeRelease(BaseModel):
+    """Schema para liberar desafio"""
+    is_released: bool = True
 
 
 # Detailed Course with lessons and challenges (placed after Challenge definition to avoid forward refs)
@@ -272,39 +290,133 @@ class ChallengeSubmissionComplete(ChallengeSubmissionBase):
 class ChallengeSubmissionSummary(ChallengeSubmissionBase):
     """Para desafios tipo SUMMARY - apenas totais"""
     total_operations: int
-    total_time_minutes: int
+    total_time_minutes: float
     errors_count: int = 0
+    # Erros por conceito
+    error_methodology: int = 0
+    error_knowledge: int = 0
+    error_detail: int = 0
+    error_procedure: int = 0
+    # Referência da operação
+    operation_reference: Optional[str] = None
+    # Detalhes dos erros individuais
+    error_details: Optional[list[dict]] = []  # [{error_type, description, operation_reference}]
 
 class ChallengeSubmissionCreate(ChallengeSubmissionBase):
     # Para ambos os tipos
     total_operations: Optional[int] = None
-    total_time_minutes: Optional[int] = None
+    total_time_minutes: Optional[float] = None
     errors_count: Optional[int] = 0
     parts: Optional[list[ChallengePartCreate]] = []
 
 class ChallengeSubmission(ChallengeSubmissionBase):
     id: int
+    status: Optional[str] = "IN_PROGRESS"  # IN_PROGRESS, PENDING_REVIEW, REVIEWED
     total_operations: Optional[int] = None
-    total_time_minutes: Optional[int] = None
+    total_time_minutes: Optional[float] = None
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     calculated_mpu: Optional[float] = None
     mpu_vs_target: Optional[float] = None  # Percentual vs meta
-    is_approved: bool
+    is_approved: Optional[bool] = None
     score: Optional[float] = None
     feedback: Optional[str] = None
     submitted_by: Optional[int] = None
+    # Erros por conceito
+    errors_count: Optional[int] = 0
+    error_methodology: Optional[int] = 0
+    error_knowledge: Optional[int] = 0
+    error_detail: Optional[int] = 0
+    error_procedure: Optional[int] = 0
+    # Referência da operação
+    operation_reference: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     
     model_config = {"from_attributes": True}
 
+
+# Schemas para Operações Individuais (COMPLETE)
+class OperationErrorBase(BaseModel):
+    error_type: str  # METHODOLOGY, KNOWLEDGE, DETAIL, PROCEDURE
+    description: Optional[str] = None  # Max 160 chars
+
+class OperationErrorCreate(OperationErrorBase):
+    pass
+
+class OperationError(OperationErrorBase):
+    id: int
+    operation_id: Optional[int] = None
+    created_at: Optional[datetime] = None
+    
+    model_config = {"from_attributes": True}
+
+class ChallengeOperationBase(BaseModel):
+    operation_number: int
+    operation_reference: str  # Ex: 4060ILC0001111
+
+class ChallengeOperationCreate(ChallengeOperationBase):
+    errors: Optional[list[OperationErrorCreate]] = []
+
+class ChallengeOperationStart(BaseModel):
+    """Para iniciar uma operação"""
+    operation_reference: str
+
+class ChallengeOperationFinish(BaseModel):
+    """Para finalizar uma operação com classificação de erros"""
+    has_error: bool = False
+    errors: Optional[list[OperationErrorCreate]] = []
+
+class ChallengeOperation(ChallengeOperationBase):
+    id: int
+    submission_id: int
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    duration_seconds: Optional[int] = None
+    has_error: bool = False
+    is_approved: Optional[bool] = None  # None = pendente de revisão
+    errors: list[OperationError] = []
+    created_at: Optional[datetime] = None
+    
+    model_config = {"from_attributes": True}
+
+
+class ErrorsSummary(BaseModel):
+    """Resumo de erros por tipo para exibição ao formando"""
+    operations_with_errors: int = 0
+    max_errors_allowed: int = 0
+    error_methodology: int = 0
+    error_knowledge: int = 0
+    error_detail: int = 0
+    error_procedure: int = 0
+    total_individual_errors: int = 0
+
+
+class SubmissionErrorDetail(BaseModel):
+    """Erro individual de uma submission SUMMARY"""
+    id: int
+    error_type: str
+    description: Optional[str] = None
+    operation_reference: Optional[str] = None
+    created_at: Optional[datetime] = None
+    
+    model_config = {"from_attributes": True}
+
+
 class ChallengeSubmissionDetail(ChallengeSubmission):
-    """Submission com detalhes completos incluindo partes"""
+    """Submission com detalhes completos incluindo partes e operações"""
     parts: list[ChallengePart] = []
+    operations: list[ChallengeOperation] = []  # Para desafios COMPLETE
+    submission_errors: list[SubmissionErrorDetail] = []  # Para desafios SUMMARY
     challenge: Optional[Challenge] = None
     user: Optional[UserBasic] = None
     submitter: Optional[UserBasic] = None
+    errors_summary: Optional[ErrorsSummary] = None
+
+
+# Schema para confirmação de aula pelo formando
+class LessonConfirmation(BaseModel):
+    confirmed: bool = True
 
 # Lesson Extended
 class LessonBase(BaseModel):
@@ -341,6 +453,11 @@ class Lesson(LessonBase):
 # Input used to finish a COMPLETE submission (allow passing errors count)
 class ChallengeFinishInput(BaseModel):
     errors_count: Optional[int] = 0
+    # Erros por conceito
+    error_methodology: Optional[int] = 0
+    error_knowledge: Optional[int] = 0
+    error_detail: Optional[int] = 0
+    error_procedure: Optional[int] = 0
 
 # Course with total hours calculation
 class CourseWithHours(BaseModel):
@@ -354,3 +471,123 @@ class CourseWithHours(BaseModel):
     challenge_count: int
     
     model_config = {"from_attributes": True}
+
+# =====================================================
+# LESSON PROGRESS SCHEMAS (pause/resume/finish)
+# =====================================================
+
+class LessonPauseBase(BaseModel):
+    pause_reason: Optional[str] = None
+
+class LessonPause(LessonPauseBase):
+    id: int
+    lesson_progress_id: int
+    paused_at: datetime
+    resumed_at: Optional[datetime] = None
+    duration_seconds: Optional[int] = None
+    created_at: datetime
+    
+    model_config = {"from_attributes": True}
+
+class LessonProgressBase(BaseModel):
+    lesson_id: int
+    training_plan_id: Optional[int] = None
+    user_id: Optional[int] = None
+
+class LessonProgressCreate(LessonProgressBase):
+    enrollment_id: Optional[int] = None
+
+class LessonProgressUpdate(BaseModel):
+    status: Optional[str] = None
+    is_approved: Optional[bool] = None
+    actual_time_minutes: Optional[int] = None
+
+class LessonProgress(LessonProgressBase):
+    id: int
+    enrollment_id: Optional[int] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    paused_at: Optional[datetime] = None
+    accumulated_seconds: int = 0
+    actual_time_minutes: Optional[int] = None
+    estimated_minutes: int = 30
+    is_paused: bool = False
+    status: str = "NOT_STARTED"
+    is_approved: bool = False
+    finished_by: Optional[int] = None
+    
+    model_config = {"from_attributes": True}
+
+class LessonProgressDetail(LessonProgress):
+    """Progresso com histórico de pausas"""
+    pauses: list[LessonPause] = []
+    lesson: Optional[Lesson] = None
+    remaining_seconds: Optional[int] = None  # Tempo restante calculado
+    elapsed_seconds: Optional[int] = None  # Tempo decorrido
+    is_delayed: bool = False  # Se está atrasado
+
+
+# =====================================================
+# TRAINING PLAN STATUS SCHEMAS
+# =====================================================
+
+class TrainingPlanStatus(BaseModel):
+    """Status calculado de um plano de formação"""
+    status: str  # PENDING, IN_PROGRESS, COMPLETED, DELAYED
+    total_courses: int
+    completed_courses: int
+    total_lessons: int
+    completed_lessons: int
+    total_challenges: int
+    completed_challenges: int
+    progress_percentage: float
+    days_total: Optional[int] = None
+    days_remaining: Optional[int] = None
+    days_delayed: Optional[int] = None  # Dias de atraso (se > 0)
+    estimated_hours: float
+    actual_hours: float
+    can_finalize: bool  # Se pode ser finalizado
+
+
+class TrainingPlanCourseStatus(BaseModel):
+    """Status de um curso dentro de um plano"""
+    id: int
+    course_id: int
+    course_title: str
+    order_index: int
+    status: str  # PENDING, IN_PROGRESS, COMPLETED
+    total_lessons: int
+    completed_lessons: int
+    total_challenges: int
+    completed_challenges: int
+    progress_percentage: float
+    can_finalize: bool
+    completed_at: Optional[datetime] = None
+    
+    model_config = {"from_attributes": True}
+
+
+# =====================================================
+# FINALIZATION SCHEMAS
+# =====================================================
+
+class FinalizeLessonRequest(BaseModel):
+    """Request para finalizar uma lição"""
+    is_approved: bool = True
+    notes: Optional[str] = None
+
+class FinalizeCourseRequest(BaseModel):
+    """Request para finalizar um curso no plano"""
+    notes: Optional[str] = None
+
+class FinalizePlanRequest(BaseModel):
+    """Request para finalizar um plano de formação"""
+    notes: Optional[str] = None
+    generate_certificate: bool = True
+
+class FinalizationResponse(BaseModel):
+    """Response de finalização"""
+    success: bool
+    message: str
+    finalized_at: Optional[datetime] = None
+    certificate_id: Optional[int] = None

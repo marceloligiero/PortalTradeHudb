@@ -494,7 +494,8 @@ export default function AdminDashboard() {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 * idx }}
-                    className="p-4 hover:bg-white/5 transition-colors"
+                    onClick={() => navigate(`/challenges/result/${sub.id}`)}
+                    className="p-4 hover:bg-white/5 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">

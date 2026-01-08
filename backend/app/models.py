@@ -106,17 +106,54 @@ class LessonProgress(Base):
     id = Column(Integer, primary_key=True, index=True)
     enrollment_id = Column(Integer, ForeignKey("enrollments.id"), nullable=False)
     lesson_id = Column(Integer, ForeignKey("lessons.id"), nullable=False)
-    started_at = Column(DateTime(timezone=True), server_default=func.now())
+    training_plan_id = Column(Integer, ForeignKey("training_plans.id"), nullable=True)  # Plano associado
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Aluno direto (alternativo a enrollment)
+    
+    # Liberação pelo formador
+    is_released = Column(Boolean, default=False)  # Formador liberou a aula
+    released_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # Quem liberou
+    released_at = Column(DateTime(timezone=True))  # Quando foi liberada
+    
+    started_at = Column(DateTime(timezone=True))  # Quando o formando iniciou (não mais server_default)
     completed_at = Column(DateTime(timezone=True))
+    paused_at = Column(DateTime(timezone=True))  # Quando foi pausado (se está pausado)
+    accumulated_seconds = Column(Integer, default=0)  # Tempo acumulado em segundos (pausas múltiplas)
     actual_time_minutes = Column(Integer)
     estimated_minutes = Column(Integer, default=30)
     mpu = Column(Float)
     mpu_percentage = Column(Float)
     is_approved = Column(Boolean, default=False)
-    status = Column(String(50), default="IN_PROGRESS")
+    is_paused = Column(Boolean, default=False)  # Se está atualmente pausado
+    status = Column(String(50), default="NOT_STARTED")  # NOT_STARTED, RELEASED, IN_PROGRESS, PAUSED, COMPLETED
+    finished_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # Formador que finalizou
+    
+    # Confirmação pelo formando
+    student_confirmed = Column(Boolean, default=False)  # Formando confirmou que fez a aula
+    student_confirmed_at = Column(DateTime(timezone=True))  # Quando confirmou
     
     enrollment = relationship("Enrollment", back_populates="lesson_progress")
     lesson = relationship("Lesson", back_populates="progress_records")
+    training_plan = relationship("TrainingPlan")
+    user = relationship("User", foreign_keys=[user_id])
+    releaser = relationship("User", foreign_keys=[released_by])
+    finisher = relationship("User", foreign_keys=[finished_by])
+    pauses = relationship("LessonPause", back_populates="lesson_progress", cascade="all, delete-orphan")
+
+
+class LessonPause(Base):
+    """Histórico de pausas de uma lição - permite múltiplas pausas em dias diferentes"""
+    __tablename__ = "lesson_pauses"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    lesson_progress_id = Column(Integer, ForeignKey("lesson_progress.id"), nullable=False)
+    paused_at = Column(DateTime(timezone=True), nullable=False)
+    resumed_at = Column(DateTime(timezone=True))
+    duration_seconds = Column(Integer)  # Calculado quando retoma
+    pause_reason = Column(String(255))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    lesson_progress = relationship("LessonProgress", back_populates="pauses")
+
 
 class TrainingPlan(Base):
     __tablename__ = "training_plans"
@@ -132,6 +169,9 @@ class TrainingPlan(Base):
     start_date = Column(DateTime(timezone=True))
     end_date = Column(DateTime(timezone=True))
     is_active = Column(Boolean, default=True)
+    status = Column(String(50), default="PENDING")  # PENDING, IN_PROGRESS, COMPLETED, DELAYED
+    completed_at = Column(DateTime(timezone=True))  # Quando o plano foi finalizado
+    finalized_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # Quem finalizou
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
@@ -140,6 +180,7 @@ class TrainingPlan(Base):
     certificates = relationship("Certificate", back_populates="training_plan")
     trainer = relationship("User", foreign_keys=[trainer_id])
     student = relationship("User", foreign_keys=[student_id])
+    finalizer = relationship("User", foreign_keys=[finalized_by])
     bank = relationship("Bank")
     product = relationship("Product")
 
@@ -153,9 +194,13 @@ class TrainingPlanCourse(Base):
     use_custom = Column(Boolean, default=False)
     custom_title = Column(String(255))
     custom_description = Column(Text)
+    status = Column(String(50), default="PENDING")  # PENDING, IN_PROGRESS, COMPLETED
+    completed_at = Column(DateTime(timezone=True))  # Quando o curso foi finalizado no plano
+    finalized_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # Formador que finalizou
     
     training_plan = relationship("TrainingPlan", back_populates="courses")
     course = relationship("Course")
+    finalizer = relationship("User", foreign_keys=[finalized_by])
 
 class TrainingPlanAssignment(Base):
     __tablename__ = "training_plan_assignments"
@@ -182,15 +227,27 @@ class Challenge(Base):
     operations_required = Column(Integer, default=100, nullable=False)  # Meta de operações
     time_limit_minutes = Column(Integer, default=60, nullable=False)  # Meta de tempo
     target_mpu = Column(Float, nullable=False)  # Meta de MPU para aprovação
-    max_errors = Column(Integer, default=0, nullable=False)  # Max de erros permitidos (0 = nenhum)
+    max_errors = Column(Integer, default=0, nullable=False)  # Max de operações com erro permitidas
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     is_active = Column(Boolean, default=True)
+    
+    # KPIs selecionáveis - quais critérios são decisivos para aprovação
+    use_volume_kpi = Column(Boolean, default=True)  # Nr de operações é critério
+    use_mpu_kpi = Column(Boolean, default=True)  # MPU é critério
+    use_errors_kpi = Column(Boolean, default=True)  # Nr de operações com erro é critério
+    
+    # Liberação do desafio para formandos
+    is_released = Column(Boolean, default=False)  # Se desafio está liberado
+    released_at = Column(DateTime(timezone=True))  # Quando foi liberado
+    released_by = Column(Integer, ForeignKey("users.id"))  # Quem liberou
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     course = relationship("Course", back_populates="challenges")
     submissions = relationship("ChallengeSubmission", back_populates="challenge")
     parts = relationship("ChallengePart", back_populates="challenge", cascade="all, delete-orphan")
+    releaser = relationship("User", foreign_keys=[released_by])
 
 class ChallengePart(Base):
     """Para desafios do tipo COMPLETE - cada parte registrada individualmente"""
@@ -216,19 +273,32 @@ class ChallengeSubmission(Base):
     id = Column(Integer, primary_key=True, index=True)
     challenge_id = Column(Integer, ForeignKey("challenges.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    training_plan_id = Column(Integer, ForeignKey("training_plans.id"), nullable=True)  # Plano associado
     submission_type = Column(String(50), nullable=False)  # COMPLETE or SUMMARY
+    
+    # Status do desafio: IN_PROGRESS, PENDING_REVIEW, REVIEWED
+    status = Column(String(50), default="IN_PROGRESS")
     
     # Para tipo SUMMARY (resumido)
     total_operations = Column(Integer)  # Total de operações inseridas
     total_time_minutes = Column(Integer)  # Tempo total inserido
-    errors_count = Column(Integer, default=0)  # Número de erros cometidos pelo aluno
+    errors_count = Column(Integer, default=0)  # Número de OPERAÇÕES com erro (não erros totais)
+    
+    # Erros por conceito (totalizadores para relatório)
+    error_methodology = Column(Integer, default=0)  # Total erros de Metodologia
+    error_knowledge = Column(Integer, default=0)  # Total erros de Conhecimento
+    error_detail = Column(Integer, default=0)  # Total erros de Detalhe
+    error_procedure = Column(Integer, default=0)  # Total erros de Procedimento
+    
+    # Referência da operação realizada pelo formando (para SUMMARY)
+    operation_reference = Column(String(255), nullable=True)
     
     # Campos comuns
     started_at = Column(DateTime(timezone=True))
     completed_at = Column(DateTime(timezone=True))
-    calculated_mpu = Column(Float)  # MPU calculado (operações / tempo)
-    mpu_vs_target = Column(Float)  # Percentual vs meta (calculado_mpu / target_mpu * 100)
-    is_approved = Column(Boolean, default=False)  # True se MPU >= target_mpu
+    calculated_mpu = Column(Float)  # MPU calculado (tempo / operações = minutos por unidade)
+    mpu_vs_target = Column(Float)  # Percentual vs meta (target_mpu / calculado_mpu * 100) - quanto maior, melhor
+    is_approved = Column(Boolean, default=False)  # True se passou nos KPIs selecionados
     score = Column(Float)  # Nota calculada
     feedback = Column(Text)
     submitted_by = Column(Integer, ForeignKey("users.id"))  # Formador que aplicou
@@ -237,8 +307,73 @@ class ChallengeSubmission(Base):
     
     challenge = relationship("Challenge", back_populates="submissions")
     user = relationship("User", foreign_keys=[user_id])
+    training_plan = relationship("TrainingPlan")
     submitter = relationship("User", foreign_keys=[submitted_by])
     parts = relationship("ChallengePart", back_populates="submission", cascade="all, delete-orphan")
+    operations = relationship("ChallengeOperation", back_populates="submission", cascade="all, delete-orphan")
+    submission_errors = relationship("SubmissionError", back_populates="submission", cascade="all, delete-orphan")
+
+
+class SubmissionError(Base):
+    """Erros para desafios SUMMARY - ligados diretamente à submission"""
+    __tablename__ = "submission_errors"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    submission_id = Column(Integer, ForeignKey("challenge_submissions.id"), nullable=False)
+    error_type = Column(String(50), nullable=False)  # METHODOLOGY, KNOWLEDGE, DETAIL, PROCEDURE
+    description = Column(String(500))  # Descrição do erro
+    operation_reference = Column(String(255), nullable=True)  # Referência da operação onde ocorreu o erro
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    submission = relationship("ChallengeSubmission", back_populates="submission_errors")
+
+
+class ChallengeRelease(Base):
+    """Controle de liberação de desafios para estudantes"""
+    __tablename__ = "challenge_releases"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    challenge_id = Column(Integer, ForeignKey("challenges.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    training_plan_id = Column(Integer, ForeignKey("training_plans.id"), nullable=True)
+    released_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    released_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    challenge = relationship("Challenge", foreign_keys=[challenge_id])
+    student = relationship("User", foreign_keys=[student_id])
+    releaser = relationship("User", foreign_keys=[released_by])
+
+
+class ChallengeOperation(Base):
+    """Para desafios COMPLETE - cada operação individual com referência e status de erro"""
+    __tablename__ = "challenge_operations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    submission_id = Column(Integer, ForeignKey("challenge_submissions.id"), nullable=False)
+    operation_number = Column(Integer, nullable=False)  # Número da operação (1, 2, 3...)
+    operation_reference = Column(String(255), nullable=False)  # Ref: 4060ILC0001111
+    started_at = Column(DateTime(timezone=True))
+    completed_at = Column(DateTime(timezone=True))
+    duration_seconds = Column(Integer)  # Tempo da operação em segundos
+    has_error = Column(Boolean, default=False)  # Se esta operação tem erro
+    is_approved = Column(Boolean, default=True)  # Operação aprovada ou não
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    submission = relationship("ChallengeSubmission", back_populates="operations")
+    errors = relationship("OperationError", back_populates="operation", cascade="all, delete-orphan")
+
+
+class OperationError(Base):
+    """Erros individuais de cada operação - múltiplos erros por operação"""
+    __tablename__ = "operation_errors"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    operation_id = Column(Integer, ForeignKey("challenge_operations.id"), nullable=False)
+    error_type = Column(String(50), nullable=False)  # METHODOLOGY, KNOWLEDGE, DETAIL, PROCEDURE
+    description = Column(String(160))  # Descrição do erro (max 160 chars)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    operation = relationship("ChallengeOperation", back_populates="errors")
 
 class Certificate(Base):
     __tablename__ = "certificates"

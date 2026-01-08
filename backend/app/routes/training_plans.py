@@ -1,10 +1,95 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from typing import List
+from datetime import datetime
 from app.database import get_db
 from app import models, schemas, auth
 
 router = APIRouter()
+
+
+def calculate_plan_status(db: Session, plan: models.TrainingPlan) -> dict:
+    """Calcula o status de um plano baseado no progresso"""
+    now = datetime.now()
+    
+    # Buscar cursos do plano
+    plan_courses = db.query(models.TrainingPlanCourse).filter(
+        models.TrainingPlanCourse.training_plan_id == plan.id
+    ).all()
+    
+    total_courses = len(plan_courses)
+    completed_courses = len([pc for pc in plan_courses if pc.status == "COMPLETED"])
+    
+    # Calcular progresso de lições se houver aluno
+    total_lessons = 0
+    completed_lessons = 0
+    
+    if plan.student_id:
+        for pc in plan_courses:
+            lessons = db.query(models.Lesson).filter(
+                models.Lesson.course_id == pc.course_id
+            ).all()
+            total_lessons += len(lessons)
+            
+            lesson_ids = [l.id for l in lessons]
+            if lesson_ids:
+                completed = db.query(models.LessonProgress).filter(
+                    models.LessonProgress.lesson_id.in_(lesson_ids),
+                    models.LessonProgress.user_id == plan.student_id,
+                    models.LessonProgress.status == "COMPLETED"
+                ).count()
+                completed_lessons += completed
+    
+    # Determinar status
+    status = plan.status or "PENDING"
+    
+    if plan.completed_at:
+        status = "COMPLETED"
+    elif completed_lessons > 0 or completed_courses > 0:
+        status = "IN_PROGRESS"
+        # Verificar atraso
+        if plan.end_date and now > plan.end_date:
+            status = "DELAYED"
+    else:
+        if plan.start_date and now > plan.start_date:
+            # Deveria ter começado mas não tem progresso
+            status = "DELAYED"
+        else:
+            status = "PENDING"
+    
+    # Calcular dias
+    days_total = None
+    days_remaining = None
+    days_delayed = 0
+    
+    if plan.start_date and plan.end_date:
+        days_total = (plan.end_date - plan.start_date).days
+        if now < plan.end_date:
+            days_remaining = (plan.end_date - now).days
+        else:
+            days_remaining = 0
+            days_delayed = (now - plan.end_date).days
+    
+    # Progresso percentual
+    progress = 0
+    if total_lessons > 0:
+        progress = (completed_lessons / total_lessons) * 100
+    elif total_courses > 0:
+        progress = (completed_courses / total_courses) * 100
+    
+    return {
+        "status": status,
+        "total_courses": total_courses,
+        "completed_courses": completed_courses,
+        "total_lessons": total_lessons,
+        "completed_lessons": completed_lessons,
+        "progress_percentage": round(progress, 1),
+        "days_total": days_total,
+        "days_remaining": days_remaining,
+        "days_delayed": days_delayed,
+        "is_delayed": days_delayed > 0
+    }
+
 
 # ============== TRAINING PLANS CRUD ==============
 
@@ -41,15 +126,25 @@ async def list_training_plans(
             plans = db.query(models.TrainingPlan).filter(
                 models.TrainingPlan.trainer_id == current_user.id
             ).all()
-        else:  # STUDENT
-            # Buscar planos atribuídos ao formando
+        else:  # STUDENT/TRAINEE
+            # Buscar planos: por assignment OU por student_id direto
             assignments = db.query(models.TrainingPlanAssignment).filter(
                 models.TrainingPlanAssignment.user_id == current_user.id
             ).all()
-            plan_ids = [a.training_plan_id for a in assignments]
-            if plan_ids:
+            plan_ids_from_assignments = [a.training_plan_id for a in assignments]
+            
+            # Também buscar planos onde o user é o student_id
+            plans_by_student_id = db.query(models.TrainingPlan).filter(
+                models.TrainingPlan.student_id == current_user.id
+            ).all()
+            plan_ids_from_student = [p.id for p in plans_by_student_id]
+            
+            # Combinar ambos (sem duplicados)
+            all_plan_ids = list(set(plan_ids_from_assignments + plan_ids_from_student))
+            
+            if all_plan_ids:
                 plans = db.query(models.TrainingPlan).filter(
-                    models.TrainingPlan.id.in_(plan_ids)
+                    models.TrainingPlan.id.in_(all_plan_ids)
                 ).all()
             else:
                 plans = []
@@ -80,6 +175,9 @@ async def list_training_plans(
                 total_minutes += sum((l.estimated_minutes or 0) for l in lessons)
 
             total_hours = round(total_minutes / 60)
+            
+            # Calcular status do plano
+            plan_status = calculate_plan_status(db, plan)
 
             result.append({
                 "id": plan.id,
@@ -95,7 +193,15 @@ async def list_training_plans(
                 "total_duration_hours": total_hours,
                 "start_date": plan.start_date.isoformat() if plan.start_date else None,
                 "end_date": plan.end_date.isoformat() if plan.end_date else None,
-                "created_at": plan.created_at.isoformat() if plan.created_at else None
+                "created_at": plan.created_at.isoformat() if plan.created_at else None,
+                # Novos campos de status
+                "status": plan_status["status"],
+                "progress_percentage": plan_status["progress_percentage"],
+                "days_remaining": plan_status["days_remaining"],
+                "days_delayed": plan_status["days_delayed"],
+                "is_delayed": plan_status["is_delayed"],
+                "completed_courses": plan_status["completed_courses"],
+                "completed_lessons": plan_status["completed_lessons"]
             })
 
         logger.info(f"User {current_user.email} fetched {len(result)} training plans")
@@ -273,12 +379,13 @@ async def get_training_plan(
 
     # Verificar permissões
     if current_user.role == "TRAINEE":
-        # Verificar se o formando está atribuído
+        # Verificar se o formando está atribuído (por assignment OU por student_id)
         assignment = db.query(models.TrainingPlanAssignment).filter(
             models.TrainingPlanAssignment.training_plan_id == plan_id,
             models.TrainingPlanAssignment.user_id == current_user.id
         ).first()
-        if not assignment:
+        is_student = plan.student_id == current_user.id
+        if not assignment and not is_student:
             raise HTTPException(status_code=403, detail="Not authorized to access this training plan")
     elif current_user.role == "TRAINER":
         # Verificar se é o formador responsável
@@ -347,7 +454,7 @@ async def get_training_plan(
         from datetime import datetime, timezone
         days_total = None
         days_remaining = None
-        status_str = None
+        status_str = plan.status  # Start with the actual plan status from database
         if plan.start_date and plan.end_date:
             try:
                 today = datetime.now(timezone.utc)
@@ -359,16 +466,19 @@ async def get_training_plan(
                 days_total = delta_total if delta_total >= 0 else 0
                 days_remaining = delta_remaining if delta_remaining >= 0 else 0
 
-                if today.date() < start.date():
-                    status_str = "UPCOMING"
-                elif today.date() > end.date():
-                    status_str = "COMPLETED"
-                else:
-                    status_str = "ONGOING"
+                # Only override status if it's not already COMPLETED (from finalization)
+                if plan.status != "COMPLETED" and plan.completed_at is None:
+                    if today.date() < start.date():
+                        status_str = "UPCOMING"
+                    elif today.date() > end.date():
+                        status_str = "DELAYED"
+                    else:
+                        status_str = "ONGOING"
             except Exception:
                 days_total = None
                 days_remaining = None
-                status_str = None
+                if not status_str:
+                    status_str = None
 
         # Get student info (1 student per plan)
         student_info = None
@@ -653,7 +763,19 @@ async def list_plan_students(
         models.TrainingPlanAssignment.training_plan_id == plan_id
     ).options(joinedload(models.TrainingPlanAssignment.user)).all()
     
-    return assignments
+    # Converter para incluir dados do utilizador
+    result = []
+    for assignment in assignments:
+        result.append({
+            "id": assignment.id,
+            "user_id": assignment.user_id,
+            "assigned_at": assignment.assigned_at,
+            "completed_at": assignment.completed_at,
+            "name": assignment.user.full_name if assignment.user else None,
+            "email": assignment.user.email if assignment.user else None
+        })
+    
+    return result
 
 # ============== TRAINERS LIST ==============
 
@@ -672,3 +794,271 @@ async def list_trainers(
     ).all()
     
     return trainers
+
+
+# ============== PLAN COMPLETION CHECK ==============
+
+def check_course_completion(db: Session, plan_id: int, course_id: int, student_id: int) -> dict:
+    """
+    Verifica se um curso está completo:
+    - Todas as aulas confirmadas pelo formando (student_confirmed=True)
+    - Todos os desafios aprovados (is_approved=True)
+    """
+    # Buscar todas as aulas do curso
+    lessons = db.query(models.Lesson).filter(
+        models.Lesson.course_id == course_id
+    ).all()
+    
+    lesson_ids = [l.id for l in lessons]
+    total_lessons = len(lesson_ids)
+    confirmed_lessons = 0
+    
+    if lesson_ids:
+        confirmed_lessons = db.query(models.LessonProgress).filter(
+            models.LessonProgress.lesson_id.in_(lesson_ids),
+            models.LessonProgress.user_id == student_id,
+            models.LessonProgress.training_plan_id == plan_id,
+            models.LessonProgress.student_confirmed == True
+        ).count()
+    
+    # Buscar todos os desafios do curso
+    challenges = db.query(models.Challenge).filter(
+        models.Challenge.course_id == course_id,
+        models.Challenge.is_active == True
+    ).all()
+    
+    challenge_ids = [c.id for c in challenges]
+    total_challenges = len(challenge_ids)
+    approved_challenges = 0
+    
+    if challenge_ids:
+        # Para cada desafio, verifica se tem ao menos uma submission aprovada
+        for challenge_id in challenge_ids:
+            approved = db.query(models.ChallengeSubmission).filter(
+                models.ChallengeSubmission.challenge_id == challenge_id,
+                models.ChallengeSubmission.user_id == student_id,
+                models.ChallengeSubmission.training_plan_id == plan_id,
+                models.ChallengeSubmission.is_approved == True
+            ).first()
+            if approved:
+                approved_challenges += 1
+    
+    lessons_complete = total_lessons == 0 or confirmed_lessons >= total_lessons
+    challenges_complete = total_challenges == 0 or approved_challenges >= total_challenges
+    is_complete = lessons_complete and challenges_complete
+    
+    return {
+        "course_id": course_id,
+        "is_complete": is_complete,
+        "total_lessons": total_lessons,
+        "confirmed_lessons": confirmed_lessons,
+        "lessons_complete": lessons_complete,
+        "total_challenges": total_challenges,
+        "approved_challenges": approved_challenges,
+        "challenges_complete": challenges_complete
+    }
+
+
+def check_plan_completion(db: Session, plan: models.TrainingPlan) -> dict:
+    """
+    Verifica se o plano pode ser finalizado:
+    - Todos os cursos do plano devem estar completos
+    """
+    if not plan.student_id:
+        return {
+            "can_finalize": False,
+            "reason": "Plano não tem formando atribuído",
+            "courses_status": []
+        }
+    
+    plan_courses = db.query(models.TrainingPlanCourse).filter(
+        models.TrainingPlanCourse.training_plan_id == plan.id
+    ).all()
+    
+    if not plan_courses:
+        return {
+            "can_finalize": False,
+            "reason": "Plano não tem cursos",
+            "courses_status": []
+        }
+    
+    courses_status = []
+    all_complete = True
+    
+    for pc in plan_courses:
+        course_status = check_course_completion(db, plan.id, pc.course_id, plan.student_id)
+        
+        # Buscar info do curso
+        course = db.query(models.Course).filter(models.Course.id == pc.course_id).first()
+        course_status["course_title"] = course.title if course else f"Curso {pc.course_id}"
+        
+        courses_status.append(course_status)
+        
+        if not course_status["is_complete"]:
+            all_complete = False
+    
+    return {
+        "can_finalize": all_complete,
+        "reason": None if all_complete else "Nem todos os cursos foram concluídos",
+        "total_courses": len(plan_courses),
+        "completed_courses": len([c for c in courses_status if c["is_complete"]]),
+        "courses_status": courses_status
+    }
+
+
+@router.get("/{plan_id}/completion-status")
+async def get_plan_completion_status(
+    plan_id: int,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Verificar status de conclusão do plano
+    Retorna se pode ser finalizado e detalhes de cada curso
+    """
+    plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plano não encontrado")
+    
+    # Verificar permissões
+    if current_user.role not in ["ADMIN", "TRAINER"] and current_user.id != plan.student_id:
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    
+    completion_status = check_plan_completion(db, plan)
+    completion_status["is_finalized"] = plan.completed_at is not None
+    
+    if plan.completed_at:
+        completion_status["finalized_at"] = plan.completed_at.isoformat()
+        
+        # Verificar se já tem certificado
+        certificate = db.query(models.Certificate).filter(
+            models.Certificate.training_plan_id == plan_id
+        ).first()
+        if certificate:
+            completion_status["certificate_id"] = certificate.id
+            completion_status["certificate_number"] = certificate.certificate_number
+    
+    return completion_status
+
+
+@router.post("/{plan_id}/finalize")
+async def finalize_training_plan(
+    plan_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    db: Session = Depends(get_db)
+):
+    """
+    Finalizar plano de formação e gerar certificado
+    Apenas se todos os cursos estiverem completos (aulas confirmadas + desafios aprovados)
+    """
+    import logging
+    import uuid
+    logger = logging.getLogger(__name__)
+    
+    plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plano não encontrado")
+    
+    # Verificar se formador é responsável pelo plano
+    if current_user.role == "TRAINER" and plan.trainer_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Não autorizado a finalizar este plano")
+    
+    # Verificar se já foi finalizado
+    if plan.completed_at:
+        raise HTTPException(status_code=400, detail="Plano já foi finalizado")
+    
+    # Verificar se pode ser finalizado
+    completion_status = check_plan_completion(db, plan)
+    if not completion_status["can_finalize"]:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Não é possível finalizar: {completion_status['reason']}"
+        )
+    
+    # Buscar dados do aluno
+    student = db.query(models.User).filter(models.User.id == plan.student_id).first()
+    if not student:
+        raise HTTPException(status_code=400, detail="Formando não encontrado")
+    
+    # Calcular estatísticas para o certificado
+    total_hours = 0
+    total_mpu = 0
+    mpu_count = 0
+    
+    plan_courses = db.query(models.TrainingPlanCourse).filter(
+        models.TrainingPlanCourse.training_plan_id == plan_id
+    ).all()
+    
+    for pc in plan_courses:
+        # Somar tempo das aulas
+        lessons = db.query(models.Lesson).filter(
+            models.Lesson.course_id == pc.course_id
+        ).all()
+        for lesson in lessons:
+            total_hours += (lesson.estimated_minutes or 0) / 60
+        
+        # Calcular MPU médio dos desafios aprovados
+        submissions = db.query(models.ChallengeSubmission).join(
+            models.Challenge
+        ).filter(
+            models.Challenge.course_id == pc.course_id,
+            models.ChallengeSubmission.user_id == plan.student_id,
+            models.ChallengeSubmission.training_plan_id == plan_id,
+            models.ChallengeSubmission.is_approved == True
+        ).all()
+        
+        for sub in submissions:
+            if sub.calculated_mpu:
+                total_mpu += sub.calculated_mpu
+                mpu_count += 1
+        
+        # Marcar curso como completo
+        pc.status = "COMPLETED"
+        pc.completed_at = datetime.now()
+        pc.finalized_by = current_user.id
+    
+    avg_mpu = total_mpu / mpu_count if mpu_count > 0 else 0
+    
+    # Gerar número único do certificado
+    cert_number = f"CERT-{plan_id}-{student.id}-{uuid.uuid4().hex[:8].upper()}"
+    
+    # Criar certificado
+    certificate = models.Certificate(
+        user_id=student.id,
+        training_plan_id=plan_id,
+        certificate_number=cert_number,
+        student_name=student.full_name,
+        student_email=student.email,
+        training_plan_title=plan.title,
+        total_hours=round(total_hours, 1),
+        courses_completed=len(plan_courses),
+        average_mpu=round(avg_mpu, 2),
+        average_approval_rate=100.0,  # Todos aprovados = 100%
+        is_valid=True
+    )
+    db.add(certificate)
+    
+    # Finalizar plano
+    plan.status = "COMPLETED"
+    plan.completed_at = datetime.now()
+    plan.finalized_by = current_user.id
+    
+    db.commit()
+    db.refresh(certificate)
+    
+    logger.info(f"Training plan {plan_id} finalized by user {current_user.email}. Certificate {cert_number} issued.")
+    
+    return {
+        "success": True,
+        "message": "Plano de formação finalizado com sucesso!",
+        "certificate": {
+            "id": certificate.id,
+            "certificate_number": certificate.certificate_number,
+            "student_name": certificate.student_name,
+            "training_plan_title": certificate.training_plan_title,
+            "total_hours": certificate.total_hours,
+            "courses_completed": certificate.courses_completed,
+            "average_mpu": certificate.average_mpu,
+            "issued_at": certificate.issued_at.isoformat() if certificate.issued_at else None
+        }
+    }
