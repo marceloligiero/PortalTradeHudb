@@ -777,18 +777,27 @@ async def create_admin_course(
     
     return db_course
 
-# Students List (for dropdowns)
+# Students List (for dropdowns) - includes TRAINEE and TRAINER users
+# TRAINERs can be students in training plans where they are not trainers
 @router.get("/students")
 async def list_all_students(
     current_user: models.User = Depends(auth.require_role(["ADMIN"])),
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
-    """List all active students for dropdowns"""
+    """List all active students for dropdowns (includes TRAINERs as they can be students in other plans)"""
     students = db.query(models.User).filter(
-        models.User.role == "TRAINEE",
+        models.User.role.in_(["TRAINEE", "TRAINER"]),
         models.User.is_active == True
     ).all()
-    return [{"id": s.id, "email": s.email, "full_name": s.full_name} for s in students]
+    return [
+        {
+            "id": s.id, 
+            "email": s.email, 
+            "full_name": s.full_name,
+            "role": s.role  # Include role so frontend can show/filter
+        } 
+        for s in students
+    ]
 
 # Trainers List (for dropdowns)
 @router.get("/trainers")

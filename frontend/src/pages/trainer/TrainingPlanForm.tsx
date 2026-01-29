@@ -30,6 +30,7 @@ interface Student {
   id: number;
   full_name: string;
   email: string;
+  role?: 'TRAINEE' | 'TRAINER';
 }
 
 export default function TrainingPlanForm() {
@@ -93,6 +94,12 @@ export default function TrainingPlanForm() {
   };
 
   const handleStudentToggle = (studentId: number) => {
+    // Não permitir que o formador se selecione como aluno
+    if (user?.id === studentId) {
+      setError('Não pode selecionar-se como aluno no seu próprio plano de formação');
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       selectedStudents: prev.selectedStudents.includes(studentId)
@@ -361,27 +368,49 @@ export default function TrainingPlanForm() {
               </p>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {students.map((student) => (
+                {students.map((student) => {
+                  const isCurrentTrainer = student.id === user?.id;
+                  return (
                   <label
                     key={student.id}
-                    className="flex items-start gap-3 p-4 bg-white/5 rounded-lg border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
+                    className={`flex items-start gap-3 p-4 bg-white/5 rounded-lg border border-white/10 transition-colors ${
+                      isCurrentTrainer 
+                        ? 'opacity-50 cursor-not-allowed' 
+                        : 'cursor-pointer hover:bg-white/10'
+                    }`}
                   >
                     <input
                       type="checkbox"
                       checked={formData.selectedStudents.includes(student.id)}
                       onChange={() => handleStudentToggle(student.id)}
+                      disabled={isCurrentTrainer}
                       className="mt-1 w-4 h-4 text-green-500 bg-white/5 border-white/20 rounded focus:ring-green-500"
                     />
                     <div className="flex-1">
-                      <div className="font-semibold text-white mb-1">
+                      <div className="flex items-center gap-2 font-semibold text-white mb-1">
                         {student.full_name}
+                        {student.role === 'TRAINER' && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
+                            Formador
+                          </span>
+                        )}
+                        {isCurrentTrainer && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
+                            (Você)
+                          </span>
+                        )}
                       </div>
                       <div className="text-sm text-slate-400">
                         {student.email}
                       </div>
+                      {isCurrentTrainer && (
+                        <div className="text-xs text-amber-400 mt-1">
+                          Não pode ser aluno no seu próprio plano
+                        </div>
+                      )}
                     </div>
                   </label>
-                ))}
+                );})}
               </div>
             )}
 

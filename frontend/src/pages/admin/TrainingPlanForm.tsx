@@ -35,6 +35,7 @@ interface Student {
   id: number;
   full_name: string;
   email: string;
+  role?: 'TRAINEE' | 'TRAINER';
 }
 
 export default function AdminTrainingPlanForm() {
@@ -142,6 +143,10 @@ export default function AdminTrainingPlanForm() {
       if (!formData.trainer_ids || formData.trainer_ids.length === 0) {
         newErrors.trainer_ids = 'Selecione pelo menos um formador';
       }
+      // Validar que o formando não seja também formador
+      if (formData.student_id && formData.trainer_ids.includes(formData.student_id)) {
+        newErrors.trainer_ids = 'O aluno selecionado não pode ser também formador';
+      }
     }
 
     if (step === 3) {
@@ -151,7 +156,13 @@ export default function AdminTrainingPlanForm() {
       }
     }
 
-    // Step 4 é opcional (formandos)
+    if (step === 4) {
+      // Validar que o formando não seja também formador
+      if (formData.student_id && formData.trainer_ids.includes(formData.student_id)) {
+        newErrors.student_id = 'O aluno não pode ser também formador do mesmo plano';
+      }
+    }
+
     // Step 5 - validação final completa
     if (step === 5) {
       // Revalidar todos os campos obrigatórios
@@ -159,6 +170,10 @@ export default function AdminTrainingPlanForm() {
       if (!formData.description.trim()) newErrors.description = 'Descrição é obrigatória';
       if (!formData.trainer_ids || formData.trainer_ids.length === 0) newErrors.trainer_ids = 'Pelo menos um formador é obrigatório';
       if (formData.course_ids.length === 0) newErrors.course_ids = 'Pelo menos um curso é obrigatório';
+      // Validar conflito aluno/formador
+      if (formData.student_id && formData.trainer_ids.includes(formData.student_id)) {
+        newErrors.student_id = 'O aluno não pode ser também formador do mesmo plano';
+      }
     }
 
     setErrors(newErrors);
@@ -647,7 +662,9 @@ export default function AdminTrainingPlanForm() {
                         key={student.id}
                         className={`flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition-all ${
                           formData.student_id === student.id
-                            ? 'bg-green-500/10 border-green-500/50'
+                            ? formData.trainer_ids.includes(student.id)
+                              ? 'bg-red-500/10 border-red-500/50'
+                              : 'bg-green-500/10 border-green-500/50'
                             : 'bg-white/5 border-white/10 hover:border-green-500/50'
                         }`}
                       >
@@ -659,17 +676,44 @@ export default function AdminTrainingPlanForm() {
                           className="w-5 h-5 border-white/20 text-green-600 focus:ring-2 focus:ring-green-500/20"
                         />
                         <div className="flex-1">
-                          <div className="text-white font-medium">{student.full_name}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-white font-medium">{student.full_name}</span>
+                            {student.role === 'TRAINER' && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
+                                Formador
+                              </span>
+                            )}
+                          </div>
                           <div className="text-gray-400 text-sm">{student.email}</div>
+                          {formData.trainer_ids.includes(student.id) && (
+                            <div className="text-amber-400 text-xs mt-1 flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" />
+                              Este utilizador é formador deste plano
+                            </div>
+                          )}
                         </div>
                       </label>
                     ))
                   )}
                 </div>
-                {formData.student_id && (
+                {errors.student_id && (
+                  <div className="mt-3 flex items-center gap-2 text-red-400 text-sm p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                    <AlertCircle className="w-4 h-4" />
+                    {errors.student_id}
+                  </div>
+                )}
+                {formData.student_id && !formData.trainer_ids.includes(formData.student_id) && (
                   <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
                     <div className="text-green-300 font-medium">
                       {t('trainingPlans.studentSelected')}: {students.find(s => s.id === formData.student_id)?.full_name}
+                    </div>
+                  </div>
+                )}
+                {formData.student_id && formData.trainer_ids.includes(formData.student_id) && (
+                  <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
+                    <div className="text-red-300 font-medium flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" />
+                      O aluno selecionado não pode ser também formador do mesmo plano
                     </div>
                   </div>
                 )}

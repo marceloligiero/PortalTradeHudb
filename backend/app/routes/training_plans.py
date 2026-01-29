@@ -312,6 +312,13 @@ async def create_training_plan(
             )
         validated_trainers.append(trainer)
     
+    # Validar que o aluno não seja um dos formadores
+    if plan.student_id and plan.student_id in trainer_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="O aluno não pode ser também formador do mesmo plano de formação."
+        )
+    
     # Validar banco se fornecido
     if plan.bank_id:
         bank = db.query(models.Bank).filter(models.Bank.id == plan.bank_id).first()
@@ -666,8 +673,18 @@ async def update_training_plan(
         if key not in ["course_ids", "trainer_ids"]:
             setattr(db_plan, key, value)
     
+    # Determinar student_id efetivo (pode vir do update ou já existir no plano)
+    effective_student_id = plan_update.student_id if hasattr(plan_update, 'student_id') and plan_update.student_id is not None else db_plan.student_id
+    
     # Atualizar trainers se fornecidos
     if plan_update.trainer_ids is not None and len(plan_update.trainer_ids) > 0:
+        # Validar que o aluno não seja um dos formadores
+        if effective_student_id and effective_student_id in plan_update.trainer_ids:
+            raise HTTPException(
+                status_code=400,
+                detail="O aluno não pode ser também formador do mesmo plano de formação."
+            )
+        
         # Remover trainers antigos
         db.query(models.TrainingPlanTrainer).filter(
             models.TrainingPlanTrainer.training_plan_id == plan_id
@@ -691,6 +708,20 @@ async def update_training_plan(
         # Atualizar trainer_id legado com o primeiro trainer
         if plan_update.trainer_ids:
             db_plan.trainer_id = plan_update.trainer_ids[0]
+    
+    # Validar que se o student_id está sendo atualizado, não conflita com formadores existentes
+    if hasattr(plan_update, 'student_id') and plan_update.student_id is not None:
+        existing_trainer_ids = [pt.trainer_id for pt in db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.training_plan_id == plan_id
+        ).all()]
+        if not existing_trainer_ids:
+            existing_trainer_ids = [db_plan.trainer_id] if db_plan.trainer_id else []
+        
+        if plan_update.student_id in existing_trainer_ids:
+            raise HTTPException(
+                status_code=400,
+                detail="O aluno não pode ser também formador do mesmo plano de formação."
+            )
     
     # Atualizar cursos se fornecidos
     if plan_update.course_ids is not None:
@@ -786,14 +817,27 @@ async def assign_student_to_plan(
             detail="Not authorized to assign students to this training plan"
         )
     
-    # Verificar se o formando existe e tem role STUDENT
+    # Verificar se o formando existe (pode ser TRAINEE ou TRAINER que é aluno neste plano)
     student = db.query(models.User).filter(
         models.User.id == assignment.student_id,
-        models.User.role == "TRAINEE"
+        models.User.role.in_(["TRAINEE", "TRAINER"])
     ).first()
     
     if not student:
         raise HTTPException(status_code=400, detail="Student not found or invalid role")
+    
+    # Verificar se o aluno é formador deste plano (não pode ser aluno e formador ao mesmo tempo)
+    trainer_ids = [pt.trainer_id for pt in db.query(models.TrainingPlanTrainer).filter(
+        models.TrainingPlanTrainer.training_plan_id == plan_id
+    ).all()]
+    if not trainer_ids and plan.trainer_id:
+        trainer_ids = [plan.trainer_id]
+    
+    if assignment.student_id in trainer_ids:
+        raise HTTPException(
+            status_code=400, 
+            detail="O aluno não pode ser também formador do mesmo plano de formação."
+        )
     
     # Verificar se já está atribuído
     existing = db.query(models.TrainingPlanAssignment).filter(
