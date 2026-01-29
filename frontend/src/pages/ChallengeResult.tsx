@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, Target, Clock, Award, Check, X, AlertTriangle } from 'lucide-react';
 import api from '../lib/axios';
+import { useAuthStore } from '../stores/authStore';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface OperationError {
   error_type: string;
@@ -38,14 +40,16 @@ interface ChallengeSubmissionDetail {
   id: number;
   challenge_id: number;
   user_id: number;
+  training_plan_id?: number;
   submission_type: string;
+  status?: string;
   total_operations: number;
   total_time_minutes: number;
   started_at: string;
   completed_at: string;
   calculated_mpu: number;
   mpu_vs_target: number;
-  is_approved: boolean;
+  is_approved: boolean | null;
   score: number;
   feedback: string | null;
   errors_count?: number;
@@ -59,6 +63,7 @@ interface ChallengeSubmissionDetail {
     max_errors?: number;
     target_kpi?: string;  // KPI sendo avaliado (deprecated)
     challenge_type?: string;
+    kpi_mode?: 'AUTO' | 'MANUAL';
     use_volume_kpi?: boolean;
     use_mpu_kpi?: boolean;
     use_errors_kpi?: boolean;
@@ -85,9 +90,19 @@ interface ChallengeSubmissionDetail {
 const ChallengeResult: React.FC = () => {
   const navigate = useNavigate();
   const { submissionId } = useParams<{ submissionId: string }>();
+  const searchParams = new URLSearchParams(window.location.search);
+  const urlPlanId = searchParams.get('planId');
+  const { user } = useAuthStore();
   
   const [loading, setLoading] = useState(true);
   const [submission, setSubmission] = useState<ChallengeSubmissionDetail | null>(null);
+  const [approving, setApproving] = useState(false);
+
+  // Verificar se é formador/admin
+  const isTrainerOrAdmin = user?.role === 'ADMIN' || user?.role === 'TRAINER';
+
+  // Usar planId da URL ou da submission
+  const planId = urlPlanId || (submission?.training_plan_id ? String(submission.training_plan_id) : null);
 
   useEffect(() => {
     loadSubmission();
@@ -104,18 +119,38 @@ const ChallengeResult: React.FC = () => {
     }
   };
 
+  const handleApproval = async (approve: boolean) => {
+    if (!submission) return;
+    setApproving(true);
+    try {
+      // Verificar se é MANUAL ou AUTO para escolher o endpoint correto
+      const kpiMode = submission.challenge?.kpi_mode || 'AUTO';
+      const endpoint = kpiMode === 'MANUAL' 
+        ? `/api/challenges/submissions/${submissionId}/manual-finalize`
+        : `/api/challenges/submissions/${submissionId}/finalize-review`;
+      
+      await api.post(endpoint, { approve });
+      await loadSubmission(); // Recarregar dados
+    } catch (err: any) {
+      console.error('Erro ao aprovar/reprovar:', err);
+      alert(err.response?.data?.detail || 'Erro ao processar aprovação');
+    } finally {
+      setApproving(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-gray-900 flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-white/30 border-t-red-500 rounded-full animate-spin" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-red-50/20 to-gray-100 dark:from-gray-900 dark:via-red-900/20 dark:to-gray-900 flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-gray-300 dark:border-white/30 border-t-red-500 rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!submission) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-gray-900 flex items-center justify-center">
-        <div className="text-white">Resultado não encontrado</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-red-50/20 to-gray-100 dark:from-gray-900 dark:via-red-900/20 dark:to-gray-900 flex items-center justify-center">
+        <div className="text-gray-900 dark:text-white">Resultado não encontrado</div>
       </div>
     );
   }
@@ -131,13 +166,13 @@ const ChallengeResult: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-gray-900 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-red-50/20 to-gray-100 dark:from-gray-900 dark:via-red-900/20 dark:to-gray-900 py-8 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
+            onClick={() => planId ? navigate(`/training-plans/${planId}`) : navigate(-1)}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors mb-4"
           >
             <ArrowLeft className="w-5 h-5" />
             Voltar
@@ -180,23 +215,27 @@ const ChallengeResult: React.FC = () => {
             </div>
             
             {/* Status Badge */}
-            <div className={`px-6 py-3 rounded-lg flex items-center gap-2 ${
-              submission.is_approved
-                ? 'bg-green-500/10 border-2 border-green-500/30'
-                : 'bg-red-500/10 border-2 border-red-500/30'
-            }`}>
-              {submission.is_approved ? (
-                <>
-                  <Check className="w-6 h-6 text-green-500" />
-                  <span className="text-green-500 font-bold text-lg">APROVADO</span>
-                </>
-              ) : (
-                <>
-                  <X className="w-6 h-6 text-red-500" />
-                  <span className="text-red-500 font-bold text-lg">REPROVADO</span>
-                </>
-              )}
-            </div>
+            {submission.status === 'APPROVED' ? (
+              <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-green-500/10 border-2 border-green-500/30">
+                <Check className="w-6 h-6 text-green-500" />
+                <span className="text-green-500 font-bold text-lg">APROVADO</span>
+              </div>
+            ) : submission.status === 'REJECTED' ? (
+              <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-red-500/10 border-2 border-red-500/30">
+                <X className="w-6 h-6 text-red-500" />
+                <span className="text-red-500 font-bold text-lg">REPROVADO</span>
+              </div>
+            ) : submission.status === 'PENDING_REVIEW' ? (
+              <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-yellow-500/10 border-2 border-yellow-500/30">
+                <Clock className="w-6 h-6 text-yellow-500" />
+                <span className="text-yellow-500 font-bold text-lg">AGUARDA REVISÃO</span>
+              </div>
+            ) : (
+              <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-blue-500/10 border-2 border-blue-500/30">
+                <Clock className="w-6 h-6 text-blue-500" />
+                <span className="text-blue-500 font-bold text-lg">EM PROGRESSO</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -560,10 +599,41 @@ const ChallengeResult: React.FC = () => {
           </div>
         )}
 
+        {/* Botões de Aprovação (para formador em PENDING_REVIEW) */}
+        {isTrainerOrAdmin && submission.status === 'PENDING_REVIEW' && (
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-6 mb-8">
+            <h2 className="text-xl font-bold text-yellow-400 mb-4 flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Aguarda a sua decisão
+            </h2>
+            <p className="text-gray-300 mb-6">
+              Este desafio está configurado para avaliação manual. Analise os resultados acima e decida se o formando deve ser aprovado ou reprovado.
+            </p>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={() => handleApproval(true)}
+                disabled={approving}
+                className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50"
+              >
+                <Check className="w-5 h-5" />
+                {approving ? 'A processar...' : 'Aprovar'}
+              </button>
+              <button
+                onClick={() => handleApproval(false)}
+                disabled={approving}
+                className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+                {approving ? 'A processar...' : 'Reprovar'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Ações */}
         <div className="flex justify-center gap-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => planId ? navigate(`/training-plans/${planId}`) : navigate(-1)}
             className="px-8 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all"
           >
             Voltar

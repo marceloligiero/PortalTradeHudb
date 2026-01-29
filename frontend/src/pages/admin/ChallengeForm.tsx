@@ -17,6 +17,10 @@ interface ChallengeFormData {
   use_volume_kpi: boolean;
   use_mpu_kpi: boolean;
   use_errors_kpi: boolean;
+  // Modo de avaliação
+  kpi_mode: 'AUTO' | 'MANUAL';
+  // Permitir nova tentativa
+  allow_retry: boolean;
 }
 
 const ChallengeForm: React.FC = () => {
@@ -41,6 +45,8 @@ const ChallengeForm: React.FC = () => {
     use_volume_kpi: true,
     use_mpu_kpi: true,
     use_errors_kpi: true,
+    kpi_mode: 'AUTO',
+    allow_retry: false,
   });
 
   // Fetch challenge data if editing
@@ -67,6 +73,8 @@ const ChallengeForm: React.FC = () => {
         use_volume_kpi: challenge.use_volume_kpi !== undefined ? challenge.use_volume_kpi : true,
         use_mpu_kpi: challenge.use_mpu_kpi !== undefined ? challenge.use_mpu_kpi : true,
         use_errors_kpi: challenge.use_errors_kpi !== undefined ? challenge.use_errors_kpi : true,
+        kpi_mode: challenge.kpi_mode || 'AUTO',
+        allow_retry: challenge.allow_retry !== undefined ? challenge.allow_retry : false,
       });
     } catch (err: any) {
       console.error('Erro ao carregar desafio:', err);
@@ -387,11 +395,110 @@ const ChallengeForm: React.FC = () => {
                   </div>
                 </button>
               </div>
-              {!formData.use_volume_kpi && !formData.use_mpu_kpi && !formData.use_errors_kpi && (
+              {!formData.use_volume_kpi && !formData.use_mpu_kpi && !formData.use_errors_kpi && formData.kpi_mode === 'AUTO' && (
                 <p className="text-yellow-500 text-sm mt-3">
-                  ⚠️ Selecione pelo menos um KPI para aprovação
+                  ⚠️ Selecione pelo menos um KPI para aprovação automática
                 </p>
               )}
+            </div>
+
+            {/* Modo de Avaliação de KPI */}
+            <div className="bg-white/5 rounded-lg p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <CheckSquare className="w-5 h-5 text-blue-500" />
+                <h3 className="text-lg font-medium text-white">Modo de Avaliação</h3>
+              </div>
+              <p className="text-sm text-gray-400 mb-4">
+                Escolha como o desafio será avaliado:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* AUTO */}
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, kpi_mode: 'AUTO' })}
+                  className={`p-4 rounded-lg border-2 transition-all text-left ${
+                    formData.kpi_mode === 'AUTO'
+                      ? 'border-blue-500 bg-blue-500/10'
+                      : 'border-white/10 bg-white/5 hover:border-white/20'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-lg ${
+                      formData.kpi_mode === 'AUTO' ? 'bg-blue-500' : 'bg-white/10'
+                    }`}>
+                      <TrendingUp className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-white mb-1">Automático</h3>
+                      <p className="text-sm text-gray-400">
+                        Aprovação baseada nos KPIs selecionados acima
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* MANUAL */}
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, kpi_mode: 'MANUAL' })}
+                  className={`p-4 rounded-lg border-2 transition-all text-left ${
+                    formData.kpi_mode === 'MANUAL'
+                      ? 'border-purple-500 bg-purple-500/10'
+                      : 'border-white/10 bg-white/5 hover:border-white/20'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-lg ${
+                      formData.kpi_mode === 'MANUAL' ? 'bg-purple-500' : 'bg-white/10'
+                    }`}>
+                      <AlertCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-white mb-1">Manual</h3>
+                      <p className="text-sm text-gray-400">
+                        Formador decide aprovação manualmente
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+              {formData.kpi_mode === 'MANUAL' && (
+                <p className="text-purple-400 text-sm mt-3">
+                  ℹ️ O formador irá avaliar e aprovar/reprovar manualmente este desafio
+                </p>
+              )}
+            </div>
+
+            {/* Permitir Retentativa */}
+            <div className="bg-white/5 rounded-lg p-6">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, allow_retry: !formData.allow_retry })}
+                className="w-full flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-6 rounded-full transition-colors ${
+                    formData.allow_retry ? 'bg-green-500' : 'bg-gray-600'
+                  }`}>
+                    <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform mt-0.5 ${
+                      formData.allow_retry ? 'translate-x-6' : 'translate-x-0.5'
+                    }`} />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="text-lg font-medium text-white">Permitir Retentativa</h3>
+                    <p className="text-sm text-gray-400">
+                      Se reprovado, o formador pode habilitar nova tentativa
+                    </p>
+                  </div>
+                </div>
+                <div className={`px-3 py-1 rounded-full text-sm ${
+                  formData.allow_retry 
+                    ? 'bg-green-500/20 text-green-400' 
+                    : 'bg-gray-500/20 text-gray-400'
+                }`}>
+                  {formData.allow_retry ? 'Ativo' : 'Inativo'}
+                </div>
+              </button>
             </div>
 
             {/* MPU Meta (calculado automaticamente) */}

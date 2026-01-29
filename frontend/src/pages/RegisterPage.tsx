@@ -5,10 +5,12 @@ import api from '../lib/axios';
 import { UserPlus, Mail, Lock, User, ArrowRight, GraduationCap, Users } from 'lucide-react';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { Button, Input, Alert, RadioGroup } from '../components';
+import { useTheme } from '../contexts/ThemeContext';
 
 const RegisterPage = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   
   const [formData, setFormData] = useState({
     email: '',
@@ -110,24 +112,26 @@ const RegisterPage = () => {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-[#0a0a0a] text-white selection:bg-red-500/30">
+    <div className={`min-h-screen relative overflow-hidden transition-colors duration-300 ${
+      isDark ? 'bg-[#0a0a0a] text-white' : 'bg-gray-50 text-gray-900'
+    }`}>
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-red-600/10 rounded-full blur-[120px] animate-blob" />
-        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-600/5 rounded-full blur-[120px] animate-blob animation-delay-2000" />
+        <div className={`absolute top-0 right-1/4 w-96 h-96 rounded-full blur-[120px] animate-blob ${isDark ? 'bg-red-600/10' : 'bg-red-600/5'}`} />
+        <div className={`absolute bottom-0 left-1/4 w-96 h-96 rounded-full blur-[120px] animate-blob animation-delay-2000 ${isDark ? 'bg-blue-600/5' : 'bg-blue-600/3'}`} />
       </div>
 
       {/* Navigation */}
-      <div className="absolute top-0 w-full z-50 p-4 flex justify-between items-center">
+      <div className={`absolute top-0 w-full z-50 p-4 flex justify-between items-center backdrop-blur-xl ${isDark ? 'bg-[#0a0a0a]/50' : 'bg-white/50'}`}>
         <img 
           src="/logo-sds.png"
           alt="Santander Digital Services"
-          className="h-8 w-auto object-contain"
+          className={`h-8 w-auto object-contain ${isDark ? '' : ''}`}
         />
         <div className="flex items-center gap-4">
           <Link
             to="/"
-            className="flex items-center gap-2 text-white/60 hover:text-white transition-colors group"
+            className={`flex items-center gap-2 transition-colors group ${isDark ? 'text-white/60 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
           >
             <ArrowRight className="w-5 h-5 rotate-180 group-hover:-translate-x-1 transition-transform" />
             <span className="text-sm font-medium">{t('common.backToHome')}</span>
@@ -140,16 +144,16 @@ const RegisterPage = () => {
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4 py-20">
         <div className="w-full max-w-xl">
           {/* Card */}
-          <div className="glass-morphism-dark rounded-[32px] shadow-2xl p-10 border border-white/10 animate-scale-in">
+          <div className={`rounded-[32px] shadow-2xl p-10 border animate-scale-in backdrop-blur-xl ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'}`}>
             {/* Header */}
             <div className="text-center mb-10">
               <div className="inline-flex items-center justify-center w-20 h-20 bg-red-600 rounded-2xl mb-6 shadow-lg shadow-red-600/20 animate-pulse-glow">
                 <UserPlus className="w-10 h-10 text-white" />
               </div>
-              <h1 className="text-4xl font-black tracking-tight mb-3">
+              <h1 className={`text-4xl font-black tracking-tight mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 {t('auth.register')}
               </h1>
-              <p className="text-gray-400 font-medium">
+              <p className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 {t('auth.create_account')}
               </p>
             </div>

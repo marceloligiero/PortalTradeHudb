@@ -87,7 +87,7 @@ const StatCard = ({ icon: Icon, label, value, color, delay = 0 }: any) => (
     className="relative group"
   >
     <div className={`absolute inset-0 bg-gradient-to-br ${color} rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500`} />
-    <div className="relative bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 hover:border-white/20 transition-all duration-300">
+    <div className="relative bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6 hover:border-gray-300 dark:hover:border-white/20 transition-all duration-300 shadow-lg dark:shadow-none">
       <div className="flex items-center justify-between mb-4">
         <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg`}>
           <Icon className="w-6 h-6 text-white" />
@@ -95,15 +95,15 @@ const StatCard = ({ icon: Icon, label, value, color, delay = 0 }: any) => (
         <motion.div
           animate={{ rotate: [0, 360] }}
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center"
+          className="w-8 h-8 rounded-full border border-gray-200 dark:border-white/10 flex items-center justify-center"
         >
-          <Sparkles className="w-4 h-4 text-white/30" />
+          <Sparkles className="w-4 h-4 text-gray-400 dark:text-white/30" />
         </motion.div>
       </div>
-      <div className="text-3xl font-bold text-white mb-1">
+      <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
         <AnimatedCounter value={value} />
       </div>
-      <div className="text-sm text-gray-400">{label}</div>
+      <div className="text-sm text-gray-500 dark:text-gray-400">{label}</div>
     </div>
   </motion.div>
 );
@@ -124,16 +124,16 @@ const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose:
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden"
+          className="bg-white dark:bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-            <h2 className="text-xl font-semibold text-white">{title}</h2>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-white/10">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h2>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
+              className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition-colors"
             >
-              <X className="w-4 h-4 text-gray-400" />
+              <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
             </button>
           </div>
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
@@ -146,14 +146,14 @@ const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose:
 );
 
 // User Details Modal Content
-const UserDetailsContent = ({ user, onClose }: { user: UserDetails | null; onClose: () => void }) => {
-  if (!user) return <div className="text-center py-8 text-gray-400">A carregar...</div>;
+const UserDetailsContent = ({ user, onClose, t }: { user: UserDetails | null; onClose: () => void; t: any }) => {
+  if (!user) return <div className="text-center py-8 text-gray-500 dark:text-gray-400">{t('usersPage.loading')}</div>;
 
   const getRoleLabel = (role: string) => {
     switch (role) {
-      case 'ADMIN': return 'Administrador';
-      case 'TRAINER': return 'Formador';
-      default: return 'Formando';
+      case 'ADMIN': return t('usersPage.admin');
+      case 'TRAINER': return t('usersPage.trainer');
+      default: return t('usersPage.student');
     }
   };
 
@@ -178,8 +178,8 @@ const UserDetailsContent = ({ user, onClose }: { user: UserDetails | null; onClo
           {user.full_name.charAt(0).toUpperCase()}
         </div>
         <div>
-          <h3 className="text-xl font-semibold text-white">{user.full_name}</h3>
-          <p className="text-gray-400">{user.email}</p>
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{user.full_name}</h3>
+          <p className="text-gray-500 dark:text-gray-400">{user.email}</p>
           <div className="flex items-center gap-2 mt-1">
             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
               user.role === 'ADMIN' ? 'bg-purple-500/20 text-purple-300' :
@@ -193,70 +193,70 @@ const UserDetailsContent = ({ user, onClose }: { user: UserDetails | null; onClo
               user.is_active ? 'bg-emerald-500/20 text-emerald-300' :
               'bg-red-500/20 text-red-300'
             }`}>
-              {user.is_pending ? 'Pendente' : user.is_active ? 'Ativo' : 'Inativo'}
+              {user.is_pending ? t('usersPage.pending') : user.is_active ? t('usersPage.active') : t('usersPage.inactive')}
             </span>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+        <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-200 dark:border-white/10">
           <div className="flex items-center gap-2 mb-2">
-            <BookOpen className="w-4 h-4 text-blue-400" />
-            <span className="text-xs text-gray-400">Inscrições</span>
+            <BookOpen className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.enrollments')}</span>
           </div>
-          <p className="text-2xl font-bold text-white">{user.stats.enrollments_count}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{user.stats.enrollments_count}</p>
         </div>
-        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+        <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-200 dark:border-white/10">
           <div className="flex items-center gap-2 mb-2">
-            <Award className="w-4 h-4 text-yellow-400" />
-            <span className="text-xs text-gray-400">Certificados</span>
+            <Award className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.certificates')}</span>
           </div>
-          <p className="text-2xl font-bold text-white">{user.stats.certificates_count}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{user.stats.certificates_count}</p>
         </div>
-        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+        <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-200 dark:border-white/10">
           <div className="flex items-center gap-2 mb-2">
-            <Target className="w-4 h-4 text-green-400" />
-            <span className="text-xs text-gray-400">Progresso</span>
+            <Target className="w-4 h-4 text-green-500 dark:text-green-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.progress')}</span>
           </div>
-          <p className="text-2xl font-bold text-white">{user.stats.completion_rate}%</p>
-          <p className="text-xs text-gray-500">{user.stats.completed_lessons}/{user.stats.total_lessons} lições</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{user.stats.completion_rate}%</p>
+          <p className="text-xs text-gray-500">{user.stats.completed_lessons}/{user.stats.total_lessons} {t('usersPage.lessonsProgress')}</p>
         </div>
-        <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+        <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-200 dark:border-white/10">
           <div className="flex items-center gap-2 mb-2">
-            <Timer className="w-4 h-4 text-purple-400" />
-            <span className="text-xs text-gray-400">Tempo de Estudo</span>
+            <Timer className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.studyTime')}</span>
           </div>
-          <p className="text-2xl font-bold text-white">{formatTime(user.stats.total_study_time_minutes)}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatTime(user.stats.total_study_time_minutes)}</p>
         </div>
       </div>
 
-      <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-        <h4 className="text-sm font-medium text-gray-300 mb-3">Informações Adicionais</h4>
+      <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-200 dark:border-white/10">
+        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t('usersPage.additionalInfo')}</h4>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-400">ID do Utilizador</span>
-            <span className="text-white font-mono">#{user.id}</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('usersPage.userId')}</span>
+            <span className="text-gray-900 dark:text-white font-mono">#{user.id}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-400">Data de Registo</span>
-            <span className="text-white">{formatDate(user.created_at)}</span>
+            <span className="text-gray-500 dark:text-gray-400">{t('usersPage.registrationDate')}</span>
+            <span className="text-gray-900 dark:text-white">{formatDate(user.created_at)}</span>
           </div>
         </div>
       </div>
 
       <button
         onClick={onClose}
-        className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all border border-white/10"
+        className="w-full py-3 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all border border-gray-200 dark:border-white/10"
       >
-        Fechar
+        {t('usersPage.close')}
       </button>
     </div>
   );
 };
 
 // Edit User Modal Content
-const EditUserContent = ({ user, onSave, onClose, saving }: { user: User | null; onSave: (data: any) => void; onClose: () => void; saving: boolean }) => {
+const EditUserContent = ({ user, onSave, onClose, saving, t }: { user: User | null; onSave: (data: any) => void; onClose: () => void; saving: boolean; t: any }) => {
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -275,7 +275,7 @@ const EditUserContent = ({ user, onSave, onClose, saving }: { user: User | null;
     }
   }, [user]);
 
-  if (!user) return <div className="text-center py-8 text-gray-400">A carregar...</div>;
+  if (!user) return <div className="text-center py-8 text-gray-500 dark:text-gray-400">A carregar...</div>;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -285,39 +285,39 @@ const EditUserContent = ({ user, onSave, onClose, saving }: { user: User | null;
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Nome Completo</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('usersPage.fullName')}</label>
         <input
           type="text"
           value={formData.full_name}
           onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all outline-none"
-          placeholder="Nome do utilizador"
+          className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all outline-none"
+          placeholder={t('usersPage.userNamePlaceholder')}
           required
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('usersPage.email')}</label>
         <input
           type="email"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all outline-none"
+          className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all outline-none"
           placeholder="email@exemplo.com"
           required
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">Função</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('usersPage.role')}</label>
         <select
           value={formData.role}
           onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
-          className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all outline-none appearance-none cursor-pointer"
+          className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all outline-none appearance-none cursor-pointer"
         >
-          <option value="TRAINEE" className="bg-gray-900">Formando</option>
-          <option value="TRAINER" className="bg-gray-900">Formador</option>
-          <option value="ADMIN" className="bg-gray-900">Administrador</option>
+          <option value="TRAINEE" className="bg-white dark:bg-gray-900">{t('usersPage.student')}</option>
+          <option value="TRAINER" className="bg-white dark:bg-gray-900">{t('usersPage.trainer')}</option>
+          <option value="ADMIN" className="bg-white dark:bg-gray-900">{t('usersPage.admin')}</option>
         </select>
       </div>
 
@@ -325,10 +325,10 @@ const EditUserContent = ({ user, onSave, onClose, saving }: { user: User | null;
         <button
           type="button"
           onClick={onClose}
-          className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all border border-white/10"
+          className="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all border border-gray-200 dark:border-white/10"
           disabled={saving}
         >
-          Cancelar
+          {t('usersPage.cancel')}
         </button>
         <button
           type="submit"
@@ -338,12 +338,12 @@ const EditUserContent = ({ user, onSave, onClose, saving }: { user: User | null;
           {saving ? (
             <>
               <RefreshCw className="w-4 h-4 animate-spin" />
-              A guardar...
+              {t('usersPage.saving')}
             </>
           ) : (
             <>
               <Save className="w-4 h-4" />
-              Guardar
+              {t('usersPage.save')}
             </>
           )}
         </button>
@@ -353,30 +353,30 @@ const EditUserContent = ({ user, onSave, onClose, saving }: { user: User | null;
 };
 
 // Deactivate Confirmation Modal Content
-const DeactivateConfirmContent = ({ user, onConfirm, onClose, processing }: { user: User | null; onConfirm: () => void; onClose: () => void; processing: boolean }) => {
+const DeactivateConfirmContent = ({ user, onConfirm, onClose, processing, t }: { user: User | null; onConfirm: () => void; onClose: () => void; processing: boolean; t: any }) => {
   if (!user) return null;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-center text-center">
         <div className="w-16 h-16 rounded-full bg-yellow-500/20 flex items-center justify-center mb-4">
-          <UserX className="w-8 h-8 text-yellow-400" />
+          <UserX className="w-8 h-8 text-yellow-500 dark:text-yellow-400" />
         </div>
-        <h3 className="text-lg font-semibold text-white mb-2">Inativar Utilizador</h3>
-        <p className="text-gray-400">
-          Tem a certeza que pretende inativar o utilizador <span className="text-white font-medium">{user.full_name}</span>?
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t('usersPage.deactivateUser')}</h3>
+        <p className="text-gray-500 dark:text-gray-400">
+          {t('usersPage.deactivateConfirmText')} <span className="text-gray-900 dark:text-white font-medium">{user.full_name}</span>?
         </p>
-        <p className="text-sm text-yellow-400 mt-2">O utilizador não poderá aceder à plataforma.</p>
+        <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-2">{t('usersPage.userCannotAccess')}</p>
       </div>
 
-      <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+      <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-200 dark:border-white/10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white font-bold">
             {user.full_name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="text-white font-medium">{user.full_name}</p>
-            <p className="text-sm text-gray-400">{user.email}</p>
+            <p className="text-gray-900 dark:text-white font-medium">{user.full_name}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
           </div>
         </div>
       </div>
@@ -384,10 +384,10 @@ const DeactivateConfirmContent = ({ user, onConfirm, onClose, processing }: { us
       <div className="flex gap-3">
         <button
           onClick={onClose}
-          className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all border border-white/10"
+          className="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all border border-gray-200 dark:border-white/10"
           disabled={processing}
         >
-          Cancelar
+          {t('usersPage.cancel')}
         </button>
         <button
           onClick={onConfirm}
@@ -397,12 +397,12 @@ const DeactivateConfirmContent = ({ user, onConfirm, onClose, processing }: { us
           {processing ? (
             <>
               <RefreshCw className="w-4 h-4 animate-spin" />
-              A inativar...
+              {t('usersPage.deactivating')}
             </>
           ) : (
             <>
               <UserX className="w-4 h-4" />
-              Inativar
+              {t('usersPage.deactivate')}
             </>
           )}
         </button>
@@ -412,30 +412,30 @@ const DeactivateConfirmContent = ({ user, onConfirm, onClose, processing }: { us
 };
 
 // Reactivate Confirmation Modal Content
-const ReactivateConfirmContent = ({ user, onConfirm, onClose, processing }: { user: User | null; onConfirm: () => void; onClose: () => void; processing: boolean }) => {
+const ReactivateConfirmContent = ({ user, onConfirm, onClose, processing, t }: { user: User | null; onConfirm: () => void; onClose: () => void; processing: boolean; t: any }) => {
   if (!user) return null;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-center text-center">
         <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
-          <UserCheck className="w-8 h-8 text-green-400" />
+          <UserCheck className="w-8 h-8 text-green-500 dark:text-green-400" />
         </div>
-        <h3 className="text-lg font-semibold text-white mb-2">Reativar Utilizador</h3>
-        <p className="text-gray-400">
-          Tem a certeza que pretende reativar o utilizador <span className="text-white font-medium">{user.full_name}</span>?
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{t('usersPage.reactivateUser')}</h3>
+        <p className="text-gray-500 dark:text-gray-400">
+          {t('usersPage.reactivateConfirmText')} <span className="text-gray-900 dark:text-white font-medium">{user.full_name}</span>?
         </p>
-        <p className="text-sm text-green-400 mt-2">O utilizador poderá aceder novamente à plataforma.</p>
+        <p className="text-sm text-green-600 dark:text-green-400 mt-2">{t('usersPage.userCanAccess')}</p>
       </div>
 
-      <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+      <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 border border-gray-200 dark:border-white/10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white font-bold">
             {user.full_name.charAt(0).toUpperCase()}
           </div>
           <div>
-            <p className="text-white font-medium">{user.full_name}</p>
-            <p className="text-sm text-gray-400">{user.email}</p>
+            <p className="text-gray-900 dark:text-white font-medium">{user.full_name}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
           </div>
         </div>
       </div>
@@ -443,10 +443,10 @@ const ReactivateConfirmContent = ({ user, onConfirm, onClose, processing }: { us
       <div className="flex gap-3">
         <button
           onClick={onClose}
-          className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white transition-all border border-white/10"
+          className="flex-1 py-3 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-all border border-gray-200 dark:border-white/10"
           disabled={processing}
         >
-          Cancelar
+          {t('usersPage.cancel')}
         </button>
         <button
           onClick={onConfirm}
@@ -456,12 +456,12 @@ const ReactivateConfirmContent = ({ user, onConfirm, onClose, processing }: { us
           {processing ? (
             <>
               <RefreshCw className="w-4 h-4 animate-spin" />
-              A reativar...
+              {t('usersPage.reactivating')}
             </>
           ) : (
             <>
               <UserCheck className="w-4 h-4" />
-              Reativar
+              {t('usersPage.reactivate')}
             </>
           )}
         </button>
@@ -471,7 +471,7 @@ const ReactivateConfirmContent = ({ user, onConfirm, onClose, processing }: { us
 };
 
 // User Row Component
-const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivate, onReactivate }: any) => {
+const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivate, onReactivate, t }: any) => {
   const [showActions, setShowActions] = useState(false);
   const actionsRef = useRef<HTMLDivElement>(null);
 
@@ -537,15 +537,15 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
           
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-white font-medium">{user.full_name}</h3>
+              <h3 className="text-gray-900 dark:text-white font-medium">{user.full_name}</h3>
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r ${roleConfig.bg} ${roleConfig.border} border ${roleConfig.text}`}>
                 <RoleIcon className="w-3 h-3 inline mr-1" />
-                {user.role === 'ADMIN' ? 'Admin' : user.role === 'TRAINER' ? 'Formador' : 'Formando'}
+                {user.role === 'ADMIN' ? t('usersPage.admin') : user.role === 'TRAINER' ? t('usersPage.trainer') : t('usersPage.student')}
               </span>
             </div>
             <div className="flex items-center gap-2 mt-1">
-              <Mail className="w-3.5 h-3.5 text-gray-500" />
-              <span className="text-sm text-gray-400">{user.email}</span>
+              <Mail className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+              <span className="text-sm text-gray-500 dark:text-gray-400">{user.email}</span>
             </div>
           </div>
         </div>
@@ -560,7 +560,7 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-medium shadow-lg shadow-green-500/20"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                Aprovar
+                {t('usersPage.approve')}
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -569,7 +569,7 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-sm font-medium hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-all"
               >
                 <XCircle className="w-4 h-4" />
-                Rejeitar
+                {t('usersPage.reject')}
               </motion.button>
             </div>
           ) : (
@@ -578,9 +578,9 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setShowActions(!showActions)}
-                className="w-9 h-9 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-all"
+                className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 flex items-center justify-center transition-all"
               >
-                <MoreVertical className="w-4 h-4 text-gray-400" />
+                <MoreVertical className="w-4 h-4 text-gray-500 dark:text-gray-400" />
               </motion.button>
               
               <AnimatePresence>
@@ -589,21 +589,21 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
                     initial={{ opacity: 0, scale: 0.95, y: -10 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                    className="absolute right-0 top-full mt-2 w-48 bg-gray-900/95 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl overflow-hidden z-50"
+                    className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-900/95 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 shadow-2xl overflow-hidden z-50"
                   >
                     <button 
                       onClick={() => { onView(user.id); setShowActions(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-all"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all"
                     >
                       <Eye className="w-4 h-4" />
-                      Ver Detalhes
+                      {t('usersPage.viewDetails')}
                     </button>
                     <button 
                       onClick={() => { onEdit(user); setShowActions(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-all"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all"
                     >
                       <Edit3 className="w-4 h-4" />
-                      Editar
+                      {t('usersPage.edit')}
                     </button>
                     {user.is_active ? (
                       <button 
@@ -611,7 +611,7 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
                         className="w-full flex items-center gap-3 px-4 py-3 text-sm text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300 transition-all"
                       >
                         <UserX className="w-4 h-4" />
-                        Inativar
+                        {t('usersPage.deactivate')}
                       </button>
                     ) : (
                       <button 
@@ -619,7 +619,7 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
                         className="w-full flex items-center gap-3 px-4 py-3 text-sm text-green-400 hover:bg-green-500/10 hover:text-green-300 transition-all"
                       >
                         <UserCheck className="w-4 h-4" />
-                        Reativar
+                        {t('usersPage.reactivate')}
                       </button>
                     )}
                   </motion.div>
@@ -774,8 +774,8 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none dark:block hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse" />
       </div>
@@ -788,22 +788,22 @@ export default function UsersPage() {
                 <UsersIcon className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-white">{t('admin.users')}</h1>
-                <p className="text-gray-400">{t('admin.usersDescription')}</p>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('admin.users')}</h1>
+                <p className="text-gray-500 dark:text-gray-400">{t('admin.usersDescription')}</p>
               </div>
             </div>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatCard icon={UsersIcon} label="Total de Utilizadores" value={stats.total} color="from-blue-500 to-cyan-500" delay={0} />
-            <StatCard icon={UserCheck} label="Utilizadores Ativos" value={stats.active} color="from-green-500 to-emerald-500" delay={0.1} />
-            <StatCard icon={Clock} label="Pendentes" value={stats.pending} color="from-yellow-500 to-orange-500" delay={0.2} />
-            <StatCard icon={Briefcase} label="Formadores" value={stats.trainers} color="from-purple-500 to-pink-500" delay={0.3} />
+            <StatCard icon={UsersIcon} label={t('usersPage.totalUsers')} value={stats.total} color="from-blue-500 to-cyan-500" delay={0} />
+            <StatCard icon={UserCheck} label={t('usersPage.activeUsers')} value={stats.active} color="from-green-500 to-emerald-500" delay={0.1} />
+            <StatCard icon={Clock} label={t('usersPage.pendingUsers')} value={stats.pending} color="from-yellow-500 to-orange-500" delay={0.2} />
+            <StatCard icon={Briefcase} label={t('usersPage.trainers')} value={stats.trainers} color="from-purple-500 to-pink-500" delay={0.3} />
           </div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
-              <div className="p-6 border-b border-white/10">
+            <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden shadow-lg dark:shadow-none">
+              <div className="p-6 border-b border-gray-200 dark:border-white/10">
                 <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
                   <div className="relative flex-1 max-w-md">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -811,8 +811,8 @@ export default function UsersPage() {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Pesquisar utilizadores..."
-                      className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all outline-none"
+                      placeholder={t('usersPage.searchUsers')}
+                      className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all outline-none"
                     />
                   </div>
                   
@@ -820,10 +820,10 @@ export default function UsersPage() {
                     <div className="relative">
                       <button
                         onClick={() => setShowFilters(!showFilters)}
-                        className="flex items-center gap-2 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:text-white hover:bg-white/10 transition-all"
+                        className="flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
                       >
                         <Filter className="w-4 h-4" />
-                        <span>Filtros</span>
+                        <span>{t('usersPage.filters')}</span>
                         <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
                       </button>
                       
@@ -833,19 +833,19 @@ export default function UsersPage() {
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="absolute right-0 top-full mt-2 w-48 bg-gray-900/95 backdrop-blur-xl rounded-xl border border-white/10 shadow-2xl overflow-hidden z-50"
+                            className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-900/95 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 shadow-2xl overflow-hidden z-50"
                           >
                             {[
-                              { value: 'all', label: 'Todos', icon: UsersIcon },
-                              { value: 'active', label: 'Ativos', icon: UserCheck },
-                              { value: 'pending', label: 'Pendentes', icon: Clock },
-                              { value: 'inactive', label: 'Inativos', icon: UserX }
+                              { value: 'all', label: t('usersPage.all'), icon: UsersIcon },
+                              { value: 'active', label: t('usersPage.actives'), icon: UserCheck },
+                              { value: 'pending', label: t('usersPage.pendingUsers'), icon: Clock },
+                              { value: 'inactive', label: t('usersPage.inactives'), icon: UserX }
                             ].map((option) => (
                               <button
                                 key={option.value}
                                 onClick={() => { setFilter(option.value as any); setShowFilters(false); }}
                                 className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-all ${
-                                  filter === option.value ? 'bg-red-500/20 text-red-400' : 'text-gray-300 hover:bg-white/5 hover:text-white'
+                                  filter === option.value ? 'bg-red-500/20 text-red-500 dark:text-red-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
                                 }`}
                               >
                                 <option.icon className="w-4 h-4" />
@@ -864,13 +864,13 @@ export default function UsersPage() {
                       className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl text-white font-medium shadow-lg shadow-red-500/20 hover:shadow-red-500/40 transition-shadow"
                     >
                       <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                      Atualizar
+                      {t('usersPage.refresh')}
                     </motion.button>
                   </div>
                 </div>
               </div>
 
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-gray-100 dark:divide-white/5">
                 {loading ? (
                   <div className="flex flex-col items-center justify-center py-20">
                     <motion.div
@@ -878,15 +878,15 @@ export default function UsersPage() {
                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                       className="w-12 h-12 border-2 border-red-500/30 border-t-red-500 rounded-full mb-4"
                     />
-                    <p className="text-gray-400">{t('messages.loading')}</p>
+                    <p className="text-gray-500 dark:text-gray-400">{t('messages.loading')}</p>
                   </div>
                 ) : filteredUsers.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20">
-                    <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-4">
-                      <AlertCircle className="w-10 h-10 text-gray-500" />
+                    <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-4">
+                      <AlertCircle className="w-10 h-10 text-gray-400 dark:text-gray-500" />
                     </div>
-                    <p className="text-gray-400 text-lg">{t('admin.noUsers')}</p>
-                    <p className="text-gray-500 text-sm mt-1">Tente ajustar os filtros de pesquisa</p>
+                    <p className="text-gray-600 dark:text-gray-400 text-lg">{t('admin.noUsers')}</p>
+                    <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">{t('usersPage.tryAdjustFilters')}</p>
                   </div>
                 ) : (
                   filteredUsers.map((user, index) => (
@@ -900,15 +900,20 @@ export default function UsersPage() {
                       onEdit={handleEditUser}
                       onDeactivate={handleDeactivateUser}
                       onReactivate={handleReactivateUser}
+                      t={t}
                     />
                   ))
                 )}
               </div>
 
               {!loading && filteredUsers.length > 0 && (
-                <div className="px-6 py-4 bg-white/5 border-t border-white/10 flex items-center justify-center">
-                  <p className="text-sm text-gray-400">
-                    A mostrar <span className="text-white font-medium">{filteredUsers.length}</span> de <span className="text-white font-medium">{users.length}</span> utilizadores
+                <div className="px-6 py-4 bg-gray-50 dark:bg-white/5 border-t border-gray-200 dark:border-white/10 flex items-center justify-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {t('usersPage.showingOf', { showing: filteredUsers.length, total: users.length }).split('{{showing}}')[0]}
+                    <span className="text-gray-900 dark:text-white font-medium">{filteredUsers.length}</span>
+                    {t('usersPage.showingOf').split('{{showing}}')[1]?.split('{{total}}')[0]}
+                    <span className="text-gray-900 dark:text-white font-medium">{users.length}</span>
+                    {t('usersPage.showingOf').split('{{total}}')[1]}
                   </p>
                 </div>
               )}
@@ -917,20 +922,20 @@ export default function UsersPage() {
         </div>
       </div>
 
-      <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} title="Detalhes do Utilizador">
-        <UserDetailsContent user={userDetails} onClose={() => setViewModalOpen(false)} />
+      <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} title={t('usersPage.userDetails')}>
+        <UserDetailsContent user={userDetails} onClose={() => setViewModalOpen(false)} t={t} />
       </Modal>
 
-      <Modal isOpen={editModalOpen} onClose={() => setEditModalOpen(false)} title="Editar Utilizador">
-        <EditUserContent user={selectedUser} onSave={handleSaveUser} onClose={() => setEditModalOpen(false)} saving={saving} />
+      <Modal isOpen={editModalOpen} onClose={() => setEditModalOpen(false)} title={t('usersPage.editUser')}>
+        <EditUserContent user={selectedUser} onSave={handleSaveUser} onClose={() => setEditModalOpen(false)} saving={saving} t={t} />
       </Modal>
 
-      <Modal isOpen={deactivateModalOpen} onClose={() => setDeactivateModalOpen(false)} title="Confirmar Desativação">
-        <DeactivateConfirmContent user={selectedUser} onConfirm={handleConfirmDeactivate} onClose={() => setDeactivateModalOpen(false)} processing={processing} />
+      <Modal isOpen={deactivateModalOpen} onClose={() => setDeactivateModalOpen(false)} title={t('usersPage.confirmDeactivation')}>
+        <DeactivateConfirmContent user={selectedUser} onConfirm={handleConfirmDeactivate} onClose={() => setDeactivateModalOpen(false)} processing={processing} t={t} />
       </Modal>
 
-      <Modal isOpen={reactivateModalOpen} onClose={() => setReactivateModalOpen(false)} title="Confirmar Reativação">
-        <ReactivateConfirmContent user={selectedUser} onConfirm={handleConfirmReactivate} onClose={() => setReactivateModalOpen(false)} processing={processing} />
+      <Modal isOpen={reactivateModalOpen} onClose={() => setReactivateModalOpen(false)} title={t('usersPage.confirmReactivation')}>
+        <ReactivateConfirmContent user={selectedUser} onConfirm={handleConfirmReactivate} onClose={() => setReactivateModalOpen(false)} processing={processing} t={t} />
       </Modal>
     </div>
   );

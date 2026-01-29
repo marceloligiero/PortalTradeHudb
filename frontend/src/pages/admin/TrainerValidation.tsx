@@ -169,10 +169,10 @@ const TrainerValidation = () => {
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative overflow-hidden bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-2xl"
+        className="relative overflow-hidden bg-white dark:bg-gradient-to-r dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-2xl border border-gray-200 dark:border-transparent shadow-lg dark:shadow-none"
       >
         {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 opacity-10 dark:opacity-10 hidden dark:block">
           <div className="absolute inset-0" style={{
             backgroundImage: `linear-gradient(rgba(220, 38, 38, 0.3) 1px, transparent 1px),
                              linear-gradient(90deg, rgba(220, 38, 38, 0.3) 1px, transparent 1px)`,
@@ -184,12 +184,12 @@ const TrainerValidation = () => {
         <motion.div
           animate={{ x: [0, 50, 0], y: [0, -30, 0] }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-0 right-0 w-64 h-64 bg-red-600/10 rounded-full blur-3xl"
+          className="absolute top-0 right-0 w-64 h-64 bg-red-600/10 rounded-full blur-3xl hidden dark:block"
         />
         <motion.div
           animate={{ x: [0, -30, 0], y: [0, 20, 0] }}
           transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-0 left-0 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl"
+          className="absolute bottom-0 left-0 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl hidden dark:block"
         />
 
         <div className="relative px-8 py-10">
@@ -207,18 +207,18 @@ const TrainerValidation = () => {
                 transition={{ delay: 0.2 }}
                 className="flex items-center gap-2 mb-1"
               >
-                <Sparkles className="w-4 h-4 text-red-400" />
-                <span className="text-xs font-semibold text-red-400 uppercase tracking-wider">
+                <Sparkles className="w-4 h-4 text-red-500 dark:text-red-400" />
+                <span className="text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">
                   {t('admin.trainerManagement') || 'Gestão de Formadores'}
                 </span>
               </motion.div>
-              <h1 className="text-3xl font-bold text-white">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {t('admin.pendingTrainerValidations')}
               </h1>
             </div>
           </div>
           
-          <p className="text-gray-400 mt-2 max-w-2xl">
+          <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-2xl">
             {t('admin.trainerValidationDescription') || 'Revise e aprove os registos de novos formadores para que possam começar a criar cursos na plataforma.'}
           </p>
 
@@ -226,45 +226,45 @@ const TrainerValidation = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
             <motion.div 
               whileHover={{ scale: 1.02, y: -2 }}
-              className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4"
+              className="bg-gray-50 dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-xl p-4"
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-yellow-500/20 rounded-lg">
-                  <Clock className="w-5 h-5 text-yellow-400" />
+                  <Clock className="w-5 h-5 text-yellow-500 dark:text-yellow-400" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-white">{pendingTrainers.length}</p>
-                  <p className="text-xs text-gray-400">{t('admin.pendingValidations') || 'Validações Pendentes'}</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">{pendingTrainers.length}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('admin.pendingValidations') || 'Validações Pendentes'}</p>
                 </div>
               </div>
             </motion.div>
 
             <motion.div 
               whileHover={{ scale: 1.02, y: -2 }}
-              className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4"
+              className="bg-gray-50 dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-xl p-4"
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-500/20 rounded-lg">
-                  <UserCheck className="w-5 h-5 text-green-400" />
+                  <UserCheck className="w-5 h-5 text-green-500 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-white">—</p>
-                  <p className="text-xs text-gray-400">{t('admin.approvedThisMonth') || 'Aprovados este mês'}</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">—</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('admin.approvedThisMonth') || 'Aprovados este mês'}</p>
                 </div>
               </div>
             </motion.div>
 
             <motion.div 
               whileHover={{ scale: 1.02, y: -2 }}
-              className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4"
+              className="bg-gray-50 dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-xl p-4"
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-500/20 rounded-lg">
-                  <Users className="w-5 h-5 text-blue-400" />
+                  <Users className="w-5 h-5 text-blue-500 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-white">—</p>
-                  <p className="text-xs text-gray-400">{t('admin.totalActiveTrainers') || 'Formadores Ativos'}</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">—</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('admin.totalActiveTrainers') || 'Formadores Ativos'}</p>
                 </div>
               </div>
             </motion.div>
@@ -309,19 +309,19 @@ const TrainerValidation = () => {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center"
           >
             <motion.div
               animate={{ y: [0, -10, 0] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full mb-6"
+              className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-full mb-6"
             >
               <Shield className="w-10 h-10 text-gray-400" />
             </motion.div>
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">
+            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
               {t('admin.noTrainersPending')}
             </h3>
-            <p className="text-gray-500 max-w-md mx-auto">
+            <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
               {t('admin.allTrainersValidated') || 'Todos os formadores foram validados. Volte mais tarde para verificar novos registos.'}
             </p>
           </motion.div>
@@ -339,7 +339,7 @@ const TrainerValidation = () => {
                   variants={cardVariants}
                   layout
                   exit="exit"
-                  className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-lg hover:border-gray-200 transition-all duration-300 ${
+                  className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-lg hover:border-gray-200 dark:hover:border-gray-600 transition-all duration-300 ${
                     processingId === trainer.id ? 'opacity-50 pointer-events-none' : ''
                   }`}
                 >
@@ -359,16 +359,16 @@ const TrainerValidation = () => {
                           <motion.div 
                             animate={{ scale: [1, 1.2, 1] }}
                             transition={{ duration: 2, repeat: Infinity }}
-                            className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white"
+                            className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white dark:border-gray-800"
                           />
                         </motion.div>
                         
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-xl font-bold text-gray-900 mb-1">
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
                             {trainer.full_name}
                           </h3>
                           
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                             <div className="flex items-center gap-1.5">
                               <Mail className="w-4 h-4 text-gray-400" />
                               <span className="truncate">{trainer.email}</span>
@@ -419,9 +419,9 @@ const TrainerValidation = () => {
                   </div>
 
                   {/* Card Footer with additional info */}
-                  <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                  <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700">
                     <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
-                      <div className="flex items-center gap-2 text-gray-500">
+                      <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                         <Shield className="w-4 h-4" />
                         <span>{t('admin.requiresAdminApproval') || 'Requer aprovação do administrador para criar cursos'}</span>
                       </div>

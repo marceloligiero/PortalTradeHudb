@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { GraduationCap, BookOpen, Users } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Course {
   id: number;
@@ -138,7 +139,8 @@ export default function TrainingPlanForm() {
       const response = await api.post('/api/training-plans/', {
         title: formData.title,
         description: formData.description,
-        trainer_id: user?.id, // ID do trainer logado
+        trainer_id: user?.id, // ID do trainer logado (legado)
+        trainer_ids: [user?.id], // Novo formato - trainer logado como único formador
         bank_id: formData.bank_id ? parseInt(formData.bank_id) : null,
         product_id: formData.product_id ? parseInt(formData.product_id) : null,
         start_date: formData.start_date || null,
@@ -158,27 +160,27 @@ export default function TrainingPlanForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-slate-100 to-gray-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-6 transition-colors duration-300">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <button
             onClick={() => navigate('/trainer/training-plans')}
-            className="text-blue-400 hover:text-blue-300 mb-4 flex items-center gap-2"
+            className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 mb-4 flex items-center gap-2"
           >
             ← {t('common.back')}
           </button>
           <div className="flex items-center gap-3 mb-2">
-            <GraduationCap className="w-8 h-8 text-blue-400" />
-            <h1 className="text-3xl font-bold text-white">
+            <GraduationCap className="w-8 h-8 text-blue-500 dark:text-blue-400" />
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               {t('trainingPlan.create')}
             </h1>
           </div>
-          <p className="text-slate-400">{t('trainingPlan.createDescription')}</p>
+          <p className="text-gray-600 dark:text-slate-400">{t('trainingPlan.createDescription')}</p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400">
+          <div className="mb-6 p-4 bg-red-100 dark:bg-red-500/10 border border-red-300 dark:border-red-500/50 rounded-lg text-red-600 dark:text-red-400">
             {error}
           </div>
         )}
@@ -186,14 +188,14 @@ export default function TrainingPlanForm() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
-          <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-            <h2 className="text-xl font-bold text-white mb-6">
+          <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
               {t('trainingPlan.basicInfo')}
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                   {t('trainingPlan.title')}
                 </label>
                 <input

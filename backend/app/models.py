@@ -77,6 +77,7 @@ class Lesson(Base):
     description = Column(Text)
     content = Column(Text)
     lesson_type = Column(String(50), default="THEORETICAL")  # THEORETICAL ou PRACTICAL
+    started_by = Column(String(50), default="TRAINER")  # TRAINER ou TRAINEE - quem pode iniciar a aula
     order_index = Column(Integer, default=0)
     estimated_minutes = Column(Integer, default=30, nullable=False)  # Tempo que o formando tem para fazer
     video_url = Column(String(500))
@@ -177,8 +178,9 @@ class TrainingPlan(Base):
     
     courses = relationship("TrainingPlanCourse", back_populates="training_plan")
     assignments = relationship("TrainingPlanAssignment", back_populates="training_plan")
+    trainers = relationship("TrainingPlanTrainer", back_populates="training_plan", cascade="all, delete-orphan")
     certificates = relationship("Certificate", back_populates="training_plan")
-    trainer = relationship("User", foreign_keys=[trainer_id])
+    trainer = relationship("User", foreign_keys=[trainer_id])  # Formador principal (retrocompatibilidade)
     student = relationship("User", foreign_keys=[student_id])
     finalizer = relationship("User", foreign_keys=[finalized_by])
     bank = relationship("Bank")
@@ -216,6 +218,23 @@ class TrainingPlanAssignment(Base):
     user = relationship("User", foreign_keys=[user_id], back_populates="training_plan_assignments")
     assigner = relationship("User", foreign_keys=[assigned_by], back_populates="assigned_training_plans")
 
+
+class TrainingPlanTrainer(Base):
+    """Associação de múltiplos formadores a um plano de formação"""
+    __tablename__ = "training_plan_trainers"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    training_plan_id = Column(Integer, ForeignKey("training_plans.id"), nullable=False)
+    trainer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    is_primary = Column(Boolean, default=False)  # Formador principal/responsável
+    assigned_at = Column(DateTime(timezone=True), server_default=func.now())
+    assigned_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    
+    training_plan = relationship("TrainingPlan", back_populates="trainers")
+    trainer = relationship("User", foreign_keys=[trainer_id])
+    assigner = relationship("User", foreign_keys=[assigned_by])
+
+
 class Challenge(Base):
     __tablename__ = "challenges"
     
@@ -235,6 +254,12 @@ class Challenge(Base):
     use_volume_kpi = Column(Boolean, default=True)  # Nr de operações é critério
     use_mpu_kpi = Column(Boolean, default=True)  # MPU é critério
     use_errors_kpi = Column(Boolean, default=True)  # Nr de operações com erro é critério
+    
+    # Modo de avaliação KPI: AUTO (automático) ou MANUAL (formador decide)
+    kpi_mode = Column(String(20), default="AUTO")  # AUTO ou MANUAL
+    
+    # Permitir nova tentativa após reprovação
+    allow_retry = Column(Boolean, default=False)
     
     # Liberação do desafio para formandos
     is_released = Column(Boolean, default=False)  # Se desafio está liberado
@@ -276,7 +301,7 @@ class ChallengeSubmission(Base):
     training_plan_id = Column(Integer, ForeignKey("training_plans.id"), nullable=True)  # Plano associado
     submission_type = Column(String(50), nullable=False)  # COMPLETE or SUMMARY
     
-    # Status do desafio: IN_PROGRESS, PENDING_REVIEW, REVIEWED
+    # Status do desafio: IN_PROGRESS, PENDING_REVIEW, REVIEWED, APPROVED, REJECTED
     status = Column(String(50), default="IN_PROGRESS")
     
     # Para tipo SUMMARY (resumido)
@@ -302,6 +327,12 @@ class ChallengeSubmission(Base):
     score = Column(Float)  # Nota calculada
     feedback = Column(Text)
     submitted_by = Column(Integer, ForeignKey("users.id"))  # Formador que aplicou
+    
+    # Controle de novas tentativas
+    retry_count = Column(Integer, default=0)  # Número de tentativas realizadas
+    is_retry_allowed = Column(Boolean, default=False)  # Se formador habilitou nova tentativa
+    trainer_notes = Column(Text)  # Notas do formador sobre a decisão
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
@@ -356,7 +387,7 @@ class ChallengeOperation(Base):
     completed_at = Column(DateTime(timezone=True))
     duration_seconds = Column(Integer)  # Tempo da operação em segundos
     has_error = Column(Boolean, default=False)  # Se esta operação tem erro
-    is_approved = Column(Boolean, default=True)  # Operação aprovada ou não
+    is_approved = Column(Boolean, nullable=True, default=None)  # None = pendente classificação, True = aprovada, False = reprovada
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     submission = relationship("ChallengeSubmission", back_populates="operations")

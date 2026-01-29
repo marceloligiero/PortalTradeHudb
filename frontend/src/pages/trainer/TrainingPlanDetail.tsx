@@ -20,6 +20,7 @@ interface LessonItem {
   lesson_type?: string;
   video_url?: string;
   materials_url?: string;
+  started_by?: string;  // TRAINER ou TRAINEE - quem pode iniciar a aula
 }
 
 interface LessonProgressData {
@@ -37,6 +38,7 @@ interface LessonProgressData {
   is_paused: boolean;
   is_delayed: boolean;
   is_approved: boolean;
+  finished_by?: string;
   student_confirmed: boolean;
   student_confirmed_at?: string;
 }
@@ -93,6 +95,14 @@ interface PlanCompletionStatus {
   certificate_number?: string;
 }
 
+interface TrainerInfo {
+  id: number;
+  full_name: string;
+  email?: string;
+  is_primary: boolean;
+  assigned_at?: string;
+}
+
 interface PlanDetail {
   id: number;
   title: string;
@@ -106,6 +116,7 @@ interface PlanDetail {
   courses?: CourseItem[];
   student?: { id: number; full_name: string; email: string };
   student_id?: number;
+  trainers?: TrainerInfo[];
 }
 
 const containerVariants = {
@@ -119,7 +130,7 @@ const cardVariants = {
 };
 
 export default function TrainingPlanDetail() {
-  useTranslation(); // for future translations
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { token, user } = useAuthStore();
@@ -129,14 +140,54 @@ export default function TrainingPlanDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [lessonProgress, setLessonProgress] = useState<Record<number, LessonProgressData>>({});
+  const [progressFetchTime, setProgressFetchTime] = useState<Record<number, number>>({});
   const [submissions, setSubmissions] = useState<Record<number, SubmissionData>>({});
   const [challengeReleases, setChallengeReleases] = useState<Record<number, boolean>>({});
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [completionStatus, setCompletionStatus] = useState<PlanCompletionStatus | null>(null);
   const [finalizingPlan, setFinalizingPlan] = useState(false);
+  const [currentTime, setCurrentTime] = useState(Date.now());
 
   const isStudent = user?.role === 'STUDENT' || user?.role === 'TRAINEE';
   const isTrainer = user?.role === 'TRAINER' || user?.role === 'ADMIN';
+
+  // Timer para atualizar tempo decorrido das aulas em progresso
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Polling para atualizar progresso automaticamente (para formando ver alterações do formador)
+  useEffect(() => {
+    if (!plan || !isStudent) return;
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        await fetchProgressData(plan);
+      } catch (err) {
+        console.log('Polling error:', err);
+      }
+    }, 5000); // Atualiza a cada 5 segundos
+    
+    return () => clearInterval(pollInterval);
+  }, [plan, isStudent]);
+
+  // Polling para formador ver alterações do formando (ex: quando formando finaliza)
+  useEffect(() => {
+    if (!plan || !isTrainer) return;
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        await fetchProgressData(plan);
+      } catch (err) {
+        console.log('Polling error:', err);
+      }
+    }, 5000); // Atualiza a cada 5 segundos
+    
+    return () => clearInterval(pollInterval);
+  }, [plan, isTrainer]);
 
   useEffect(() => {
     if (!token || !user) {
@@ -176,11 +227,11 @@ export default function TrainingPlanDetail() {
 
   const handleFinalizePlan = async () => {
     if (!completionStatus?.can_finalize) {
-      alert('Não é possível finalizar o plano. Verifique se todos os cursos estão completos.');
+      alert(t('trainingPlanDetail.cannotFinalizePlan'));
       return;
     }
     
-    if (!confirm('Tem certeza que deseja finalizar este plano de formação? Esta ação irá gerar o certificado para o formando.')) {
+    if (!confirm(t('trainingPlanDetail.confirmFinalizePlan'))) {
       return;
     }
     
@@ -192,7 +243,7 @@ export default function TrainingPlanDetail() {
       await fetchPlan();
     } catch (err: any) {
       console.error('Error finalizing plan:', err);
-      alert(err?.response?.data?.detail || 'Erro ao finalizar plano');
+      alert(err?.response?.data?.detail || t('trainingPlanDetail.errorFinalizingPlan'));
     } finally {
       setFinalizingPlan(false);
     }
@@ -240,7 +291,15 @@ export default function TrainingPlanDetail() {
       }
     }
 
+    // Guardar timestamp de quando os dados foram buscados para cada lição
+    const fetchTime = Date.now();
+    const fetchTimeMap: Record<number, number> = {};
+    Object.keys(progressMap).forEach(key => {
+      fetchTimeMap[Number(key)] = fetchTime;
+    });
+    
     setLessonProgress(progressMap);
+    setProgressFetchTime(prev => ({ ...prev, ...fetchTimeMap }));
     setSubmissions(submissionsMap);
     setChallengeReleases(releasesMap);
   };
@@ -252,7 +311,7 @@ export default function TrainingPlanDetail() {
     try {
       const targetUserId = plan?.student_id;
       if (!targetUserId) {
-        alert('Estudante não encontrado no plano');
+        alert(t('trainingPlanDetail.studentNotFound'));
         return;
       }
       
@@ -264,7 +323,7 @@ export default function TrainingPlanDetail() {
       setChallengeReleases(prev => ({ ...prev, [challengeId]: true }));
     } catch (err: any) {
       console.error('Erro ao liberar desafio:', err);
-      alert(err?.response?.data?.detail || 'Erro ao liberar desafio');
+      alert(err?.response?.data?.detail || t('trainingPlanDetail.errorReleasingChallenge'));
     } finally {
       setActionLoading(null);
     }
@@ -292,6 +351,16 @@ export default function TrainingPlanDetail() {
         await api.post(`/api/lessons/${lessonId}/approve`, null, {
           params: { user_id: targetUserId, training_plan_id: id, is_approved: true }
         });
+      } else if (action === 'start' && !isStudent) {
+        // Formador inicia a aula (quando started_by = TRAINER)
+        await api.post(`/api/lessons/${lessonId}/start`, null, {
+          params: { training_plan_id: id }
+        });
+      } else if ((action === 'pause' || action === 'resume' || action === 'finish') && !isStudent) {
+        // Formador controla aula que ele iniciou (pause/resume/finish)
+        await api.post(`/api/lessons/${lessonId}/${action}`, null, {
+          params: { training_plan_id: id }
+        });
       } else if (isStudent) {
         // Formando controla sua própria aula (start/pause/resume/finish)
         await api.post(`/api/lessons/${lessonId}/${action}`, null, {
@@ -307,10 +376,12 @@ export default function TrainingPlanDetail() {
       const resp = await api.get(`/api/lessons/${lessonId}/progress`, {
         params: { user_id: targetUserId, training_plan_id: id }
       });
+      const fetchTime = Date.now();
       setLessonProgress(prev => ({ ...prev, [lessonId]: resp.data }));
+      setProgressFetchTime(prev => ({ ...prev, [lessonId]: fetchTime }));
     } catch (err: any) {
       console.error('Error:', err);
-      alert(err?.response?.data?.detail || 'Erro ao executar ação');
+      alert(err?.response?.data?.detail || t('trainingPlanDetail.errorExecutingAction'));
     } finally {
       setActionLoading(null);
     }
@@ -322,22 +393,56 @@ export default function TrainingPlanDetail() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Calcular tempo decorrido em tempo real para aulas em progresso
+  const getElapsedSeconds = (progress: LessonProgressData, lessonId?: number) => {
+    if (!progress) return 0;
+    
+    // Se a aula está pausada ou concluída, usar elapsed_seconds do backend diretamente
+    if (progress.status === 'PAUSED' || progress.status === 'COMPLETED') {
+      return progress.elapsed_seconds || 0;
+    }
+    
+    // Se está em progresso, usar o elapsed_seconds do backend
+    // O backend já calcula corretamente considerando pausas e resumed_at
+    // Adicionamos os segundos passados desde que recebemos os dados
+    if (progress.status === 'IN_PROGRESS') {
+      const baseElapsed = progress.elapsed_seconds || 0;
+      
+      // Se temos o lessonId e o timestamp de quando buscamos os dados
+      if (lessonId && progressFetchTime[lessonId]) {
+        const secondsSinceFetch = Math.floor((currentTime - progressFetchTime[lessonId]) / 1000);
+        return baseElapsed + secondsSinceFetch;
+      }
+      
+      return baseElapsed;
+    }
+    
+    return progress.elapsed_seconds || 0;
+  };
+
   const getLessonStatusBadge = (progress?: LessonProgressData) => {
-    if (!progress) return { color: 'bg-gray-500/20 text-gray-400', label: 'Não iniciada' };
+    if (!progress) return { color: 'bg-gray-500/20 text-gray-400', label: t('trainingPlanDetail.notStarted') };
     switch (progress.status) {
-      case 'COMPLETED': return { color: 'bg-green-500/20 text-green-400', label: progress.is_approved ? '✓ Aprovada' : 'Concluída' };
-      case 'IN_PROGRESS': return { color: 'bg-blue-500/20 text-blue-400', label: 'Em andamento' };
-      case 'PAUSED': return { color: 'bg-yellow-500/20 text-yellow-400', label: 'Pausada' };
-      case 'RELEASED': return { color: 'bg-purple-500/20 text-purple-400', label: '🔓 Liberada' };
-      default: return { color: 'bg-gray-500/20 text-gray-400', label: 'Não iniciada' };
+      case 'COMPLETED': 
+        if (progress.is_approved) {
+          return { color: 'bg-green-500/20 text-green-400', label: `✓ ${t('trainingPlanDetail.approved')}` };
+        }
+        if (progress.student_confirmed) {
+          return { color: 'bg-amber-500/20 text-amber-400', label: `⚠️ ${t('trainingPlanDetail.awaitingApproval')}` };
+        }
+        return { color: 'bg-blue-500/20 text-blue-400', label: t('trainingPlanDetail.awaitingConfirmation') };
+      case 'IN_PROGRESS': return { color: 'bg-blue-500/20 text-blue-400', label: t('trainingPlanDetail.inProgress') };
+      case 'PAUSED': return { color: 'bg-yellow-500/20 text-yellow-400', label: t('trainingPlanDetail.paused') };
+      case 'RELEASED': return { color: 'bg-purple-500/20 text-purple-400', label: `🔓 ${t('trainingPlanDetail.released')}` };
+      default: return { color: 'bg-gray-500/20 text-gray-400', label: t('trainingPlanDetail.notStarted') };
     }
   };
 
   const getSubmissionStatusBadge = (submission?: SubmissionData) => {
     if (!submission) return null;
-    if (submission.is_approved) return { color: 'bg-green-500/20 text-green-400', label: 'Aprovado' };
-    if (submission.status === 'PENDING_REVIEW') return { color: 'bg-yellow-500/20 text-yellow-400', label: 'Pendente' };
-    return { color: 'bg-red-500/20 text-red-400', label: 'Reprovado' };
+    if (submission.is_approved) return { color: 'bg-green-500/20 text-green-400', label: t('trainingPlanDetail.approved') };
+    if (submission.status === 'PENDING_REVIEW') return { color: 'bg-yellow-500/20 text-yellow-400', label: t('trainingPlanDetail.pendingReview') };
+    return { color: 'bg-red-500/20 text-red-400', label: t('trainingPlanDetail.rejected') };
   };
 
   if (loading) return (
@@ -361,7 +466,7 @@ export default function TrainingPlanDetail() {
 
   if (!plan) return (
     <div className={`min-h-screen flex items-center justify-center ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
-      <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>Plano não encontrado</p>
+      <p className={isDark ? 'text-gray-400' : 'text-gray-500'}>{t('trainingPlanDetail.planNotFound')}</p>
     </div>
   );
 
@@ -372,7 +477,7 @@ export default function TrainingPlanDetail() {
         icon={BookOpen}
         title={plan.title}
         subtitle={plan.description}
-        badge={isStudent ? 'Meu Plano' : 'Plano de Formação'}
+        badge={isStudent ? t('trainingPlanDetail.myPlan') : t('trainingPlanDetail.trainingPlan')}
         iconColor="from-red-500 to-red-700"
         actions={
           <div className="flex items-center gap-3">
@@ -384,7 +489,7 @@ export default function TrainingPlanDetail() {
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
               >
                 <Award className="w-5 h-5" />
-                {finalizingPlan ? 'Finalizando...' : 'Finalizar Plano'}
+                {finalizingPlan ? t('trainingPlanDetail.finalizing') : t('trainingPlanDetail.finalizePlan')}
               </button>
             )}
             
@@ -395,7 +500,7 @@ export default function TrainingPlanDetail() {
                 className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-600 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-yellow-700 transition-all shadow-lg hover:shadow-xl"
               >
                 <Award className="w-5 h-5" />
-                Ver Certificado
+                {t('trainingPlanDetail.viewCertificate')}
               </button>
             )}
             
@@ -408,7 +513,7 @@ export default function TrainingPlanDetail() {
               }`}
             >
               <ArrowLeft className="w-4 h-4" />
-              Voltar
+              {t('trainingPlanDetail.back')}
             </button>
           </div>
         }
@@ -420,7 +525,7 @@ export default function TrainingPlanDetail() {
               <BookOpen className={`w-5 h-5 ${isDark ? 'text-red-400' : 'text-red-600'}`} />
               <span className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{plan.courses?.length ?? 0}</span>
             </div>
-            <p className={isDark ? 'text-gray-400 text-sm' : 'text-gray-600 text-sm'}>Cursos</p>
+            <p className={isDark ? 'text-gray-400 text-sm' : 'text-gray-600 text-sm'}>{t('trainingPlanDetail.courses')}</p>
           </div>
 
           <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-white/80 border-gray-200'} backdrop-blur-sm rounded-xl p-4 border`}>
@@ -428,7 +533,7 @@ export default function TrainingPlanDetail() {
               <Calendar className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
               <span className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{plan.days_total ?? '-'}</span>
             </div>
-            <p className={isDark ? 'text-gray-400 text-sm' : 'text-gray-600 text-sm'}>Dias totais</p>
+            <p className={isDark ? 'text-gray-400 text-sm' : 'text-gray-600 text-sm'}>{t('trainingPlanDetail.totalDays')}</p>
           </div>
 
           <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-white/80 border-gray-200'} backdrop-blur-sm rounded-xl p-4 border`}>
@@ -436,7 +541,7 @@ export default function TrainingPlanDetail() {
               <Clock className={`w-5 h-5 ${isDark ? 'text-yellow-400' : 'text-yellow-600'}`} />
               <span className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{plan.days_remaining ?? '-'}</span>
             </div>
-            <p className={isDark ? 'text-gray-400 text-sm' : 'text-gray-600 text-sm'}>Dias restantes</p>
+            <p className={isDark ? 'text-gray-400 text-sm' : 'text-gray-600 text-sm'}>{t('trainingPlanDetail.remainingDays')}</p>
           </div>
 
           <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-white/80 border-gray-200'} backdrop-blur-sm rounded-xl p-4 border`}>
@@ -447,13 +552,13 @@ export default function TrainingPlanDetail() {
               plan.status === 'DELAYED' ? 'bg-red-500/20 text-red-400' :
               'bg-gray-500/20 text-gray-400'
             }`}>
-              {plan.status === 'COMPLETED' ? '✅ Concluído' : 
-               plan.status === 'IN_PROGRESS' || plan.status === 'ONGOING' ? '🔄 Em Progresso' :
-               plan.status === 'PENDING' || plan.status === 'UPCOMING' ? '⏳ Pendente' :
-               plan.status === 'DELAYED' ? '⚠️ Atrasado' :
-               plan.status || 'Ativo'}
+              {plan.status === 'COMPLETED' ? `✅ ${t('trainingPlanDetail.completed')}` : 
+               plan.status === 'IN_PROGRESS' || plan.status === 'ONGOING' ? `🔄 ${t('trainingPlanDetail.inProgress')}` :
+               plan.status === 'PENDING' || plan.status === 'UPCOMING' ? `⏳ ${t('trainingPlanDetail.pending')}` :
+               plan.status === 'DELAYED' ? `⚠️ ${t('trainingPlanDetail.delayed')}` :
+               plan.status || t('trainingPlanDetail.active')}
             </div>
-            <p className={`${isDark ? 'text-gray-400 text-sm' : 'text-gray-600 text-sm'} mt-2`}>Estado</p>
+            <p className={`${isDark ? 'text-gray-400 text-sm' : 'text-gray-600 text-sm'} mt-2`}>{t('trainingPlanDetail.status')}</p>
           </div>
         </div>
       </PremiumHeader>
@@ -496,21 +601,69 @@ export default function TrainingPlanDetail() {
                     : 'text-yellow-400'
               }`}>
                 {completionStatus.is_finalized
-                  ? '✓ Plano Finalizado'
+                  ? `✓ ${t('trainingPlanDetail.planFinalized')}`
                   : completionStatus.can_finalize
-                    ? '✓ Pronto para Finalizar!'
-                    : 'Aguardando Conclusão dos Cursos'
+                    ? `✓ ${t('trainingPlanDetail.readyToFinalize')}`
+                    : t('trainingPlanDetail.awaitingCoursesCompletion')
                 }
               </h3>
               <p className={isDark ? 'text-gray-400 text-sm' : 'text-gray-600 text-sm'}>
                 {completionStatus.is_finalized
-                  ? `Certificado: ${completionStatus.certificate_number}`
+                  ? `${t('trainingPlanDetail.certificate')}: ${completionStatus.certificate_number}`
                   : completionStatus.can_finalize
-                    ? `Todos os ${completionStatus.total_courses} cursos foram concluídos. Clique em "Finalizar Plano" para gerar o certificado.`
-                    : `${completionStatus.completed_courses}/${completionStatus.total_courses} cursos completos. Todos os cursos precisam ter as aulas confirmadas e desafios aprovados.`
+                    ? t('trainingPlanDetail.allCoursesCompleted', { count: completionStatus.total_courses })
+                    : t('trainingPlanDetail.coursesCompletedProgress', { completed: completionStatus.completed_courses, total: completionStatus.total_courses })
                 }
               </p>
             </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Trainers Section */}
+      {plan.trainers && plan.trainers.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`rounded-2xl border p-6 ${
+            isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'
+          }`}
+        >
+          <h3 className={`text-lg font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            {t('trainingPlanDetail.trainers', 'Formadores')} ({plan.trainers.length})
+          </h3>
+          <div className="flex flex-wrap gap-3">
+            {plan.trainers.map((trainer) => (
+              <div
+                key={trainer.id}
+                className={`flex items-center gap-3 px-4 py-2 rounded-xl ${
+                  isDark ? 'bg-white/5 border border-white/10' : 'bg-gray-50 border border-gray-200'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                  trainer.is_primary
+                    ? 'bg-gradient-to-br from-purple-500 to-purple-700 text-white'
+                    : isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
+                }`}>
+                  {trainer.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                </div>
+                <div>
+                  <div className={`font-medium flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    {trainer.full_name}
+                    {trainer.is_primary && (
+                      <span className="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded">
+                        {t('trainingPlanDetail.primaryTrainer', 'Principal')}
+                      </span>
+                    )}
+                  </div>
+                  {trainer.email && (
+                    <div className={isDark ? 'text-gray-400 text-sm' : 'text-gray-500 text-sm'}>
+                      {trainer.email}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </motion.div>
       )}
@@ -523,7 +676,7 @@ export default function TrainingPlanDetail() {
         className="space-y-6"
       >
         <h2 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-          Conteúdo do Plano
+          {t('trainingPlanDetail.planContent')}
         </h2>
 
         <div className="space-y-6">
@@ -554,7 +707,7 @@ export default function TrainingPlanDetail() {
                             return (
                               <span className="px-3 py-1 rounded-lg text-xs font-bold bg-green-500/20 text-green-400 flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3" />
-                                Curso Completo
+                                {t('trainingPlanDetail.courseComplete')}
                               </span>
                             );
                           } else if (courseStatus) {
@@ -579,9 +732,9 @@ export default function TrainingPlanDetail() {
                     <div>
                       <div className="flex items-center gap-2 mb-4">
                         <BookOpen className={`w-5 h-5 ${isDark ? 'text-red-400' : 'text-red-600'}`} />
-                        <h4 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Aulas</h4>
+                        <h4 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('trainingPlanDetail.lessons')}</h4>
                         <span className={`ml-auto text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {course.lessons?.length ?? 0} aulas
+                          {t('trainingPlanDetail.lessonsCount', { count: course.lessons?.length ?? 0 })}
                         </span>
                       </div>
 
@@ -605,7 +758,7 @@ export default function TrainingPlanDetail() {
                                       <h5 className={isDark ? 'text-gray-500' : 'text-gray-400'}>{lesson.title}</h5>
                                     </div>
                                     <p className={`text-xs mt-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                                      🔒 Aguardando liberação pelo formador
+                                      🔒 {t('trainingPlanDetail.awaitingReleaseByTrainer')}
                                     </p>
                                   </li>
                                 );
@@ -647,35 +800,47 @@ export default function TrainingPlanDetail() {
                                     {isTrainer && progress?.is_released && progress.status === 'RELEASED' && (
                                       <div className={`mt-3 p-3 rounded-lg ${isDark ? 'bg-blue-500/10' : 'bg-blue-50'}`}>
                                         <p className="text-sm text-blue-400">
-                                          ✓ Liberada por {progress.released_by || 'formador'}
+                                          ✓ {t('trainingPlanDetail.releasedBy', { name: progress.released_by || 'formador' })}
                                         </p>
                                         <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                                          Aguardando o formando iniciar
+                                          {t('trainingPlanDetail.awaitingStudentToStart')}
                                         </p>
                                       </div>
                                     )}
 
-                                    {progress && (progress.status === 'IN_PROGRESS' || progress.status === 'PAUSED' || progress.status === 'COMPLETED') && (
+                                    {/* Info de tempo para aulas controladas pelo FORMANDO (evita duplicação com botões do formador) */}
+                                    {progress && (progress.status === 'IN_PROGRESS' || progress.status === 'PAUSED' || progress.status === 'COMPLETED') && (lesson.started_by || 'TRAINER') === 'TRAINEE' && (
                                       <div className={`mt-3 p-3 rounded-lg ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
                                         <div className="flex items-center justify-between text-sm">
-                                          <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
-                                            <Timer className="w-4 h-4 inline mr-1" />
-                                            Tempo: {formatTime(progress.elapsed_seconds)}
-                                          </span>
+                                          {(() => {
+                                            const elapsed = getElapsedSeconds(progress, lesson.id);
+                                            const estimated = (lesson.estimated_minutes || 30) * 60;
+                                            const isOverTime = elapsed > estimated;
+                                            const timeColor = isOverTime ? 'text-red-400' : 'text-green-400';
+                                            return (
+                                              <span className={`flex items-center gap-1 ${timeColor}`}>
+                                                <Timer className="w-4 h-4" />
+                                                <span className="font-mono font-bold">{formatTime(elapsed)}</span>
+                                                <span className="text-xs opacity-70">/ {lesson.estimated_minutes} min</span>
+                                              </span>
+                                            );
+                                          })()}
                                           {progress.is_delayed && (
-                                            <span className="text-red-400 font-medium">Atrasado</span>
+                                            <span className="text-red-400 font-medium">{t('trainingPlanDetail.delayed')}</span>
                                           )}
                                         </div>
                                         {progress.student_confirmed && (
                                           <div className="flex items-center gap-1 mt-2 text-green-400 text-xs">
                                             <CheckCircle2 className="w-3 h-3" />
-                                            Confirmado pelo formando
+                                            {t('trainingPlanDetail.confirmedByStudent')}
                                           </div>
                                         )}
                                         {progress.is_approved && (
                                           <div className="flex items-center gap-1 mt-2 text-emerald-400 text-xs">
                                             <CheckCircle2 className="w-3 h-3" />
-                                            Aprovada pelo formador
+                                            {progress.finished_by 
+                                              ? t('trainingPlanDetail.approvedByTrainerName', { name: progress.finished_by })
+                                              : t('trainingPlanDetail.approvedByTrainer')}
                                           </div>
                                         )}
                                       </div>
@@ -687,63 +852,76 @@ export default function TrainingPlanDetail() {
                                     {/* ===== BOTÕES PARA FORMANDO ===== */}
                                     {isStudent && (
                                       <>
-                                        {/* Aula liberada mas não iniciada - mostrar botão Iniciar */}
-                                        {progress?.is_released && progress.status === 'RELEASED' && (
-                                          <button
-                                            onClick={() => handleLessonAction(lesson.id, 'start')}
-                                            disabled={actionLoading === lesson.id}
-                                            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50"
-                                          >
-                                            <Play className="w-4 h-4" />
-                                            Iniciar
-                                          </button>
-                                        )}
-
-                                        {/* Aula em progresso - mostrar Pausar e Finalizar */}
-                                        {progress?.status === 'IN_PROGRESS' && !progress.is_paused && (
+                                        {/* ===== AULAS CONTROLADAS PELO FORMANDO (started_by = TRAINEE) ===== */}
+                                        {lesson.started_by === 'TRAINEE' && (
                                           <>
-                                            <button
-                                              onClick={() => handleLessonAction(lesson.id, 'pause')}
-                                              disabled={actionLoading === lesson.id}
-                                              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-lg text-sm font-medium hover:from-yellow-700 hover:to-orange-700 transition-all disabled:opacity-50"
-                                            >
-                                              <Pause className="w-4 h-4" />
-                                              Pausar
-                                            </button>
-                                            <button
-                                              onClick={() => handleLessonAction(lesson.id, 'finish')}
-                                              disabled={actionLoading === lesson.id}
-                                              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
-                                            >
-                                              <CheckCircle2 className="w-4 h-4" />
-                                              Finalizar
-                                            </button>
+                                            {/* Aula liberada mas não iniciada - mostrar botão Iniciar */}
+                                            {progress?.is_released && progress.status === 'RELEASED' && (
+                                              <button
+                                                onClick={() => handleLessonAction(lesson.id, 'start')}
+                                                disabled={actionLoading === lesson.id}
+                                                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50"
+                                              >
+                                                <Play className="w-4 h-4" />
+                                                {t('trainingPlanDetail.start')}
+                                              </button>
+                                            )}
+
+                                            {/* Aula em progresso - mostrar Pausar e Finalizar */}
+                                            {progress?.status === 'IN_PROGRESS' && !progress.is_paused && (
+                                              <>
+                                                <button
+                                                  onClick={() => handleLessonAction(lesson.id, 'pause')}
+                                                  disabled={actionLoading === lesson.id}
+                                                  className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-lg text-sm font-medium hover:from-yellow-700 hover:to-orange-700 transition-all disabled:opacity-50"
+                                                >
+                                                  <Pause className="w-4 h-4" />
+                                                  {t('trainingPlanDetail.pause')}
+                                                </button>
+                                                <button
+                                                  onClick={() => handleLessonAction(lesson.id, 'finish')}
+                                                  disabled={actionLoading === lesson.id}
+                                                  className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
+                                                >
+                                                  <CheckCircle2 className="w-4 h-4" />
+                                                  {t('trainingPlanDetail.finish')}
+                                                </button>
+                                              </>
+                                            )}
+
+                                            {/* Aula pausada - mostrar Retomar */}
+                                            {progress?.status === 'PAUSED' && (
+                                              <>
+                                                <button
+                                                  onClick={() => handleLessonAction(lesson.id, 'resume')}
+                                                  disabled={actionLoading === lesson.id}
+                                                  className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50"
+                                                >
+                                                  <Play className="w-4 h-4" />
+                                                  {t('trainingPlanDetail.resume')}
+                                                </button>
+                                                <button
+                                                  onClick={() => handleLessonAction(lesson.id, 'finish')}
+                                                  disabled={actionLoading === lesson.id}
+                                                  className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
+                                                >
+                                                  <CheckCircle2 className="w-4 h-4" />
+                                                  {t('trainingPlanDetail.finish')}
+                                                </button>
+                                              </>
+                                            )}
                                           </>
                                         )}
 
-                                        {/* Aula pausada - mostrar Retomar */}
-                                        {progress?.status === 'PAUSED' && (
-                                          <>
-                                            <button
-                                              onClick={() => handleLessonAction(lesson.id, 'resume')}
-                                              disabled={actionLoading === lesson.id}
-                                              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50"
-                                            >
-                                              <Play className="w-4 h-4" />
-                                              Retomar
-                                            </button>
-                                            <button
-                                              onClick={() => handleLessonAction(lesson.id, 'finish')}
-                                              disabled={actionLoading === lesson.id}
-                                              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
-                                            >
-                                              <CheckCircle2 className="w-4 h-4" />
-                                              Finalizar
-                                            </button>
-                                          </>
+                                        {/* ===== AULAS CONTROLADAS PELO FORMADOR (started_by = TRAINER) ===== */}
+                                        {lesson.started_by === 'TRAINER' && progress?.status === 'IN_PROGRESS' && (
+                                          <span className="text-sm text-blue-400 italic flex items-center gap-1">
+                                            <Clock className="w-4 h-4" />
+                                            {t('trainingPlanDetail.lessonInProgress')}
+                                          </span>
                                         )}
 
-                                        {/* Aula concluída mas não confirmada - mostrar Confirmar */}
+                                        {/* Aula concluída mas não confirmada - mostrar Confirmar (para ambos tipos) */}
                                         {progress?.status === 'COMPLETED' && !progress.student_confirmed && (
                                           <button
                                             onClick={() => handleLessonAction(lesson.id, 'confirm')}
@@ -751,22 +929,24 @@ export default function TrainingPlanDetail() {
                                             className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
                                           >
                                             <CheckCircle2 className="w-4 h-4" />
-                                            Confirmar
+                                            {t('trainingPlanDetail.confirm')}
                                           </button>
                                         )}
 
-                                        {/* Ver aula - sempre disponível para estudante */}
-                                        <button
-                                          onClick={() => navigate(`/lessons/${lesson.id}/view?planId=${id}`)}
-                                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                                            isDark 
-                                              ? 'bg-white/10 text-white hover:bg-white/20' 
-                                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                          }`}
-                                        >
-                                          <Eye className="w-4 h-4" />
-                                          Ver Aula
-                                        </button>
+                                        {/* Ver aula - sempre disponível para estudante quando em andamento ou liberada */}
+                                        {(progress?.status === 'IN_PROGRESS' || progress?.status === 'RELEASED' || progress?.status === 'PAUSED' || progress?.status === 'COMPLETED') && (
+                                          <button
+                                            onClick={() => navigate(`/lessons/${lesson.id}/view?planId=${id}`)}
+                                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                              isDark 
+                                                ? 'bg-white/10 text-white hover:bg-white/20' 
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
+                                          >
+                                            <Eye className="w-4 h-4" />
+                                            {t('trainingPlanDetail.viewLesson')}
+                                          </button>
+                                        )}
                                       </>
                                     )}
 
@@ -781,20 +961,147 @@ export default function TrainingPlanDetail() {
                                             className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50"
                                           >
                                             <PlayCircle className="w-4 h-4" />
-                                            Liberar
+                                            {t('trainingPlanDetail.release')}
                                           </button>
                                         )}
 
-                                        {/* Aula concluída mas não aprovada - mostrar Aprovar */}
-                                        {progress?.status === 'COMPLETED' && !progress.is_approved && (
+                                        {/* Aula liberada e iniciada pelo FORMADOR - mostrar Iniciar Aula */}
+                                        {progress?.status === 'RELEASED' && lesson.started_by === 'TRAINER' && (
                                           <button
-                                            onClick={() => handleLessonAction(lesson.id, 'approve')}
+                                            onClick={() => handleLessonAction(lesson.id, 'start')}
                                             disabled={actionLoading === lesson.id}
                                             className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
                                           >
-                                            <CheckCircle2 className="w-4 h-4" />
-                                            Aprovar
+                                            <Play className="w-4 h-4" />
+                                            {t('trainingPlanDetail.startLesson')}
                                           </button>
+                                        )}
+
+                                        {/* Aula liberada mas iniciada pelo FORMANDO - aguardar */}
+                                        {progress?.status === 'RELEASED' && lesson.started_by === 'TRAINEE' && (
+                                          <span className="text-sm text-amber-500 italic">{t('trainingPlanDetail.awaitingStudentStart')}</span>
+                                        )}
+
+                                        {/* Aula em progresso iniciada pelo FORMADOR - mostrar Pausar/Finalizar */}
+                                        {progress?.status === 'IN_PROGRESS' && lesson.started_by === 'TRAINER' && !progress.is_paused && (
+                                          <>
+                                            {(() => {
+                                              const elapsed = getElapsedSeconds(progress, lesson.id);
+                                              const estimated = (lesson.estimated_minutes || 30) * 60;
+                                              const isOverTime = elapsed > estimated;
+                                              const timeColor = isOverTime ? 'text-red-400' : 'text-green-400';
+                                              return (
+                                                <div className={`flex items-center gap-2 text-sm ${timeColor}`}>
+                                                  <Timer className="w-4 h-4" />
+                                                  <span className="font-mono font-bold">{formatTime(elapsed)}</span>
+                                                  <span className="text-xs opacity-70">/ {lesson.estimated_minutes}m</span>
+                                                </div>
+                                              );
+                                            })()}
+                                            <button
+                                              onClick={() => handleLessonAction(lesson.id, 'pause')}
+                                              disabled={actionLoading === lesson.id}
+                                              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-lg text-sm font-medium hover:from-yellow-700 hover:to-orange-700 transition-all disabled:opacity-50"
+                                            >
+                                              <Pause className="w-4 h-4" />
+                                              {t('trainingPlanDetail.pause')}
+                                            </button>
+                                            <button
+                                              onClick={() => handleLessonAction(lesson.id, 'finish')}
+                                              disabled={actionLoading === lesson.id}
+                                              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
+                                            >
+                                              <CheckCircle2 className="w-4 h-4" />
+                                              {t('trainingPlanDetail.finish')}
+                                            </button>
+                                          </>
+                                        )}
+
+                                        {/* Aula pausada iniciada pelo FORMADOR - mostrar Retomar/Finalizar */}
+                                        {progress?.status === 'PAUSED' && lesson.started_by === 'TRAINER' && (
+                                          <>
+                                            {(() => {
+                                              const elapsed = progress.elapsed_seconds || 0;
+                                              const estimated = (lesson.estimated_minutes || 30) * 60;
+                                              const isOverTime = elapsed > estimated;
+                                              const timeColor = isOverTime ? 'text-red-400' : 'text-yellow-400';
+                                              return (
+                                                <div className={`flex items-center gap-2 text-sm ${timeColor}`}>
+                                                  <Timer className="w-4 h-4" />
+                                                  <span className="font-mono font-bold">{formatTime(elapsed)}</span>
+                                                  <span className="text-xs opacity-70">/ {lesson.estimated_minutes}m ({t('trainingPlanDetail.paused').toLowerCase()})</span>
+                                                </div>
+                                              );
+                                            })()}
+                                            <button
+                                              onClick={() => handleLessonAction(lesson.id, 'resume')}
+                                              disabled={actionLoading === lesson.id}
+                                              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50"
+                                            >
+                                              <Play className="w-4 h-4" />
+                                              {t('trainingPlanDetail.resume')}
+                                            </button>
+                                            <button
+                                              onClick={() => handleLessonAction(lesson.id, 'finish')}
+                                              disabled={actionLoading === lesson.id}
+                                              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
+                                            >
+                                              <CheckCircle2 className="w-4 h-4" />
+                                              {t('trainingPlanDetail.finish')}
+                                            </button>
+                                          </>
+                                        )}
+
+                                        {/* Aula em progresso iniciada pelo FORMANDO - apenas Ver Progresso */}
+                                        {progress?.status === 'IN_PROGRESS' && lesson.started_by !== 'TRAINER' && (
+                                          <>
+                                            {(() => {
+                                              const elapsed = getElapsedSeconds(progress, lesson.id);
+                                              const estimated = (lesson.estimated_minutes || 30) * 60;
+                                              const isOverTime = elapsed > estimated;
+                                              const timeColor = isOverTime ? 'text-red-400' : 'text-green-400';
+                                              return (
+                                                <div className={`flex items-center gap-2 text-sm ${timeColor}`}>
+                                                  <Timer className="w-4 h-4" />
+                                                  <span className="font-mono font-bold">{formatTime(elapsed)}</span>
+                                                  <span className="text-xs opacity-70">/ {lesson.estimated_minutes}m</span>
+                                                </div>
+                                              );
+                                            })()}
+                                            <button
+                                              onClick={() => navigate(`/lessons/${lesson.id}/manage?planId=${id}&courseId=${course.id}`)}
+                                              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all"
+                                            >
+                                              <Eye className="w-4 h-4" />
+                                              {t('trainingPlanDetail.viewProgress')}
+                                            </button>
+                                          </>
+                                        )}
+
+                                        {/* Aula concluída mas aguardando confirmação do formando */}
+                                        {progress?.status === 'COMPLETED' && !progress.student_confirmed && !progress.is_approved && (
+                                          <div className="flex items-center gap-2 px-3 py-2 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+                                            <Clock className="w-4 h-4 text-blue-400" />
+                                            <span className="text-sm text-blue-400 font-medium">{t('trainingPlanDetail.awaitingStudentConfirmation')}</span>
+                                          </div>
+                                        )}
+
+                                        {/* Aula confirmada pelo formando - mostrar destaque e Aprovar */}
+                                        {progress?.status === 'COMPLETED' && progress.student_confirmed && !progress.is_approved && (
+                                          <>
+                                            <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/20 border border-amber-500/30 rounded-lg">
+                                              <AlertCircle className="w-4 h-4 text-amber-400" />
+                                              <span className="text-sm text-amber-400 font-medium">{t('trainingPlanDetail.studentConfirmedAwaitingApproval')}</span>
+                                            </div>
+                                            <button
+                                              onClick={() => handleLessonAction(lesson.id, 'approve')}
+                                              disabled={actionLoading === lesson.id}
+                                              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50 shadow-lg shadow-green-500/25"
+                                            >
+                                              <CheckCircle2 className="w-4 h-4" />
+                                              {t('trainingPlanDetail.approveLesson')}
+                                            </button>
+                                          </>
                                         )}
 
                                         {/* Aula concluída - botão Gerir */}
@@ -808,7 +1115,7 @@ export default function TrainingPlanDetail() {
                                             }`}
                                           >
                                             <Settings2 className="w-4 h-4" />
-                                            Gerir
+                                            {t('trainingPlanDetail.manage')}
                                           </button>
                                         )}
                                       </>
@@ -822,7 +1129,7 @@ export default function TrainingPlanDetail() {
                       ) : (
                         <div className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                           <BookOpen className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                          <p>Sem aulas cadastradas</p>
+                          <p>{t('trainingPlanDetail.noLessons')}</p>
                         </div>
                       )}
                     </div>
@@ -831,9 +1138,9 @@ export default function TrainingPlanDetail() {
                     <div>
                       <div className="flex items-center gap-2 mb-4">
                         <Target className={`w-5 h-5 ${isDark ? 'text-green-400' : 'text-green-600'}`} />
-                        <h4 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Desafios</h4>
+                        <h4 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('trainingPlanDetail.challenges')}</h4>
                         <span className={`ml-auto text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {course.challenges?.length ?? 0} desafios
+                          {t('trainingPlanDetail.challengesCount', { count: course.challenges?.length ?? 0 })}
                         </span>
                       </div>
 
@@ -905,37 +1212,57 @@ export default function TrainingPlanDetail() {
                                           : 'bg-gray-100 text-gray-500'
                                       }`}>
                                         <Clock className="w-4 h-4" />
-                                        Aguardando liberação
+                                        {t('trainingPlanDetail.awaitingRelease')}
                                       </span>
                                     )}
 
                                     {isStudent && !submission && challengeReleases[challenge.id] && (
-                                      <button
-                                        onClick={() => {
-                                          const route = challenge.challenge_type === 'COMPLETE'
-                                            ? `/challenges/${challenge.id}/execute?planId=${id}`
-                                            : `/challenges/${challenge.id}/execute/summary?planId=${id}`;
-                                          navigate(route);
-                                        }}
-                                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md"
-                                      >
-                                        <Play className="w-4 h-4" />
-                                        Iniciar Desafio
-                                      </button>
+                                      challenge.challenge_type?.toUpperCase() === 'COMPLETE' ? (
+                                        <button
+                                          onClick={() => navigate(`/challenges/${challenge.id}/execute/complete?planId=${id}`)}
+                                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md"
+                                        >
+                                          <Play className="w-4 h-4" />
+                                          {t('trainingPlanDetail.startChallenge')}
+                                        </button>
+                                      ) : (
+                                        <span className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+                                          isDark 
+                                            ? 'bg-purple-500/20 text-purple-400' 
+                                            : 'bg-purple-100 text-purple-600'
+                                        }`}>
+                                          <Clock className="w-4 h-4" />
+                                          {t('trainingPlanDetail.awaitingTrainerApply')}
+                                        </span>
+                                      )
                                     )}
 
                                     {isStudent && submission && (
-                                      <button
-                                        onClick={() => navigate(`/challenges/result/${submission.id}`)}
-                                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                                          isDark 
-                                            ? 'bg-white/10 text-white hover:bg-white/20' 
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                        }`}
-                                      >
-                                        <Eye className="w-4 h-4" />
-                                        Ver Resultado
-                                      </button>
+                                      submission.status === 'APPROVED' || submission.status === 'REJECTED' ? (
+                                        <button
+                                          onClick={() => navigate(`/challenges/result/${submission.id}`)}
+                                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                            isDark 
+                                              ? 'bg-white/10 text-white hover:bg-white/20' 
+                                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                          }`}
+                                        >
+                                          <Eye className="w-4 h-4" />
+                                          {t('trainingPlanDetail.viewResult')}
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={() => navigate(`/challenges/${challenge.id}/execute/complete?planId=${id}&submissionId=${submission.id}`)}
+                                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                            isDark 
+                                              ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600' 
+                                              : 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600'
+                                          }`}
+                                        >
+                                          <Play className="w-4 h-4" />
+                                          {t('trainingPlanDetail.continueChallenge')}
+                                        </button>
+                                      )
                                     )}
 
                                     {/* ===== BOTÕES PARA FORMADOR ===== */}
@@ -946,19 +1273,29 @@ export default function TrainingPlanDetail() {
                                         className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50"
                                       >
                                         <PlayCircle className="w-4 h-4" />
-                                        Liberar
+                                        {t('trainingPlanDetail.release')}
                                       </button>
                                     )}
 
                                     {isTrainer && !submission && challengeReleases[challenge.id] && (
-                                      <span className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
-                                        isDark 
-                                          ? 'bg-purple-500/20 text-purple-400' 
-                                          : 'bg-purple-100 text-purple-600'
-                                      }`}>
-                                        <Clock className="w-4 h-4" />
-                                        Aguardando formando
-                                      </span>
+                                      challenge.challenge_type?.toUpperCase() === 'SUMMARY' ? (
+                                        <button
+                                          onClick={() => navigate(`/challenges/${challenge.id}/execute/summary?planId=${id}`)}
+                                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md"
+                                        >
+                                          <Play className="w-4 h-4" />
+                                          {t('trainingPlanDetail.applyChallenge')}
+                                        </button>
+                                      ) : (
+                                        <span className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+                                          isDark 
+                                            ? 'bg-purple-500/20 text-purple-400' 
+                                            : 'bg-purple-100 text-purple-600'
+                                        }`}>
+                                          <Clock className="w-4 h-4" />
+                                          {t('trainingPlanDetail.awaitingStudent')}
+                                        </span>
+                                      )
                                     )}
 
                                     {isTrainer && submission && (
@@ -967,7 +1304,7 @@ export default function TrainingPlanDetail() {
                                         {submission.status === 'IN_PROGRESS' && (
                                           <span className="flex items-center gap-2 px-3 py-2 bg-blue-500/20 text-blue-400 rounded-lg text-sm font-medium">
                                             <Clock className="w-4 h-4" />
-                                            Em Andamento
+                                            {t('trainingPlanDetail.inProgressStatus')}
                                           </span>
                                         )}
                                         
@@ -978,7 +1315,7 @@ export default function TrainingPlanDetail() {
                                             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-xl font-semibold hover:from-yellow-700 hover:to-orange-700 transition-all shadow-sm hover:shadow-md"
                                           >
                                             <Settings2 className="w-4 h-4" />
-                                            Corrigir
+                                            {t('trainingPlanDetail.correct')}
                                           </button>
                                         )}
                                         
@@ -993,7 +1330,7 @@ export default function TrainingPlanDetail() {
                                             }`}
                                           >
                                             <Eye className="w-4 h-4" />
-                                            Ver Resultado
+                                            {t('trainingPlanDetail.viewResult')}
                                           </button>
                                         )}
                                       </>
@@ -1007,7 +1344,7 @@ export default function TrainingPlanDetail() {
                       ) : (
                         <div className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                           <Target className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                          <p>Sem desafios cadastrados</p>
+                          <p>{t('trainingPlanDetail.noChallenges')}</p>
                         </div>
                       )}
                     </div>
@@ -1018,7 +1355,7 @@ export default function TrainingPlanDetail() {
           ) : (
             <div className="text-center py-16">
               <BookOpen className={`w-16 h-16 mx-auto mb-4 ${isDark ? 'text-gray-700' : 'text-gray-300'}`} />
-              <p className={isDark ? 'text-gray-500' : 'text-gray-400'}>Sem cursos neste plano</p>
+              <p className={isDark ? 'text-gray-500' : 'text-gray-400'}>{t('trainingPlanDetail.noCourses')}</p>
             </div>
           )}
         </div>

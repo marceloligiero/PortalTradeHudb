@@ -111,10 +111,10 @@ export default function ReportsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-black flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-400">{t('common.loading')}</p>
+          <p className="text-gray-600 dark:text-gray-400">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -149,7 +149,7 @@ export default function ReportsPage() {
   }));
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4 md:p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-black p-4 md:p-8">
       <div className="max-w-[1800px] mx-auto">
         {/* Header */}
         <motion.div 
@@ -164,10 +164,10 @@ export default function ReportsPage() {
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-pulse" />
               </div>
               <div>
-                <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-100 to-gray-300">
+                <h1 className="text-4xl font-black text-gray-900 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-white dark:via-gray-100 dark:to-gray-300">
                   {t('reports.title')}
                 </h1>
-                <p className="text-gray-400 font-medium">{t('reports.subtitle')}</p>
+                <p className="text-gray-600 dark:text-gray-400 font-medium">{t('reports.subtitle')}</p>
               </div>
             </div>
             
@@ -200,28 +200,28 @@ export default function ReportsPage() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             whileHover={{ scale: 1.02, y: -5 }}
-            className="bg-gradient-to-br from-blue-600/20 to-blue-900/20 backdrop-blur-xl border border-blue-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden group"
+            className="bg-blue-50 dark:bg-gradient-to-br dark:from-blue-600/20 dark:to-blue-900/20 backdrop-blur-xl border border-blue-200 dark:border-blue-500/30 rounded-2xl p-6 shadow-lg dark:shadow-2xl relative overflow-hidden group"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-14 h-14 rounded-xl bg-blue-600/30 flex items-center justify-center backdrop-blur-sm">
-                  <Users className="w-7 h-7 text-blue-400" />
+                <div className="w-14 h-14 rounded-xl bg-blue-100 dark:bg-blue-600/30 flex items-center justify-center backdrop-blur-sm">
+                  <Users className="w-7 h-7 text-blue-600 dark:text-blue-400" />
                 </div>
-                <div className="flex items-center gap-1 text-green-400">
+                <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
                   <ArrowUp className="w-4 h-4" />
                   <span className="text-sm font-bold">12%</span>
                 </div>
               </div>
-              <div className="text-4xl font-black text-white mb-1">
+              <div className="text-4xl font-black text-gray-900 dark:text-white mb-1">
                 {(stats.total_users || 0).toLocaleString()}
               </div>
-              <div className="text-blue-300 font-semibold">Total de Utilizadores</div>
+              <div className="text-blue-700 dark:text-blue-300 font-semibold">Total de Utilizadores</div>
               <div className="mt-3 flex gap-2 text-sm">
-                <span className="px-2 py-1 bg-blue-500/20 rounded-lg text-blue-300">
+                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-500/20 rounded-lg text-blue-700 dark:text-blue-300">
                   {stats.total_students || 0} Formandos
                 </span>
-                <span className="px-2 py-1 bg-purple-500/20 rounded-lg text-purple-300">
+                <span className="px-2 py-1 bg-purple-100 dark:bg-purple-500/20 rounded-lg text-purple-700 dark:text-purple-300">
                   {stats.total_trainers || 0} Formadores
                 </span>
               </div>
@@ -233,28 +233,28 @@ export default function ReportsPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.1 }}
             whileHover={{ scale: 1.02, y: -5 }}
-            className="bg-gradient-to-br from-red-600/20 to-red-900/20 backdrop-blur-xl border border-red-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden group"
+            className="bg-red-50 dark:bg-gradient-to-br dark:from-red-600/20 dark:to-red-900/20 backdrop-blur-xl border border-red-200 dark:border-red-500/30 rounded-2xl p-6 shadow-lg dark:shadow-2xl relative overflow-hidden group"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-14 h-14 rounded-xl bg-red-600/30 flex items-center justify-center backdrop-blur-sm">
-                  <BookOpen className="w-7 h-7 text-red-400" />
+                <div className="w-14 h-14 rounded-xl bg-red-100 dark:bg-red-600/30 flex items-center justify-center backdrop-blur-sm">
+                  <BookOpen className="w-7 h-7 text-red-600 dark:text-red-400" />
                 </div>
-                <div className="flex items-center gap-1 text-green-400">
+                <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
                   <ArrowUp className="w-4 h-4" />
                   <span className="text-sm font-bold">8%</span>
                 </div>
               </div>
-              <div className="text-4xl font-black text-white mb-1">
+              <div className="text-4xl font-black text-gray-900 dark:text-white mb-1">
                 {(stats.total_courses || 0).toLocaleString()}
               </div>
-              <div className="text-red-300 font-semibold">Total de Cursos</div>
+              <div className="text-red-700 dark:text-red-300 font-semibold">Total de Cursos</div>
               <div className="mt-3 flex gap-2 text-sm">
-                <span className="px-2 py-1 bg-red-500/20 rounded-lg text-red-300">
+                <span className="px-2 py-1 bg-red-100 dark:bg-red-500/20 rounded-lg text-red-700 dark:text-red-300">
                   {stats.active_courses || 0} Ativos
                 </span>
-                <span className="px-2 py-1 bg-orange-500/20 rounded-lg text-orange-300">
+                <span className="px-2 py-1 bg-orange-100 dark:bg-orange-500/20 rounded-lg text-orange-700 dark:text-orange-300">
                   {stats.total_training_plans || 0} Planos
                 </span>
               </div>
@@ -266,25 +266,25 @@ export default function ReportsPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
             whileHover={{ scale: 1.02, y: -5 }}
-            className="bg-gradient-to-br from-green-600/20 to-green-900/20 backdrop-blur-xl border border-green-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden group"
+            className="bg-green-50 dark:bg-gradient-to-br dark:from-green-600/20 dark:to-green-900/20 backdrop-blur-xl border border-green-200 dark:border-green-500/30 rounded-2xl p-6 shadow-lg dark:shadow-2xl relative overflow-hidden group"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-green-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-14 h-14 rounded-xl bg-green-600/30 flex items-center justify-center backdrop-blur-sm">
-                  <Target className="w-7 h-7 text-green-400" />
+                <div className="w-14 h-14 rounded-xl bg-green-100 dark:bg-green-600/30 flex items-center justify-center backdrop-blur-sm">
+                  <Target className="w-7 h-7 text-green-600 dark:text-green-400" />
                 </div>
-                <div className="flex items-center gap-1 text-green-400">
+                <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
                   <ArrowUp className="w-4 h-4" />
                   <span className="text-sm font-bold">15%</span>
                 </div>
               </div>
-              <div className="text-4xl font-black text-white mb-1">
+              <div className="text-4xl font-black text-gray-900 dark:text-white mb-1">
                 {Math.round(stats.avg_completion_rate || 0)}%
               </div>
-              <div className="text-green-300 font-semibold">Taxa de Conclusão</div>
+              <div className="text-green-700 dark:text-green-300 font-semibold">Taxa de Conclusão</div>
               <div className="mt-3">
-                <div className="w-full bg-green-900/30 rounded-full h-2.5">
+                <div className="w-full bg-green-200 dark:bg-green-900/30 rounded-full h-2.5">
                   <div 
                     className="bg-gradient-to-r from-green-500 to-emerald-500 h-2.5 rounded-full transition-all duration-1000"
                     style={{ width: `${stats.avg_completion_rate || 0}%` }}
@@ -299,25 +299,25 @@ export default function ReportsPage() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
             whileHover={{ scale: 1.02, y: -5 }}
-            className="bg-gradient-to-br from-purple-600/20 to-purple-900/20 backdrop-blur-xl border border-purple-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden group"
+            className="bg-purple-50 dark:bg-gradient-to-br dark:from-purple-600/20 dark:to-purple-900/20 backdrop-blur-xl border border-purple-200 dark:border-purple-500/30 rounded-2xl p-6 shadow-lg dark:shadow-2xl relative overflow-hidden group"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-14 h-14 rounded-xl bg-purple-600/30 flex items-center justify-center backdrop-blur-sm">
-                  <Award className="w-7 h-7 text-purple-400" />
+                <div className="w-14 h-14 rounded-xl bg-purple-100 dark:bg-purple-600/30 flex items-center justify-center backdrop-blur-sm">
+                  <Award className="w-7 h-7 text-purple-600 dark:text-purple-400" />
                 </div>
-                <div className="flex items-center gap-1 text-green-400">
+                <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
                   <Zap className="w-4 h-4" />
                   <span className="text-sm font-bold">Hot!</span>
                 </div>
               </div>
-              <div className="text-4xl font-black text-white mb-1">
+              <div className="text-4xl font-black text-gray-900 dark:text-white mb-1">
                 {(stats.total_certificates || 0).toLocaleString()}
               </div>
-              <div className="text-purple-300 font-semibold">Certificados Emitidos</div>
+              <div className="text-purple-700 dark:text-purple-300 font-semibold">Certificados Emitidos</div>
               <div className="mt-3 flex gap-2 text-sm">
-                <span className="px-2 py-1 bg-purple-500/20 rounded-lg text-purple-300">
+                <span className="px-2 py-1 bg-purple-100 dark:bg-purple-500/20 rounded-lg text-purple-700 dark:text-purple-300">
                   {stats.total_enrollments || 0} Inscrições
                 </span>
               </div>
@@ -331,14 +331,14 @@ export default function ReportsPage() {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl"
+            className="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-lg dark:shadow-2xl"
           >
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <Users className="w-6 h-6 text-blue-400" />
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 Distribuição de Utilizadores
               </h3>
-              <div className="text-sm text-gray-400">Total: {stats.total_users || 0}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">Total: {stats.total_users || 0}</div>
             </div>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -374,17 +374,17 @@ export default function ReportsPage() {
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl"
+            className="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-lg dark:shadow-2xl"
           >
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <TrendingUp className="w-6 h-6 text-green-400" />
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
                 Performance dos Cursos
               </h3>
               <select 
                 value={selectedBank}
                 onChange={(e) => setSelectedBank(e.target.value)}
-                className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:border-red-500 focus:outline-none"
+                className="px-3 py-1.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white text-sm focus:border-red-500 focus:outline-none"
               >
                 <option value="ALL">{t('common.allBanks')}</option>
                 {banks.map((bank) => (
@@ -417,11 +417,11 @@ export default function ReportsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl lg:col-span-2"
+            className="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-lg dark:shadow-2xl lg:col-span-2"
           >
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <Target className="w-6 h-6 text-orange-400" />
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Target className="w-6 h-6 text-orange-600 dark:text-orange-400" />
                 Progresso dos Planos de Formação
               </h3>
             </div>
@@ -450,11 +450,11 @@ export default function ReportsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl"
+            className="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-lg dark:shadow-2xl"
           >
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <Activity className="w-6 h-6 text-purple-400" />
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <Activity className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                 Top Formadores
               </h3>
             </div>
@@ -484,96 +484,96 @@ export default function ReportsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl"
+          className="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-6 shadow-lg dark:shadow-2xl"
         >
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <Clock className="w-6 h-6 text-blue-400" />
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               Estatísticas Detalhadas
             </h3>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10 hover:border-red-500/50 transition-colors">
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 hover:border-red-300 dark:hover:border-red-500/50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-red-600/20 flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5 text-red-400" />
+                  <div className="w-10 h-10 rounded-lg bg-red-100 dark:bg-red-600/20 flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 text-red-600 dark:text-red-400" />
                   </div>
                   <div>
-                    <div className="text-sm text-gray-400">Cursos Ativos</div>
-                    <div className="text-2xl font-bold text-white">{stats.active_courses || 0}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Cursos Ativos</div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.active_courses || 0}</div>
                   </div>
                 </div>
-                <ArrowUp className="w-5 h-5 text-green-400" />
+                <ArrowUp className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10 hover:border-orange-500/50 transition-colors">
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 hover:border-orange-300 dark:hover:border-orange-500/50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-orange-600/20 flex items-center justify-center">
-                    <Target className="w-5 h-5 text-orange-400" />
+                  <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-600/20 flex items-center justify-center">
+                    <Target className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                   </div>
                   <div>
-                    <div className="text-sm text-gray-400">Planos Ativos</div>
-                    <div className="text-2xl font-bold text-white">{stats.active_training_plans || 0}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Planos Ativos</div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.active_training_plans || 0}</div>
                   </div>
                 </div>
-                <ArrowUp className="w-5 h-5 text-green-400" />
+                <ArrowUp className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10 hover:border-blue-500/50 transition-colors">
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 hover:border-blue-300 dark:hover:border-blue-500/50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-600/20 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-blue-400" />
+                  <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-600/20 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
-                    <div className="text-sm text-gray-400">Inscrições Totais</div>
-                    <div className="text-2xl font-bold text-white">{stats.total_enrollments || 0}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Inscrições Totais</div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_enrollments || 0}</div>
                   </div>
                 </div>
-                <ArrowUp className="w-5 h-5 text-green-400" />
+                <ArrowUp className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10 hover:border-yellow-500/50 transition-colors">
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 hover:border-yellow-300 dark:hover:border-yellow-500/50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-yellow-600/20 flex items-center justify-center">
-                    <AlertCircle className="w-5 h-5 text-yellow-400" />
+                  <div className="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-600/20 flex items-center justify-center">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
                   </div>
                   <div>
-                    <div className="text-sm text-gray-400">Pendentes</div>
-                    <div className="text-2xl font-bold text-white">{stats.pending_trainers || 0}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Pendentes</div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.pending_trainers || 0}</div>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10 hover:border-purple-500/50 transition-colors">
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 hover:border-purple-300 dark:hover:border-purple-500/50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-purple-600/20 flex items-center justify-center">
-                    <Clock className="w-5 h-5 text-purple-400" />
+                  <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-600/20 flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div>
-                    <div className="text-sm text-gray-400">Horas de Estudo</div>
-                    <div className="text-2xl font-bold text-white">{(stats.total_study_hours || 0).toLocaleString()}h</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Horas de Estudo</div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{(stats.total_study_hours || 0).toLocaleString()}h</div>
                   </div>
                 </div>
-                <ArrowUp className="w-5 h-5 text-green-400" />
+                <ArrowUp className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10 hover:border-green-500/50 transition-colors">
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 hover:border-green-300 dark:hover:border-green-500/50 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-600/20 flex items-center justify-center">
-                    <Award className="w-5 h-5 text-green-400" />
+                  <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-600/20 flex items-center justify-center">
+                    <Award className="w-5 h-5 text-green-600 dark:text-green-400" />
                   </div>
                   <div>
-                    <div className="text-sm text-gray-400">Certificados</div>
-                    <div className="text-2xl font-bold text-white">{stats.total_certificates || 0}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">Certificados</div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total_certificates || 0}</div>
                   </div>
                 </div>
-                <Zap className="w-5 h-5 text-yellow-400" />
+                <Zap className="w-5 h-5 text-yellow-500 dark:text-yellow-400" />
               </div>
             </div>
           </div>

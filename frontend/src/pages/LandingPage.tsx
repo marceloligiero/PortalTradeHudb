@@ -224,7 +224,11 @@ export default function PremiumLandingPage() {
       <motion.nav
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        className="fixed top-0 w-full z-50 backdrop-blur-2xl bg-[#0a0a0a]/95 border-b border-white/10 shadow-2xl shadow-red-600/5 transition-all duration-500"
+        className={`fixed top-0 w-full z-50 backdrop-blur-2xl border-b shadow-2xl transition-all duration-500 ${
+          isDark 
+            ? 'bg-[#0a0a0a]/95 border-white/10 shadow-red-600/5' 
+            : 'bg-white/95 border-gray-200 shadow-gray-200/50'
+        }`}
       >
         {/* Scroll Progress Bar */}
         <motion.div
@@ -244,7 +248,9 @@ export default function PremiumLandingPage() {
               <img 
                 src="/logo-sds.png"
                 alt="Santander"
-                className="h-10 w-auto filter brightness-0 invert transition-all duration-300 group-hover:drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]"
+                className={`h-10 w-auto transition-all duration-300 group-hover:drop-shadow-[0_0_8px_rgba(220,38,38,0.8)] ${
+                  isDark ? 'filter brightness-0 invert' : ''
+                }`}
               />
             </motion.div>
 
@@ -255,7 +261,11 @@ export default function PremiumLandingPage() {
                 whileHover={{ scale: 1.1, rotate: 180 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={toggleTheme}
-                className="hidden md:flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-yellow-400/50 transition-all duration-300 relative group"
+                className={`hidden md:flex items-center justify-center w-10 h-10 rounded-xl border transition-all duration-300 relative group ${
+                  isDark 
+                    ? 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-yellow-400/50' 
+                    : 'bg-gray-100 hover:bg-gray-200 border-gray-200 hover:border-blue-400/50'
+                }`}
               >
                 <AnimatePresence mode="wait">
                   {isDark ? (
@@ -352,7 +362,9 @@ export default function PremiumLandingPage() {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="lg:hidden border-t border-white/10 bg-[#0a0a0a]/98 backdrop-blur-2xl"
+              className={`lg:hidden border-t backdrop-blur-2xl ${
+                isDark ? 'border-white/10 bg-[#0a0a0a]/98' : 'border-gray-200 bg-white/98'
+              }`}
             >
               <motion.div
                 initial="closed"
@@ -373,7 +385,11 @@ export default function PremiumLandingPage() {
                 >
                   <button
                     onClick={() => { navigate('/login'); setIsMenuOpen(false); }}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all font-medium text-white"
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition-all font-medium ${
+                      isDark 
+                        ? 'bg-white/5 hover:bg-white/10 border-white/10 text-white' 
+                        : 'bg-gray-100 hover:bg-gray-200 border-gray-200 text-gray-900'
+                    }`}
                   >
                     <LogIn className="w-5 h-5" />
                     {t('auth.login')}

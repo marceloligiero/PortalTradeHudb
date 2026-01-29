@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
+from pydantic import BaseModel
 from .. import models, schemas
 from fastapi import Body
 from ..database import get_db
@@ -83,6 +84,56 @@ def calculate_approval(calculated_mpu: float, target_mpu: float) -> tuple[bool, 
     is_approved = calculated_mpu <= target_mpu
     
     return is_approved, mpu_vs_target
+
+
+def calculate_kpi_approval(
+    challenge: models.Challenge,
+    total_operations: int,
+    calculated_mpu: float,
+    errors_count: int
+) -> tuple[bool, dict]:
+    """
+    Calcula aprovação baseada nos KPIs configurados no desafio.
+    
+    Args:
+        challenge: O desafio com as configurações de KPI
+        total_operations: Total de operações realizadas
+        calculated_mpu: MPU calculado
+        errors_count: Número de operações com erro
+    
+    Returns:
+        (is_approved, kpi_details) onde kpi_details contém detalhes de cada KPI
+    """
+    kpi_details = {
+        'volume': {'enabled': challenge.use_volume_kpi, 'passed': True, 'target': challenge.operations_required, 'actual': total_operations},
+        'mpu': {'enabled': challenge.use_mpu_kpi, 'passed': True, 'target': challenge.target_mpu, 'actual': calculated_mpu},
+        'errors': {'enabled': challenge.use_errors_kpi, 'passed': True, 'target': challenge.max_errors, 'actual': errors_count}
+    }
+    
+    # Se kpi_mode é MANUAL, nenhum KPI é avaliado automaticamente
+    kpi_mode = getattr(challenge, 'kpi_mode', 'AUTO') or 'AUTO'
+    if kpi_mode == 'MANUAL':
+        return None, kpi_details  # None indica que precisa de avaliação manual
+    
+    # Avaliar cada KPI habilitado
+    if challenge.use_volume_kpi:
+        kpi_details['volume']['passed'] = total_operations >= challenge.operations_required
+    
+    if challenge.use_mpu_kpi and challenge.target_mpu > 0:
+        # MPU: quanto menor, melhor. Aprovado se calculated <= target
+        kpi_details['mpu']['passed'] = calculated_mpu <= challenge.target_mpu if calculated_mpu > 0 else False
+    
+    if challenge.use_errors_kpi:
+        kpi_details['errors']['passed'] = errors_count <= challenge.max_errors
+    
+    # Aprovação geral: todos os KPIs habilitados devem passar
+    is_approved = True
+    for kpi_name, kpi_data in kpi_details.items():
+        if kpi_data['enabled'] and not kpi_data['passed']:
+            is_approved = False
+            break
+    
+    return is_approved, kpi_details
 
 # ===== ADMIN/TRAINER: Criar Desafio =====
 @router.post("/", response_model=schemas.Challenge, status_code=status.HTTP_201_CREATED)
@@ -490,7 +541,17 @@ async def submit_challenge_summary(
     operations_with_errors = submission.errors_count or 0  # Número de operações com pelo menos 1 erro
     errors_ok = operations_with_errors <= max_errors
 
-    is_approved = is_approved_mpu and errors_ok
+    # Verificar modo de avaliação
+    kpi_mode = getattr(challenge, 'kpi_mode', 'AUTO') or 'AUTO'
+    
+    if kpi_mode == 'MANUAL':
+        # Modo manual: formador decide depois
+        is_approved = None
+        status = "PENDING_REVIEW"
+    else:
+        # Modo automático: calcular aprovação baseado em KPIs
+        is_approved, _ = calculate_kpi_approval(challenge, submission.total_operations, calculated_mpu, operations_with_errors)
+        status = "APPROVED" if is_approved else "REJECTED"
     
     # Total de erros individuais (para relatório) - não afeta aprovação
     total_individual_errors = (submission.error_methodology or 0) + \
@@ -506,7 +567,9 @@ async def submit_challenge_summary(
     db_submission = models.ChallengeSubmission(
         challenge_id=submission.challenge_id,
         user_id=submission.user_id,
+        training_plan_id=submission.training_plan_id,
         submission_type="SUMMARY",
+        status=status,
         total_operations=submission.total_operations,
         total_time_minutes=submission.total_time_minutes,
         errors_count=operations_with_errors,  # Número de OPERAÇÕES com erro
@@ -516,7 +579,7 @@ async def submit_challenge_summary(
         error_procedure=submission.error_procedure,
         operation_reference=submission.operation_reference,
         started_at=now,
-        completed_at=now,
+        completed_at=now if status == "COMPLETED" else None,
         calculated_mpu=calculated_mpu,
         mpu_vs_target=mpu_vs_target,
         is_approved=is_approved,
@@ -1138,6 +1201,7 @@ async def get_submission_detail(
         "id": submission.id,
         "challenge_id": submission.challenge_id,
         "user_id": submission.user_id,
+        "training_plan_id": submission.training_plan_id,
         "submission_type": submission.submission_type,
         "status": submission.status,
         "total_operations": actual_total_operations,
@@ -1151,6 +1215,9 @@ async def get_submission_detail(
         "feedback": submission.feedback,
         "submitted_by": submission.submitted_by,
         "errors_count": actual_errors_count,
+        "retry_count": getattr(submission, 'retry_count', 0),
+        "is_retry_allowed": getattr(submission, 'is_retry_allowed', False),
+        "trainer_notes": getattr(submission, 'trainer_notes', None),
         "created_at": submission.created_at.isoformat() if submission.created_at else None,
         "updated_at": submission.updated_at.isoformat() if submission.updated_at else None,
         "parts": [
@@ -1192,6 +1259,8 @@ async def get_submission_detail(
             "use_volume_kpi": getattr(challenge, 'use_volume_kpi', True) if challenge else True,
             "use_mpu_kpi": getattr(challenge, 'use_mpu_kpi', True) if challenge else True,
             "use_errors_kpi": getattr(challenge, 'use_errors_kpi', True) if challenge else True,
+            "kpi_mode": getattr(challenge, 'kpi_mode', 'AUTO') if challenge else 'AUTO',
+            "allow_retry": getattr(challenge, 'allow_retry', False) if challenge else False,
             "created_by": getattr(challenge, 'created_by', None) if challenge else None,
             "is_active": challenge.is_active if challenge else None,
             "created_at": challenge.created_at.isoformat() if challenge and challenge.created_at else None,
@@ -1292,14 +1361,23 @@ async def start_operation(
 
 
 # ===== FORMANDO: Finalizar Operação (COMPLETE) =====
+class OperationErrorInput(BaseModel):
+    error_type: str  # METHODOLOGY, KNOWLEDGE, DETAIL, PROCEDURE
+    description: Optional[str] = None
+
+class FinishOperationInput(BaseModel):
+    has_error: bool = False
+    errors: List[OperationErrorInput] = []
+
 @router.post("/operations/{operation_id}/finish", response_model=schemas.ChallengeOperation)
 async def finish_operation(
     operation_id: int,
+    data: Optional[FinishOperationInput] = Body(default=None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
     """
-    Formando finaliza uma operação (para contagem de tempo)
+    Formando finaliza uma operação (para contagem de tempo) e pode classificar erros
     """
     operation = db.query(models.ChallengeOperation).filter(
         models.ChallengeOperation.id == operation_id
@@ -1328,6 +1406,23 @@ async def finish_operation(
         duration = (now - operation.started_at).total_seconds()
         operation.duration_seconds = int(duration)
     
+    # Registar erros se fornecidos
+    if data:
+        operation.has_error = data.has_error or len(data.errors) > 0
+        
+        # Criar registos de erro
+        for err in data.errors:
+            error_type = err.error_type.upper()
+            if error_type not in ['METHODOLOGY', 'KNOWLEDGE', 'DETAIL', 'PROCEDURE']:
+                continue
+            
+            op_error = models.OperationError(
+                operation_id=operation.id,
+                error_type=error_type,
+                description=err.description
+            )
+            db.add(op_error)
+    
     db.commit()
     db.refresh(operation)
     
@@ -1343,7 +1438,7 @@ async def submit_for_review(
 ):
     """
     Formando finaliza a execução e submete para revisão do formador
-    Todas as operações devem estar finalizadas
+    Todas as operações requeridas devem estar finalizadas
     """
     submission = db.query(models.ChallengeSubmission).filter(
         models.ChallengeSubmission.id == submission_id
@@ -1364,6 +1459,13 @@ async def submit_for_review(
     if submission.completed_at:
         raise HTTPException(status_code=400, detail="Submission já foi finalizada")
     
+    # Buscar challenge para saber operações requeridas
+    challenge = db.query(models.Challenge).filter(
+        models.Challenge.id == submission.challenge_id
+    ).first()
+    
+    required_operations = challenge.operations_required if challenge else 0
+    
     # Verificar se há operações
     operations = db.query(models.ChallengeOperation).filter(
         models.ChallengeOperation.submission_id == submission_id
@@ -1372,17 +1474,19 @@ async def submit_for_review(
     if not operations:
         raise HTTPException(status_code=400, detail="Nenhuma operação registrada")
     
-    # Verificar se todas as operações foram finalizadas
-    incomplete = [op for op in operations if not op.completed_at]
-    if incomplete:
+    # Contar operações completas
+    completed_ops = [op for op in operations if op.completed_at]
+    
+    # Verificar se todas as operações requeridas foram completadas
+    if len(completed_ops) < required_operations:
         raise HTTPException(
             status_code=400, 
-            detail=f"{len(incomplete)} operação(ões) ainda não finalizadas"
+            detail=f"Complete todas as {required_operations} operações antes de submeter. {len(completed_ops)}/{required_operations} concluídas."
         )
     
     # Calcular totais parciais
-    total_operations = len(operations)
-    total_time_seconds = sum(op.duration_seconds or 0 for op in operations)
+    total_operations = len(completed_ops)
+    total_time_seconds = sum(op.duration_seconds or 0 for op in completed_ops)
     total_time_minutes = total_time_seconds / 60
     
     # Atualizar submission
@@ -1506,6 +1610,7 @@ async def list_my_submissions(
             "id": sub.id,
             "challenge_id": sub.challenge_id,
             "challenge_title": challenge.title if challenge else None,
+            "challenge_type": challenge.challenge_type if challenge else None,
             "submission_type": sub.submission_type,
             "total_operations": sub.total_operations or operations_count,
             "started_at": sub.started_at.isoformat() if sub.started_at else None,
@@ -1513,7 +1618,9 @@ async def list_my_submissions(
             "is_approved": sub.is_approved,
             "calculated_mpu": sub.calculated_mpu,
             "errors_count": sub.errors_count or errors_count,
-            "is_in_progress": sub.started_at and not sub.completed_at
+            "is_in_progress": sub.started_at and not sub.completed_at,
+            "is_retry_allowed": getattr(sub, 'is_retry_allowed', False),
+            "retry_count": getattr(sub, 'retry_count', 0)
         })
     
     return result
@@ -1528,6 +1635,7 @@ async def finalize_submission_review(
 ):
     """
     Finalizar a revisão de uma submission.
+    - Verifica se todas as operações requeridas foram executadas
     - Verifica se todas as operações foram classificadas
     - Calcula estatísticas finais (MPU, erros por tipo)
     - O formador decide manualmente se aprova ou reprova
@@ -1556,6 +1664,14 @@ async def finalize_submission_review(
     
     if len(completed_ops) == 0:
         raise HTTPException(status_code=400, detail="Não há operações concluídas para revisar")
+    
+    # Verificar se todas as operações requeridas foram executadas
+    required_ops = challenge.operations_required or 0
+    if len(completed_ops) < required_ops:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"O formando ainda não completou todas as operações. {len(completed_ops)}/{required_ops} concluídas."
+        )
     
     # Verificar se todas as operações foram classificadas (is_approved não é None)
     pending_ops = [op for op in completed_ops if op.is_approved is None]
@@ -1662,3 +1778,246 @@ async def finalize_submission_review(
         "max_errors": max_errors,
         "message": f"Revisão finalizada. Submission {'aprovada' if is_approved else 'rejeitada'}."
     }
+
+
+# ===== FORMADOR: Habilitar Nova Tentativa após Reprovação =====
+@router.post("/submissions/{submission_id}/allow-retry")
+async def allow_submission_retry(
+    submission_id: int,
+    notes: Optional[str] = Body(default=None, embed=True),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+):
+    """
+    Formador habilita nova tentativa para um formando reprovado.
+    O formando poderá iniciar um novo desafio.
+    """
+    submission = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.id == submission_id
+    ).first()
+    
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    if submission.status not in ["REJECTED", "APPROVED"]:
+        raise HTTPException(status_code=400, detail="Só é possível habilitar nova tentativa para submissions finalizadas")
+    
+    # Verificar se o desafio permite retry
+    challenge = db.query(models.Challenge).filter(
+        models.Challenge.id == submission.challenge_id
+    ).first()
+    
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Desafio não encontrado")
+    
+    if not getattr(challenge, 'allow_retry', False):
+        raise HTTPException(status_code=400, detail="Este desafio não permite novas tentativas")
+    
+    # Marcar como permitida nova tentativa
+    submission.is_retry_allowed = True
+    submission.trainer_notes = notes
+    submission.updated_at = datetime.now()
+    
+    db.commit()
+    db.refresh(submission)
+    
+    return {
+        "message": "Nova tentativa habilitada com sucesso",
+        "submission_id": submission.id,
+        "is_retry_allowed": True
+    }
+
+
+# ===== FORMANDO: Iniciar Nova Tentativa =====
+@router.post("/submissions/{submission_id}/start-retry", response_model=schemas.ChallengeSubmission)
+async def start_submission_retry(
+    submission_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Formando inicia nova tentativa após ser habilitado pelo formador.
+    Cria uma nova submission com retry_count incrementado.
+    """
+    # Buscar submission original
+    original = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.id == submission_id
+    ).first()
+    
+    if not original:
+        raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    # Verificar se é o formando da submission
+    if current_user.role in ["TRAINEE", "STUDENT"] and original.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Sem permissão")
+    
+    # Verificar se retry foi habilitado
+    if not getattr(original, 'is_retry_allowed', False):
+        raise HTTPException(status_code=400, detail="Nova tentativa não foi habilitada pelo formador")
+    
+    # Criar nova submission
+    retry_count = (getattr(original, 'retry_count', 0) or 0) + 1
+    
+    new_submission = models.ChallengeSubmission(
+        challenge_id=original.challenge_id,
+        user_id=original.user_id,
+        training_plan_id=original.training_plan_id,
+        submission_type=original.submission_type,
+        status="IN_PROGRESS",
+        started_at=datetime.now(),
+        submitted_by=current_user.id,
+        retry_count=retry_count,
+        is_approved=False
+    )
+    
+    # Desabilitar retry na submission original
+    original.is_retry_allowed = False
+    original.updated_at = datetime.now()
+    
+    db.add(new_submission)
+    db.commit()
+    db.refresh(new_submission)
+    
+    return new_submission
+
+
+# ===== FORMADOR: Finalizar Desafio Manualmente (KPI_MODE=MANUAL) =====
+@router.post("/submissions/{submission_id}/manual-finalize")
+async def manual_finalize_submission(
+    submission_id: int,
+    approve: bool = Body(..., embed=True),
+    notes: Optional[str] = Body(default=None, embed=True),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+):
+    """
+    Formador finaliza manualmente um desafio quando kpi_mode=MANUAL.
+    O formador decide se aprova ou reprova independente dos KPIs.
+    """
+    submission = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.id == submission_id
+    ).first()
+    
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    challenge = db.query(models.Challenge).filter(
+        models.Challenge.id == submission.challenge_id
+    ).first()
+    
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Desafio não encontrado")
+    
+    # Verificar se o desafio está em modo manual
+    kpi_mode = getattr(challenge, 'kpi_mode', 'AUTO') or 'AUTO'
+    if kpi_mode != 'MANUAL':
+        raise HTTPException(
+            status_code=400, 
+            detail="Este desafio usa avaliação automática por KPI. Use o endpoint finalize-review."
+        )
+    
+    # Para SUMMARY, os dados já estão na submission
+    # Para COMPLETE, precisamos calcular a partir das operações
+    if submission.submission_type == 'COMPLETE':
+        # Calcular estatísticas para registro
+        operations = db.query(models.ChallengeOperation).filter(
+            models.ChallengeOperation.submission_id == submission_id
+        ).all()
+        
+        total_ops = len([op for op in operations if op.completed_at])
+        errors_ops = len([op for op in operations if op.has_error])
+        total_seconds = sum(op.duration_seconds or 0 for op in operations if op.completed_at)
+        total_minutes = total_seconds / 60 if total_seconds > 0 else 0
+        
+        calculated_mpu = calculate_mpu(total_ops, total_minutes)
+        
+        # Atualizar submission
+        submission.total_operations = total_ops
+        submission.total_time_minutes = int(total_minutes)
+        submission.errors_count = errors_ops
+        submission.calculated_mpu = calculated_mpu
+        submission.mpu_vs_target = round((challenge.target_mpu / calculated_mpu * 100) if calculated_mpu > 0 else 0, 1)
+    
+    # Para ambos, atualizar status de aprovação
+    submission.is_approved = approve
+    submission.status = "APPROVED" if approve else "REJECTED"
+    submission.trainer_notes = notes
+    submission.completed_at = datetime.now()
+    submission.updated_at = datetime.now()
+    
+    db.commit()
+    db.refresh(submission)
+    
+    return {
+        "id": submission.id,
+        "status": submission.status,
+        "is_approved": submission.is_approved,
+        "kpi_mode": "MANUAL",
+        "trainer_notes": notes,
+        "message": f"Desafio {'aprovado' if approve else 'reprovado'} manualmente pelo formador."
+    }
+
+
+# ===== VERIFICAR se Formando pode Iniciar Desafio =====
+@router.get("/{challenge_id}/can-start/{student_id}")
+async def can_start_challenge(
+    challenge_id: int,
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    """
+    Verifica se um formando pode iniciar um desafio.
+    Considera: já submeteu? tem retry habilitado? está em progresso?
+    """
+    challenge = db.query(models.Challenge).filter(
+        models.Challenge.id == challenge_id
+    ).first()
+    
+    if not challenge:
+        return {"can_start": False, "reason": "Desafio não encontrado"}
+    
+    # Buscar submissions do formando para este desafio
+    submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id == challenge_id,
+        models.ChallengeSubmission.user_id == student_id
+    ).order_by(models.ChallengeSubmission.created_at.desc()).all()
+    
+    if not submissions:
+        # Nunca fez - pode iniciar
+        return {"can_start": True, "reason": "Pode iniciar novo desafio"}
+    
+    latest = submissions[0]
+    
+    # Em progresso - pode continuar
+    if latest.status == "IN_PROGRESS":
+        return {
+            "can_start": True, 
+            "reason": "Desafio em progresso",
+            "submission_id": latest.id,
+            "is_continuation": True
+        }
+    
+    # Pendente de revisão - não pode iniciar
+    if latest.status == "PENDING_REVIEW":
+        return {"can_start": False, "reason": "Aguardando revisão do formador"}
+    
+    # Aprovado - não pode refazer
+    if latest.status == "APPROVED" and not getattr(latest, 'is_retry_allowed', False):
+        return {"can_start": False, "reason": "Desafio já aprovado"}
+    
+    # Reprovado - verifica se tem retry habilitado
+    if latest.status == "REJECTED":
+        if getattr(latest, 'is_retry_allowed', False):
+            return {
+                "can_start": True, 
+                "reason": "Nova tentativa habilitada pelo formador",
+                "previous_submission_id": latest.id,
+                "is_retry": True
+            }
+        elif getattr(challenge, 'allow_retry', False):
+            return {"can_start": False, "reason": "Aguardando formador habilitar nova tentativa"}
+        else:
+            return {"can_start": False, "reason": "Desafio reprovado e não permite novas tentativas"}
+    
+    return {"can_start": False, "reason": "Estado desconhecido"}

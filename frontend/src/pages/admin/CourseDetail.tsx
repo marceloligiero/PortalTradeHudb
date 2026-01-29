@@ -161,10 +161,10 @@ export default function CourseDetail() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-2xl"
+        className="relative overflow-hidden bg-white dark:bg-gradient-to-r dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-2xl border border-gray-200 dark:border-transparent shadow-lg dark:shadow-none"
       >
         {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 opacity-10 hidden dark:block">
           <div className="absolute inset-0" style={{
             backgroundImage: `linear-gradient(rgba(220, 38, 38, 0.3) 1px, transparent 1px),
                              linear-gradient(90deg, rgba(220, 38, 38, 0.3) 1px, transparent 1px)`,
@@ -172,14 +172,14 @@ export default function CourseDetail() {
           }} />
         </div>
         
-        <div className="absolute top-0 right-0 w-96 h-96 bg-red-600/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-red-500/10 rounded-full blur-2xl" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-red-600/20 rounded-full blur-3xl hidden dark:block" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-red-500/10 rounded-full blur-2xl hidden dark:block" />
         
         <div className="relative p-8">
           {/* Back Button */}
           <button
             onClick={() => navigate('/courses')}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6"
+            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors mb-6"
           >
             <ArrowLeft className="w-5 h-5" />
             <span>{t('common.back')}</span>
@@ -192,15 +192,15 @@ export default function CourseDetail() {
               </div>
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="px-3 py-1 bg-red-500/20 text-red-400 rounded-full text-sm font-medium">
+                  <span className="px-3 py-1 bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 rounded-full text-sm font-medium">
                     {course.bank_code}
                   </span>
-                  <span className="px-3 py-1 bg-gray-700 text-gray-300 rounded-full text-sm">
+                  <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-sm">
                     {course.product_name || course.product_code}
                   </span>
                 </div>
-                <h1 className="text-3xl font-bold text-white mb-2">{course.title}</h1>
-                <p className="text-gray-400 max-w-2xl">{course.description}</p>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{course.title}</h1>
+                <p className="text-gray-600 dark:text-gray-400 max-w-2xl">{course.description}</p>
               </div>
             </div>
             
@@ -208,14 +208,14 @@ export default function CourseDetail() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => navigate(`/courses/${course.id}/edit`)}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors flex items-center gap-2"
+                  className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-white rounded-lg transition-colors flex items-center gap-2"
                 >
                   <Edit3 className="w-4 h-4" />
                   {t('common.edit')}
                 </button>
                 <button
                   onClick={handleDeleteCourse}
-                  className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 rounded-lg transition-colors flex items-center gap-2"
+                  className="px-4 py-2 bg-red-100 dark:bg-red-600/20 hover:bg-red-200 dark:hover:bg-red-600/30 text-red-600 dark:text-red-400 rounded-lg transition-colors flex items-center gap-2"
                 >
                   <Trash2 className="w-4 h-4" />
                   {t('common.delete')}
@@ -226,47 +226,47 @@ export default function CourseDetail() {
 
           {/* Stats */}
           <div className="grid grid-cols-4 gap-4 mt-8">
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+            <div className="bg-gray-50 dark:bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-gray-200 dark:border-white/10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                  <Users className="w-5 h-5 text-blue-400" />
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-500/20 rounded-lg flex items-center justify-center">
+                  <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{course.total_students || 0}</p>
-                  <p className="text-sm text-gray-400">{t('admin.enrolledStudents')}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{course.total_students || 0}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.enrolledStudents')}</p>
                 </div>
               </div>
             </div>
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+            <div className="bg-gray-50 dark:bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-gray-200 dark:border-white/10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-green-400" />
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-500/20 rounded-lg flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{course.lessons?.length || 0}</p>
-                  <p className="text-sm text-gray-400">{t('admin.lessons')}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{course.lessons?.length || 0}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.lessons')}</p>
                 </div>
               </div>
             </div>
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+            <div className="bg-gray-50 dark:bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-gray-200 dark:border-white/10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                  <Target className="w-5 h-5 text-purple-400" />
+                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-500/20 rounded-lg flex items-center justify-center">
+                  <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">{course.challenges?.length || 0}</p>
-                  <p className="text-sm text-gray-400">{t('admin.challenges')}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{course.challenges?.length || 0}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.challenges')}</p>
                 </div>
               </div>
             </div>
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+            <div className="bg-gray-50 dark:bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-gray-200 dark:border-white/10">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-orange-400" />
+                <div className="w-10 h-10 bg-orange-100 dark:bg-orange-500/20 rounded-lg flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-white">{formatDate(course.created_at)}</p>
-                  <p className="text-sm text-gray-400">{t('admin.createdAt')}</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white">{formatDate(course.created_at)}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.createdAt')}</p>
                 </div>
               </div>
             </div>
@@ -275,13 +275,13 @@ export default function CourseDetail() {
       </motion.div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl w-fit">
+      <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl w-fit">
         <button
           onClick={() => setActiveTab('overview')}
           className={`px-4 py-2 rounded-lg font-medium transition-all ${
             activeTab === 'overview'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
           }`}
         >
           {t('admin.overview')}
@@ -290,13 +290,13 @@ export default function CourseDetail() {
           onClick={() => setActiveTab('lessons')}
           className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
             activeTab === 'lessons'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
           }`}
         >
           <FileText className="w-4 h-4" />
           {t('admin.lessons')}
-          <span className="px-2 py-0.5 bg-gray-200 rounded-full text-xs">
+          <span className="px-2 py-0.5 bg-gray-200 dark:bg-gray-600 rounded-full text-xs">
             {course.lessons?.length || 0}
           </span>
         </button>
@@ -304,13 +304,13 @@ export default function CourseDetail() {
           onClick={() => setActiveTab('challenges')}
           className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
             activeTab === 'challenges'
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
           }`}
         >
           <Target className="w-4 h-4" />
           {t('admin.challenges')}
-          <span className="px-2 py-0.5 bg-gray-200 rounded-full text-xs">
+          <span className="px-2 py-0.5 bg-gray-200 dark:bg-gray-600 rounded-full text-xs">
             {course.challenges?.length || 0}
           </span>
         </button>
@@ -327,60 +327,60 @@ export default function CourseDetail() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Course Info */}
             <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.courseDetails')}</h3>
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('admin.courseDetails')}</h3>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                    <Building2 className="w-5 h-5 text-gray-500" />
+                  <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <Building2 className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                     <div>
-                      <p className="text-sm text-gray-500">{t('admin.bank')}</p>
-                      <p className="font-medium text-gray-900">{course.bank_name || course.bank_code}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.bank')}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{course.bank_name || course.bank_code}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                    <Package className="w-5 h-5 text-gray-500" />
+                  <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <Package className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                     <div>
-                      <p className="text-sm text-gray-500">{t('admin.product')}</p>
-                      <p className="font-medium text-gray-900">{course.product_name || course.product_code}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.product')}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{course.product_name || course.product_code}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                    <GraduationCap className="w-5 h-5 text-gray-500" />
+                  <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <GraduationCap className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                     <div>
-                      <p className="text-sm text-gray-500">{t('admin.trainer')}</p>
-                      <p className="font-medium text-gray-900">{course.trainer_name || '-'}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.trainer')}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{course.trainer_name || '-'}</p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Quick Actions */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.quickActions')}</h3>
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('admin.quickActions')}</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <button
                     onClick={() => navigate(`/courses/${course.id}/lessons/new`)}
-                    className="flex items-center gap-3 p-4 bg-green-50 hover:bg-green-100 rounded-xl transition-colors group"
+                    className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-xl transition-colors group"
                   >
                     <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
                       <Plus className="w-5 h-5 text-white" />
                     </div>
                     <div className="text-left">
-                      <p className="font-medium text-gray-900">{t('admin.addLesson')}</p>
-                      <p className="text-sm text-gray-500">{t('admin.addLessonDesc')}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{t('admin.addLesson')}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.addLessonDesc')}</p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" />
                   </button>
                   <button
                     onClick={() => navigate(`/courses/${course.id}/challenges/new`)}
-                    className="flex items-center gap-3 p-4 bg-purple-50 hover:bg-purple-100 rounded-xl transition-colors group"
+                    className="flex items-center gap-3 p-4 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-xl transition-colors group"
                   >
                     <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
                       <Target className="w-5 h-5 text-white" />
                     </div>
                     <div className="text-left">
-                      <p className="font-medium text-gray-900">{t('admin.addChallenge')}</p>
-                      <p className="text-sm text-gray-500">{t('admin.addChallengeDesc')}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">{t('admin.addChallenge')}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.addChallengeDesc')}</p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" />
                   </button>
@@ -390,33 +390,33 @@ export default function CourseDetail() {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl border border-red-100 p-6">
+              <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-xl border border-red-100 dark:border-red-800/30 p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <Sparkles className="w-5 h-5 text-red-500" />
-                  <h3 className="font-semibold text-gray-900">{t('admin.courseStatus')}</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-white">{t('admin.courseStatus')}</h3>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">{t('admin.lessons')}</span>
+                    <span className="text-gray-600 dark:text-gray-400">{t('admin.lessons')}</span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      (course.lessons?.length || 0) > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                      (course.lessons?.length || 0) > 0 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                     }`}>
                       {(course.lessons?.length || 0) > 0 ? <CheckCircle2 className="w-4 h-4 inline mr-1" /> : null}
                       {course.lessons?.length || 0}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">{t('admin.challenges')}</span>
+                    <span className="text-gray-600 dark:text-gray-400">{t('admin.challenges')}</span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      (course.challenges?.length || 0) > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                      (course.challenges?.length || 0) > 0 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                     }`}>
                       {(course.challenges?.length || 0) > 0 ? <CheckCircle2 className="w-4 h-4 inline mr-1" /> : null}
                       {course.challenges?.length || 0}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">{t('admin.students')}</span>
-                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                    <span className="text-gray-600 dark:text-gray-400">{t('admin.students')}</span>
+                    <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-xs font-medium">
                       {course.total_students || 0}
                     </span>
                   </div>
@@ -429,7 +429,7 @@ export default function CourseDetail() {
         {activeTab === 'lessons' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">{t('admin.courseLessons')}</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('admin.courseLessons')}</h3>
               {isAdmin && (
                 <button
                   onClick={() => navigate(`/courses/${course.id}/lessons/new`)}
@@ -442,10 +442,10 @@ export default function CourseDetail() {
             </div>
 
             {course.lessons?.length === 0 ? (
-              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-                <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h4 className="text-lg font-medium text-gray-900 mb-2">{t('admin.noLessonsYet')}</h4>
-                <p className="text-gray-500 mb-6">{t('admin.noLessonsDesc')}</p>
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12 text-center">
+                <FileText className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('admin.noLessonsYet')}</h4>
+                <p className="text-gray-500 dark:text-gray-400 mb-6">{t('admin.noLessonsDesc')}</p>
                 {isAdmin && (
                   <button
                     onClick={() => navigate(`/courses/${course.id}/lessons/new`)}
@@ -465,22 +465,22 @@ export default function CourseDetail() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => navigate(`/courses/${course.id}/lessons/${lesson.id}`)}
-                    className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow cursor-pointer"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center text-green-600 font-semibold">
+                      <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center text-green-600 dark:text-green-400 font-semibold">
                         {index + 1}
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">{lesson.title}</h4>
-                        <p className="text-sm text-gray-500 line-clamp-1">{lesson.description}</p>
+                        <h4 className="font-medium text-gray-900 dark:text-white">{lesson.title}</h4>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1">{lesson.description}</p>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
                           {lesson.duration_minutes || 0} min
                         </span>
-                        <span className="px-2 py-1 bg-gray-100 rounded-full text-xs">
+                        <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-xs">
                           {lesson.content_type}
                         </span>
                       </div>
@@ -496,7 +496,7 @@ export default function CourseDetail() {
         {activeTab === 'challenges' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">{t('admin.courseChallenges')}</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('admin.courseChallenges')}</h3>
               {isAdmin && (
                 <button
                   onClick={() => navigate(`/courses/${course.id}/challenges/new`)}
@@ -509,10 +509,10 @@ export default function CourseDetail() {
             </div>
 
             {course.challenges?.length === 0 ? (
-              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-                <Target className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h4 className="text-lg font-medium text-gray-900 mb-2">{t('admin.noChallengesYet')}</h4>
-                <p className="text-gray-500 mb-6">{t('admin.noChallengesDesc')}</p>
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-12 text-center">
+                <Target className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t('admin.noChallengesYet')}</h4>
+                <p className="text-gray-500 dark:text-gray-400 mb-6">{t('admin.noChallengesDesc')}</p>
                 {isAdmin && (
                   <button
                     onClick={() => navigate(`/courses/${course.id}/challenges/new`)}
@@ -532,20 +532,20 @@ export default function CourseDetail() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => navigate(`/courses/${course.id}/challenges/${challenge.id}`)}
-                    className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer"
+                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md transition-shadow cursor-pointer"
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                        <Target className="w-5 h-5 text-purple-600" />
+                      <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                        <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(challenge.difficulty)}`}>
                         {challenge.difficulty}
                       </span>
                     </div>
-                    <h4 className="font-medium text-gray-900 mb-2">{challenge.title}</h4>
-                    <p className="text-sm text-gray-500 line-clamp-2 mb-4">{challenge.description}</p>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">{challenge.title}</h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-4">{challenge.description}</p>
                     <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-3 text-gray-500">
+                      <div className="flex items-center gap-3 text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
                           {challenge.time_limit_minutes || 0} min

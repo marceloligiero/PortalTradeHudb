@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
   BookOpen, 
@@ -44,6 +45,7 @@ interface MyLesson {
 export default function MyLessons() {
   const { token, user } = useAuthStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [lessons, setLessons] = useState<MyLesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
@@ -82,32 +84,32 @@ export default function MyLessons() {
     if (lesson.status === 'COMPLETED') {
       if (lesson.student_confirmed) {
         return (
-          <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-400 border border-green-500/30">
+          <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30">
             <CheckCircle className="w-3 h-3 inline mr-1" />
-            Confirmada
+            {t('myLessons.confirmed')}
           </span>
         );
       }
       return (
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+        <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30">
           <Check className="w-3 h-3 inline mr-1" />
-          Concluída
+          {t('myLessons.completed')}
         </span>
       );
     }
     if (lesson.status === 'PAUSED') {
       return (
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+        <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30">
           <Clock className="w-3 h-3 inline mr-1" />
-          Pausada
+          {t('myLessons.paused')}
         </span>
       );
     }
     if (lesson.status === 'IN_PROGRESS') {
       return (
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+        <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30">
           <Play className="w-3 h-3 inline mr-1" />
-          Em Progresso
+          {t('myLessons.inProgress')}
         </span>
       );
     }
@@ -134,44 +136,44 @@ export default function MyLessons() {
     <div className="space-y-6">
       <PremiumHeader
         icon={BookOpen}
-        title="Minhas Aulas"
-        subtitle="Acompanhe suas aulas teóricas realizadas"
-        badge="Aulas"
+        title={t('myLessons.title')}
+        subtitle={t('myLessons.subtitle')}
+        badge={t('navigation.courses')}
         iconColor="from-blue-500 to-purple-500"
       />
 
       {/* Resumo */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+        <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm dark:shadow-none">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/20 rounded-lg">
-              <BookOpen className="w-5 h-5 text-blue-400" />
+              <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{lessons.length}</p>
-              <p className="text-xs text-gray-400">Aulas Realizadas</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{lessons.length}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('myLessons.lessonsCompleted')}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+        <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm dark:shadow-none">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-500/20 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-green-400" />
+              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{completedLessons.filter(l => l.student_confirmed).length}</p>
-              <p className="text-xs text-gray-400">Confirmadas</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{completedLessons.filter(l => l.student_confirmed).length}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('myLessons.lessonsConfirmed')}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+        <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm dark:shadow-none">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-yellow-500/20 rounded-lg">
-              <AlertCircle className="w-5 h-5 text-yellow-400" />
+              <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{pendingConfirmation.length}</p>
-              <p className="text-xs text-gray-400">Aguardam Confirmação</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{pendingConfirmation.length}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('myLessons.awaitingConfirmation')}</p>
             </div>
           </div>
         </div>
@@ -180,9 +182,9 @@ export default function MyLessons() {
       {/* Aulas pendentes de confirmação */}
       {pendingConfirmation.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-yellow-400" />
-            Aguardando sua confirmação
+            {t('myLessons.awaitingConfirmation')}
           </h2>
           <div className="grid gap-4">
             {pendingConfirmation.map((lesson, index) => (
@@ -197,22 +199,22 @@ export default function MyLessons() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-bold text-white">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                           {lesson.lesson_title}
                         </h3>
                         {getStatusBadge(lesson)}
                       </div>
                       {lesson.lesson_description && (
-                        <p className="text-gray-400 text-sm mb-3 line-clamp-2">{stripHtml(lesson.lesson_description)}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{stripHtml(lesson.lesson_description)}</p>
                       )}
-                      <div className="flex items-center gap-4 text-sm text-gray-400">
+                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
                           {lesson.actual_time_minutes || lesson.estimated_minutes} min
                         </span>
                         {lesson.completed_at && (
                           <span>
-                            Concluída: {new Date(lesson.completed_at).toLocaleDateString()}
+                            {t('myLessons.completed')}: {new Date(lesson.completed_at).toLocaleDateString()}
                           </span>
                         )}
                       </div>
@@ -225,10 +227,10 @@ export default function MyLessons() {
                               href={lesson.materials_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-gray-300 transition-colors"
+                              className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-sm text-gray-700 dark:text-gray-300 transition-colors"
                             >
                               <FileText className="w-4 h-4" />
-                              Material
+                              {t('myLessons.material')}
                             </a>
                           )}
                           {lesson.video_url && (
@@ -236,10 +238,10 @@ export default function MyLessons() {
                               href={lesson.video_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-gray-300 transition-colors"
+                              className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-sm text-gray-700 dark:text-gray-300 transition-colors"
                             >
                               <Video className="w-4 h-4" />
-                              Vídeo
+                              {t('myLessons.video')}
                             </a>
                           )}
                         </div>
@@ -249,10 +251,10 @@ export default function MyLessons() {
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => navigate(`/lessons/${lesson.lesson_id}/view`)}
-                        className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg font-medium transition-colors flex items-center gap-2 border border-blue-500/30"
+                        className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 dark:text-blue-400 rounded-lg font-medium transition-colors flex items-center gap-2 border border-blue-500/30"
                       >
                         <Eye className="w-4 h-4" />
-                        Ver Aula
+                        {t('myLessons.viewLesson')}
                       </button>
                       <button
                         onClick={() => handleConfirmLesson(lesson.lesson_id)}
@@ -262,12 +264,12 @@ export default function MyLessons() {
                       {confirmingId === lesson.lesson_id ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          A confirmar...
+                          {t('myLessons.confirming')}
                         </>
                       ) : (
                         <>
                           <Check className="w-4 h-4" />
-                          Confirmar
+                          {t('myLessons.confirm')}
                         </>
                       )}
                       </button>
@@ -283,9 +285,9 @@ export default function MyLessons() {
       {/* Aulas em progresso */}
       {inProgressLessons.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <Play className="w-5 h-5 text-blue-400" />
-            Em Andamento
+            {t('myLessons.pendingLessons')}
           </h2>
           <div className="grid gap-4">
             {inProgressLessons.map((lesson, index) => (
@@ -301,29 +303,29 @@ export default function MyLessons() {
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-bold text-white">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                           {lesson.lesson_title}
                         </h3>
                         {getStatusBadge(lesson)}
                       </div>
                       {lesson.lesson_description && (
-                        <p className="text-gray-400 text-sm mb-3 line-clamp-2">{stripHtml(lesson.lesson_description)}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{stripHtml(lesson.lesson_description)}</p>
                       )}
-                      <div className="flex items-center gap-4 text-sm text-gray-400">
+                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          Estimado: {lesson.estimated_minutes} min
+                          {t('myLessons.estimatedTime')}: {lesson.estimated_minutes} min
                         </span>
                         {lesson.started_at && (
                           <span>
-                            Iniciada: {new Date(lesson.started_at).toLocaleString()}
+                            {new Date(lesson.started_at).toLocaleString()}
                           </span>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-blue-400">
+                    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
                       <Eye className="w-5 h-5" />
-                      <span className="text-sm font-medium">Continuar</span>
+                      <span className="text-sm font-medium">{t('myLessons.continue')}</span>
                     </div>
                   </div>
                 </div>
@@ -336,9 +338,9 @@ export default function MyLessons() {
       {/* Aulas confirmadas */}
       {completedLessons.filter(l => l.student_confirmed).length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-400" />
-            Histórico de Aulas Confirmadas
+            {t('myLessons.history')}
           </h2>
           <div className="grid gap-4">
             {completedLessons.filter(l => l.student_confirmed).map((lesson, index) => (
@@ -347,30 +349,30 @@ export default function MyLessons() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="relative overflow-hidden bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10"
+                className="relative overflow-hidden bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none"
               >
                 <div className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-bold text-white">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                           {lesson.lesson_title}
                         </h3>
                         {getStatusBadge(lesson)}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-400">
+                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
                           {lesson.actual_time_minutes || lesson.estimated_minutes} min
                         </span>
                         {lesson.completed_at && (
                           <span>
-                            Concluída: {new Date(lesson.completed_at).toLocaleDateString()}
+                            {t('myLessons.completed')}: {new Date(lesson.completed_at).toLocaleDateString()}
                           </span>
                         )}
                         {lesson.student_confirmed_at && (
-                          <span className="text-green-400">
-                            Confirmada: {new Date(lesson.student_confirmed_at).toLocaleDateString()}
+                          <span className="text-green-600 dark:text-green-400">
+                            {t('myLessons.confirmed')}: {new Date(lesson.student_confirmed_at).toLocaleDateString()}
                           </span>
                         )}
                       </div>
@@ -380,8 +382,8 @@ export default function MyLessons() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => navigate(`/lessons/${lesson.lesson_id}/view`)}
-                        className="p-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg text-blue-400 transition-colors"
-                        title="Ver Aula"
+                        className="p-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg text-blue-600 dark:text-blue-400 transition-colors"
+                        title={t('myLessons.viewLesson')}
                       >
                         <Eye className="w-5 h-5" />
                       </button>
@@ -390,8 +392,8 @@ export default function MyLessons() {
                           href={lesson.materials_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-300 transition-colors"
-                          title="Material"
+                          className="p-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-gray-700 dark:text-gray-300 transition-colors"
+                          title={t('myLessons.material')}
                         >
                           <FileText className="w-5 h-5" />
                         </a>
@@ -401,8 +403,8 @@ export default function MyLessons() {
                           href={lesson.video_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-300 transition-colors"
-                          title="Vídeo"
+                          className="p-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-gray-700 dark:text-gray-300 transition-colors"
+                          title={t('myLessons.video')}
                         >
                           <Video className="w-5 h-5" />
                         </a>
@@ -420,15 +422,15 @@ export default function MyLessons() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-12 text-center"
+          className="relative overflow-hidden bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-12 text-center shadow-sm dark:shadow-none"
         >
           <FloatingOrbs variant="subtle" />
-          <BookOpen className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">
-            Nenhuma aula realizada ainda
+          <BookOpen className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+            {t('myLessons.noLessons')}
           </h3>
-          <p className="text-gray-400">
-            As aulas aparecerão aqui assim que o formador as iniciar
+          <p className="text-gray-600 dark:text-gray-400">
+            {t('myLessons.noLessonsDesc')}
           </p>
         </motion.div>
       )}

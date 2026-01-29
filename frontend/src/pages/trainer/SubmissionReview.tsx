@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
   Target, 
@@ -16,7 +17,8 @@ import {
   Plus,
   Timer,
   TrendingUp,
-  FileText
+  FileText,
+  RotateCcw
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -47,6 +49,8 @@ interface Challenge {
   time_limit_minutes?: number;
   target_mpu?: number;
   max_errors?: number;
+  kpi_mode?: 'AUTO' | 'MANUAL';
+  allow_retry?: boolean;
 }
 
 interface UserBasic {
@@ -71,19 +75,24 @@ interface Submission {
   errors_count: number;
   challenge?: Challenge;
   user?: UserBasic;
+  is_approved?: boolean;
+  is_retry_allowed?: boolean;
+  retry_count?: number;
+  trainer_notes?: string;
 }
-
-const ERROR_TYPES = [
-  { value: 'METODOLOGIA', label: 'Metodologia', description: 'Erro no processo ou método utilizado' },
-  { value: 'CONHECIMENTO', label: 'Conhecimento', description: 'Falta de conhecimento técnico' },
-  { value: 'DETALHE', label: 'Detalhe', description: 'Erro de atenção ao detalhe' },
-  { value: 'PROCEDIMENTO', label: 'Procedimento', description: 'Não seguiu o procedimento correto' }
-];
 
 export default function SubmissionReview() {
   const { submissionId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { token } = useAuthStore();
+  
+  const ERROR_TYPES = [
+    { value: 'METODOLOGIA', label: t('submissionReview.methodology'), description: t('submissionReview.methodologyDesc') },
+    { value: 'CONHECIMENTO', label: t('submissionReview.knowledge'), description: t('submissionReview.knowledgeDesc') },
+    { value: 'DETALHE', label: t('submissionReview.detail'), description: t('submissionReview.detailDesc') },
+    { value: 'PROCEDIMENTO', label: t('submissionReview.procedure'), description: t('submissionReview.procedureDesc') }
+  ];
   
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [operations, setOperations] = useState<Operation[]>([]);
@@ -95,11 +104,11 @@ export default function SubmissionReview() {
   const [editingOp, setEditingOp] = useState<number | null>(null);
   const [tempErrors, setTempErrors] = useState<OperationError[]>([]);
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (showLoading = true) => {
     if (!token || !submissionId) return;
     
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       
       // Buscar submissão
       const subResp = await api.get(`/api/challenges/submissions/${submissionId}`);
@@ -111,13 +120,27 @@ export default function SubmissionReview() {
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   }, [token, submissionId]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Polling para ver novas operações do formando em tempo real
+  useEffect(() => {
+    // Só fazer polling se a submissão está em progresso (não finalizada)
+    if (!submission || submission.status === 'APPROVED' || submission.status === 'REJECTED') {
+      return;
+    }
+    
+    const interval = setInterval(() => {
+      loadData(false); // Não mostrar loading durante polling
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [submission, loadData]);
 
   const handleStartEdit = (op: Operation) => {
     setEditingOp(op.id);
@@ -150,11 +173,11 @@ export default function SubmissionReview() {
       // Validar descrições
       for (const err of tempErrors) {
         if (!err.description.trim()) {
-          alert('Preencha a descrição de todos os erros');
+          alert(t('submissionReview.fillErrorDescription'));
           return;
         }
         if (err.description.length > 160) {
-          alert('A descrição não pode ter mais de 160 caracteres');
+          alert(t('submissionReview.descriptionTooLong'));
           return;
         }
       }
@@ -170,7 +193,7 @@ export default function SubmissionReview() {
       setEditingOp(null);
       setTempErrors([]);
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Erro ao salvar classificação');
+      alert(error.response?.data?.detail || t('submissionReview.saveError'));
     } finally {
       setSavingId(null);
     }
@@ -187,7 +210,7 @@ export default function SubmissionReview() {
       
       await loadData();
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Erro ao marcar como correta');
+      alert(error.response?.data?.detail || t('submissionReview.markAsCorrectError'));
     } finally {
       setSavingId(null);
     }
@@ -199,22 +222,37 @@ export default function SubmissionReview() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Verificar se todas as operações foram classificadas
+  // Número de operações requeridas pelo desafio
+  const requiredOperations = submission?.challenge?.operations_required || 0;
+  
+  // Operações concluídas pelo formando
+  const completedOperationsCount = operations.filter(op => op.completed_at).length;
+  
+  // Verificar se todas as operações requeridas foram executadas
+  const allOperationsExecuted = completedOperationsCount >= requiredOperations;
+  
+  // Verificar se todas as operações executadas foram classificadas
   const allOperationsReviewed = operations
     .filter(op => op.completed_at)
     .every(op => op.is_approved != null);
   
-  const completedOperationsCount = operations.filter(op => op.completed_at).length;
+  // Só pode finalizar se todas as operações requeridas foram executadas E classificadas
+  const canFinalize = allOperationsExecuted && allOperationsReviewed;
 
   // Função para finalizar a revisão (aprovar ou reprovar)
   const handleFinalizeReview = async (approve: boolean) => {
+    if (!allOperationsExecuted) {
+      alert(t('submissionReview.studentNotCompleted', { completed: completedOperationsCount, required: requiredOperations }));
+      return;
+    }
+    
     if (!allOperationsReviewed) {
-      alert('Classifique todas as operações antes de finalizar a correção');
+      alert(t('submissionReview.classifyAllFirst'));
       return;
     }
 
-    const action = approve ? 'aprovar' : 'reprovar';
-    if (!confirm(`Tem certeza que deseja ${action} este desafio?`)) {
+    const confirmMessage = approve ? t('submissionReview.confirmApprove') : t('submissionReview.confirmReject');
+    if (!confirm(confirmMessage)) {
       return;
     }
 
@@ -229,7 +267,45 @@ export default function SubmissionReview() {
       await loadData();
       navigate(-1);
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Erro ao finalizar revisão');
+      alert(error.response?.data?.detail || t('submissionReview.finalizeError'));
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  // Função para permitir retentativa (quando reprovado)
+  const handleAllowRetry = async () => {
+    if (!confirm(t('submissionReview.confirmAllowRetry'))) {
+      return;
+    }
+
+    try {
+      setSubmittingReview(true);
+      await api.post(`/api/challenges/submissions/${submissionId}/allow-retry`);
+      alert(t('submissionReview.retryEnabled'));
+      await loadData();
+    } catch (error: any) {
+      alert(error.response?.data?.detail || t('submissionReview.enableRetryError'));
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  // Função para finalização manual (quando kpi_mode é MANUAL)
+  const handleManualFinalize = async (approve: boolean) => {
+    const notes = prompt(t('submissionReview.addEvaluationNotes'));
+    
+    try {
+      setSubmittingReview(true);
+      await api.post(`/api/challenges/submissions/${submissionId}/manual-finalize`, {
+        approve,
+        trainer_notes: notes || undefined
+      });
+      alert(approve ? t('submissionReview.manualApproveSuccess') : t('submissionReview.manualRejectSuccess'));
+      await loadData();
+      navigate(-1);
+    } catch (error: any) {
+      alert(error.response?.data?.detail || t('submissionReview.manualFinalizeError'));
     } finally {
       setSubmittingReview(false);
     }
@@ -292,13 +368,13 @@ export default function SubmissionReview() {
         <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 backdrop-blur-xl rounded-2xl border border-orange-500/20 p-6">
           <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
             <FileText className="w-5 h-5 text-orange-400" />
-            Informações do Desafio
+            {t('submissionReview.challengeInfo')}
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-white/5 rounded-xl p-4">
               <div className="flex items-center gap-2 text-orange-400 mb-1">
                 <Hash className="w-4 h-4" />
-                <span className="text-xs font-medium">Operações Necessárias</span>
+                <span className="text-xs font-medium">{t('submissionReview.requiredOperations')}</span>
               </div>
               <p className="text-2xl font-bold text-white">
                 {submission.challenge.operations_required || 'N/A'}
@@ -307,16 +383,16 @@ export default function SubmissionReview() {
             <div className="bg-white/5 rounded-xl p-4">
               <div className="flex items-center gap-2 text-blue-400 mb-1">
                 <Timer className="w-4 h-4" />
-                <span className="text-xs font-medium">Limite de Tempo</span>
+                <span className="text-xs font-medium">{t('submissionReview.timeLimit')}</span>
               </div>
               <p className="text-2xl font-bold text-white">
-                {submission.challenge.time_limit_minutes ? `${submission.challenge.time_limit_minutes} min` : 'Sem limite'}
+                {submission.challenge.time_limit_minutes ? `${submission.challenge.time_limit_minutes} min` : t('submissionReview.noTimeLimit')}
               </p>
             </div>
             <div className="bg-white/5 rounded-xl p-4">
               <div className="flex items-center gap-2 text-green-400 mb-1">
                 <TrendingUp className="w-4 h-4" />
-                <span className="text-xs font-medium">MPU Alvo</span>
+                <span className="text-xs font-medium">{t('submissionReview.targetMPU')}</span>
               </div>
               <p className="text-2xl font-bold text-white">
                 {submission.challenge.target_mpu?.toFixed(2) || 'N/A'}
@@ -325,12 +401,12 @@ export default function SubmissionReview() {
             <div className="bg-white/5 rounded-xl p-4">
               <div className="flex items-center gap-2 text-red-400 mb-1">
                 <AlertTriangle className="w-4 h-4" />
-                <span className="text-xs font-medium">Máx. Erros Permitidos</span>
+                <span className="text-xs font-medium">{t('submissionReview.maxErrors')}</span>
               </div>
               <p className="text-2xl font-bold text-white">
                 {submission.challenge.max_errors !== null && submission.challenge.max_errors !== undefined 
                   ? submission.challenge.max_errors 
-                  : 'Sem limite'}
+                  : t('submissionReview.noLimit')}
               </p>
             </div>
           </div>
@@ -349,7 +425,7 @@ export default function SubmissionReview() {
             </div>
             <div>
               <p className="text-2xl font-bold text-white">{operations.length}</p>
-              <p className="text-xs text-gray-400">Operações Totais</p>
+              <p className="text-xs text-gray-400">{t('submissionReview.totalOperations')}</p>
             </div>
           </div>
         </div>
@@ -361,7 +437,7 @@ export default function SubmissionReview() {
             </div>
             <div>
               <p className="text-2xl font-bold text-white">{pendingReview.length}</p>
-              <p className="text-xs text-gray-400">Pendentes Revisão</p>
+              <p className="text-xs text-gray-400">{t('submissionReview.pendingReview')}</p>
             </div>
           </div>
         </div>
@@ -375,7 +451,7 @@ export default function SubmissionReview() {
               <p className="text-2xl font-bold text-white">
                 {operations.filter(op => op.is_approved === true && !op.has_error).length}
               </p>
-              <p className="text-xs text-gray-400">Corretas</p>
+              <p className="text-xs text-gray-400">{t('submissionReview.correct')}</p>
             </div>
           </div>
         </div>
@@ -387,7 +463,7 @@ export default function SubmissionReview() {
             </div>
             <div>
               <p className="text-2xl font-bold text-white">{errorOperations.length}</p>
-              <p className="text-xs text-gray-400">Com Erros</p>
+              <p className="text-xs text-gray-400">{t('submissionReview.withErrors')}</p>
             </div>
           </div>
         </div>
@@ -397,13 +473,13 @@ export default function SubmissionReview() {
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <Target className="w-5 h-5 text-orange-400" />
-          Operações para Classificar
+          {t('submissionReview.operationsToClassify')}
         </h2>
 
         {operations.filter(op => op.completed_at).length === 0 ? (
           <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-8 text-center">
             <Target className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-            <p className="text-gray-400">Nenhuma operação concluída para classificar</p>
+            <p className="text-gray-400">{t('submissionReview.noCompletedOperations')}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -461,32 +537,32 @@ export default function SubmissionReview() {
                             ) : (
                               <CheckCircle className="w-4 h-4" />
                             )}
-                            Correta
+                            {t('submissionReview.correct')}
                           </button>
                           <button
                             onClick={() => handleStartEdit(op)}
                             className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
                           >
                             <AlertCircle className="w-4 h-4" />
-                            Com Erros
+                            {t('submissionReview.withErrors')}
                           </button>
                         </>
                       ) : op.has_error ? (
                         <div className="flex items-center gap-2">
                           <span className="px-3 py-1 bg-red-500/20 text-red-400 rounded-lg text-sm font-bold">
-                            {op.errors?.length || 0} erro(s)
+                            {t('submissionReview.errorsCount', { count: op.errors?.length || 0 })}
                           </span>
                           <button
                             onClick={() => handleStartEdit(op)}
                             className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm transition-colors"
                           >
-                            Editar
+                            {t('submissionReview.edit')}
                           </button>
                         </div>
                       ) : (
                         <span className="flex items-center gap-2 px-3 py-1 bg-green-500/20 text-green-400 rounded-lg text-sm font-bold">
                           <CheckCircle className="w-4 h-4" />
-                          Aprovada
+                          {t('submissionReview.approved')}
                         </span>
                       )}
                     </div>
@@ -501,7 +577,7 @@ export default function SubmissionReview() {
                     >
                       <h4 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4 text-red-400" />
-                        Classificar Erros
+                        {t('submissionReview.classifyErrors')}
                       </h4>
 
                       <div className="space-y-4">
@@ -510,7 +586,7 @@ export default function SubmissionReview() {
                             <div className="flex items-start gap-4">
                               <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                  <label className="block text-xs text-gray-400 mb-1">Tipo de Erro</label>
+                                  <label className="block text-xs text-gray-400 mb-1">{t('submissionReview.errorType')}</label>
                                   <select
                                     value={err.error_type}
                                     onChange={(e) => handleErrorChange(errIndex, 'error_type', e.target.value)}
@@ -525,14 +601,14 @@ export default function SubmissionReview() {
                                 </div>
                                 <div>
                                   <label className="block text-xs text-gray-400 mb-1">
-                                    Descrição ({err.description.length}/160)
+                                    {t('submissionReview.description')} ({err.description.length}/160)
                                   </label>
                                   <input
                                     type="text"
                                     value={err.description}
                                     onChange={(e) => handleErrorChange(errIndex, 'description', e.target.value)}
                                     maxLength={160}
-                                    placeholder="Descreva o erro..."
+                                    placeholder={t('submissionReview.describeError')}
                                     className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-500"
                                   />
                                 </div>
@@ -552,7 +628,7 @@ export default function SubmissionReview() {
                           className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 rounded-lg text-gray-400 transition-colors w-full justify-center"
                         >
                           <Plus className="w-4 h-4" />
-                          Adicionar Erro
+                          {t('submissionReview.addError')}
                         </button>
 
                         <div className="flex justify-end gap-3 pt-4">
@@ -560,7 +636,7 @@ export default function SubmissionReview() {
                             onClick={handleCancelEdit}
                             className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
                           >
-                            Cancelar
+                            {t('submissionReview.cancel')}
                           </button>
                           <button
                             onClick={() => handleSaveClassification(op.id)}
@@ -572,7 +648,7 @@ export default function SubmissionReview() {
                             ) : (
                               <Save className="w-4 h-4" />
                             )}
-                            Salvar Classificação
+                            {t('submissionReview.saveClassification')}
                           </button>
                         </div>
                       </div>
@@ -582,7 +658,7 @@ export default function SubmissionReview() {
                   {/* Mostrar erros existentes (quando não está editando) */}
                   {op.has_error && op.errors && op.errors.length > 0 && editingOp !== op.id && (
                     <div className="mt-4 pt-4 border-t border-white/10">
-                      <h4 className="text-xs font-bold text-red-400 mb-2">Erros Identificados:</h4>
+                      <h4 className="text-xs font-bold text-red-400 mb-2">{t('submissionReview.errorsIdentified')}</h4>
                       <div className="space-y-2">
                         {op.errors.map((err, errIndex) => (
                           <div key={errIndex} className="flex items-start gap-2 text-sm">
@@ -607,53 +683,153 @@ export default function SubmissionReview() {
         <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h3 className="text-lg font-bold text-white mb-1">Finalizar Correção</h3>
+              <h3 className="text-lg font-bold text-white mb-1">{t('submissionReview.correctionProgress')}</h3>
               <p className="text-sm text-gray-400">
-                {allOperationsReviewed 
-                  ? `Todas as ${completedOperationsCount} operações foram classificadas.`
-                  : `${pendingReview.length} de ${completedOperationsCount} operações ainda pendentes de classificação.`
-                }
+                {!allOperationsExecuted ? (
+                  <span className="text-yellow-400">
+                    ⏳ {t('submissionReview.awaitingStudentOperations', { completed: completedOperationsCount, required: requiredOperations })}
+                  </span>
+                ) : allOperationsReviewed ? (
+                  t('submissionReview.allOperationsClassified', { count: completedOperationsCount })
+                ) : (
+                  t('submissionReview.pendingClassification', { pending: pendingReview.length, total: completedOperationsCount })
+                )}
               </p>
-              {allOperationsReviewed && (
+              {canFinalize && (
                 <div className="mt-2 text-sm">
-                  <span className="text-green-400">{operations.filter(op => op.is_approved === true && !op.has_error).length} corretas</span>
+                  <span className="text-green-400">{operations.filter(op => op.is_approved === true && !op.has_error).length} {t('submissionReview.correct').toLowerCase()}</span>
                   <span className="text-gray-500 mx-2">|</span>
-                  <span className="text-red-400">{errorOperations.length} com erros</span>
+                  <span className="text-red-400">{errorOperations.length} {t('submissionReview.withErrors').toLowerCase()}</span>
                 </div>
               )}
             </div>
+            {/* Botões só aparecem se NÃO for modo manual */}
+            {submission?.challenge?.kpi_mode !== 'MANUAL' && (
+              <div className="flex gap-3">
+                <button
+                  onClick={() => handleFinalizeReview(false)}
+                  disabled={!canFinalize || submittingReview}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+                    canFinalize && !submittingReview
+                      ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 shadow-lg shadow-red-500/20'
+                      : 'bg-gray-600/50 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  {submittingReview ? (
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <X className="w-5 h-5" />
+                  )}
+                  {t('submissionReview.reject')}
+                </button>
+                <button
+                  onClick={() => handleFinalizeReview(true)}
+                  disabled={!canFinalize || submittingReview}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
+                    canFinalize && !submittingReview
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-500/20'
+                      : 'bg-gray-600/50 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  {submittingReview ? (
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <CheckCircle className="w-5 h-5" />
+                  )}
+                  {t('submissionReview.approve')}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Seção de Retentativa - apenas se reprovado e desafio permite retry */}
+      {submission?.status === 'COMPLETED' && submission.is_approved === false && submission.challenge?.allow_retry && !submission.is_retry_allowed && (
+        <div className="bg-orange-500/10 backdrop-blur-xl rounded-2xl border border-orange-500/30 p-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-bold text-orange-400 mb-1 flex items-center gap-2">
+                <RotateCcw className="w-5 h-5" />
+                {t('submissionReview.allowNewAttempt')}
+              </h3>
+              <p className="text-sm text-gray-400">
+                {t('submissionReview.studentRejected')}
+              </p>
+              {submission.retry_count && submission.retry_count > 0 && (
+                <p className="text-xs text-orange-400 mt-1">
+                  {t('submissionReview.previousAttempts', { count: submission.retry_count })}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={handleAllowRetry}
+              disabled={submittingReview}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-bold hover:from-orange-600 hover:to-amber-600 transition-all shadow-lg shadow-orange-500/20"
+            >
+              {submittingReview ? (
+                <RefreshCw className="w-5 h-5 animate-spin" />
+              ) : (
+                <RotateCcw className="w-5 h-5" />
+              )}
+              {t('submissionReview.enableRetry')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Indicador de retentativa já habilitada */}
+      {submission?.is_retry_allowed && (
+        <div className="bg-blue-500/10 backdrop-blur-xl rounded-2xl border border-blue-500/30 p-6">
+          <div className="flex items-center gap-3">
+            <RotateCcw className="w-6 h-6 text-blue-400" />
+            <div>
+              <h3 className="text-lg font-bold text-blue-400">{t('submissionReview.retryAlreadyEnabled')}</h3>
+              <p className="text-sm text-gray-400">
+                {t('submissionReview.studentCanRetry')}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Seção de Finalização Manual - para desafios com kpi_mode MANUAL */}
+      {submission?.challenge?.kpi_mode === 'MANUAL' && submission?.status !== 'COMPLETED' && canFinalize && (
+        <div className="bg-purple-500/10 backdrop-blur-xl rounded-2xl border border-purple-500/30 p-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-lg font-bold text-purple-400 mb-1 flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                {t('submissionReview.manualEvaluation')}
+              </h3>
+              <p className="text-sm text-gray-400">
+                {t('submissionReview.manualEvaluationDesc')}
+              </p>
+            </div>
             <div className="flex gap-3">
               <button
-                onClick={() => handleFinalizeReview(false)}
-                disabled={!allOperationsReviewed || submittingReview}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
-                  allOperationsReviewed && !submittingReview
-                    ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 shadow-lg shadow-red-500/20'
-                    : 'bg-gray-600/50 text-gray-400 cursor-not-allowed'
-                }`}
+                onClick={() => handleManualFinalize(false)}
+                disabled={submittingReview}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-bold hover:from-red-600 hover:to-red-700 transition-all shadow-lg shadow-red-500/20"
               >
                 {submittingReview ? (
                   <RefreshCw className="w-5 h-5 animate-spin" />
                 ) : (
                   <X className="w-5 h-5" />
                 )}
-                Reprovar
+                {t('submissionReview.rejectManually')}
               </button>
               <button
-                onClick={() => handleFinalizeReview(true)}
-                disabled={!allOperationsReviewed || submittingReview}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
-                  allOperationsReviewed && !submittingReview
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-500/20'
-                    : 'bg-gray-600/50 text-gray-400 cursor-not-allowed'
-                }`}
+                onClick={() => handleManualFinalize(true)}
+                disabled={submittingReview}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg shadow-green-500/20"
               >
                 {submittingReview ? (
                   <RefreshCw className="w-5 h-5 animate-spin" />
                 ) : (
                   <CheckCircle className="w-5 h-5" />
                 )}
-                Aprovar
+                {t('submissionReview.approveManually')}
               </button>
             </div>
           </div>

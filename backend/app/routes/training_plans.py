@@ -123,9 +123,25 @@ async def list_training_plans(
         if current_user.role == "ADMIN":
             plans = db.query(models.TrainingPlan).all()
         elif current_user.role == "TRAINER":
-            plans = db.query(models.TrainingPlan).filter(
+            # Buscar planos onde é formador primário OU secundário
+            trainer_assignments = db.query(models.TrainingPlanTrainer).filter(
+                models.TrainingPlanTrainer.trainer_id == current_user.id
+            ).all()
+            plan_ids_from_trainer = [ta.training_plan_id for ta in trainer_assignments]
+            
+            # Também incluir planos pelo campo legado trainer_id
+            plans_by_trainer_id = db.query(models.TrainingPlan).filter(
                 models.TrainingPlan.trainer_id == current_user.id
             ).all()
+            plan_ids_legacy = [p.id for p in plans_by_trainer_id]
+            
+            all_trainer_plan_ids = list(set(plan_ids_from_trainer + plan_ids_legacy))
+            if all_trainer_plan_ids:
+                plans = db.query(models.TrainingPlan).filter(
+                    models.TrainingPlan.id.in_(all_trainer_plan_ids)
+                ).all()
+            else:
+                plans = []
         else:  # STUDENT/TRAINEE
             # Buscar planos: por assignment OU por student_id direto
             assignments = db.query(models.TrainingPlanAssignment).filter(
@@ -179,6 +195,30 @@ async def list_training_plans(
             # Calcular status do plano
             plan_status = calculate_plan_status(db, plan)
 
+            # Buscar todos os formadores do plano
+            plan_trainers = db.query(models.TrainingPlanTrainer).filter(
+                models.TrainingPlanTrainer.training_plan_id == plan.id
+            ).all()
+            trainers_list = []
+            for pt in plan_trainers:
+                trainer = db.query(models.User).filter(models.User.id == pt.trainer_id).first()
+                if trainer:
+                    trainers_list.append({
+                        "id": trainer.id,
+                        "full_name": trainer.full_name,
+                        "email": trainer.email,
+                        "is_primary": pt.is_primary
+                    })
+            
+            # Se não houver na nova tabela, usar formador legado
+            if not trainers_list and plan.trainer:
+                trainers_list.append({
+                    "id": plan.trainer.id,
+                    "full_name": plan.trainer.full_name,
+                    "email": plan.trainer.email if hasattr(plan.trainer, 'email') else None,
+                    "is_primary": True
+                })
+
             result.append({
                 "id": plan.id,
                 "title": plan.title,
@@ -188,12 +228,19 @@ async def list_training_plans(
                     "id": plan.trainer.id if plan.trainer else None,
                     "full_name": plan.trainer.full_name if plan.trainer else None
                 } if hasattr(plan, 'trainer') else None,
+                "trainers": trainers_list,
                 "total_courses": total_courses,
-                "TRAINEE": student_info,
+                "student": student_info,
                 "total_duration_hours": total_hours,
                 "start_date": plan.start_date.isoformat() if plan.start_date else None,
                 "end_date": plan.end_date.isoformat() if plan.end_date else None,
                 "created_at": plan.created_at.isoformat() if plan.created_at else None,
+                # Bank and Product info
+                "bank_id": plan.bank_id,
+                "bank_code": plan.bank.code if plan.bank else None,
+                "bank_name": plan.bank.name if plan.bank else None,
+                "product_id": plan.product_id,
+                "product_name": plan.product.name if plan.product else None,
                 # Novos campos de status
                 "status": plan_status["status"],
                 "progress_percentage": plan_status["progress_percentage"],
@@ -235,18 +282,35 @@ async def create_training_plan(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
         )
-    # Validar se o formador existe e tem role TRAINER
-    trainer = db.query(models.User).filter(
-        models.User.id == plan.trainer_id,
-        models.User.role == "TRAINER",
-        models.User.is_pending == False
-    ).first()
     
-    if not trainer:
+    # Determinar lista de formadores
+    trainer_ids = plan.trainer_ids if plan.trainer_ids else []
+    if plan.trainer_id and plan.trainer_id not in trainer_ids:
+        trainer_ids.insert(0, plan.trainer_id)  # trainer_id principal sempre primeiro
+    
+    if not trainer_ids:
         raise HTTPException(
-            status_code=400, 
-            detail="Trainer not found or not validated. Please select a valid trainer."
+            status_code=400,
+            detail="At least one trainer is required"
         )
+    
+    # Validar se todos os formadores existem e têm role TRAINER
+    primary_trainer_id = trainer_ids[0]  # Primeiro é o principal
+    validated_trainers = []
+    
+    for tid in trainer_ids:
+        trainer = db.query(models.User).filter(
+            models.User.id == tid,
+            models.User.role == "TRAINER",
+            models.User.is_pending == False
+        ).first()
+        
+        if not trainer:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Trainer with ID {tid} not found or not validated."
+            )
+        validated_trainers.append(trainer)
     
     # Validar banco se fornecido
     if plan.bank_id:
@@ -289,7 +353,7 @@ async def create_training_plan(
         db_plan = models.TrainingPlan(
             title=plan.title,
             description=plan.description,
-            trainer_id=plan.trainer_id,
+            trainer_id=primary_trainer_id,  # Formador principal para retrocompatibilidade
             student_id=plan.student_id,  # 1 aluno por plano
             bank_id=plan.bank_id,
             product_id=plan.product_id,
@@ -302,6 +366,18 @@ async def create_training_plan(
         db.add(db_plan)
         db.commit()
         db.refresh(db_plan)
+        
+        # Adicionar todos os formadores à tabela de associação
+        for idx, tid in enumerate(trainer_ids):
+            plan_trainer = models.TrainingPlanTrainer(
+                training_plan_id=db_plan.id,
+                trainer_id=tid,
+                is_primary=(idx == 0),  # Primeiro é o principal
+                assigned_by=current_user.id
+            )
+            db.add(plan_trainer)
+        db.commit()
+        
     except Exception as e:
         logger.error(f"Error creating training plan: {str(e)}")
         db.rollback()
@@ -388,8 +464,13 @@ async def get_training_plan(
         if not assignment and not is_student:
             raise HTTPException(status_code=403, detail="Not authorized to access this training plan")
     elif current_user.role == "TRAINER":
-        # Verificar se é o formador responsável
-        if plan.trainer_id != current_user.id:
+        # Verificar se é formador (primário ou secundário) deste plano
+        is_primary_trainer = plan.trainer_id == current_user.id
+        trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.training_plan_id == plan_id,
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).first()
+        if not is_primary_trainer and not trainer_assignment:
             raise HTTPException(status_code=403, detail="Not authorized to access this training plan")
     
     # Serialize plan to a JSON-friendly dict (ensure dates are ISO strings)
@@ -418,7 +499,8 @@ async def get_training_plan(
                         "estimated_minutes": l.estimated_minutes,
                         "lesson_type": l.lesson_type,
                         "video_url": l.video_url,
-                        "materials_url": l.materials_url
+                        "materials_url": l.materials_url,
+                        "started_by": l.started_by  # TRAINER ou TRAINEE - quem pode iniciar a aula
                     }
                     for l in lessons
                 ]
@@ -491,11 +573,38 @@ async def get_training_plan(
                     "email": student.email
                 }
 
+        # Buscar todos os formadores do plano
+        plan_trainers = db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.training_plan_id == plan.id
+        ).all()
+        trainers_list = []
+        for pt in plan_trainers:
+            trainer = db.query(models.User).filter(models.User.id == pt.trainer_id).first()
+            if trainer:
+                trainers_list.append({
+                    "id": trainer.id,
+                    "full_name": trainer.full_name,
+                    "email": trainer.email,
+                    "is_primary": pt.is_primary,
+                    "assigned_at": pt.assigned_at.isoformat() if pt.assigned_at else None
+                })
+        
+        # Se não houver na nova tabela, usar formador legado
+        if not trainers_list and plan.trainer:
+            trainers_list.append({
+                "id": plan.trainer.id,
+                "full_name": plan.trainer.full_name,
+                "email": plan.trainer.email if hasattr(plan.trainer, 'email') else None,
+                "is_primary": True,
+                "assigned_at": None
+            })
+
         resp = {
             "id": plan.id,
             "title": plan.title,
             "description": plan.description,
             "trainer_id": plan.trainer_id,
+            "trainers": trainers_list,
             "bank_id": plan.bank_id,
             "product_id": plan.product_id,
             "start_date": plan.start_date.isoformat() if plan.start_date else None,
@@ -538,18 +647,50 @@ async def update_training_plan(
     if not db_plan:
         raise HTTPException(status_code=404, detail="Training plan not found")
     
-    # Verificar permissões
-    if current_user.role == "TRAINER" and db_plan.trainer_id != current_user.id:
-        raise HTTPException(
-            status_code=403, 
-            detail="Not authorized to update this training plan"
-        )
+    # Verificar permissões - TRAINER só pode atualizar se for formador do plano
+    if current_user.role == "TRAINER":
+        is_primary_trainer = db_plan.trainer_id == current_user.id
+        trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.training_plan_id == plan_id,
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).first()
+        if not is_primary_trainer and not trainer_assignment:
+            raise HTTPException(
+                status_code=403, 
+                detail="Not authorized to update this training plan"
+            )
     
     # Atualizar campos
     update_data = plan_update.dict(exclude_unset=True)
     for key, value in update_data.items():
-        if key != "course_ids":
+        if key not in ["course_ids", "trainer_ids"]:
             setattr(db_plan, key, value)
+    
+    # Atualizar trainers se fornecidos
+    if plan_update.trainer_ids is not None and len(plan_update.trainer_ids) > 0:
+        # Remover trainers antigos
+        db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.training_plan_id == plan_id
+        ).delete()
+        
+        # Adicionar novos trainers
+        for idx, trainer_id in enumerate(plan_update.trainer_ids):
+            trainer = db.query(models.User).filter(
+                models.User.id == trainer_id,
+                models.User.role == "TRAINER"
+            ).first()
+            if trainer:
+                plan_trainer = models.TrainingPlanTrainer(
+                    training_plan_id=plan_id,
+                    trainer_id=trainer_id,
+                    is_primary=(idx == 0),  # Primeiro é o primário
+                    assigned_by=current_user.id
+                )
+                db.add(plan_trainer)
+        
+        # Atualizar trainer_id legado com o primeiro trainer
+        if plan_update.trainer_ids:
+            db_plan.trainer_id = plan_update.trainer_ids[0]
     
     # Atualizar cursos se fornecidos
     if plan_update.course_ids is not None:

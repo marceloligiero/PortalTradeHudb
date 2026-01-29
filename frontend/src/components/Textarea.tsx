@@ -23,7 +23,7 @@ export default function Textarea({
       {label && (
         <label
           htmlFor={textareaId}
-          className="block text-sm font-medium text-white/90"
+          className="block text-sm font-medium text-gray-700 dark:text-white/90"
         >
           {label}
         </label>
@@ -33,23 +33,24 @@ export default function Textarea({
         id={textareaId}
         className={clsx(
           'w-full px-4 py-3 rounded-xl resize-y',
-          'bg-white/5 border border-white/20 text-white placeholder-white/40',
+          'bg-white border-2 border-gray-300 text-gray-900 placeholder-gray-400',
+          'dark:bg-white/5 dark:border dark:border-white/20 dark:text-white dark:placeholder-white/40',
           'focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50',
-          'hover:border-white/30 focus:hover:border-white/40',
+          'hover:border-gray-400 dark:hover:border-white/30 focus:hover:border-gray-400 dark:focus:hover:border-white/40',
           'transition-all duration-200 min-h-[120px]',
           'disabled:opacity-50 disabled:cursor-not-allowed',
-          error && 'border-red-500/50 focus:ring-red-500/30',
+          error && 'border-red-500 dark:border-red-500/50 focus:ring-red-500/30',
           className
         )}
         {...props}
       />
 
       {error && (
-        <p className="text-sm text-red-400/90">{error}</p>
+        <p className="text-sm text-red-600 dark:text-red-400/90">{error}</p>
       )}
 
       {helpText && !error && (
-        <p className="text-sm text-white/40">{helpText}</p>
+        <p className="text-sm text-gray-500 dark:text-white/40">{helpText}</p>
       )}
     </div>
   );

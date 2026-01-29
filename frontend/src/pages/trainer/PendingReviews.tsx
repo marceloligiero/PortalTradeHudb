@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
   Target, 
@@ -38,6 +39,7 @@ interface Submission {
 
 export default function PendingReviews() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   const [loading, setLoading] = useState(true);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -97,31 +99,34 @@ export default function PendingReviews() {
             <ClipboardCheck className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">
-              Desafios Pendentes de Revisão
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {t('pendingReviews.title')}
             </h1>
-            <p className="text-gray-400">
-              {submissions.length} desafio{submissions.length !== 1 ? 's' : ''} aguardando revisão
+            <p className="text-gray-600 dark:text-gray-400">
+              {submissions.length === 1 
+                ? t('pendingReviews.subtitle', { count: submissions.length })
+                : t('pendingReviews.subtitlePlural', { count: submissions.length })
+              }
             </p>
           </div>
         </div>
         <button
           onClick={loadSubmissions}
-          className="p-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+          className="p-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors"
         >
-          <RefreshCw className="w-5 h-5 text-gray-400" />
+          <RefreshCw className="w-5 h-5 text-gray-600 dark:text-gray-400" />
         </button>
       </div>
 
       {/* Lista de Submissões */}
       {submissions.length === 0 ? (
-        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-12 text-center">
+        <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-12 text-center shadow-sm dark:shadow-none">
           <ClipboardCheck className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-white mb-2">
-            Tudo em dia!
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+            {t('pendingReviews.allCaughtUp')}
           </h3>
-          <p className="text-gray-400">
-            Não há desafios pendentes de revisão no momento.
+          <p className="text-gray-600 dark:text-gray-400">
+            {t('pendingReviews.noPendingReviews')}
           </p>
         </div>
       ) : (
@@ -132,7 +137,7 @@ export default function PendingReviews() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 hover:border-orange-500/50 transition-all cursor-pointer"
+              className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 hover:border-orange-500/50 transition-all cursor-pointer shadow-sm dark:shadow-none"
               onClick={() => navigate(`/submissions/${submission.id}/review`)}
             >
               <div className="p-6">
@@ -142,13 +147,13 @@ export default function PendingReviews() {
                       <Target className="w-7 h-7 text-orange-400" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-white">
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">
                         {submission.challenge?.title || `Desafio #${submission.challenge_id}`}
                       </h3>
-                      <div className="flex items-center gap-3 text-sm text-gray-400 mt-1">
+                      <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400 mt-1">
                         <span className="flex items-center gap-1">
                           <User className="w-4 h-4" />
-                          {submission.user?.full_name || 'Formando'}
+                          {submission.user?.full_name || t('pendingReviews.student')}
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
@@ -161,27 +166,27 @@ export default function PendingReviews() {
                   <div className="flex items-center gap-6">
                     {/* Operações */}
                     <div className="text-center">
-                      <div className="flex items-center gap-1 text-xl font-bold text-white">
+                      <div className="flex items-center gap-1 text-xl font-bold text-gray-900 dark:text-white">
                         <Hash className="w-5 h-5 text-blue-400" />
                         {submission.total_operations || 0}
                       </div>
-                      <p className="text-xs text-gray-400">operações</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{t('pendingReviews.operations')}</p>
                     </div>
 
                     {/* Tempo */}
                     <div className="text-center">
-                      <div className="flex items-center gap-1 text-xl font-bold text-white">
+                      <div className="flex items-center gap-1 text-xl font-bold text-gray-900 dark:text-white">
                         <Clock className="w-5 h-5 text-yellow-400" />
                         {formatTime(submission.total_time_minutes || 0)}
                       </div>
-                      <p className="text-xs text-gray-400">tempo total</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{t('pendingReviews.totalTime')}</p>
                     </div>
 
                     {/* Status */}
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/20 rounded-lg">
                       <AlertCircle className="w-4 h-4 text-orange-400" />
                       <span className="text-sm font-bold text-orange-400">
-                        Aguarda Revisão
+                        {t('pendingReviews.awaitingReview')}
                       </span>
                     </div>
 

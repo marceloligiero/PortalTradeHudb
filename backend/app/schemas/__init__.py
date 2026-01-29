@@ -86,12 +86,17 @@ class Lesson(LessonBase):
 
 # Bank Schemas
 class BankBase(BaseModel):
-    code: str
+    code: Optional[str] = None
     name: str
     country: str
 
 class BankCreate(BankBase):
     pass
+
+class BankUpdate(BaseModel):
+    name: Optional[str] = None
+    country: Optional[str] = None
+    is_active: Optional[bool] = None
 
 class Bank(BankBase):
     id: int
@@ -102,12 +107,17 @@ class Bank(BankBase):
 
 # Product Schemas
 class ProductBase(BaseModel):
-    code: str
+    code: Optional[str] = None
     name: str
     description: Optional[str] = None
 
 class ProductCreate(ProductBase):
     pass
+
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
 
 class Product(ProductBase):
     id: int
@@ -120,7 +130,8 @@ class Product(ProductBase):
 class TrainingPlanBase(BaseModel):
     title: str
     description: Optional[str] = None
-    trainer_id: int
+    trainer_id: Optional[int] = None  # Formador principal (retrocompatibilidade)
+    trainer_ids: Optional[list[int]] = []  # Lista de formadores
     student_id: Optional[int] = None  # 1 aluno por plano
     bank_id: Optional[int] = None
     product_id: Optional[int] = None
@@ -135,7 +146,8 @@ class TrainingPlanCreate(TrainingPlanBase):
 class TrainingPlanUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    trainer_id: Optional[int] = None
+    trainer_id: Optional[int] = None  # Formador principal
+    trainer_ids: Optional[list[int]] = None  # Lista de formadores
     student_id: Optional[int] = None
     is_active: Optional[bool] = None
     course_ids: Optional[list[int]] = None
@@ -173,6 +185,18 @@ class TrainingPlanAssignment(BaseModel):
     
     model_config = {"from_attributes": True}
 
+
+class TrainingPlanTrainerInfo(BaseModel):
+    """Informação de um formador associado a um plano"""
+    id: int
+    trainer_id: int
+    trainer_name: str
+    trainer_email: str
+    is_primary: bool
+    assigned_at: Optional[datetime] = None
+    
+    model_config = {"from_attributes": True}
+
 class StudentAssignment(BaseModel):
     id: int
     user_id: int
@@ -206,6 +230,10 @@ class ChallengeBase(BaseModel):
     use_volume_kpi: bool = True  # Nr de operações é critério
     use_mpu_kpi: bool = True  # MPU é critério
     use_errors_kpi: bool = True  # Nr de operações com erro é critério
+    # Modo de avaliação: AUTO (automático por KPI) ou MANUAL (formador decide)
+    kpi_mode: str = "AUTO"  # AUTO ou MANUAL
+    # Permitir nova tentativa após reprovação
+    allow_retry: bool = False
 
 class ChallengeCreate(ChallengeBase):
     course_id: int
@@ -222,6 +250,8 @@ class ChallengeUpdate(BaseModel):
     use_volume_kpi: Optional[bool] = None
     use_mpu_kpi: Optional[bool] = None
     use_errors_kpi: Optional[bool] = None
+    kpi_mode: Optional[str] = None
+    allow_retry: Optional[bool] = None
 
 class Challenge(ChallengeBase):
     id: int
@@ -292,6 +322,7 @@ class ChallengeSubmissionSummary(ChallengeSubmissionBase):
     total_operations: int
     total_time_minutes: float
     errors_count: int = 0
+    training_plan_id: Optional[int] = None
     # Erros por conceito
     error_methodology: int = 0
     error_knowledge: int = 0
@@ -311,7 +342,7 @@ class ChallengeSubmissionCreate(ChallengeSubmissionBase):
 
 class ChallengeSubmission(ChallengeSubmissionBase):
     id: int
-    status: Optional[str] = "IN_PROGRESS"  # IN_PROGRESS, PENDING_REVIEW, REVIEWED
+    status: Optional[str] = "IN_PROGRESS"  # IN_PROGRESS, PENDING_REVIEW, APPROVED, REJECTED
     total_operations: Optional[int] = None
     total_time_minutes: Optional[float] = None
     started_at: Optional[datetime] = None
@@ -330,6 +361,10 @@ class ChallengeSubmission(ChallengeSubmissionBase):
     error_procedure: Optional[int] = 0
     # Referência da operação
     operation_reference: Optional[str] = None
+    # Controle de novas tentativas
+    retry_count: Optional[int] = 0
+    is_retry_allowed: Optional[bool] = False
+    trainer_notes: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     
@@ -424,6 +459,7 @@ class LessonBase(BaseModel):
     description: Optional[str] = None
     content: Optional[str] = None
     lesson_type: str = "THEORETICAL"
+    started_by: str = "TRAINER"  # TRAINER ou TRAINEE - quem pode iniciar a aula
     order_index: int = 0
     estimated_minutes: int = 30
     video_url: Optional[str] = None
@@ -437,6 +473,7 @@ class LessonUpdate(BaseModel):
     description: Optional[str] = None
     content: Optional[str] = None
     lesson_type: Optional[str] = None
+    started_by: Optional[str] = None
     order_index: Optional[int] = None
     estimated_minutes: Optional[int] = None
     video_url: Optional[str] = None

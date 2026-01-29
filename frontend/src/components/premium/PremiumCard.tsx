@@ -35,7 +35,7 @@ export default function PremiumCard({
       )}
       
       {/* Card content */}
-      <div className="relative bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 hover:border-white/20 transition-all duration-300 h-full">
+      <div className="relative bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6 hover:border-gray-300 dark:hover:border-white/20 transition-all duration-300 h-full shadow-sm dark:shadow-none">
         {children}
       </div>
     </motion.div>

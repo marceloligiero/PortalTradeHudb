@@ -156,52 +156,52 @@ export default function TrainerDashboard() {
         animate="visible"
         className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
       >
-        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+        <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
             <Clock className="w-4 h-4 text-gray-400" />
-            <span className="text-xs text-gray-400">Aulas Criadas</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Aulas Criadas</span>
           </div>
-          <div className="text-2xl font-bold text-white">{stats?.total_lessons || 0}</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats?.total_lessons || 0}</div>
         </motion.div>
         
-        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+        <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
-            <Zap className="w-4 h-4 text-yellow-400" />
-            <span className="text-xs text-gray-400">Planos Ativos</span>
+            <Zap className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">Planos Ativos</span>
           </div>
-          <div className="text-2xl font-bold text-green-400">{stats?.active_training_plans || 0}</div>
+          <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats?.active_training_plans || 0}</div>
         </motion.div>
         
-        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+        <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
-            <Target className="w-4 h-4 text-blue-400" />
-            <span className="text-xs text-gray-400">Submissões</span>
+            <Target className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">Submissões</span>
           </div>
-          <div className="text-2xl font-bold text-white">{stats?.total_submissions || 0}</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats?.total_submissions || 0}</div>
         </motion.div>
         
-        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+        <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
-            <CheckCircle2 className="w-4 h-4 text-green-400" />
-            <span className="text-xs text-gray-400">Taxa Aprovação</span>
+            <CheckCircle2 className="w-4 h-4 text-green-500 dark:text-green-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">Taxa Aprovação</span>
           </div>
-          <div className="text-2xl font-bold text-green-400">{stats?.approval_rate || 0}%</div>
+          <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats?.approval_rate || 0}%</div>
         </motion.div>
         
-        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+        <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="w-4 h-4 text-purple-400" />
-            <span className="text-xs text-gray-400">MPU Médio</span>
+            <TrendingUp className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">MPU Médio</span>
           </div>
-          <div className="text-2xl font-bold text-purple-400">{stats?.avg_mpu || 0}</div>
+          <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats?.avg_mpu || 0}</div>
         </motion.div>
         
-        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+        <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
-            <Award className="w-4 h-4 text-yellow-400" />
-            <span className="text-xs text-gray-400">Certificados</span>
+            <Award className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">Certificados</span>
           </div>
-          <div className="text-2xl font-bold text-yellow-400">{stats?.certificates_issued || 0}</div>
+          <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats?.certificates_issued || 0}</div>
         </motion.div>
       </motion.div>
 
@@ -210,7 +210,7 @@ export default function TrainerDashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="relative overflow-hidden bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6"
+        className="relative overflow-hidden bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-lg dark:shadow-none"
       >
         <FloatingOrbs variant="subtle" />
         
@@ -221,15 +221,15 @@ export default function TrainerDashboard() {
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Meus Planos de Formação</h2>
-                <p className="text-sm text-gray-400">Gerir planos e acompanhar progresso</p>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Meus Planos de Formação</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Gerir planos e acompanhar progresso</p>
               </div>
             </div>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => navigate('/training-plans')}
-              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-gray-300 rounded-xl hover:bg-white/10 transition-all text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all text-sm"
             >
               Ver Todos
               <ChevronRight className="w-4 h-4" />
@@ -267,21 +267,21 @@ export default function TrainerDashboard() {
                   transition={{ delay: 0.6 + index * 0.1 }}
                   whileHover={{ y: -4 }}
                   onClick={() => navigate(`/training-plan/${plan.id}`)}
-                  className="bg-white/5 rounded-xl border border-white/10 p-4 cursor-pointer hover:border-red-500/30 transition-all group"
+                  className="bg-gray-50 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/10 p-4 cursor-pointer hover:border-red-500/30 transition-all group"
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <h3 className="font-semibold text-white group-hover:text-red-400 transition-colors line-clamp-1">
+                    <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors line-clamp-1">
                       {plan.title}
                     </h3>
                     <span className={`px-2 py-0.5 rounded-full text-xs ${
                       plan.is_active !== false
-                        ? 'bg-green-500/10 text-green-400'
-                        : 'bg-gray-500/10 text-gray-400'
+                        ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                        : 'bg-gray-500/10 text-gray-500 dark:text-gray-400'
                     }`}>
                       {plan.is_active !== false ? 'Ativo' : 'Inativo'}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-400 line-clamp-2 mb-3">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">
                     {plan.description || 'Sem descrição'}
                   </p>
                   <div className="flex items-center gap-4 text-xs text-gray-500">
@@ -312,13 +312,13 @@ export default function TrainerDashboard() {
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => navigate('/training-plan/new')}
-          className="flex items-center gap-3 p-4 bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 hover:border-red-500/30 transition-all text-left group"
+          className="flex items-center gap-3 p-4 bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 hover:border-red-500/30 transition-all text-left group shadow-lg dark:shadow-none"
         >
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center">
             <PlusCircle className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-sm font-medium text-white group-hover:text-red-400 transition-colors">Novo Plano</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">Novo Plano</p>
             <p className="text-xs text-gray-500">Criar formação</p>
           </div>
         </motion.button>
@@ -327,13 +327,13 @@ export default function TrainerDashboard() {
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => navigate('/training-plans')}
-          className="flex items-center gap-3 p-4 bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 hover:border-indigo-500/30 transition-all text-left group"
+          className="flex items-center gap-3 p-4 bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 hover:border-indigo-500/30 transition-all text-left group shadow-lg dark:shadow-none"
         >
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center">
             <GraduationCap className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-sm font-medium text-white group-hover:text-indigo-400 transition-colors">Meus Planos</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">Meus Planos</p>
             <p className="text-xs text-gray-500">Ver todos</p>
           </div>
         </motion.button>
@@ -342,13 +342,13 @@ export default function TrainerDashboard() {
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => navigate('/students')}
-          className="flex items-center gap-3 p-4 bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 hover:border-blue-500/30 transition-all text-left group"
+          className="flex items-center gap-3 p-4 bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 hover:border-blue-500/30 transition-all text-left group shadow-lg dark:shadow-none"
         >
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
             <Users className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-sm font-medium text-white group-hover:text-blue-400 transition-colors">Formandos</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">Formandos</p>
             <p className="text-xs text-gray-500">Gerir alunos</p>
           </div>
         </motion.button>
@@ -357,13 +357,13 @@ export default function TrainerDashboard() {
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => navigate('/reports')}
-          className="flex items-center gap-3 p-4 bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 hover:border-green-500/30 transition-all text-left group"
+          className="flex items-center gap-3 p-4 bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 hover:border-green-500/30 transition-all text-left group shadow-lg dark:shadow-none"
         >
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center">
             <TrendingUp className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-sm font-medium text-white group-hover:text-green-400 transition-colors">Relatórios</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-green-500 dark:group-hover:text-green-400 transition-colors">Relatórios</p>
             <p className="text-xs text-gray-500">Ver análises</p>
           </div>
         </motion.button>

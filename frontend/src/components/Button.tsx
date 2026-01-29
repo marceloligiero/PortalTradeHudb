@@ -15,10 +15,10 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles = {
   primary: 'bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 shadow-lg shadow-red-600/20 hover:shadow-red-600/40',
-  secondary: 'bg-gradient-to-r from-white/10 to-white/5 text-white hover:from-white/20 hover:to-white/10 border border-white/20 hover:border-white/40',
-  ghost: 'text-white/70 hover:text-white hover:bg-white/10',
-  danger: 'bg-red-600/20 text-red-300 hover:bg-red-600/30 border border-red-600/50 hover:border-red-500',
-  outline: 'border border-white/30 text-white hover:border-white/60 hover:bg-white/5',
+  secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200 border border-gray-200 hover:border-gray-300 dark:bg-gradient-to-r dark:from-white/10 dark:to-white/5 dark:text-white dark:hover:from-white/20 dark:hover:to-white/10 dark:border-white/20 dark:hover:border-white/40',
+  ghost: 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/10',
+  danger: 'bg-red-100 text-red-600 hover:bg-red-200 border border-red-200 hover:border-red-300 dark:bg-red-600/20 dark:text-red-300 dark:hover:bg-red-600/30 dark:border-red-600/50 dark:hover:border-red-500',
+  outline: 'border border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 dark:border-white/30 dark:text-white dark:hover:border-white/60 dark:hover:bg-white/5',
 };
 
 const sizeStyles = {
@@ -41,7 +41,7 @@ export default function Button({
     <button
       className={clsx(
         'inline-flex items-center justify-center gap-2 font-medium transition-all duration-200',
-        'focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-[#0a0a0a]',
+        'focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-[#0a0a0a]',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         variantStyles[variant],
         sizeStyles[size],

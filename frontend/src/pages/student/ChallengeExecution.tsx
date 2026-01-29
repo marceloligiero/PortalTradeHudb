@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
   Target, 
@@ -62,6 +63,7 @@ export default function ChallengeExecution() {
   const { challengeId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { token } = useAuthStore();
   
   const planId = searchParams.get('planId');
@@ -186,7 +188,7 @@ export default function ChallengeExecution() {
 
   const handleStartOperation = async () => {
     if (!newReference.trim()) {
-      alert('Insira a referência da operação');
+      alert(t('challengeExecution.insertReference'));
       return;
     }
     
@@ -216,7 +218,7 @@ export default function ChallengeExecution() {
       setOperations(prev => [...prev, opResp.data]);
       setNewReference('');
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Erro ao iniciar operação');
+      alert(error.response?.data?.detail || t('challengeExecution.startOperationError'));
     } finally {
       setActionLoading(false);
     }
@@ -234,7 +236,7 @@ export default function ChallengeExecution() {
       await loadData();
       setCurrentOperation(null);
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Erro ao terminar operação');
+      alert(error.response?.data?.detail || t('challengeExecution.finishOperationError'));
     } finally {
       setActionLoading(false);
     }
@@ -243,7 +245,7 @@ export default function ChallengeExecution() {
   const handleSubmitForReview = async () => {
     if (!currentSubmissionId) return;
     
-    if (!confirm('Tem certeza que deseja submeter o desafio para revisão? Após submeter, não poderá adicionar mais operações.')) {
+    if (!confirm(t('challengeExecution.confirmSubmit'))) {
       return;
     }
     
@@ -252,10 +254,10 @@ export default function ChallengeExecution() {
       
       await api.post(`/api/challenges/submissions/${currentSubmissionId}/submit-for-review`);
       
-      alert('Desafio submetido para revisão com sucesso!');
+      alert(t('challengeExecution.submittedSuccess'));
       navigate('/challenges');
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Erro ao submeter para revisão');
+      alert(error.response?.data?.detail || t('challengeExecution.submitError'));
     } finally {
       setActionLoading(false);
     }
@@ -348,7 +350,7 @@ export default function ChallengeExecution() {
                 {completedOperations.length}/{challenge?.operations_required}
               </p>
               <p className="text-xs text-gray-400">
-                Operações {challenge?.use_volume_kpi && <span className="text-blue-400">(KPI)</span>}
+                {t('challengeExecution.operations')} {challenge?.use_volume_kpi && <span className="text-blue-400">(KPI)</span>}
               </p>
             </div>
           </div>
@@ -364,7 +366,7 @@ export default function ChallengeExecution() {
                 {challenge?.target_mpu || '-'}
               </p>
               <p className="text-xs text-gray-400">
-                MPU Alvo {challenge?.use_mpu_kpi && <span className="text-green-400">(KPI)</span>}
+                {t('challengeExecution.targetMPU')} {challenge?.use_mpu_kpi && <span className="text-green-400">(KPI)</span>}
               </p>
             </div>
           </div>
@@ -380,7 +382,7 @@ export default function ChallengeExecution() {
                 {operations.filter(op => op.has_error).length}/{challenge?.max_errors}
               </p>
               <p className="text-xs text-gray-400">
-                Erros Max {challenge?.use_errors_kpi && <span className="text-red-400">(KPI)</span>}
+                {t('challengeExecution.maxErrors')} {challenge?.use_errors_kpi && <span className="text-red-400">(KPI)</span>}
               </p>
             </div>
           </div>
@@ -395,7 +397,7 @@ export default function ChallengeExecution() {
               <p className="text-2xl font-bold text-white">
                 {challenge?.time_limit_minutes || '-'}
               </p>
-              <p className="text-xs text-gray-400">Min. Limite</p>
+              <p className="text-xs text-gray-400">{t('challengeExecution.timeLimit')}</p>
             </div>
           </div>
         </div>
@@ -405,16 +407,16 @@ export default function ChallengeExecution() {
       <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-400">Progresso do Desafio</span>
+            <span className="text-sm text-gray-400">{t('challengeExecution.challengeProgress')}</span>
             <span className="text-sm text-white">
               <span className="font-bold text-green-400">{completedOperations.length}</span>
               <span className="text-gray-500"> / </span>
               <span className="font-bold">{challenge?.operations_required}</span>
-              <span className="text-gray-500"> operações</span>
+              <span className="text-gray-500"> {t('challengeExecution.operations').toLowerCase()}</span>
             </span>
             {remainingOperations > 0 && (
               <span className="text-sm text-yellow-400">
-                ({remainingOperations} {remainingOperations === 1 ? 'falta' : 'faltam'})
+                ({remainingOperations === 1 ? t('challengeExecution.remaining', { count: remainingOperations }) : t('challengeExecution.remainingPlural', { count: remainingOperations })})
               </span>
             )}
           </div>
@@ -438,7 +440,7 @@ export default function ChallengeExecution() {
           <div className="text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
               <Timer className="w-6 h-6 text-blue-400" />
-              <span className="text-lg font-semibold text-white">Operação em Progresso</span>
+              <span className="text-lg font-semibold text-white">{t('challengeExecution.operationInProgress')}</span>
             </div>
             
             <div className="text-5xl font-mono font-bold text-white mb-4">
@@ -446,7 +448,7 @@ export default function ChallengeExecution() {
             </div>
             
             <div className="text-lg text-gray-300 mb-6">
-              Referência: <span className="font-bold text-blue-400">{currentOperation.operation_reference}</span>
+              {t('challengeExecution.reference')}: <span className="font-bold text-blue-400">{currentOperation.operation_reference}</span>
             </div>
             
             <button
@@ -459,7 +461,7 @@ export default function ChallengeExecution() {
               ) : (
                 <Square className="w-6 h-6" />
               )}
-              Terminar Operação
+              {t('challengeExecution.finishOperationBtn')}
             </button>
           </div>
         </motion.div>
@@ -468,7 +470,7 @@ export default function ChallengeExecution() {
         <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Play className="w-5 h-5 text-green-400" />
-            Iniciar Nova Operação
+            {t('challengeExecution.startNewOperation')}
           </h3>
           
           <div className="flex gap-4">
@@ -476,7 +478,7 @@ export default function ChallengeExecution() {
               type="text"
               value={newReference}
               onChange={(e) => setNewReference(e.target.value)}
-              placeholder="Insira a referência da operação (ex: 4060ILC0001111)"
+              placeholder={t('challengeExecution.referencePlaceholder')}
               className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
             />
             <button
@@ -489,7 +491,7 @@ export default function ChallengeExecution() {
               ) : (
                 <Play className="w-5 h-5" />
               )}
-              Iniciar
+              {t('challengeExecution.start')}
             </button>
           </div>
         </div>
@@ -499,11 +501,11 @@ export default function ChallengeExecution() {
           <div className="text-center">
             <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-white mb-2">
-              Todas as operações foram realizadas!
+              {t('challengeExecution.allOperationsCompleted')}
             </h3>
             <p className="text-gray-400 mb-6">
-              Você completou {completedOperations.length} de {challenge?.operations_required} operações.
-              {!allOperationsCompleted && " Aguarde a conclusão das operações em andamento."}
+              {t('challengeExecution.completedCount', { completed: completedOperations.length, total: challenge?.operations_required })}
+              {!allOperationsCompleted && ` ${t('challengeExecution.awaitingCompletionHint')}`}
             </p>
             
             <button
@@ -516,7 +518,7 @@ export default function ChallengeExecution() {
               ) : (
                 <CheckCircle className="w-6 h-6" />
               )}
-              Submeter para Revisão
+              {t('challengeExecution.submitForReview')}
             </button>
           </div>
         </div>
@@ -526,13 +528,13 @@ export default function ChallengeExecution() {
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <CheckCircle className="w-5 h-5 text-green-400" />
-          Operações Realizadas ({completedOperations.length})
+          {t('challengeExecution.operationsPerformed')} ({completedOperations.length})
         </h2>
 
         {completedOperations.length === 0 ? (
           <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-8 text-center">
             <Target className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-            <p className="text-gray-400">Nenhuma operação realizada ainda</p>
+            <p className="text-gray-400">{t('challengeExecution.noOperationsYet')}</p>
           </div>
         ) : (
           <div className="grid gap-3">
@@ -565,7 +567,7 @@ export default function ChallengeExecution() {
                       <p className="font-mono font-bold text-white">
                         {formatTime(op.duration_seconds || 0)}
                       </p>
-                      <p className="text-xs text-gray-400">Duração</p>
+                      <p className="text-xs text-gray-400">{t('challengeExecution.duration')}</p>
                     </div>
                     {op.has_error ? (
                       <AlertCircle className="w-6 h-6 text-red-400" />
@@ -581,7 +583,7 @@ export default function ChallengeExecution() {
                 {op.has_error && op.errors && op.errors.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-red-500/20">
                     <p className="text-xs text-red-400 font-semibold uppercase tracking-wide mb-2">
-                      Erros identificados ({op.errors.length}):
+                      {t('challengeExecution.errorsIdentified')} ({op.errors.length}):
                     </p>
                     <div className="space-y-2">
                       {op.errors.map((err) => (

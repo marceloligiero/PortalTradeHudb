@@ -34,7 +34,7 @@ export default function PremiumHeader({
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="relative overflow-hidden bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 rounded-2xl"
+      className="relative overflow-hidden bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-2xl border border-gray-200 dark:border-transparent"
     >
       {/* Background elements */}
       <GridBackground />
@@ -58,17 +58,17 @@ export default function PremiumHeader({
                   transition={{ delay: 0.2 }}
                   className="flex items-center gap-2 mb-1"
                 >
-                  <Sparkles className="w-4 h-4 text-red-400" />
+                  <Sparkles className="w-4 h-4 text-red-500 dark:text-red-400" />
                   <span className={`text-xs font-semibold ${badgeColor} uppercase tracking-wider`}>
                     {badge}
                   </span>
                 </motion.div>
               )}
-              <h1 className={`${isCompact ? 'text-2xl' : 'text-3xl'} font-bold text-white`}>
+              <h1 className={`${isCompact ? 'text-2xl' : 'text-3xl'} font-bold text-gray-900 dark:text-white`}>
                 {title}
               </h1>
               {subtitle && (
-                <p className="text-gray-400 mt-1">{subtitle}</p>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">{subtitle}</p>
               )}
             </div>
           </div>

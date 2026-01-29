@@ -34,7 +34,7 @@ export default function Select({
   return (
     <div className={clsx('relative', className)}>
       {label && (
-        <label className="block text-sm font-medium text-white/90 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
           {label}
         </label>
       )}
@@ -44,15 +44,15 @@ export default function Select({
         onClick={() => setIsOpen(!isOpen)}
         className={clsx(
           'w-full px-4 py-3 rounded-xl text-left flex items-center justify-between',
-          'bg-white/5 border text-white transition-all',
-          error ? 'border-red-500/50' : 'border-white/20 hover:border-white/30',
+          'bg-white border-2 border-gray-300 text-gray-900 dark:bg-white/5 dark:border dark:border-white/20 dark:text-white transition-all',
+          error ? 'border-red-500 dark:border-red-500/50' : 'hover:border-gray-400 dark:hover:border-white/30',
           'focus:outline-none focus:ring-2 focus:ring-red-500/50'
         )}
       >
-        <span className={selected ? 'text-white' : 'text-white/40'}>
+        <span className={selected ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-white/40'}>
           {selected?.label || placeholder}
         </span>
-        <ChevronsUpDown className="w-5 h-5 text-white/40" />
+        <ChevronsUpDown className="w-5 h-5 text-gray-400 dark:text-white/40" />
       </button>
 
       {isOpen && (
@@ -61,7 +61,7 @@ export default function Select({
             className="fixed inset-0 z-10"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute z-20 w-full mt-2 rounded-xl bg-[#0a0a0a] border border-white/20 shadow-2xl max-h-64 overflow-auto">
+          <div className="absolute z-20 w-full mt-2 rounded-xl bg-white dark:bg-[#0a0a0a] border border-gray-200 dark:border-white/20 shadow-2xl max-h-64 overflow-auto">
             {options.map((option) => (
               <button
                 key={option.value}
@@ -72,12 +72,12 @@ export default function Select({
                 }}
                 className={clsx(
                   'w-full px-4 py-3 text-left flex items-center justify-between',
-                  'hover:bg-white/10 transition-colors',
-                  value === option.value && 'bg-red-600/20'
+                  'hover:bg-gray-100 dark:hover:bg-white/10 transition-colors',
+                  value === option.value && 'bg-red-50 dark:bg-red-600/20'
                 )}
               >
                 <div>
-                  <div className="text-white">{option.label}</div>
+                  <div className="text-gray-900 dark:text-white">{option.label}</div>
                   {option.description && (
                     <div className="text-sm text-white/60 mt-0.5">
                       {option.description}

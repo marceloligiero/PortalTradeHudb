@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
   BookOpen, 
@@ -57,6 +58,7 @@ export default function LessonManagement() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { token } = useAuthStore();
+  const { t } = useTranslation();
   
   const trainingPlanId = searchParams.get('planId');
   
@@ -225,31 +227,31 @@ export default function LessonManagement() {
   const getStatusBadge = (progress?: LessonProgress) => {
     if (!progress || progress.status === 'NOT_STARTED') {
       return (
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-500/20 text-gray-400 border border-gray-500/30">
-          Não iniciada
+        <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-500/20 text-gray-500 dark:text-gray-400 border border-gray-500/30">
+          {t('lessonManagement.notStarted')}
         </span>
       );
     }
     if (progress.status === 'COMPLETED') {
       return (
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-400 border border-green-500/30">
+        <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30">
           <CheckCircle className="w-3 h-3 inline mr-1" />
-          Concluída
+          {t('lessonManagement.completed')}
         </span>
       );
     }
     if (progress.is_paused) {
       return (
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+        <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30">
           <Pause className="w-3 h-3 inline mr-1" />
-          Pausada
+          {t('lessonManagement.paused')}
         </span>
       );
     }
     return (
-      <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+      <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30">
         <Play className="w-3 h-3 inline mr-1" />
-        Em Progresso
+        {t('lessonManagement.inProgress')}
       </span>
     );
   };
@@ -272,9 +274,9 @@ export default function LessonManagement() {
       <div className="flex items-center gap-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+          className="p-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors"
         >
-          <ArrowLeft className="w-5 h-5 text-gray-400" />
+          <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-3">
@@ -282,28 +284,28 @@ export default function LessonManagement() {
               <BookOpen className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">
-                Gestão de Aula: {lesson?.title}
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {t('lessonManagement.title')}: {lesson?.title}
               </h1>
-              <p className="text-gray-400">
-                {lesson?.lesson_type} • {lesson?.estimated_minutes} min estimados
+              <p className="text-gray-600 dark:text-gray-400">
+                {lesson?.lesson_type} • {t('lessonManagement.estimatedMinutes', { minutes: lesson?.estimated_minutes })}
               </p>
             </div>
           </div>
         </div>
         <button
           onClick={loadData}
-          className="p-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
+          className="p-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors"
         >
-          <RefreshCw className="w-5 h-5 text-gray-400" />
+          <RefreshCw className="w-5 h-5 text-gray-600 dark:text-gray-400" />
         </button>
       </div>
 
       {/* Ações em massa */}
-      <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+      <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm dark:shadow-none">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-gray-300">
+            <label className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
               <input
                 type="checkbox"
                 checked={selectedStudents.length === students.length && students.length > 0}
@@ -314,9 +316,9 @@ export default function LessonManagement() {
                     setSelectedStudents([]);
                   }
                 }}
-                className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-red-600"
+                className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-red-600"
               />
-              Selecionar todos ({selectedStudents.length}/{students.length})
+              {t('lessonManagement.selectAll')} ({selectedStudents.length}/{students.length})
             </label>
           </div>
           <div className="flex gap-2">
@@ -326,7 +328,7 @@ export default function LessonManagement() {
               className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
             >
               <Play className="w-4 h-4" />
-              Iniciar Selecionados
+              {t('lessonManagement.startSelected')}
             </button>
             <button
               onClick={handleBulkFinish}
@@ -334,7 +336,7 @@ export default function LessonManagement() {
               className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
             >
               <Square className="w-4 h-4" />
-              Terminar Selecionados
+              {t('lessonManagement.finishSelected')}
             </button>
           </div>
         </div>
@@ -342,19 +344,19 @@ export default function LessonManagement() {
 
       {/* Lista de alunos */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Users className="w-5 h-5 text-blue-400" />
-          Formandos ({students.length})
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          {t('lessonManagement.students')} ({students.length})
         </h2>
 
         {students.length === 0 ? (
-          <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-12 text-center">
-            <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">
-              Nenhum formando atribuído
+          <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-12 text-center">
+            <Users className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              {t('lessonManagement.noStudentsAssigned')}
             </h3>
-            <p className="text-gray-400">
-              Este plano de formação não tem formandos atribuídos
+            <p className="text-gray-500 dark:text-gray-400">
+              {t('lessonManagement.planHasNoStudents')}
             </p>
           </div>
         ) : (
@@ -369,8 +371,8 @@ export default function LessonManagement() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className={`relative overflow-hidden bg-white/5 backdrop-blur-xl rounded-2xl border transition-all ${
-                    isSelected ? 'border-red-500/50 bg-red-500/10' : 'border-white/10'
+                  className={`relative overflow-hidden bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border transition-all shadow-sm dark:shadow-none ${
+                    isSelected ? 'border-red-500/50 bg-red-50 dark:bg-red-500/10' : 'border-gray-200 dark:border-white/10'
                   }`}
                 >
                   <div className="p-6">
@@ -387,14 +389,14 @@ export default function LessonManagement() {
                               setSelectedStudents(selectedStudents.filter(id => id !== student.user_id));
                             }
                           }}
-                          className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-red-600"
+                          className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-red-600"
                         />
-                        <div className="p-2 bg-white/10 rounded-lg">
-                          <User className="w-5 h-5 text-gray-400" />
+                        <div className="p-2 bg-gray-100 dark:bg-white/10 rounded-lg">
+                          <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold text-white">{student.name}</h3>
-                          <p className="text-gray-400 text-sm">{student.email}</p>
+                          <h3 className="text-lg font-bold text-gray-900 dark:text-white">{student.name}</h3>
+                          <p className="text-gray-500 dark:text-gray-400 text-sm">{student.email}</p>
                         </div>
                         {getStatusBadge(progress)}
                       </div>
@@ -405,18 +407,18 @@ export default function LessonManagement() {
                         {progress && progress.status !== 'NOT_STARTED' && (
                           <div className="text-right">
                             <div className={`text-2xl font-mono font-bold ${
-                              progress.is_delayed ? 'text-red-400' : 
-                              progress.status === 'COMPLETED' ? 'text-green-400' : 
-                              'text-white'
+                              progress.is_delayed ? 'text-red-500 dark:text-red-400' : 
+                              progress.status === 'COMPLETED' ? 'text-green-500 dark:text-green-400' : 
+                              'text-gray-900 dark:text-white'
                             }`}>
                               <Timer className="w-5 h-5 inline mr-2" />
                               {formatTime(progress.elapsed_seconds)}
                             </div>
-                            <div className="text-xs text-gray-400">
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
                               Estimado: {lesson?.estimated_minutes} min
                               {progress.is_delayed && (
-                                <span className="ml-2 text-red-400">
-                                  <AlertCircle className="w-3 h-3 inline" /> Atrasado
+                                <span className="ml-2 text-red-500 dark:text-red-400">
+                                  <AlertCircle className="w-3 h-3 inline" /> {t('lessonManagement.delayed')}
                                 </span>
                               )}
                             </div>
@@ -436,7 +438,7 @@ export default function LessonManagement() {
                               ) : (
                                 <Play className="w-4 h-4" />
                               )}
-                              Iniciar
+                              {t('lessonManagement.start')}
                             </button>
                           )}
 
@@ -452,7 +454,7 @@ export default function LessonManagement() {
                                 ) : (
                                   <Pause className="w-4 h-4" />
                                 )}
-                                Pausar
+                                {t('lessonManagement.pause')}
                               </button>
                               <button
                                 onClick={() => handleFinishLesson(student.user_id)}
@@ -464,7 +466,7 @@ export default function LessonManagement() {
                                 ) : (
                                   <Square className="w-4 h-4" />
                                 )}
-                                Terminar
+                                {t('lessonManagement.finish')}
                               </button>
                             </>
                           )}
@@ -481,7 +483,7 @@ export default function LessonManagement() {
                                 ) : (
                                   <Play className="w-4 h-4" />
                                 )}
-                                Retomar
+                                {t('lessonManagement.resume')}
                               </button>
                               <button
                                 onClick={() => handleFinishLesson(student.user_id)}
@@ -493,7 +495,7 @@ export default function LessonManagement() {
                                 ) : (
                                   <Square className="w-4 h-4" />
                                 )}
-                                Terminar
+                                {t('lessonManagement.finish')}
                               </button>
                             </>
                           )}
@@ -501,7 +503,7 @@ export default function LessonManagement() {
                           {progress?.status === 'COMPLETED' && (
                             <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-lg">
                               <CheckCircle className="w-4 h-4" />
-                              Tempo: {formatTime(progress.elapsed_seconds)}
+                              {t('lessonManagement.time')}: {formatTime(progress.elapsed_seconds)}
                             </div>
                           )}
                         </div>
@@ -511,7 +513,7 @@ export default function LessonManagement() {
                     {/* Barra de progresso do tempo */}
                     {progress && progress.status !== 'NOT_STARTED' && progress.status !== 'COMPLETED' && (
                       <div className="mt-4">
-                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                        <div className="h-2 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
                           <div 
                             className={`h-full transition-all duration-1000 ${
                               progress.is_delayed ? 'bg-red-500' : 'bg-green-500'
@@ -521,9 +523,9 @@ export default function LessonManagement() {
                             }}
                           />
                         </div>
-                        <div className="flex justify-between text-xs text-gray-400 mt-1">
+                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
                           <span>0 min</span>
-                          <span>{lesson?.estimated_minutes} min (estimado)</span>
+                          <span>{lesson?.estimated_minutes} min ({t('lessonManagement.estimated')})</span>
                         </div>
                       </div>
                     )}

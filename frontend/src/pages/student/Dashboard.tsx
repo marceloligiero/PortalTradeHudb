@@ -141,52 +141,52 @@ export default function StudentDashboard() {
         animate="visible"
         className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
       >
-        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+        <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
-            <GraduationCap className="w-4 h-4 text-indigo-400" />
-            <span className="text-xs text-gray-400">Planos Atribuídos</span>
+            <GraduationCap className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">Planos Atribuídos</span>
           </div>
-          <div className="text-2xl font-bold text-white">{stats?.total_training_plans || 0}</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats?.total_training_plans || 0}</div>
         </motion.div>
         
-        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+        <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
-            <PlayCircle className="w-4 h-4 text-green-400" />
-            <span className="text-xs text-gray-400">Planos Ativos</span>
+            <PlayCircle className="w-4 h-4 text-green-500 dark:text-green-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">Planos Ativos</span>
           </div>
-          <div className="text-2xl font-bold text-green-400">{stats?.active_training_plans || 0}</div>
+          <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats?.active_training_plans || 0}</div>
         </motion.div>
         
-        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+        <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
-            <BookOpen className="w-4 h-4 text-blue-400" />
-            <span className="text-xs text-gray-400">Aulas Iniciadas</span>
+            <BookOpen className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">Aulas Iniciadas</span>
           </div>
-          <div className="text-2xl font-bold text-white">{stats?.total_lessons_started || 0}</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats?.total_lessons_started || 0}</div>
         </motion.div>
         
-        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+        <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
-            <CheckCircle2 className="w-4 h-4 text-green-400" />
-            <span className="text-xs text-gray-400">Aulas Concluídas</span>
+            <CheckCircle2 className="w-4 h-4 text-green-500 dark:text-green-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">Aulas Concluídas</span>
           </div>
-          <div className="text-2xl font-bold text-green-400">{stats?.completed_lessons || 0}</div>
+          <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats?.completed_lessons || 0}</div>
         </motion.div>
         
-        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+        <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
-            <Zap className="w-4 h-4 text-yellow-400" />
-            <span className="text-xs text-gray-400">Desafios Feitos</span>
+            <Zap className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">Desafios Feitos</span>
           </div>
-          <div className="text-2xl font-bold text-white">{stats?.total_submissions || 0}</div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats?.total_submissions || 0}</div>
         </motion.div>
         
-        <motion.div variants={cardVariants} className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+        <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="w-4 h-4 text-purple-400" />
-            <span className="text-xs text-gray-400">MPU Médio</span>
+            <TrendingUp className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+            <span className="text-xs text-gray-500 dark:text-gray-400">MPU Médio</span>
           </div>
-          <div className="text-2xl font-bold text-purple-400">{stats?.avg_mpu || 0}</div>
+          <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats?.avg_mpu || 0}</div>
         </motion.div>
       </motion.div>
 
@@ -195,7 +195,7 @@ export default function StudentDashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="relative overflow-hidden bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6"
+        className="relative overflow-hidden bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-lg dark:shadow-none"
       >
         <FloatingOrbs variant="subtle" />
         
@@ -206,15 +206,15 @@ export default function StudentDashboard() {
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">{t('trainingPlan.myPlans')}</h2>
-                <p className="text-sm text-gray-400">Formações atribuídas a si</p>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('trainingPlan.myPlans')}</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Formações atribuídas a si</p>
               </div>
             </div>
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => navigate('/courses')}
-              className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-gray-300 rounded-xl hover:bg-white/10 transition-all text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all text-sm"
             >
               Ver Cursos
               <ChevronRight className="w-4 h-4" />
@@ -262,13 +262,13 @@ export default function StudentDashboard() {
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => navigate('/courses')}
-          className="flex items-center gap-3 p-4 bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 hover:border-red-500/30 transition-all text-left group"
+          className="flex items-center gap-3 p-4 bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 hover:border-red-500/30 transition-all text-left group shadow-lg dark:shadow-none"
         >
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center">
             <BookOpen className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-sm font-medium text-white group-hover:text-red-400 transition-colors">Meus Cursos</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">Meus Cursos</p>
             <p className="text-xs text-gray-500">Ver formações</p>
           </div>
         </motion.button>
@@ -277,13 +277,13 @@ export default function StudentDashboard() {
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => navigate('/certificates')}
-          className="flex items-center gap-3 p-4 bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 hover:border-yellow-500/30 transition-all text-left group"
+          className="flex items-center gap-3 p-4 bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 hover:border-yellow-500/30 transition-all text-left group shadow-lg dark:shadow-none"
         >
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center">
             <Award className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-sm font-medium text-white group-hover:text-yellow-400 transition-colors">Certificados</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-yellow-500 dark:group-hover:text-yellow-400 transition-colors">Certificados</p>
             <p className="text-xs text-gray-500">Ver conquistas</p>
           </div>
         </motion.button>
@@ -292,13 +292,13 @@ export default function StudentDashboard() {
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => navigate('/reports')}
-          className="flex items-center gap-3 p-4 bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 hover:border-green-500/30 transition-all text-left group"
+          className="flex items-center gap-3 p-4 bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 hover:border-green-500/30 transition-all text-left group shadow-lg dark:shadow-none"
         >
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center">
             <TrendingUp className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-sm font-medium text-white group-hover:text-green-400 transition-colors">Relatórios</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-green-500 dark:group-hover:text-green-400 transition-colors">Relatórios</p>
             <p className="text-xs text-gray-500">Ver progresso</p>
           </div>
         </motion.button>
@@ -306,13 +306,13 @@ export default function StudentDashboard() {
         <motion.button
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
-          className="flex items-center gap-3 p-4 bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 hover:border-blue-500/30 transition-all text-left group"
+          className="flex items-center gap-3 p-4 bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 hover:border-blue-500/30 transition-all text-left group shadow-lg dark:shadow-none"
         >
           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
             <Clock className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-sm font-medium text-white group-hover:text-blue-400 transition-colors">{stats?.total_study_hours || 0}h</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">{stats?.total_study_hours || 0}h</p>
             <p className="text-xs text-gray-500">Tempo de estudo</p>
           </div>
         </motion.button>

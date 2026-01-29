@@ -40,7 +40,7 @@ export default function AnimatedStatCard({
       <div className={`absolute inset-0 bg-gradient-to-br ${color} rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500`} />
       
       {/* Card content */}
-      <div className="relative bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 hover:border-white/20 transition-all duration-300">
+      <div className="relative bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6 hover:border-gray-300 dark:hover:border-white/20 transition-all duration-300 shadow-sm dark:shadow-none">
         <div className="flex items-center justify-between mb-4">
           <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg`}>
             <Icon className="w-6 h-6 text-white" />
@@ -49,13 +49,13 @@ export default function AnimatedStatCard({
             <motion.div
               animate={{ rotate: [0, 360] }}
               transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center"
+              className="w-8 h-8 rounded-full border border-gray-200 dark:border-white/10 flex items-center justify-center"
             >
-              <Sparkles className="w-4 h-4 text-white/30" />
+              <Sparkles className="w-4 h-4 text-gray-400 dark:text-white/30" />
             </motion.div>
           )}
         </div>
-        <div className="text-3xl font-bold text-white mb-1">
+        <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
           <AnimatedCounter 
             value={value} 
             suffix={suffix} 
@@ -63,7 +63,7 @@ export default function AnimatedStatCard({
             decimals={decimals}
           />
         </div>
-        <div className="text-sm text-gray-400">{label}</div>
+        <div className="text-sm text-gray-600 dark:text-gray-400">{label}</div>
       </div>
     </motion.div>
   );

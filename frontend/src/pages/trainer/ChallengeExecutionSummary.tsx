@@ -174,6 +174,7 @@ const ChallengeExecutionSummary: React.FC = () => {
       const response = await api.post('/api/challenges/submit/summary', {
         challenge_id: parseInt(challengeId || '0'),
         user_id: selectedStudentId,
+        training_plan_id: planId ? parseInt(planId) : null,
         submission_type: 'SUMMARY',
         total_operations: formData.total_operations,
         total_time_minutes: formData.total_time_minutes,
@@ -186,13 +187,19 @@ const ChallengeExecutionSummary: React.FC = () => {
         error_details: errorDetails.map(e => ({ 
           error_type: e.error_type, 
           description: e.description,
-          operation_reference: e.operation_reference || null
+          // Se tem múltiplas referências, usa a do erro; senão, usa a da operação
+          operation_reference: formData.operation_reference?.includes(',') 
+            ? (e.operation_reference || formData.operation_reference)
+            : (formData.operation_reference || null)
         })),
         operation_reference: formData.operation_reference || null,
       });
 
       // Redirecionar para página de resultados
-      navigate(`/challenges/result/${response.data.id}`);
+      const resultUrl = planId 
+        ? `/challenges/result/${response.data.id}?planId=${planId}`
+        : `/challenges/result/${response.data.id}`;
+      navigate(resultUrl);
     } catch (err: any) {
       console.error('Erro ao submeter:', err);
       setError(err.response?.data?.detail || t('challenges.submitError'));
@@ -232,16 +239,16 @@ const ChallengeExecutionSummary: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-gray-900 flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-white/30 border-t-red-500 rounded-full animate-spin" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-red-50/20 to-gray-100 dark:from-gray-900 dark:via-red-900/20 dark:to-gray-900 flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-gray-300 dark:border-white/30 border-t-red-500 rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!challenge) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-gray-900 flex items-center justify-center">
-        <div className="text-white">Desafio não encontrado</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-red-50/20 to-gray-100 dark:from-gray-900 dark:via-red-900/20 dark:to-gray-900 flex items-center justify-center">
+        <div className="text-gray-900 dark:text-white">Desafio não encontrado</div>
       </div>
     );
   }
@@ -249,13 +256,13 @@ const ChallengeExecutionSummary: React.FC = () => {
   const approvalStatus = getApprovalStatus();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-gray-900 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-red-50/20 to-gray-100 dark:from-gray-900 dark:via-red-900/20 dark:to-gray-900 py-8 px-4 transition-colors duration-300">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
+            onClick={() => planId ? navigate(`/training-plans/${planId}`) : navigate(-1)}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors mb-4"
           >
             <ArrowLeft className="w-5 h-5" />
             Voltar
@@ -327,11 +334,11 @@ const ChallengeExecutionSummary: React.FC = () => {
                   const v = e.target.value;
                   setSelectedStudentId(v ? parseInt(v, 10) : null);
                 }}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full px-4 py-3 bg-gray-800 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
               >
-                <option value="">{t('placeholders.selectStudent')}</option>
+                <option value="" className="bg-gray-800 text-white">{t('placeholders.selectStudent')}</option>
                 {students.map((student) => (
-                  <option key={student.id} value={student.id}>
+                  <option key={student.id} value={student.id} className="bg-gray-800 text-white">
                     {student.full_name} ({student.email})
                   </option>
                 ))}
@@ -392,9 +399,9 @@ const ChallengeExecutionSummary: React.FC = () => {
               value={formData.operation_reference}
               onChange={(e) => setFormData({ ...formData, operation_reference: e.target.value })}
               className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-              placeholder="Ex: OP-2024-001, REF-123456"
+              placeholder="Ex: OP-2024-001, REF-123456, OP-2024-002"
             />
-            <p className="text-xs text-gray-500 mt-1">Identificador ou número de referência da operação realizada</p>
+            <p className="text-xs text-gray-500 mt-1">Referências das operações realizadas (separe por vírgula se forem várias)</p>
           </div>
 
           {/* Número de Operações com Erro */}
@@ -408,7 +415,14 @@ const ChallengeExecutionSummary: React.FC = () => {
             <input
               type="number"
               value={formData.operations_with_errors}
-              onChange={(e) => setFormData({ ...formData, operations_with_errors: parseInt(e.target.value) || 0 })}
+              onChange={(e) => {
+                const newValue = parseInt(e.target.value) || 0;
+                setFormData({ ...formData, operations_with_errors: newValue });
+                // Se operações com erro for 0, limpar erros detalhados
+                if (newValue === 0) {
+                  setErrorDetails([]);
+                }
+              }}
               className={`w-full px-4 py-3 bg-white/5 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 ${
                 formData.operations_with_errors > (challenge.max_errors ?? 0) 
                   ? 'border-red-500' 
@@ -481,16 +495,26 @@ const ChallengeExecutionSummary: React.FC = () => {
               <button
                 type="button"
                 onClick={addError}
-                className="flex items-center gap-1 px-3 py-1.5 bg-orange-500/20 text-orange-400 rounded-lg hover:bg-orange-500/30 transition-colors text-sm"
+                disabled={formData.operations_with_errors === 0}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors text-sm ${
+                  formData.operations_with_errors === 0 
+                    ? 'bg-gray-500/20 text-gray-500 cursor-not-allowed' 
+                    : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30'
+                }`}
+                title={formData.operations_with_errors === 0 ? 'Informe primeiro o número de operações com erro' : ''}
               >
                 <Plus className="w-4 h-4" />
                 Adicionar Erro
               </button>
             </div>
 
-            {errorDetails.length === 0 ? (
+            {formData.operations_with_errors === 0 ? (
               <p className="text-gray-400 text-sm text-center py-4">
-                Nenhum erro registado. Clique em "Adicionar Erro" caso tenha ocorrido algum erro.
+                Informe o número de "Operações com Erro" acima para poder registar os erros detalhados.
+              </p>
+            ) : errorDetails.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-4">
+                Nenhum erro registado. Clique em "Adicionar Erro" para registar os erros cometidos.
               </p>
             ) : (
               <div className="space-y-3">
@@ -512,24 +536,35 @@ const ChallengeExecutionSummary: React.FC = () => {
                         <select
                           value={err.error_type}
                           onChange={(e) => updateError(err.id, 'error_type', e.target.value)}
-                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          className="w-full px-3 py-2 bg-gray-800 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                         >
                           {ERROR_TYPES.map(type => (
-                            <option key={type.value} value={type.value}>
+                            <option key={type.value} value={type.value} className="bg-gray-800 text-white">
                               {type.label} - {type.description}
                             </option>
                           ))}
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs text-gray-400 mb-1">Referência da Operação</label>
-                        <input
-                          type="text"
-                          value={err.operation_reference}
-                          onChange={(e) => updateError(err.id, 'operation_reference', e.target.value)}
-                          placeholder="Ex: 4060ILC0001111"
-                          className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                        />
+                        <label className="block text-xs text-gray-400 mb-1">Referência *</label>
+                        {formData.operation_reference && formData.operation_reference.includes(',') ? (
+                          <select
+                            value={err.operation_reference}
+                            onChange={(e) => updateError(err.id, 'operation_reference', e.target.value)}
+                            className="w-full px-3 py-2 bg-gray-800 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                          >
+                            <option value="" className="bg-gray-800 text-white">Selecione a referência</option>
+                            {formData.operation_reference.split(',').map((ref, i) => (
+                              <option key={i} value={ref.trim()} className="bg-gray-800 text-white">
+                                {ref.trim()}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <div className="px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-gray-400 text-sm">
+                            {formData.operation_reference || 'Não informada'}
+                          </div>
+                        )}
                       </div>
                       <div>
                         <label className="block text-xs text-gray-400 mb-1">Descrição do Erro *</label>
@@ -551,7 +586,7 @@ const ChallengeExecutionSummary: React.FC = () => {
           {/* Botão Submeter */}
           <div className="flex gap-4">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => planId ? navigate(`/training-plans/${planId}`) : navigate(-1)}
               className="px-6 py-3 bg-white/5 text-white rounded-lg hover:bg-white/10 transition-colors"
             >
               Cancelar

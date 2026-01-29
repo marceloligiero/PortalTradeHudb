@@ -311,11 +311,70 @@ async def create_bank(
     current_user: models.User = Depends(auth.require_role(["ADMIN"])),
     db: Session = Depends(get_db)
 ):
-    db_bank = models.Bank(**bank.dict())
+    # Gerar código automaticamente se não fornecido
+    if not bank.code:
+        # Gerar código único baseado no país + número sequencial
+        prefix = bank.country
+        existing_count = db.query(models.Bank).filter(
+            models.Bank.code.like(f"{prefix}%")
+        ).count()
+        bank_code = f"{prefix}{str(existing_count + 1).zfill(3)}"
+        bank_dict = bank.dict()
+        bank_dict['code'] = bank_code
+        db_bank = models.Bank(**bank_dict)
+    else:
+        db_bank = models.Bank(**bank.dict())
     db.add(db_bank)
     db.commit()
     db.refresh(db_bank)
     return db_bank
+
+@router.put("/banks/{bank_id}", response_model=schemas.Bank)
+async def update_bank(
+    bank_id: int,
+    bank_update: schemas.BankUpdate,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    """Atualizar banco (exceto código)"""
+    db_bank = db.query(models.Bank).filter(models.Bank.id == bank_id).first()
+    if not db_bank:
+        raise HTTPException(status_code=404, detail="Bank not found")
+    
+    update_data = bank_update.dict(exclude_unset=True)
+    # Não permitir alterar o código
+    if 'code' in update_data:
+        del update_data['code']
+    
+    for key, value in update_data.items():
+        setattr(db_bank, key, value)
+    
+    db.commit()
+    db.refresh(db_bank)
+    return db_bank
+
+@router.delete("/banks/{bank_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_bank(
+    bank_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    """Excluir banco"""
+    db_bank = db.query(models.Bank).filter(models.Bank.id == bank_id).first()
+    if not db_bank:
+        raise HTTPException(status_code=404, detail="Bank not found")
+    
+    # Verificar se há cursos associados
+    courses_count = db.query(models.Course).filter(models.Course.bank_id == bank_id).count()
+    if courses_count > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Não é possível excluir. Existem {courses_count} cursos associados a este banco."
+        )
+    
+    db.delete(db_bank)
+    db.commit()
+    return None
 
 # Products Management
 @router.get("/products", response_model=List[schemas.Product])
@@ -332,11 +391,81 @@ async def create_product(
     current_user: models.User = Depends(auth.require_role(["ADMIN"])),
     db: Session = Depends(get_db)
 ):
-    db_product = models.Product(**product.dict())
+    # Se código fornecido, verificar se já existe
+    if product.code:
+        existing = db.query(models.Product).filter(models.Product.code == product.code).first()
+        if existing:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Já existe um produto com o código '{product.code}'"
+            )
+        db_product = models.Product(**product.dict())
+    else:
+        # Gerar código único PROD + número sequencial
+        existing_count = db.query(models.Product).count()
+        product_code = f"PROD{str(existing_count + 1).zfill(3)}"
+        # Garantir que o código gerado não existe
+        while db.query(models.Product).filter(models.Product.code == product_code).first():
+            existing_count += 1
+            product_code = f"PROD{str(existing_count + 1).zfill(3)}"
+        product_dict = product.dict()
+        product_dict['code'] = product_code
+        db_product = models.Product(**product_dict)
     db.add(db_product)
     db.commit()
     db.refresh(db_product)
     return db_product
+
+@router.put("/products/{product_id}", response_model=schemas.Product)
+async def update_product(
+    product_id: int,
+    product_data: schemas.ProductUpdate,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    """Atualizar produto existente (exceto código)"""
+    db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Produto não encontrado")
+    
+    # Atualizar apenas campos fornecidos
+    update_data = product_data.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_product, field, value)
+    
+    db.commit()
+    db.refresh(db_product)
+    return db_product
+
+@router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_product(
+    product_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    """Excluir produto (apenas se não estiver em uso)"""
+    db_product = db.query(models.Product).filter(models.Product.id == product_id).first()
+    if not db_product:
+        raise HTTPException(status_code=404, detail="Produto não encontrado")
+    
+    # Verificar se o produto está associado a cursos ou planos de formação
+    courses_count = db.query(models.Course).filter(models.Course.product_id == product_id).count()
+    if courses_count > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Não é possível excluir. Este produto está associado a {courses_count} curso(s)."
+        )
+    
+    plans_count = db.query(models.TrainingPlan).filter(models.TrainingPlan.product_id == product_id).count()
+    if plans_count > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Não é possível excluir. Este produto está associado a {plans_count} plano(s) de formação."
+        )
+    
+    db.delete(db_product)
+    db.commit()
+    return None
 
 # Courses Management (Admin)
 @router.get("/courses")

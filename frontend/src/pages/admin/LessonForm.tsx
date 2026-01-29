@@ -27,6 +27,7 @@ interface LessonFormData {
   description: string;
   content: string;
   lesson_type: 'THEORETICAL' | 'PRACTICAL';
+  started_by: 'TRAINER' | 'TRAINEE';
   estimated_minutes: number;
   order_index: number;
   video_url: string;
@@ -50,6 +51,7 @@ const LessonForm: React.FC = () => {
     description: '',
     content: '',
     lesson_type: 'THEORETICAL',
+    started_by: 'TRAINER',
     estimated_minutes: 30,
     order_index: 1,
     video_url: '',
@@ -65,10 +67,28 @@ const LessonForm: React.FC = () => {
   ];
 
   useEffect(() => {
+    const fetchNextOrderIndex = async () => {
+      if (!courseId) return;
+      try {
+        // Buscar o curso que inclui as lições
+        const response = await api.get(`/api/admin/courses/${courseId}`);
+        const lessons = response.data?.lessons || [];
+        const nextOrder = lessons.length + 1;
+        console.log('Lessons count:', lessons.length, 'Next order:', nextOrder);
+        setFormData(prev => ({ ...prev, order_index: nextOrder }));
+      } catch (err) {
+        console.error('Error fetching lessons count:', err);
+        // Manter ordem 1 como padrão em caso de erro
+      }
+    };
+
     if (isEditing) {
       fetchLesson();
+    } else if (courseId) {
+      // Para nova aula, calcular automaticamente a próxima ordem
+      fetchNextOrderIndex();
     }
-  }, [lessonId]);
+  }, [lessonId, courseId, isEditing]);
 
   const fetchLesson = async () => {
     try {
@@ -80,6 +100,7 @@ const LessonForm: React.FC = () => {
         description: lesson.description || '',
         content: lesson.content || '',
         lesson_type: lesson.lesson_type || 'THEORETICAL',
+        started_by: lesson.started_by || 'TRAINER',
         estimated_minutes: lesson.estimated_minutes || 30,
         order_index: lesson.order_index || 1,
         video_url: lesson.video_url || '',
@@ -354,6 +375,57 @@ const LessonForm: React.FC = () => {
                       placeholder="Uma breve descrição do que será abordado nesta aula..."
                     />
                   </div>
+
+                  {/* Quem Inicia a Aula */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Quem Inicia a Aula
+                    </label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, started_by: 'TRAINER' })}
+                        className={`p-4 rounded-xl border transition-all ${
+                          formData.started_by === 'TRAINER'
+                            ? 'bg-purple-600/20 border-purple-500 ring-2 ring-purple-500/30'
+                            : 'bg-white/5 border-white/10 hover:border-white/30'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                            formData.started_by === 'TRAINER' ? 'bg-purple-600' : 'bg-white/10'
+                          }`}>
+                            <Settings className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="font-semibold text-white">Formador</h3>
+                            <p className="text-xs text-gray-400">O formador inicia a aula</p>
+                          </div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, started_by: 'TRAINEE' })}
+                        className={`p-4 rounded-xl border transition-all ${
+                          formData.started_by === 'TRAINEE'
+                            ? 'bg-green-600/20 border-green-500 ring-2 ring-green-500/30'
+                            : 'bg-white/5 border-white/10 hover:border-white/30'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                            formData.started_by === 'TRAINEE' ? 'bg-green-600' : 'bg-white/10'
+                          }`}>
+                            <Play className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="font-semibold text-white">Formando</h3>
+                            <p className="text-xs text-gray-400">O formando inicia sozinho</p>
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -521,17 +593,13 @@ const LessonForm: React.FC = () => {
                       </div>
                       <div>
                         <h3 className="font-semibold text-white">Ordem</h3>
-                        <p className="text-xs text-gray-500">Posição no curso</p>
+                        <p className="text-xs text-gray-500">Posição no curso (automático)</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <input
-                        type="number"
-                        value={formData.order_index}
-                        onChange={(e) => setFormData({ ...formData, order_index: parseInt(e.target.value) || 1 })}
-                        min={1}
-                        className="w-24 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-center focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                      />
+                      <div className="w-24 px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white text-center">
+                        {formData.order_index}
+                      </div>
                       <span className="text-gray-400">ª aula</span>
                     </div>
                   </div>

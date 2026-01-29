@@ -117,7 +117,7 @@ export default function CourseForm() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-black p-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -135,7 +135,7 @@ export default function CourseForm() {
             </div>
             <button
               onClick={() => navigate('/courses')}
-              className="flex items-center gap-2 px-5 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 hover:scale-105"
+              className="flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white rounded-xl transition-all border border-gray-200 dark:border-white/10 hover:scale-105"
             >
               <X className="w-5 h-5" />
               {t('common.cancel')}
@@ -145,7 +145,7 @@ export default function CourseForm() {
           {/* Progress Steps */}
           {currentStep < 3 && (
             <div className="flex items-center justify-between mb-8 relative max-w-md mx-auto">
-              <div className="absolute top-5 left-0 right-0 h-0.5 bg-white/10">
+              <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200 dark:bg-white/10">
                 <div 
                   className="h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-500"
                   style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
@@ -160,7 +160,7 @@ export default function CourseForm() {
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
                       isCompleted ? 'bg-gradient-to-br from-green-500 to-green-600 scale-110' :
                       isCurrent ? 'bg-gradient-to-br from-red-600 to-red-700 scale-110 shadow-lg shadow-red-900/50' :
-                      'bg-white/5 border-2 border-white/20'
+                      'bg-white border-2 border-gray-200 dark:bg-white/5 dark:border-white/20'
                     }`}>
                       {isCompleted ? (
                         <CheckCircle2 className="w-6 h-6 text-white" />
@@ -168,7 +168,7 @@ export default function CourseForm() {
                         <Icon className={`w-6 h-6 ${isCurrent ? 'text-white' : 'text-gray-400'}`} />
                       )}
                     </div>
-                    <p className={`mt-2 text-sm font-medium ${isCurrent ? 'text-white' : 'text-gray-400'}`}>
+                    <p className={`mt-2 text-sm font-medium ${isCurrent ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
                       {step.title}
                     </p>
                   </div>
@@ -180,25 +180,25 @@ export default function CourseForm() {
 
         {/* Form */}
         {currentStep === 3 ? (
-          <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-12 text-center">
+          <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 p-12 text-center">
             <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-green-500 to-green-600 mb-6 animate-bounce">
               <CheckCircle2 className="w-12 h-12 text-white" />
             </div>
-            <h2 className="text-3xl font-bold text-white mb-4">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
               {t('admin.courseCreatedSuccess')}
             </h2>
-            <p className="text-gray-400 text-lg">
+            <p className="text-gray-600 dark:text-gray-400 text-lg">
               {t('admin.redirecting')}
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 shadow-2xl">
+          <form onSubmit={handleSubmit} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 p-8 shadow-2xl">
             <div className="min-h-[400px]">
               {/* Step 1: Basic Info */}
               {currentStep === 1 && (
                 <div className="space-y-6 animate-fadeIn">
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-3">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       <BookOpen className="w-4 h-4" />
                       {t('admin.courseTitle')} *
                     </label>
@@ -206,14 +206,14 @@ export default function CourseForm() {
                       type="text"
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className={`w-full px-5 py-4 bg-white/5 border ${errors.title ? 'border-red-500' : 'border-white/10'} rounded-xl text-white placeholder-gray-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg`}
+                      className={`w-full px-5 py-4 bg-white dark:bg-white/5 border ${errors.title ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg`}
                       placeholder={t('admin.courseTitlePlaceholder')}
                     />
-                    {errors.title && <p className="text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.title}</p>}
+                    {errors.title && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.title}</p>}
                   </div>
 
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-3">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       <BookOpen className="w-4 h-4" />
                       {t('admin.courseDescription')} *
                     </label>
@@ -221,10 +221,10 @@ export default function CourseForm() {
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       rows={6}
-                      className={`w-full px-5 py-4 bg-white/5 border ${errors.description ? 'border-red-500' : 'border-white/10'} rounded-xl text-white placeholder-gray-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all resize-none text-lg`}
+                      className={`w-full px-5 py-4 bg-white dark:bg-white/5 border ${errors.description ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all resize-none text-lg`}
                       placeholder={t('admin.courseDescriptionPlaceholder')}
                     />
-                    {errors.description && <p className="text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.description}</p>}
+                    {errors.description && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.description}</p>}
                   </div>
                 </div>
               )}
@@ -233,55 +233,55 @@ export default function CourseForm() {
               {currentStep === 2 && (
                 <div className="space-y-6 animate-fadeIn">
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-3">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       <Building2 className="w-4 h-4" />
                       {t('admin.bank')} *
                     </label>
                     <select
                       value={formData.bank_id}
                       onChange={(e) => setFormData({ ...formData, bank_id: e.target.value })}
-                      className={`w-full px-5 py-4 bg-white/5 border ${errors.bank_id ? 'border-red-500' : 'border-white/10'} rounded-xl text-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg`}
+                      className={`w-full px-5 py-4 bg-white dark:bg-gray-800 border ${errors.bank_id ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-xl text-gray-900 dark:text-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg`}
                     >
-                      <option value="">{t('admin.selectBank')}</option>
+                      <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('admin.selectBank')}</option>
                       {banks.map((bank) => (
-                        <option key={bank.id} value={bank.id}>
+                        <option key={bank.id} value={bank.id} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
                           {bank.code} - {bank.name} ({bank.country})
                         </option>
                       ))}
                     </select>
-                    {errors.bank_id && <p className="text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.bank_id}</p>}
+                    {errors.bank_id && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.bank_id}</p>}
                   </div>
 
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-3">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       <Package className="w-4 h-4" />
                       {t('admin.productType')} *
                     </label>
                     <select
                       value={formData.product_id}
                       onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
-                      className={`w-full px-5 py-4 bg-white/5 border ${errors.product_id ? 'border-red-500' : 'border-white/10'} rounded-xl text-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg`}
+                      className={`w-full px-5 py-4 bg-white dark:bg-gray-800 border ${errors.product_id ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-xl text-gray-900 dark:text-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg`}
                     >
-                      <option value="">{t('admin.selectProduct')}</option>
+                      <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('admin.selectProduct')}</option>
                       {products.map((product) => (
-                        <option key={product.id} value={product.id}>
+                        <option key={product.id} value={product.id} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
                           {product.name} ({product.code})
                         </option>
                       ))}
                     </select>
-                    {errors.product_id && <p className="text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.product_id}</p>}
+                    {errors.product_id && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.product_id}</p>}
                   </div>
                 </div>
               )}
             </div>
 
             {/* Navigation Buttons */}
-            <div className="flex gap-4 pt-8 border-t border-white/10">
+            <div className="flex gap-4 pt-8 border-t border-gray-200 dark:border-white/10">
               {currentStep > 1 && currentStep < 3 && (
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="px-6 py-4 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-all border border-white/10 hover:scale-105"
+                  className="px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white rounded-xl font-medium transition-all border border-gray-200 dark:border-white/10 hover:scale-105"
                 >
                   {t('common.back')}
                 </button>

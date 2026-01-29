@@ -21,11 +21,11 @@ export default function Card({
     <div
       className={clsx(
         'rounded-2xl border transition-all duration-300',
-        glassy && 'bg-white/5 backdrop-blur-sm',
-        !glassy && 'bg-white/10',
-        'border-white/10',
-        hoverable && 'hover:border-white/20 hover:bg-white/8',
-        gradient && 'bg-gradient-to-br from-white/10 to-white/5',
+        glassy && 'bg-white dark:bg-white/5 backdrop-blur-sm',
+        !glassy && 'bg-gray-50 dark:bg-white/10',
+        'border-gray-200 dark:border-white/10',
+        hoverable && 'hover:border-gray-300 hover:bg-gray-50 dark:hover:border-white/20 dark:hover:bg-white/8',
+        gradient && 'bg-gradient-to-br from-gray-50 to-white dark:from-white/10 dark:to-white/5',
         className
       )}
       {...props}

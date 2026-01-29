@@ -33,6 +33,17 @@ interface Lesson {
   estimated_minutes: number;
   video_url: string;
   materials_url: string;
+  started_by?: 'TRAINER' | 'TRAINEE';
+}
+
+interface LessonProgress {
+  id: number;
+  status: string;
+  is_paused: boolean;
+  is_approved?: boolean;
+  student_confirmed?: boolean;
+  started_at?: string;
+  elapsed_seconds: number;
 }
 
 // Characters per page for pagination
@@ -46,12 +57,16 @@ export default function LessonView() {
   const navigate = useNavigate();
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
+  const [lessonProgress, setLessonProgress] = useState<LessonProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [visitedPages, setVisitedPages] = useState<Set<number>>(new Set([1]));
   const [isFinished, setIsFinished] = useState(false);
   const [finishLoading, setFinishLoading] = useState(false);
+
+  // Se a aula foi iniciada pelo FORMADOR, o formando pode finalizar após ler todas as páginas
+  const isTrainerStarted = lesson?.started_by === 'TRAINER';
 
   // Split content into pages
   const contentPages = useMemo(() => {
@@ -98,6 +113,9 @@ export default function LessonView() {
 
   const totalPages = contentPages.length;
   const allPagesVisited = visitedPages.size >= totalPages;
+  
+  // Se a aula está em progresso e todas as páginas foram lidas, pode finalizar
+  const canFinish = allPagesVisited && lessonProgress?.status === 'IN_PROGRESS' && !lessonProgress?.is_paused;
 
   // Load visited pages and last page from localStorage
   useEffect(() => {
@@ -148,16 +166,28 @@ export default function LessonView() {
   const handleFinishLesson = async () => {
     if (!allPagesVisited || isFinished) return;
     
+    // Se a aula foi iniciada pelo FORMADOR, verificar se está em progresso
+    if (isTrainerStarted && lessonProgress?.status !== 'IN_PROGRESS') {
+      alert('A aula precisa estar em andamento para ser finalizada.');
+      return;
+    }
+    
     setFinishLoading(true);
     try {
-      // Try to call API to finish lesson (if available)
+      // Chamar API para finalizar aula
       if (planId) {
         try {
-          await api.post(`/api/lessons/${lessonId}/finish`, {
-            training_plan_id: parseInt(planId)
+          await api.post(`/api/lessons/${lessonId}/finish`, null, {
+            params: { training_plan_id: parseInt(planId) }
           });
-        } catch (err) {
-          console.log('API finish not available, saving locally');
+        } catch (err: any) {
+          console.error('Erro ao finalizar aula:', err);
+          const detail = err?.response?.data?.detail;
+          if (detail) {
+            alert(detail);
+            setFinishLoading(false);
+            return;
+          }
         }
       }
       
@@ -193,6 +223,23 @@ export default function LessonView() {
       setError(null);
       const response = await api.get(`/api/lessons/${lessonId}/detail`);
       setLesson(response.data);
+      
+      // Buscar progresso da aula se tiver planId
+      if (planId) {
+        try {
+          const progressResp = await api.get(`/api/lessons/${lessonId}/progress`, {
+            params: { training_plan_id: planId }
+          });
+          setLessonProgress(progressResp.data);
+          
+          // Verificar se já está concluída
+          if (progressResp.data?.status === 'COMPLETED') {
+            setIsFinished(true);
+          }
+        } catch (err) {
+          console.log('Progresso não encontrado');
+        }
+      }
     } catch (err: any) {
       console.error('Error fetching lesson:', err);
       setError(err.response?.data?.detail || 'Erro ao carregar aula');
@@ -201,11 +248,40 @@ export default function LessonView() {
     }
   };
 
+  // Função para buscar apenas o progresso (para polling)
+  const fetchProgress = async () => {
+    if (!planId || !lessonId) return;
+    try {
+      const progressResp = await api.get(`/api/lessons/${lessonId}/progress`, {
+        params: { training_plan_id: planId }
+      });
+      setLessonProgress(progressResp.data);
+      
+      // Verificar se já está concluída
+      if (progressResp.data?.status === 'COMPLETED') {
+        setIsFinished(true);
+      }
+    } catch (err) {
+      // Progresso não encontrado - normal se aula ainda não foi iniciada
+    }
+  };
+
   useEffect(() => {
     if (lessonId) {
       fetchLesson();
     }
   }, [lessonId]);
+
+  // Polling para atualizar progresso automaticamente (para formando ver alterações do formador)
+  useEffect(() => {
+    if (!planId || !lessonId) return;
+    
+    const pollInterval = setInterval(() => {
+      fetchProgress();
+    }, 3000); // Atualiza a cada 3 segundos
+    
+    return () => clearInterval(pollInterval);
+  }, [planId, lessonId]);
 
   const handleGoBack = () => {
     if (planId) {
@@ -442,8 +518,8 @@ export default function LessonView() {
                     </p>
                   </div>
 
-                  {/* Show Finish button when all pages visited, otherwise show Next button */}
-                  {allPagesVisited && currentPage === totalPages ? (
+                  {/* Show Finish button when all pages visited AND lesson is in progress, otherwise show Next button */}
+                  {allPagesVisited && currentPage === totalPages && canFinish ? (
                     <button
                       onClick={handleFinishLesson}
                       disabled={finishLoading || isFinished}
@@ -462,6 +538,11 @@ export default function LessonView() {
                       )}
                       {isFinished ? 'Aula Concluída' : 'Finalizar Aula'}
                     </button>
+                  ) : allPagesVisited && currentPage === totalPages && isFinished ? (
+                    <div className="flex items-center gap-2 px-5 py-2.5 bg-green-100 text-green-700 rounded-lg font-medium">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Aula Concluída
+                    </div>
                   ) : (
                     <button
                       onClick={() => goToPage(currentPage + 1)}
@@ -479,11 +560,129 @@ export default function LessonView() {
                 </div>
               </div>
             )}
+            
+            {/* Botão de finalizar para aulas com 1 página apenas */}
+            {totalPages <= 1 && canFinish && !isFinished && (
+              <div className="p-4 border-t border-gray-100 bg-gray-50">
+                <div className="flex items-center justify-center">
+                  <button
+                    onClick={handleFinishLesson}
+                    disabled={finishLoading}
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 disabled:opacity-50"
+                  >
+                    {finishLoading ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Flag className="w-5 h-5" />
+                    )}
+                    Finalizar Aula
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {/* Indicador de aula concluída para aulas com 1 página */}
+            {totalPages <= 1 && isFinished && (
+              <div className="p-4 border-t border-gray-100 bg-gray-50">
+                <div className="flex items-center justify-center gap-2 px-6 py-3 bg-green-100 text-green-700 rounded-lg font-medium">
+                  <CheckCircle2 className="w-5 h-5" />
+                  Aula Concluída
+                </div>
+              </div>
+            )}
           </motion.div>
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Status da Aula - sempre visível */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-100 p-6"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                lessonProgress?.status === 'COMPLETED' ? 'bg-green-500' :
+                lessonProgress?.status === 'IN_PROGRESS' ? 'bg-blue-500' :
+                lessonProgress?.status === 'PAUSED' ? 'bg-yellow-500' :
+                'bg-gray-400'
+              }`}>
+                {lessonProgress?.status === 'COMPLETED' ? <CheckCircle2 className="w-5 h-5 text-white" /> :
+                 lessonProgress?.status === 'IN_PROGRESS' ? <Play className="w-5 h-5 text-white" /> :
+                 lessonProgress?.status === 'PAUSED' ? <Clock className="w-5 h-5 text-white" /> :
+                 <Clock className="w-5 h-5 text-white" />}
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Status da Aula</h3>
+                <p className={`text-sm font-medium ${
+                  lessonProgress?.status === 'COMPLETED' && lessonProgress?.is_approved ? 'text-green-600' :
+                  lessonProgress?.status === 'COMPLETED' && lessonProgress?.student_confirmed ? 'text-amber-600' :
+                  lessonProgress?.status === 'COMPLETED' ? 'text-blue-600' :
+                  lessonProgress?.status === 'IN_PROGRESS' ? 'text-blue-600' :
+                  lessonProgress?.status === 'PAUSED' ? 'text-yellow-600' :
+                  'text-gray-500'
+                }`}>
+                  {lessonProgress?.status === 'COMPLETED' && lessonProgress?.is_approved ? 'Aprovada ✓' :
+                   lessonProgress?.status === 'COMPLETED' && lessonProgress?.student_confirmed ? 'Aguardando aprovação' :
+                   lessonProgress?.status === 'COMPLETED' ? 'Aguardando confirmação' :
+                   lessonProgress?.status === 'IN_PROGRESS' ? 'Em Andamento' :
+                   lessonProgress?.status === 'PAUSED' ? 'Pausada' :
+                   'Aguardando início'}
+                </p>
+              </div>
+            </div>
+            
+            {/* Botão de finalizar na sidebar quando pode finalizar */}
+            {canFinish && !isFinished && (
+              <button
+                onClick={handleFinishLesson}
+                disabled={finishLoading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 disabled:opacity-50"
+              >
+                {finishLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Flag className="w-5 h-5" />
+                )}
+                Finalizar Aula
+              </button>
+            )}
+            
+            {/* Aula concluída e aprovada */}
+            {isFinished && lessonProgress?.is_approved && (
+              <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-100 text-green-700 rounded-lg font-medium border border-green-200">
+                <CheckCircle2 className="w-5 h-5" />
+                Aula Aprovada ✓
+              </div>
+            )}
+            
+            {/* Aula confirmada pelo formando, aguardando aprovação do formador */}
+            {isFinished && lessonProgress?.student_confirmed && !lessonProgress?.is_approved && (
+              <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 text-amber-700 rounded-lg font-medium border border-amber-200">
+                <Clock className="w-5 h-5" />
+                Aguardando aprovação do formador
+              </div>
+            )}
+            
+            {/* Aula finalizada mas aguardando confirmação do formando - redirecionar para plano */}
+            {isFinished && !lessonProgress?.student_confirmed && !lessonProgress?.is_approved && (
+              <div className="w-full flex flex-col gap-2">
+                <div className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 text-blue-700 rounded-lg font-medium border border-blue-200">
+                  <CheckCircle2 className="w-5 h-5" />
+                  Aula finalizada - Confirme no plano
+                </div>
+              </div>
+            )}
+            
+            {!canFinish && !isFinished && lessonProgress?.status !== 'IN_PROGRESS' && (
+              <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 text-amber-700 rounded-lg font-medium border border-amber-200 text-sm">
+                <Clock className="w-5 h-5" />
+                {lessonProgress?.status === 'PAUSED' ? 'Aula pausada pelo formador' : 'Aguardando formador iniciar'}
+              </div>
+            )}
+          </motion.div>
+          
           {/* Reading Progress */}
           {totalPages > 1 && (
             <motion.div
@@ -530,34 +729,13 @@ export default function LessonView() {
               </div>
 
               {allPagesVisited && (
-                <div className="mt-4 space-y-3">
+                <div className="mt-4">
                   <div className="p-3 bg-green-100 rounded-lg border border-green-200">
                     <div className="flex items-center gap-2 text-green-700">
                       <CheckCircle2 className="w-5 h-5" />
                       <span className="font-medium text-sm">Leitura completa!</span>
                     </div>
                   </div>
-                  
-                  {/* Finish Button in Sidebar */}
-                  {!isFinished ? (
-                    <button
-                      onClick={handleFinishLesson}
-                      disabled={finishLoading}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 disabled:opacity-50"
-                    >
-                      {finishLoading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <Flag className="w-5 h-5" />
-                      )}
-                      Finalizar Aula
-                    </button>
-                  ) : (
-                    <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-100 text-green-700 rounded-lg font-medium border border-green-200">
-                      <CheckCircle2 className="w-5 h-5" />
-                      Aula Concluída
-                    </div>
-                  )}
                 </div>
               )}
             </motion.div>

@@ -194,6 +194,13 @@ async def get_lesson_progress(
         if releaser:
             releaser_name = releaser.full_name
     
+    # Buscar nome do formador que finalizou/aprovou
+    finisher_name = None
+    if getattr(progress, 'finished_by', None):
+        finisher = db.query(models.User).filter(models.User.id == progress.finished_by).first()
+        if finisher:
+            finisher_name = finisher.full_name
+    
     return {
         "id": progress.id,
         "lesson_id": progress.lesson_id,
@@ -215,6 +222,7 @@ async def get_lesson_progress(
         "estimated_minutes": progress.estimated_minutes,
         "is_delayed": is_delayed,
         "is_approved": progress.is_approved,
+        "finished_by": finisher_name,
         "student_confirmed": getattr(progress, 'student_confirmed', False),
         "student_confirmed_at": progress.student_confirmed_at.isoformat() if getattr(progress, 'student_confirmed_at', None) else None,
         "pauses": [{
@@ -301,22 +309,46 @@ async def start_lesson(
 ):
     """
     Iniciar uma aula liberada
-    O FORMANDO inicia a aula quando está pronto
-    O cronómetro começa a contar a partir deste momento
+    Quem pode iniciar depende do campo started_by da lição:
+    - TRAINEE: O formando inicia quando está pronto
+    - TRAINER: O formador inicia a aula para o formando
     """
-    # Formando inicia para si mesmo, formador pode forçar início para aluno
-    if current_user.role in ["TRAINEE", "STUDENT"]:
-        user_id = current_user.id
-    else:
-        raise HTTPException(
-            status_code=400, 
-            detail="Use /release para liberar a aula. O formando é quem inicia quando estiver pronto."
-        )
-    
     # Validar lição existe
     lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
     if not lesson:
         raise HTTPException(status_code=404, detail="Lição não encontrada")
+    
+    # Verificar quem pode iniciar a aula baseado no campo started_by
+    lesson_started_by = lesson.started_by or "TRAINER"  # Default TRAINER
+    
+    if current_user.role in ["TRAINEE", "STUDENT"]:
+        # Formando pode iniciar se started_by é TRAINEE
+        if lesson_started_by != "TRAINEE":
+            raise HTTPException(
+                status_code=400, 
+                detail="Esta aula deve ser iniciada pelo formador."
+            )
+        user_id = current_user.id
+    elif current_user.role in ["TRAINER", "ADMIN"]:
+        # Formador pode iniciar se started_by é TRAINER
+        if lesson_started_by != "TRAINER":
+            raise HTTPException(
+                status_code=400, 
+                detail="Esta aula deve ser iniciada pelo formando. Use /release para liberar."
+            )
+        # Formador inicia para o aluno do plano
+        if not training_plan_id:
+            raise HTTPException(
+                status_code=400,
+                detail="training_plan_id é necessário para o formador iniciar a aula"
+            )
+        # Buscar o aluno do plano
+        plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == training_plan_id).first()
+        if not plan or not plan.student_id:
+            raise HTTPException(status_code=400, detail="Plano não encontrado ou sem aluno atribuído")
+        user_id = plan.student_id
+    else:
+        raise HTTPException(status_code=403, detail="Sem permissão para iniciar aulas")
     
     # Obter ou criar progresso
     progress = get_or_create_lesson_progress(db, lesson_id, user_id, training_plan_id)
@@ -370,16 +402,35 @@ async def pause_lesson(
     """
     Pausar uma aula em progresso
     O FORMANDO pode pausar sua própria aula
+    O FORMADOR pode pausar aulas onde started_by = TRAINER
     Guarda o tempo acumulado para continuar depois (mesmo em dias diferentes)
     """
-    # Formando pausa para si mesmo
+    # Buscar a lição para verificar started_by
+    lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lição não encontrada")
+    
+    lesson_started_by = lesson.started_by or "TRAINER"
+    
+    # Determinar user_id baseado no role e started_by
     if current_user.role in ["TRAINEE", "STUDENT"]:
         user_id = current_user.id
+    elif current_user.role in ["TRAINER", "ADMIN"]:
+        # Formador só pode pausar se started_by = TRAINER
+        if lesson_started_by != "TRAINER":
+            raise HTTPException(
+                status_code=403, 
+                detail="Esta aula é controlada pelo formando. Apenas ele pode pausar."
+            )
+        # Buscar o aluno do plano
+        if not training_plan_id:
+            raise HTTPException(status_code=400, detail="training_plan_id é necessário")
+        plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == training_plan_id).first()
+        if not plan or not plan.student_id:
+            raise HTTPException(status_code=400, detail="Plano não encontrado ou sem aluno")
+        user_id = plan.student_id
     else:
-        raise HTTPException(
-            status_code=403, 
-            detail="Apenas o formando pode pausar sua própria aula"
-        )
+        raise HTTPException(status_code=403, detail="Sem permissão")
     
     # Buscar progresso
     query = db.query(models.LessonProgress).filter(
@@ -454,16 +505,35 @@ async def resume_lesson(
     """
     Retomar uma aula pausada
     O FORMANDO pode retomar sua própria aula
+    O FORMADOR pode retomar aulas onde started_by = TRAINER
     Funciona mesmo em dias diferentes - continua do tempo acumulado
     """
-    # Formando retoma para si mesmo
+    # Buscar a lição para verificar started_by
+    lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lição não encontrada")
+    
+    lesson_started_by = lesson.started_by or "TRAINER"
+    
+    # Determinar user_id baseado no role e started_by
     if current_user.role in ["TRAINEE", "STUDENT"]:
         user_id = current_user.id
+    elif current_user.role in ["TRAINER", "ADMIN"]:
+        # Formador só pode retomar se started_by = TRAINER
+        if lesson_started_by != "TRAINER":
+            raise HTTPException(
+                status_code=403, 
+                detail="Esta aula é controlada pelo formando. Apenas ele pode retomar."
+            )
+        # Buscar o aluno do plano
+        if not training_plan_id:
+            raise HTTPException(status_code=400, detail="training_plan_id é necessário")
+        plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == training_plan_id).first()
+        if not plan or not plan.student_id:
+            raise HTTPException(status_code=400, detail="Plano não encontrado ou sem aluno")
+        user_id = plan.student_id
     else:
-        raise HTTPException(
-            status_code=403, 
-            detail="Apenas o formando pode retomar sua própria aula"
-        )
+        raise HTTPException(status_code=403, detail="Sem permissão")
     
     return await resume_lesson_internal(lesson_id, user_id, training_plan_id, db)
 
@@ -545,17 +615,37 @@ async def finish_lesson(
 ):
     """
     Finalizar uma aula
-    O FORMANDO pode finalizar sua própria aula
+    O FORMANDO pode finalizar aulas de qualquer tipo (TRAINER ou TRAINEE started_by)
+    O FORMADOR pode finalizar aulas onde started_by = TRAINER
     Calcula o tempo total e marca como concluída
     """
-    # Formando finaliza para si mesmo
+    # Buscar a lição para verificar started_by
+    lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lição não encontrada")
+    
+    lesson_started_by = lesson.started_by or "TRAINER"
+    
+    # Determinar user_id baseado no role e started_by
     if current_user.role in ["TRAINEE", "STUDENT"]:
+        # Formando pode finalizar qualquer aula (tanto TRAINER quanto TRAINEE)
         user_id = current_user.id
+    elif current_user.role in ["TRAINER", "ADMIN"]:
+        # Formador só pode finalizar se started_by = TRAINER
+        if lesson_started_by != "TRAINER":
+            raise HTTPException(
+                status_code=403, 
+                detail="Esta aula é controlada pelo formando. Apenas ele pode finalizar."
+            )
+        # Buscar o aluno do plano
+        if not training_plan_id:
+            raise HTTPException(status_code=400, detail="training_plan_id é necessário")
+        plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == training_plan_id).first()
+        if not plan or not plan.student_id:
+            raise HTTPException(status_code=400, detail="Plano não encontrado ou sem aluno")
+        user_id = plan.student_id
     else:
-        raise HTTPException(
-            status_code=403, 
-            detail="Apenas o formando pode finalizar sua própria aula"
-        )
+        raise HTTPException(status_code=403, detail="Sem permissão")
     
     if request is None:
         request = schemas.FinalizeLessonRequest()
@@ -861,6 +951,9 @@ async def get_lesson_detail(
     if not lesson:
         raise HTTPException(status_code=404, detail="Lição não encontrada")
     
+    # Buscar o nome do curso
+    course = db.query(models.Course).filter(models.Course.id == lesson.course_id).first()
+    
     return {
         "id": lesson.id,
         "title": lesson.title,
@@ -871,5 +964,7 @@ async def get_lesson_detail(
         "materials_url": lesson.materials_url,
         "video_url": lesson.video_url,
         "order_index": lesson.order_index,
-        "course_id": lesson.course_id
+        "course_id": lesson.course_id,
+        "course_title": course.title if course else None,
+        "started_by": lesson.started_by or "TRAINER"
     }

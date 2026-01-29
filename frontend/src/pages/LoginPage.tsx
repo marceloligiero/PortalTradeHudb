@@ -65,7 +65,11 @@ export default function LoginPage() {
       </div>
 
       {/* Navbar */}
-      <nav className="fixed top-0 w-full z-50 backdrop-blur-2xl bg-[#0a0a0a]/95 border-b border-white/10 shadow-2xl shadow-red-600/5">
+      <nav className={`fixed top-0 w-full z-50 backdrop-blur-2xl border-b shadow-2xl transition-colors duration-300 ${
+        isDark 
+          ? 'bg-[#0a0a0a]/95 border-white/10 shadow-red-600/5' 
+          : 'bg-white/95 border-gray-200 shadow-gray-200/50'
+      }`}>
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
@@ -78,7 +82,9 @@ export default function LoginPage() {
               <img 
                 src="/logo-sds.png"
                 alt="Santander"
-                className="h-10 w-auto filter brightness-0 invert transition-all duration-300 group-hover:drop-shadow-[0_0_8px_rgba(220,38,38,0.8)]"
+                className={`h-10 w-auto transition-all duration-300 group-hover:drop-shadow-[0_0_8px_rgba(220,38,38,0.8)] ${
+                  isDark ? 'filter brightness-0 invert' : ''
+                }`}
               />
             </motion.div>
 
@@ -89,7 +95,11 @@ export default function LoginPage() {
                 whileHover={{ scale: 1.1, rotate: 180 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={toggleTheme}
-                className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-yellow-400/50 transition-all duration-300 relative group"
+                className={`flex items-center justify-center w-10 h-10 rounded-xl border transition-all duration-300 relative group ${
+                  isDark 
+                    ? 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-yellow-400/50' 
+                    : 'bg-gray-100 hover:bg-gray-200 border-gray-200 hover:border-blue-400/50'
+                }`}
               >
                 <AnimatePresence mode="wait">
                   {isDark ? (
@@ -120,7 +130,11 @@ export default function LoginPage() {
               
               <Link
                 to="/"
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 hover:border-white/20 text-white/80 hover:text-white hover:bg-white/10 transition-all duration-300 font-medium group"
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-300 font-medium group ${
+                  isDark 
+                    ? 'border-white/10 hover:border-white/20 text-white/80 hover:text-white hover:bg-white/10' 
+                    : 'border-gray-200 hover:border-gray-300 text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
               >
                 <ArrowRight className="w-4 h-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
                 <span className="text-sm">{t('common.backToHome')}</span>

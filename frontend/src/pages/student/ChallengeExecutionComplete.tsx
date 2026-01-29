@@ -47,20 +47,67 @@ const StudentChallengeExecution: React.FC = () => {
   const { challengeId } = useParams<{ challengeId: string }>();
   const [searchParams] = useSearchParams();
   const planId = searchParams.get('planId');
+  const existingSubmissionId = searchParams.get('submissionId');
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [challenge, setChallenge] = useState<Challenge | null>(null);
-  const [submissionId, setSubmissionId] = useState<number | null>(null);
+  const [submissionId, setSubmissionId] = useState<number | null>(existingSubmissionId ? parseInt(existingSubmissionId) : null);
   const [submitted, setSubmitted] = useState(false);
   
   const [operations, setOperations] = useState<Operation[]>([]);
   const [activeOperationIndex, setActiveOperationIndex] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
 
-  // Inicializar operações baseado no challenge
+  // Carregar operações existentes se houver submissionId
   useEffect(() => {
-    if (challenge && operations.length === 0) {
+    if (submissionId && challenge) {
+      loadExistingOperations();
+    }
+  }, [submissionId, challenge]);
+
+  const loadExistingOperations = async () => {
+    try {
+      const response = await api.get(`/api/challenges/submissions/${submissionId}/operations`);
+      const existingOps = response.data || [];
+      
+      if (existingOps.length > 0 && challenge) {
+        // Mapear operações existentes para o formato do frontend
+        const mappedOps: Operation[] = [];
+        for (let i = 1; i <= challenge.operations_required; i++) {
+          const existingOp = existingOps.find((op: any) => op.operation_number === i);
+          if (existingOp) {
+            mappedOps.push({
+              operationNumber: i,
+              reference: existingOp.operation_reference || '',
+              startedAt: existingOp.started_at ? new Date(existingOp.started_at) : null,
+              completedAt: existingOp.completed_at ? new Date(existingOp.completed_at) : null,
+              durationSeconds: existingOp.duration_seconds || 0,
+              status: existingOp.completed_at ? 'completed' : (existingOp.started_at ? 'in_progress' : 'pending'),
+              backendId: existingOp.id
+            });
+          } else {
+            mappedOps.push({
+              operationNumber: i,
+              reference: '',
+              startedAt: null,
+              completedAt: null,
+              durationSeconds: 0,
+              status: 'pending',
+              backendId: null
+            });
+          }
+        }
+        setOperations(mappedOps);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar operações existentes:', err);
+    }
+  };
+
+  // Inicializar operações baseado no challenge (apenas se não houver submissionId existente)
+  useEffect(() => {
+    if (challenge && operations.length === 0 && !existingSubmissionId) {
       const initialOperations: Operation[] = [];
       for (let i = 1; i <= challenge.operations_required; i++) {
         initialOperations.push({
@@ -75,7 +122,7 @@ const StudentChallengeExecution: React.FC = () => {
       }
       setOperations(initialOperations);
     }
-  }, [challenge, operations.length]);
+  }, [challenge, operations.length, existingSubmissionId]);
 
   // Cronómetro para operação ativa
   useEffect(() => {
@@ -166,9 +213,13 @@ const StudentChallengeExecution: React.FC = () => {
     const op = operations[index];
     if (!op.startedAt || !op.backendId) return;
 
+    // Abrir modal para classificar erros antes de finalizar
     try {
-      // Chamar API para finalizar operação
-      await api.post(`/api/challenges/operations/${op.backendId}/finish`);
+      // Chamar API para finalizar operação (sem erros - erros são classificados pelo formador)
+      await api.post(`/api/challenges/operations/${op.backendId}/finish`, {
+        has_error: false,
+        errors: []
+      });
       
       const completedAt = new Date();
       const durationSeconds = Math.floor((completedAt.getTime() - op.startedAt.getTime()) / 1000);
@@ -188,8 +239,11 @@ const StudentChallengeExecution: React.FC = () => {
 
   const submitChallenge = async () => {
     const completedOps = operations.filter(op => op.status === 'completed');
-    if (completedOps.length === 0) {
-      setError('Complete pelo menos uma operação antes de submeter');
+    const requiredOps = challenge?.operations_required || 0;
+    
+    // Verificar se todas as operações requeridas foram completadas
+    if (completedOps.length < requiredOps) {
+      setError(`Complete todas as ${requiredOps} operações antes de submeter. ${completedOps.length}/${requiredOps} concluídas.`);
       return;
     }
 
@@ -483,9 +537,17 @@ const StudentChallengeExecution: React.FC = () => {
                     )}
 
                     {op.status === 'completed' && (
-                      <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-lg">
-                        <Check className="w-4 h-4" />
-                        Concluída
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-lg">
+                          <Check className="w-4 h-4" />
+                          Concluída
+                        </div>
+                        {op.hasError && (
+                          <div className="flex items-center gap-1 px-3 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm">
+                            <AlertTriangle className="w-4 h-4" />
+                            {op.errors.length} erro(s)
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -500,13 +562,19 @@ const StudentChallengeExecution: React.FC = () => {
               <div>
                 <h3 className="text-lg font-semibold text-white">Submeter para Revisão</h3>
                 <p className="text-gray-400 text-sm">
-                  Após submeter, o formador irá avaliar as suas operações e registar os erros.
+                  {completedCount < (challenge?.operations_required || 0) ? (
+                    <span className="text-yellow-400">
+                      Complete todas as {challenge?.operations_required} operações antes de submeter. {completedCount}/{challenge?.operations_required} concluídas.
+                    </span>
+                  ) : (
+                    'Após submeter, o formador irá aprovar o desafio.'
+                  )}
                 </p>
               </div>
               
               <button
                 onClick={submitChallenge}
-                disabled={completedCount === 0}
+                disabled={completedCount < (challenge?.operations_required || 0)}
                 className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg transition-all"
               >
                 <Send className="w-6 h-6" />
