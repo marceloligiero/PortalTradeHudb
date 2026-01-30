@@ -651,7 +651,7 @@ export default function CertificateView() {
                       <div>
                         <h4 className="text-lg font-bold text-white">{course.title}</h4>
                         <p className="text-sm text-gray-400">
-                          {course.total_lessons} aulas • {course.total_challenges} desafios
+                          {course.total_lessons} módulos • {course.total_challenges} desafios
                         </p>
                       </div>
                       <div className="ml-auto">
@@ -668,7 +668,7 @@ export default function CertificateView() {
                     <div>
                       <h5 className="text-sm font-semibold text-red-400 uppercase tracking-wide mb-3 flex items-center gap-2">
                         <BookOpen className="w-4 h-4" />
-                        Aulas Completadas
+                        Módulos Completados
                       </h5>
                       <div className="space-y-2">
                         {course.lessons.map((lesson) => (

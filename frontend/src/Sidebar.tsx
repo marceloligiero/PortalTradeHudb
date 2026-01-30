@@ -11,7 +11,7 @@ export default function Sidebar() {
     { to: '/', icon: Home, label: t('navigation.dashboard') },
     { to: '/my-plans', icon: GraduationCap, label: t('navigation.trainingPlans') },
     { to: '/my-challenges', icon: Target, label: 'Meus Desafios' },
-    { to: '/my-lessons', icon: Presentation, label: 'Minhas Aulas' },
+    { to: '/my-lessons', icon: Presentation, label: t('myLessons.title') },
     { to: '/certificates', icon: Award, label: t('navigation.certificates') },
     { to: '/reports', icon: Settings, label: t('navigation.reports') },
   ];

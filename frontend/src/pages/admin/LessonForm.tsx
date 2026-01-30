@@ -59,8 +59,8 @@ const LessonForm: React.FC = () => {
   });
 
   const steps = [
-    { number: 1, title: t('lessons.basicInfo') || 'Informações', icon: Target, description: 'Título e tipo da aula' },
-    { number: 2, title: t('lessons.content') || 'Conteúdo', icon: FileText, description: 'Conteúdo da aula' },
+    { number: 1, title: t('lessons.basicInfo') || 'Informações', icon: Target, description: 'Título e tipo do módulo' },
+    { number: 2, title: t('lessons.content') || 'Conteúdo', icon: FileText, description: 'Conteúdo do módulo' },
     { number: 3, title: t('lessons.resources') || 'Recursos', icon: Video, description: 'Vídeo e materiais' },
     { number: 4, title: t('lessons.settings') || 'Configurações', icon: Settings, description: 'Duração e ordem' },
     { number: 5, title: t('lessons.review') || 'Revisão', icon: Eye, description: 'Conferir e criar' }
@@ -108,7 +108,7 @@ const LessonForm: React.FC = () => {
       });
     } catch (err: any) {
       console.error('Error fetching lesson:', err);
-      setError('Erro ao carregar aula');
+      setError('Erro ao carregar módulo');
     } finally {
       setLoadingLesson(false);
     }
@@ -180,7 +180,7 @@ const LessonForm: React.FC = () => {
       }, 2000);
     } catch (err: any) {
       console.error('Error saving lesson:', err);
-      setError(err.response?.data?.detail || 'Erro ao salvar aula');
+      setError(err.response?.data?.detail || 'Erro ao salvar módulo');
     } finally {
       setLoading(false);
     }
@@ -191,7 +191,7 @@ const LessonForm: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#111] to-[#0a0a0a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
-          <span className="text-gray-400">Carregando aula...</span>
+          <span className="text-gray-400">Carregando módulo...</span>
         </div>
       </div>
     );
@@ -215,7 +215,7 @@ const LessonForm: React.FC = () => {
             <CheckCircle2 className="w-12 h-12 text-white" />
           </motion.div>
           <h2 className="text-3xl font-bold text-white mb-2">
-            {isEditing ? 'Aula Atualizada!' : 'Aula Criada!'}
+            {isEditing ? 'Módulo Atualizado!' : 'Módulo Criado!'}
           </h2>
           <p className="text-gray-400">Redirecionando para o curso...</p>
         </motion.div>
@@ -254,7 +254,7 @@ const LessonForm: React.FC = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-white">
-                {isEditing ? 'Editar Aula' : 'Criar Nova Aula'}
+                {isEditing ? 'Editar Módulo' : 'Criar Novo Módulo'}
               </h1>
               <p className="text-gray-400 mt-1">
                 {steps[currentStep - 1].description}

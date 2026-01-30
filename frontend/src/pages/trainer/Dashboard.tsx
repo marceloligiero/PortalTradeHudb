@@ -159,7 +159,7 @@ export default function TrainerDashboard() {
         <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
             <Clock className="w-4 h-4 text-gray-400" />
-            <span className="text-xs text-gray-500 dark:text-gray-400">Aulas Criadas</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">Módulos Criados</span>
           </div>
           <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats?.total_lessons || 0}</div>
         </motion.div>

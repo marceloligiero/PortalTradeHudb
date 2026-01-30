@@ -711,9 +711,9 @@ export default function TrainingPlanDetail() {
                               </span>
                             );
                           } else if (courseStatus) {
-                            return (
+                                return (
                               <span className="px-3 py-1 rounded-lg text-xs font-medium bg-yellow-500/20 text-yellow-400">
-                                {courseStatus.confirmed_lessons}/{courseStatus.total_lessons} aulas • {courseStatus.approved_challenges}/{courseStatus.total_challenges} desafios
+                                {courseStatus.confirmed_lessons}/{courseStatus.total_lessons} módulos • {courseStatus.approved_challenges}/{courseStatus.total_challenges} desafios
                               </span>
                             );
                           }

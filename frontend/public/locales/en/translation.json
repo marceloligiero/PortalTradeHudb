@@ -56,7 +56,7 @@
     "description": "Description",
     "bank": "Bank",
     "product": "Product",
-    "lessons": "Lessons",
+    "lessons": "Modules",
     "enroll": "Enroll",
     "enrolled": "Enrolled",
     "progress": "Progress",
@@ -65,14 +65,14 @@
     "completeCourse": "Complete Course"
   },
   "lessons": {
-    "lesson": "Lesson",
+    "lesson": "Module",
     "content": "Content",
     "duration": "Duration",
     "minutes": "minutes",
-    "startLesson": "Start Lesson",
-    "completeLesson": "Complete Lesson",
-    "nextLesson": "Next Lesson",
-    "previousLesson": "Previous Lesson"
+    "startLesson": "Start Module",
+    "completeLesson": "Complete Module",
+    "nextLesson": "Next Module",
+    "previousLesson": "Previous Module"
   },
   "challenges": {
     "challenge": "Challenge",

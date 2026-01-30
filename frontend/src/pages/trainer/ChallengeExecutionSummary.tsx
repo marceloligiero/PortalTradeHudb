@@ -89,9 +89,9 @@ const ChallengeExecutionSummary: React.FC = () => {
   };
 
   useEffect(() => {
-    // Calcular MPU automaticamente
-    if (formData.total_time_minutes > 0) {
-      const mpu = formData.total_operations / formData.total_time_minutes;
+    // Calcular MPU automaticamente (Minutos Por Unidade = tempo / operações)
+    if (formData.total_operations > 0 && formData.total_time_minutes > 0) {
+      const mpu = formData.total_time_minutes / formData.total_operations;
       setCalculatedMpu(mpu);
     } else {
       setCalculatedMpu(0);
@@ -227,12 +227,14 @@ const ChallengeExecutionSummary: React.FC = () => {
   const getApprovalStatus = () => {
     if (!challenge || calculatedMpu === 0) return null;
     
-    const isMpuOk = calculatedMpu >= challenge.target_mpu;
+    // MPU = Minutos Por Unidade - quanto MENOR, melhor (mais rápido)
+    const isMpuOk = calculatedMpu <= challenge.target_mpu;
     // max_errors = máximo de OPERAÇÕES com erro, não total de erros individuais
     const operationsWithErrors = formData.operations_with_errors;
     const errorsOk = operationsWithErrors <= (challenge.max_errors ?? 0);
     const isApproved = isMpuOk && errorsOk;
-    const percentage = (calculatedMpu / challenge.target_mpu) * 100;
+    // Percentual: target/calculated * 100 (quanto maior, melhor)
+    const percentage = (challenge.target_mpu / calculatedMpu) * 100;
 
     return { isApproved, percentage, operationsWithErrors, totalIndividualErrors: errorDetails.length };
   };

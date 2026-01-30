@@ -168,7 +168,7 @@ export default function LessonView() {
     
     // Se a aula foi iniciada pelo FORMADOR, verificar se está em progresso
     if (isTrainerStarted && lessonProgress?.status !== 'IN_PROGRESS') {
-      alert('A aula precisa estar em andamento para ser finalizada.');
+      alert('O módulo precisa estar em andamento para ser finalizado.');
       return;
     }
     
@@ -242,7 +242,7 @@ export default function LessonView() {
       }
     } catch (err: any) {
       console.error('Error fetching lesson:', err);
-      setError(err.response?.data?.detail || 'Erro ao carregar aula');
+      setError(err.response?.data?.detail || 'Erro ao carregar módulo');
     } finally {
       setLoading(false);
     }
@@ -324,7 +324,7 @@ export default function LessonView() {
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('common.error')}</h2>
-          <p className="text-gray-500 mb-4">{error || 'Aula não encontrada'}</p>
+          <p className="text-gray-500 mb-4">{error || 'Módulo não encontrado'}</p>
           <button
             onClick={handleGoBack}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
@@ -536,12 +536,12 @@ export default function LessonView() {
                       ) : (
                         <Flag className="w-4 h-4" />
                       )}
-                      {isFinished ? 'Aula Concluída' : 'Finalizar Aula'}
+                      {isFinished ? 'Módulo Concluído' : 'Finalizar Módulo'}
                     </button>
                   ) : allPagesVisited && currentPage === totalPages && isFinished ? (
                     <div className="flex items-center gap-2 px-5 py-2.5 bg-green-100 text-green-700 rounded-lg font-medium">
                       <CheckCircle2 className="w-4 h-4" />
-                      Aula Concluída
+                      Módulo Concluído
                     </div>
                   ) : (
                     <button
@@ -575,7 +575,7 @@ export default function LessonView() {
                     ) : (
                       <Flag className="w-5 h-5" />
                     )}
-                    Finalizar Aula
+                    Finalizar Módulo
                   </button>
                 </div>
               </div>
@@ -586,7 +586,7 @@ export default function LessonView() {
               <div className="p-4 border-t border-gray-100 bg-gray-50">
                 <div className="flex items-center justify-center gap-2 px-6 py-3 bg-green-100 text-green-700 rounded-lg font-medium">
                   <CheckCircle2 className="w-5 h-5" />
-                  Aula Concluída
+                  Módulo Concluído
                 </div>
               </div>
             )}
@@ -614,7 +614,7 @@ export default function LessonView() {
                  <Clock className="w-5 h-5 text-white" />}
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">Status da Aula</h3>
+                <h3 className="font-semibold text-gray-900">Status do Módulo</h3>
                 <p className={`text-sm font-medium ${
                   lessonProgress?.status === 'COMPLETED' && lessonProgress?.is_approved ? 'text-green-600' :
                   lessonProgress?.status === 'COMPLETED' && lessonProgress?.student_confirmed ? 'text-amber-600' :
@@ -623,11 +623,11 @@ export default function LessonView() {
                   lessonProgress?.status === 'PAUSED' ? 'text-yellow-600' :
                   'text-gray-500'
                 }`}>
-                  {lessonProgress?.status === 'COMPLETED' && lessonProgress?.is_approved ? 'Aprovada ✓' :
+                  {lessonProgress?.status === 'COMPLETED' && lessonProgress?.is_approved ? 'Aprovado ✓' :
                    lessonProgress?.status === 'COMPLETED' && lessonProgress?.student_confirmed ? 'Aguardando aprovação' :
                    lessonProgress?.status === 'COMPLETED' ? 'Aguardando confirmação' :
                    lessonProgress?.status === 'IN_PROGRESS' ? 'Em Andamento' :
-                   lessonProgress?.status === 'PAUSED' ? 'Pausada' :
+                   lessonProgress?.status === 'PAUSED' ? 'Pausado' :
                    'Aguardando início'}
                 </p>
               </div>
@@ -635,7 +635,7 @@ export default function LessonView() {
             
             {/* Botão de finalizar na sidebar quando pode finalizar */}
             {canFinish && !isFinished && (
-              <button
+                <button
                 onClick={handleFinishLesson}
                 disabled={finishLoading}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 disabled:opacity-50"
@@ -645,7 +645,7 @@ export default function LessonView() {
                 ) : (
                   <Flag className="w-5 h-5" />
                 )}
-                Finalizar Aula
+                Finalizar Módulo
               </button>
             )}
             
@@ -653,13 +653,13 @@ export default function LessonView() {
             {isFinished && lessonProgress?.is_approved && (
               <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-100 text-green-700 rounded-lg font-medium border border-green-200">
                 <CheckCircle2 className="w-5 h-5" />
-                Aula Aprovada ✓
+                Módulo Aprovado ✓
               </div>
             )}
             
             {/* Aula confirmada pelo formando, aguardando aprovação do formador */}
             {isFinished && lessonProgress?.student_confirmed && !lessonProgress?.is_approved && (
-              <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 text-amber-700 rounded-lg font-medium border border-amber-200">
+                <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 text-amber-700 rounded-lg font-medium border border-amber-200">
                 <Clock className="w-5 h-5" />
                 Aguardando aprovação do formador
               </div>
@@ -667,18 +667,18 @@ export default function LessonView() {
             
             {/* Aula finalizada mas aguardando confirmação do formando - redirecionar para plano */}
             {isFinished && !lessonProgress?.student_confirmed && !lessonProgress?.is_approved && (
-              <div className="w-full flex flex-col gap-2">
+                <div className="w-full flex flex-col gap-2">
                 <div className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 text-blue-700 rounded-lg font-medium border border-blue-200">
                   <CheckCircle2 className="w-5 h-5" />
-                  Aula finalizada - Confirme no plano
+                  Módulo finalizado - Confirme no plano
                 </div>
               </div>
             )}
             
             {!canFinish && !isFinished && lessonProgress?.status !== 'IN_PROGRESS' && (
-              <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 text-amber-700 rounded-lg font-medium border border-amber-200 text-sm">
+                <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 text-amber-700 rounded-lg font-medium border border-amber-200 text-sm">
                 <Clock className="w-5 h-5" />
-                {lessonProgress?.status === 'PAUSED' ? 'Aula pausada pelo formador' : 'Aguardando formador iniciar'}
+                {lessonProgress?.status === 'PAUSED' ? 'Módulo pausado pelo formador' : 'Aguardando formador iniciar'}
               </div>
             )}
           </motion.div>

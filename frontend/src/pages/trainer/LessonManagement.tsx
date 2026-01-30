@@ -139,7 +139,7 @@ export default function LessonManagement() {
       });
       await loadData();
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Erro ao iniciar aula');
+      alert(error.response?.data?.detail || 'Erro ao iniciar módulo');
     } finally {
       setActionLoading(null);
     }
@@ -153,7 +153,7 @@ export default function LessonManagement() {
       });
       await loadData();
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Erro ao pausar aula');
+      alert(error.response?.data?.detail || 'Erro ao pausar módulo');
     } finally {
       setActionLoading(null);
     }
@@ -167,7 +167,7 @@ export default function LessonManagement() {
       });
       await loadData();
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Erro ao retomar aula');
+      alert(error.response?.data?.detail || 'Erro ao retomar módulo');
     } finally {
       setActionLoading(null);
     }
@@ -181,7 +181,7 @@ export default function LessonManagement() {
       });
       await loadData();
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Erro ao terminar aula');
+      alert(error.response?.data?.detail || 'Erro ao terminar módulo');
     } finally {
       setActionLoading(null);
     }

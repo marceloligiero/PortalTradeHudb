@@ -360,7 +360,8 @@ const ChallengeExecutionComplete: React.FC = () => {
     const totalTime = calculateTotalTime();
     const completedCount = operations.filter(op => op.status === 'completed').length;
     if (totalTime === 0 || completedCount === 0) return 0;
-    return completedCount / (totalTime / 60);
+    // MPU = Minutos Por Unidade = tempo (em minutos) / operações
+    return (totalTime / 60) / completedCount;
   }, [operations, calculateTotalTime]);
 
   if (loading) {

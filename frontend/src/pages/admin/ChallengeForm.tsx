@@ -37,9 +37,9 @@ const ChallengeForm: React.FC = () => {
     title: '',
     description: '',
     challenge_type: 'COMPLETE',
-    operations_required: 100,
+    operations_required: 10,
     time_limit_minutes: 60,
-    target_mpu: 1.67, // 100 operações / 60 minutos
+    target_mpu: 6, // 60 minutos / 10 operações = 6 min/op
     max_errors: 0,
     is_active: true,
     use_volume_kpi: true,
@@ -65,9 +65,9 @@ const ChallengeForm: React.FC = () => {
         title: challenge.title || '',
         description: challenge.description || '',
         challenge_type: challenge.challenge_type || 'COMPLETE',
-        operations_required: challenge.operations_required || 100,
+        operations_required: challenge.operations_required || 10,
         time_limit_minutes: challenge.time_limit_minutes || 60,
-        target_mpu: challenge.target_mpu || 1.67,
+        target_mpu: challenge.target_mpu || 6,
         max_errors: challenge.max_errors || 0,
         is_active: challenge.is_active !== undefined ? challenge.is_active : true,
         use_volume_kpi: challenge.use_volume_kpi !== undefined ? challenge.use_volume_kpi : true,
@@ -88,10 +88,10 @@ const ChallengeForm: React.FC = () => {
   const handleOperationsOrTimeChange = (field: 'operations_required' | 'time_limit_minutes', value: number) => {
     const newFormData = { ...formData, [field]: value };
     
-    // Recalcular target_mpu
-    if (newFormData.time_limit_minutes > 0) {
+    // Recalcular target_mpu (Minutos Por Unidade = tempo / operações)
+    if (newFormData.operations_required > 0 && newFormData.time_limit_minutes > 0) {
       newFormData.target_mpu = parseFloat(
-        (newFormData.operations_required / newFormData.time_limit_minutes).toFixed(2)
+        (newFormData.time_limit_minutes / newFormData.operations_required).toFixed(2)
       );
     }
     
@@ -159,7 +159,7 @@ const ChallengeForm: React.FC = () => {
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-lg flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-red-500 font-medium">Erro</p>
+              <p className="text-red-500 font-medium">{t('messages.error')}</p>
               <p className="text-red-400 text-sm">{error}</p>
             </div>
           </div>
@@ -173,14 +173,14 @@ const ChallengeForm: React.FC = () => {
             {/* Título */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Título do Desafio *
+                {t('challenges.titleLabel')}
               </label>
               <input
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="Ex: Desafio de Produtividade - Cartões"
+                placeholder={t('challenges.titlePlaceholder')}
                 required
               />
             </div>
@@ -188,21 +188,21 @@ const ChallengeForm: React.FC = () => {
             {/* Descrição */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Descrição
+                {t('challenges.descriptionLabel')}
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={4}
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-                placeholder="Descreva o objetivo e contexto do desafio..."
+                placeholder={t('challenges.descriptionPlaceholder')}
               />
             </div>
 
             {/* Tipo de Desafio */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-3">
-                Tipo de Desafio *
+                {t('challenges.typeLabel')}
               </label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* COMPLETE */}
@@ -222,10 +222,8 @@ const ChallengeForm: React.FC = () => {
                       <Target className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-white mb-1">Completo</h3>
-                      <p className="text-sm text-gray-400">
-                        Registar cada parte individualmente com início e fim
-                      </p>
+                      <h3 className="font-semibold text-white mb-1">{t('challenges.typeCompleteTitle')}</h3>
+                      <p className="text-sm text-gray-400">{t('challenges.typeCompleteDesc')}</p>
                     </div>
                   </div>
                 </button>
@@ -247,10 +245,8 @@ const ChallengeForm: React.FC = () => {
                       <TrendingUp className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-white mb-1">Resumido</h3>
-                      <p className="text-sm text-gray-400">
-                        Apenas inserir total de operações e tempo total
-                      </p>
+                      <h3 className="font-semibold text-white mb-1">{t('challenges.typeSummaryTitle')}</h3>
+                      <p className="text-sm text-gray-400">{t('challenges.typeSummaryDesc')}</p>
                     </div>
                   </div>
                 </button>
@@ -264,7 +260,7 @@ const ChallengeForm: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   <div className="flex items-center gap-2">
                     <Target className="w-4 h-4 text-red-500" />
-                    Operações Necessárias *
+                    {t('challenges.operationsLabel')}
                   </div>
                 </label>
                 <input
@@ -275,7 +271,7 @@ const ChallengeForm: React.FC = () => {
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">Quantidade mínima de operações</p>
+                <p className="text-xs text-gray-500 mt-1">{t('challenges.operationsHelp')}</p>
               </div>
 
               {/* Tempo Limite */}
@@ -283,7 +279,7 @@ const ChallengeForm: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-yellow-500" />
-                    Tempo Limite (minutos) *
+                    {t('challenges.timeLimitLabel')}
                   </div>
                 </label>
                 <input
@@ -294,7 +290,7 @@ const ChallengeForm: React.FC = () => {
                   className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   required
                 />
-                <p className="text-xs text-gray-500 mt-1">Tempo máximo em minutos</p>
+                <p className="text-xs text-gray-500 mt-1">{t('challenges.timeLimitHelp')}</p>
               </div>
             </div>
 
@@ -303,7 +299,7 @@ const ChallengeForm: React.FC = () => {
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-pink-500" />
-                  Máximo de Operações com Erro
+                  {t('challenges.maxErrorsLabel')}
                 </div>
               </label>
               <input
@@ -313,18 +309,16 @@ const ChallengeForm: React.FC = () => {
                 min="0"
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
-              <p className="text-xs text-gray-500 mt-1">Número máximo de OPERAÇÕES com erro (não erros totais)</p>
+              <p className="text-xs text-gray-500 mt-1">{t('challenges.maxErrorsHelp')}</p>
             </div>
 
             {/* KPIs de Aprovação */}
             <div className="bg-white/5 rounded-lg p-6">
               <div className="flex items-center gap-2 mb-4">
                 <CheckSquare className="w-5 h-5 text-green-500" />
-                <h3 className="text-lg font-medium text-white">KPIs para Aprovação</h3>
+                <h3 className="text-lg font-medium text-white">{t('challenges.kpisTitle')}</h3>
               </div>
-              <p className="text-sm text-gray-400 mb-4">
-                Selecione quais critérios são decisivos para aprovação do formando neste desafio:
-              </p>
+              <p className="text-sm text-gray-400 mb-4">{t('challenges.kpisDesc')}</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Volume KPI */}
                 <button
@@ -343,8 +337,8 @@ const ChallengeForm: React.FC = () => {
                       {formData.use_volume_kpi && <span className="text-white text-sm">✓</span>}
                     </div>
                     <div>
-                      <p className="font-medium text-white">Volume</p>
-                      <p className="text-xs text-gray-400">Nr de Operações</p>
+                      <p className="font-medium text-white">{t('challenges.volumeLabel')}</p>
+                      <p className="text-xs text-gray-400">{t('challenges.volumeHelp')}</p>
                     </div>
                   </div>
                 </button>
@@ -366,8 +360,8 @@ const ChallengeForm: React.FC = () => {
                       {formData.use_mpu_kpi && <span className="text-white text-sm">✓</span>}
                     </div>
                     <div>
-                      <p className="font-medium text-white">MPU</p>
-                      <p className="text-xs text-gray-400">Op por Minuto</p>
+                      <p className="font-medium text-white">{t('challenges.mpuLabel')}</p>
+                      <p className="text-xs text-gray-400">{t('challenges.mpuHelp')}</p>
                     </div>
                   </div>
                 </button>
@@ -389,16 +383,14 @@ const ChallengeForm: React.FC = () => {
                       {formData.use_errors_kpi && <span className="text-white text-sm">✓</span>}
                     </div>
                     <div>
-                      <p className="font-medium text-white">Erros</p>
-                      <p className="text-xs text-gray-400">Op. com Erro</p>
+                      <p className="font-medium text-white">{t('challenges.errorsLabel')}</p>
+                      <p className="text-xs text-gray-400">{t('challenges.errorsHelp')}</p>
                     </div>
                   </div>
                 </button>
               </div>
               {!formData.use_volume_kpi && !formData.use_mpu_kpi && !formData.use_errors_kpi && formData.kpi_mode === 'AUTO' && (
-                <p className="text-yellow-500 text-sm mt-3">
-                  ⚠️ Selecione pelo menos um KPI para aprovação automática
-                </p>
+                <p className="text-yellow-500 text-sm mt-3">{t('challenges.kpiSelectWarning')}</p>
               )}
             </div>
 
@@ -406,11 +398,9 @@ const ChallengeForm: React.FC = () => {
             <div className="bg-white/5 rounded-lg p-6">
               <div className="flex items-center gap-2 mb-4">
                 <CheckSquare className="w-5 h-5 text-blue-500" />
-                <h3 className="text-lg font-medium text-white">Modo de Avaliação</h3>
+                <h3 className="text-lg font-medium text-white">{t('challenges.kpiModeTitle')}</h3>
               </div>
-              <p className="text-sm text-gray-400 mb-4">
-                Escolha como o desafio será avaliado:
-              </p>
+              <p className="text-sm text-gray-400 mb-4">{t('challenges.kpiModeDesc')}</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* AUTO */}
                 <button
@@ -429,10 +419,8 @@ const ChallengeForm: React.FC = () => {
                       <TrendingUp className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-white mb-1">Automático</h3>
-                      <p className="text-sm text-gray-400">
-                        Aprovação baseada nos KPIs selecionados acima
-                      </p>
+                      <h3 className="font-semibold text-white mb-1">{t('challenges.modeAutoTitle')}</h3>
+                      <p className="text-sm text-gray-400">{t('challenges.modeAutoDesc')}</p>
                     </div>
                   </div>
                 </button>
@@ -454,18 +442,14 @@ const ChallengeForm: React.FC = () => {
                       <AlertCircle className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-white mb-1">Manual</h3>
-                      <p className="text-sm text-gray-400">
-                        Formador decide aprovação manualmente
-                      </p>
+                      <h3 className="font-semibold text-white mb-1">{t('challenges.modeManualTitle')}</h3>
+                      <p className="text-sm text-gray-400">{t('challenges.modeManualDesc')}</p>
                     </div>
                   </div>
                 </button>
               </div>
               {formData.kpi_mode === 'MANUAL' && (
-                <p className="text-purple-400 text-sm mt-3">
-                  ℹ️ O formador irá avaliar e aprovar/reprovar manualmente este desafio
-                </p>
+                <p className="text-purple-400 text-sm mt-3">{t('challenges.manualInfo')}</p>
               )}
             </div>
 
@@ -485,10 +469,8 @@ const ChallengeForm: React.FC = () => {
                     }`} />
                   </div>
                   <div className="text-left">
-                    <h3 className="text-lg font-medium text-white">Permitir Retentativa</h3>
-                    <p className="text-sm text-gray-400">
-                      Se reprovado, o formador pode habilitar nova tentativa
-                    </p>
+                    <h3 className="text-lg font-medium text-white">{t('challenges.allowRetryTitle')}</h3>
+                    <p className="text-sm text-gray-400">{t('challenges.allowRetryDesc')}</p>
                   </div>
                 </div>
                 <div className={`px-3 py-1 rounded-full text-sm ${
@@ -496,7 +478,7 @@ const ChallengeForm: React.FC = () => {
                     ? 'bg-green-500/20 text-green-400' 
                     : 'bg-gray-500/20 text-gray-400'
                 }`}>
-                  {formData.allow_retry ? 'Ativo' : 'Inativo'}
+                  {formData.allow_retry ? t('challenges.allowRetryActive') : t('challenges.allowRetryInactive')}
                 </div>
               </button>
             </div>
@@ -507,20 +489,18 @@ const ChallengeForm: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <TrendingUp className="w-5 h-5 text-yellow-500" />
-                    <span className="text-sm font-medium text-gray-300">Meta de MPU (calculada automaticamente)</span>
+                    <span className="text-sm font-medium text-gray-300">{t('challenges.mpuMetaTitle')}</span>
                   </div>
                   <p className="text-3xl font-bold text-white">
-                    {formData.target_mpu.toFixed(2)} <span className="text-lg text-gray-400">op/min</span>
+                    {formData.target_mpu.toFixed(2)} <span className="text-lg text-gray-400">min/op</span>
                   </p>
                   <p className="text-sm text-gray-400 mt-1">
-                    = {formData.operations_required} operações ÷ {formData.time_limit_minutes} minutos
+                    {t('challenges.mpuFormula', { time: formData.time_limit_minutes, ops: formData.operations_required })}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-gray-400 mb-1">Aprovação</p>
-                  <p className="text-sm text-yellow-500 font-medium">
-                    MPU alcançado ≥ {formData.target_mpu.toFixed(2)}
-                  </p>
+                  <p className="text-xs text-gray-400 mb-1">{t('challenges.mpuApprovalLabel')}</p>
+                  <p className="text-sm text-green-500 font-medium">{t('challenges.mpuReached', { value: formData.target_mpu.toFixed(2) })}</p>
                 </div>
               </div>
             </div>

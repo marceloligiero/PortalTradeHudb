@@ -74,7 +74,7 @@ export default function MyLessons() {
       await loadLessons();
     } catch (error: any) {
       console.error('Error confirming lesson:', error);
-      alert(error.response?.data?.detail || 'Erro ao confirmar aula');
+      alert(error.response?.data?.detail || 'Erro ao confirmar módulo');
     } finally {
       setConfirmingId(null);
     }
