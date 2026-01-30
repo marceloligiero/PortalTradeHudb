@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { GraduationCap, BookOpen, Users } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Course {
   id: number;
@@ -29,6 +30,7 @@ interface Student {
   id: number;
   full_name: string;
   email: string;
+  role?: 'TRAINEE' | 'TRAINER';
 }
 
 export default function TrainingPlanForm() {
@@ -92,6 +94,12 @@ export default function TrainingPlanForm() {
   };
 
   const handleStudentToggle = (studentId: number) => {
+    // Não permitir que o formador se selecione como aluno
+    if (user?.id === studentId) {
+      setError('Não pode selecionar-se como aluno no seu próprio plano de formação');
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       selectedStudents: prev.selectedStudents.includes(studentId)
@@ -107,19 +115,19 @@ export default function TrainingPlanForm() {
 
     // Validações
     if (!formData.title.trim()) {
-      setError('O título é obrigatório');
+      setError(t('admin.titleRequired'));
       setLoading(false);
       return;
     }
 
     if (!formData.description.trim()) {
-      setError('A descrição é obrigatória');
+      setError(t('admin.descriptionRequired'));
       setLoading(false);
       return;
     }
 
     if (formData.selectedCourses.length === 0) {
-      setError('Selecione pelo menos um curso');
+      setError(t('trainingPlan.selectAtLeastOneCourse'));
       setLoading(false);
       return;
     }
@@ -128,7 +136,7 @@ export default function TrainingPlanForm() {
       const startDate = new Date(formData.start_date);
       const endDate = new Date(formData.end_date);
       if (endDate < startDate) {
-        setError('A data de fim deve ser posterior à data de início');
+        setError(t('trainingPlan.endDateMustBeAfterStartDate'));
         setLoading(false);
         return;
       }
@@ -138,7 +146,8 @@ export default function TrainingPlanForm() {
       const response = await api.post('/api/training-plans/', {
         title: formData.title,
         description: formData.description,
-        trainer_id: user?.id, // ID do trainer logado
+        trainer_id: user?.id, // ID do trainer logado (legado)
+        trainer_ids: [user?.id], // Novo formato - trainer logado como único formador
         bank_id: formData.bank_id ? parseInt(formData.bank_id) : null,
         product_id: formData.product_id ? parseInt(formData.product_id) : null,
         start_date: formData.start_date || null,
@@ -151,34 +160,34 @@ export default function TrainingPlanForm() {
       navigate('/trainer/training-plans');
     } catch (error: any) {
       console.error('Error creating training plan:', error);
-      setError(error.response?.data?.detail || 'Falha ao criar plano de formação');
+      setError(error.response?.data?.detail || t('trainingPlan.createError'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-slate-100 to-gray-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-6 transition-colors duration-300">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <button
             onClick={() => navigate('/trainer/training-plans')}
-            className="text-blue-400 hover:text-blue-300 mb-4 flex items-center gap-2"
+            className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 mb-4 flex items-center gap-2"
           >
             ← {t('common.back')}
           </button>
           <div className="flex items-center gap-3 mb-2">
-            <GraduationCap className="w-8 h-8 text-blue-400" />
-            <h1 className="text-3xl font-bold text-white">
+            <GraduationCap className="w-8 h-8 text-blue-500 dark:text-blue-400" />
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               {t('trainingPlan.create')}
             </h1>
           </div>
-          <p className="text-slate-400">{t('trainingPlan.createDescription')}</p>
+          <p className="text-gray-600 dark:text-slate-400">{t('trainingPlan.createDescription')}</p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400">
+          <div className="mb-6 p-4 bg-red-100 dark:bg-red-500/10 border border-red-300 dark:border-red-500/50 rounded-lg text-red-600 dark:text-red-400">
             {error}
           </div>
         )}
@@ -186,14 +195,14 @@ export default function TrainingPlanForm() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
-          <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-            <h2 className="text-xl font-bold text-white mb-6">
+          <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">
               {t('trainingPlan.basicInfo')}
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                   {t('trainingPlan.title')}
                 </label>
                 <input
@@ -223,14 +232,14 @@ export default function TrainingPlanForm() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Banco
+                    {t('trainingPlan.bank')}
                   </label>
                   <select
                     value={formData.bank_id}
                     onChange={(e) => setFormData({ ...formData, bank_id: e.target.value })}
                     className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 [&>option]:bg-slate-800 [&>option]:text-white"
                   >
-                    <option value="" className="bg-slate-800 text-white">Selecione um banco</option>
+                    <option value="" className="bg-slate-800 text-white">{t('trainingPlan.selectBank')}</option>
                     {banks.map(bank => (
                       <option key={bank.id} value={bank.id} className="bg-slate-800 text-white">{bank.name}</option>
                     ))}
@@ -239,14 +248,14 @@ export default function TrainingPlanForm() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Produto
+                    {t('trainingPlan.productType')}
                   </label>
                   <select
                     value={formData.product_id}
                     onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
                     className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 [&>option]:bg-slate-800 [&>option]:text-white"
                   >
-                    <option value="" className="bg-slate-800 text-white">Selecione um produto</option>
+                    <option value="" className="bg-slate-800 text-white">{t('trainingPlan.selectProduct')}</option>
                     {products.map(product => (
                       <option key={product.id} value={product.id} className="bg-slate-800 text-white">{product.name}</option>
                     ))}
@@ -257,7 +266,7 @@ export default function TrainingPlanForm() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Data de Início
+                    {t('trainingPlan.startDate')}
                   </label>
                   <input
                     type="date"
@@ -269,7 +278,7 @@ export default function TrainingPlanForm() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    Data de Fim
+                    {t('trainingPlan.endDate')}
                   </label>
                   <input
                     type="date"
@@ -293,7 +302,7 @@ export default function TrainingPlanForm() {
 
             {courses.length === 0 ? (
               <p className="text-slate-400 text-center py-8">
-                {t('trainingPlan.noCoursesAvailable')}
+                {t('courses.noCourses')}
               </p>
             ) : (
               <div className="space-y-3">
@@ -349,44 +358,66 @@ export default function TrainingPlanForm() {
             <div className="flex items-center gap-3 mb-6">
               <Users className="w-5 h-5 text-green-400" />
               <h2 className="text-xl font-bold text-white">
-                Formandos
+                {t('admin.students')}
               </h2>
             </div>
 
             {students.length === 0 ? (
               <p className="text-slate-400 text-center py-8">
-                Nenhum formando disponível
+                {t('trainingPlan.noStudentsAvailable')}
               </p>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {students.map((student) => (
+                {students.map((student) => {
+                  const isCurrentTrainer = student.id === user?.id;
+                  return (
                   <label
                     key={student.id}
-                    className="flex items-start gap-3 p-4 bg-white/5 rounded-lg border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
+                    className={`flex items-start gap-3 p-4 bg-white/5 rounded-lg border border-white/10 transition-colors ${
+                      isCurrentTrainer 
+                        ? 'opacity-50 cursor-not-allowed' 
+                        : 'cursor-pointer hover:bg-white/10'
+                    }`}
                   >
                     <input
                       type="checkbox"
                       checked={formData.selectedStudents.includes(student.id)}
                       onChange={() => handleStudentToggle(student.id)}
+                      disabled={isCurrentTrainer}
                       className="mt-1 w-4 h-4 text-green-500 bg-white/5 border-white/20 rounded focus:ring-green-500"
                     />
                     <div className="flex-1">
-                      <div className="font-semibold text-white mb-1">
+                      <div className="flex items-center gap-2 font-semibold text-white mb-1">
                         {student.full_name}
+                        {student.role === 'TRAINER' && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
+                            Formador
+                          </span>
+                        )}
+                        {isCurrentTrainer && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
+                            (Você)
+                          </span>
+                        )}
                       </div>
                       <div className="text-sm text-slate-400">
                         {student.email}
                       </div>
+                      {isCurrentTrainer && (
+                        <div className="text-xs text-amber-400 mt-1">
+                          Não pode ser aluno no seu próprio plano
+                        </div>
+                      )}
                     </div>
                   </label>
-                ))}
+                );})}
               </div>
             )}
 
             {formData.selectedStudents.length > 0 && (
               <div className="mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
                 <p className="text-sm text-green-300">
-                  {formData.selectedStudents.length} formando{formData.selectedStudents.length !== 1 ? 's' : ''} selecionado{formData.selectedStudents.length !== 1 ? 's' : ''}
+                  {formData.selectedStudents.length} {t('trainingPlan.studentsSelected')}
                 </p>
               </div>
             )}
@@ -406,7 +437,7 @@ export default function TrainingPlanForm() {
               disabled={loading}
               className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? t('common.saving') : t('trainingPlan.create')}
+              {loading ? t('common.loading') : t('trainingPlan.create')}
             </button>
           </div>
         </form>

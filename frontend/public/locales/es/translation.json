@@ -56,7 +56,7 @@
     "description": "Descripción",
     "bank": "Banco",
     "product": "Producto",
-    "lessons": "Lecciones",
+    "lessons": "Módulos",
     "enroll": "Inscribirse",
     "enrolled": "Inscrito",
     "progress": "Progreso",
@@ -65,14 +65,14 @@
     "completeCourse": "Completar Curso"
   },
   "lessons": {
-    "lesson": "Lección",
+    "lesson": "Módulo",
     "content": "Contenido",
     "duration": "Duración",
     "minutes": "minutos",
-    "startLesson": "Iniciar Lección",
-    "completeLesson": "Completar Lección",
-    "nextLesson": "Siguiente Lección",
-    "previousLesson": "Lección Anterior"
+    "startLesson": "Iniciar Módulo",
+    "completeLesson": "Completar Módulo",
+    "nextLesson": "Siguiente Módulo",
+    "previousLesson": "Módulo Anterior"
   },
   "challenges": {
     "challenge": "Desafío",
