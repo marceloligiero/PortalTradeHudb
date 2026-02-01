@@ -95,6 +95,7 @@ function App() {
             <Route path="pending-reviews" element={<PendingReviews />} />
             <Route path="courses/:courseId/lessons/new" element={<LessonForm />} />
             <Route path="courses/:courseId/challenges/:challengeId" element={<ChallengeDetail />} />
+            <Route path="courses/:courseId/challenges/:challengeId/results" element={<ChallengeResult />} />
             <Route path="courses/:courseId/lessons/:lessonId" element={<LessonDetail />} />
             <Route path="training-plan/:id" element={<TrainingPlanDetail />} />
             <Route path="lessons/:lessonId/manage" element={<LessonManagement />} />
@@ -115,6 +116,7 @@ function App() {
             <Route path="courses/:courseId/challenges/new" element={<ChallengeForm />} />
             <Route path="courses/:courseId/challenges/:challengeId/edit" element={<ChallengeForm />} />
             <Route path="courses/:courseId/challenges/:challengeId" element={<ChallengeDetail />} />
+            <Route path="courses/:courseId/challenges/:challengeId/results" element={<ChallengeResult />} />
             <Route path="courses/:courseId/lessons/new" element={<LessonForm />} />
             <Route path="courses/:courseId/lessons/:lessonId" element={<LessonDetail />} />
             <Route path="training-plans" element={<AdminTrainingPlans />} />
