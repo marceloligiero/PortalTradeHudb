@@ -55,7 +55,7 @@ start_services() {
     
     # Reiniciar serviços com PM2
     log_info "Reiniciando serviços..."
-    pm2 restart tradehub-backend
+    pm2 restart tradehub-api
     sleep 2
     
     # Verificar status
@@ -66,7 +66,7 @@ start_services() {
 # Função para parar os serviços
 stop_services() {
     log_info "Parando TradeHub..."
-    pm2 stop tradehub-backend frontend
+    pm2 stop tradehub-api 2>/dev/null || true
     log_success "Serviços parados"
     pm2 status
 }
@@ -85,7 +85,7 @@ show_status() {
     pm2 status
     echo ""
     log_info "Últimas 20 linhas do log do backend:"
-    pm2 logs tradehub-backend --lines 20 --nostream
+    pm2 logs tradehub-api --lines 20 --nostream
 }
 
 # Função para atualizar sem rebuild (apenas pull + restart)
@@ -100,7 +100,7 @@ quick_update() {
     source .venv/bin/activate
     pip install -r requirements.txt --upgrade --quiet
     
-    pm2 restart tradehub-backend
+    pm2 restart tradehub-api
     log_success "Backend reiniciado"
     pm2 status
 }
