@@ -331,47 +331,22 @@ export default function ChallengeDetail() {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Quick Actions */}
+          {/* Info Card - Catálogo */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl border border-gray-200 p-6"
+            className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-200 p-6"
           >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.quickActions')}</h3>
-            <div className="space-y-3">
-              <button
-                onClick={() => {
-                  const executionType = challenge.challenge_type?.toUpperCase() === 'SUMMARY' ? 'summary' : 'complete';
-                  navigate(`/challenges/${challenge.id}/execute/${executionType}`);
-                }}
-                className="w-full flex items-center gap-3 p-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors group"
-              >
-                <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
-                  <Play className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-gray-900">{t('admin.executeChallenge')}</p>
-                  <p className="text-sm text-gray-500">
-                    {challenge.challenge_type?.toUpperCase() === 'SUMMARY' 
-                      ? t('admin.summaryMode') 
-                      : t('admin.completeMode')}
-                  </p>
-                </div>
-              </button>
-              <button
-                onClick={() => navigate(`/courses/${courseId}/challenges/${challenge.id}/results`)}
-                className="w-full flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors group"
-              >
-                <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <BarChart3 className="w-5 h-5 text-white" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-gray-900">{t('admin.viewResults')}</p>
-                  <p className="text-sm text-gray-500">{t('admin.seeSubmissions')}</p>
-                </div>
-              </button>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center">
+                <BookOpen className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="font-semibold text-gray-900">{t('admin.catalogInfo', 'Informação do Catálogo')}</h3>
             </div>
+            <p className="text-sm text-gray-600">
+              {t('admin.catalogDescription', 'Este desafio faz parte do catálogo de cursos. Para executar ou ver resultados, acesse através de um Plano de Formação.')}
+            </p>
           </motion.div>
 
           {/* Performance Stats */}
