@@ -8,3 +8,14 @@ __pycache__/
 .env.local
 .vscode/
 *.log
+
+# Arquivos temporários de tunnel
+.cf-*.err
+.cf-*.out
+.lt-*.err
+.lt-*.out
+.lt-*.body
+.lt-*.headers
+.frontend.index
+.try.api
+backend/package-lock.json

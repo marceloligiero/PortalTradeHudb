@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
   // DEV_PUBLIC_IP environment variable (start script will set this).
   // Also keep the cloudflared quick-tunnel host allowed.
   const publicIp = process.env.DEV_PUBLIC_IP || env.DEV_PUBLIC_IP || '';
-  const allowedHosts: Array<string | any> = ['.trycloudflare.com'];
+  const allowedHosts: Array<string | any> = ['.trycloudflare.com', '.loca.lt'];
   if (publicIp) {
     if (publicIp === 'all') {
       // Vite accepts the special value 'all' to allow any host.
