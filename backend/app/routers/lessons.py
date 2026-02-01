@@ -354,11 +354,18 @@ async def start_lesson(
     progress = get_or_create_lesson_progress(db, lesson_id, user_id, training_plan_id)
     
     # Verificar se a aula foi liberada pelo formador
+    # ADMIN e TRAINER podem iniciar mesmo sem liberação prévia (liberam automaticamente)
     if not progress.is_released:
-        raise HTTPException(
-            status_code=400, 
-            detail="Aula ainda não foi liberada pelo formador. Aguarde a liberação."
-        )
+        if current_user.role in ["ADMIN", "TRAINER"]:
+            # Admin/Trainer libera automaticamente ao iniciar
+            progress.is_released = True
+            progress.released_by = current_user.id
+            progress.released_at = datetime.now()
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail="Aula ainda não foi liberada pelo formador. Aguarde a liberação."
+            )
     
     # Verificar se já está em progresso ou concluída
     if progress.status == "COMPLETED":
