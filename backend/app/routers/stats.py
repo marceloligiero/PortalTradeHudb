@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
-from app.models import User, TrainingPlan, Course, Challenge, ChallengeSubmission
+from app.models import User, TrainingPlan, TrainingPlanAssignment, Course, Challenge, ChallengeSubmission
 
 router = APIRouter(prefix="/api/stats", tags=["stats"])
 
@@ -94,14 +94,14 @@ async def get_featured_training_plans(db: Session = Depends(get_db), limit: int 
     
     plans = db.query(
         TrainingPlan.id,
-        TrainingPlan.name,
+        TrainingPlan.title,
         TrainingPlan.description,
-        func.count(User.id).label('enrolled_users')
+        func.count(TrainingPlanAssignment.id).label('enrolled_users')
     ).outerjoin(
-        User, TrainingPlan.id == User.id  # Ajustar conforme relação real
+        TrainingPlanAssignment, TrainingPlan.id == TrainingPlanAssignment.training_plan_id
     ).group_by(
         TrainingPlan.id,
-        TrainingPlan.name,
+        TrainingPlan.title,
         TrainingPlan.description
     ).order_by(
         TrainingPlan.created_at.desc()
@@ -110,7 +110,7 @@ async def get_featured_training_plans(db: Session = Depends(get_db), limit: int 
     return [
         {
             "id": plan.id,
-            "name": plan.name,
+            "title": plan.title,
             "description": plan.description,
             "enrolled_users": plan.enrolled_users
         }
