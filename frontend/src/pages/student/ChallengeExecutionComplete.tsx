@@ -313,14 +313,13 @@ const StudentChallengeExecution: React.FC = () => {
         </div>
         <h1 className="text-3xl font-bold text-white mb-4">Desafio Submetido!</h1>
         <p className="text-gray-400 mb-8 max-w-md">
-          O seu desafio foi submetido com sucesso e está pendente de revisão pelo formador.
-          Receberá o resultado assim que for avaliado.
+          {t('challengeExecution.submittedSuccessDesc', 'O seu desafio foi submetido com sucesso e está pendente de revisão pelo formador. Receberá o resultado assim que for avaliado.')}
         </p>
         <button
           onClick={() => navigate('/student/my-challenges')}
           className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors"
         >
-          Ver Meus Desafios
+          {t('navigation.myChallenges')}
         </button>
       </div>
     );
