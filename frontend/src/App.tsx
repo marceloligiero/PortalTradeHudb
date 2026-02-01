@@ -22,6 +22,7 @@ import AdminCourseDetail from './pages/admin/CourseDetail';
 import AdminTrainingPlanForm from './pages/admin/TrainingPlanForm';
 import AdminTrainingPlans from './pages/admin/TrainingPlans';
 import AdminReportsPage from './pages/admin/Reports';
+import AdminAdvancedReportsPage from './pages/admin/AdvancedReports';
 import AdminSettingsPage from './pages/admin/Settings';
 import AdminBanksPage from './pages/admin/Banks';
 import AdminProductsPage from './pages/admin/Products';
@@ -129,6 +130,7 @@ function App() {
             <Route path="lessons/:lessonId/manage" element={<LessonManagement />} />
             <Route path="submissions/:submissionId/review" element={<SubmissionReview />} />
             <Route path="reports" element={<AdminReportsPage />} />
+            <Route path="advanced-reports" element={<AdminAdvancedReportsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="banks" element={<AdminBanksPage />} />
             <Route path="products" element={<AdminProductsPage />} />
