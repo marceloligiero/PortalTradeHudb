@@ -152,9 +152,12 @@ export default function TrainingPlanDetail() {
   // Rating state
   const [showPlanRatingModal, setShowPlanRatingModal] = useState(false);
   const [showTrainerRatingModal, setShowTrainerRatingModal] = useState(false);
+  const [showCourseRatingModal, setShowCourseRatingModal] = useState(false);
   const [selectedTrainer, setSelectedTrainer] = useState<TrainerInfo | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<CourseItem | null>(null);
   const [hasPlanRating, setHasPlanRating] = useState(false);
   const [trainerRatings, setTrainerRatings] = useState<Record<number, boolean>>({});
+  const [courseRatings, setCourseRatings] = useState<Record<number, boolean>>({});
 
   const isStudent = user?.role === 'STUDENT' || user?.role === 'TRAINEE';
   const isTrainer = user?.role === 'TRAINER' || user?.role === 'ADMIN';
@@ -235,6 +238,22 @@ export default function TrainingPlanDetail() {
           }
         }
         setTrainerRatings(ratingsMap);
+      }
+      
+      // Check course ratings
+      if (plan.courses) {
+        const courseRatingsMap: Record<number, boolean> = {};
+        for (const course of plan.courses) {
+          try {
+            const courseResp = await api.get('/api/ratings/check', {
+              params: { item_type: 'COURSE', item_id: course.id }
+            });
+            courseRatingsMap[course.id] = courseResp.data.exists;
+          } catch (err) {
+            console.log('Error checking course rating:', err);
+          }
+        }
+        setCourseRatings(courseRatingsMap);
       }
     };
     
@@ -808,6 +827,29 @@ export default function TrainingPlanDetail() {
                       </div>
                       <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>{course.description}</p>
                     </div>
+                    
+                    {/* Course Rating Button - students only, when course is complete */}
+                    {isStudent && getCourseCompletionStatus(course.id)?.is_complete && (
+                      <div className="flex items-center ml-4">
+                        {courseRatings[course.id] ? (
+                          <span className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-xl text-sm font-medium">
+                            <Star className="w-4 h-4 fill-green-400" />
+                            {t('trainingPlanDetail.courseRated', 'Curso Classificado')} ✓
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setSelectedCourse(course);
+                              setShowCourseRatingModal(true);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-600 text-white rounded-xl font-medium hover:from-amber-600 hover:to-yellow-700 transition-all shadow-lg hover:shadow-xl"
+                          >
+                            <Star className="w-4 h-4" />
+                            {t('trainingPlanDetail.rateCourse', 'Classificar Curso')}
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1477,6 +1519,25 @@ export default function TrainingPlanDetail() {
             setTrainerRatings(prev => ({ ...prev, [selectedTrainer.id]: true }));
             setShowTrainerRatingModal(false);
             setSelectedTrainer(null);
+          }}
+        />
+      )}
+
+      {/* Rating Modal for Course */}
+      {selectedCourse && (
+        <RatingModal
+          isOpen={showCourseRatingModal}
+          onClose={() => {
+            setShowCourseRatingModal(false);
+            setSelectedCourse(null);
+          }}
+          ratingType="COURSE"
+          itemId={selectedCourse.id}
+          itemTitle={selectedCourse.title}
+          onSuccess={() => {
+            setCourseRatings(prev => ({ ...prev, [selectedCourse.id]: true }));
+            setShowCourseRatingModal(false);
+            setSelectedCourse(null);
           }}
         />
       )}
