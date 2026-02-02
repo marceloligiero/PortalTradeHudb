@@ -73,7 +73,8 @@
     "settings": "Definições",
     "trainingPlans": "Planos de Formação",
     "banks": "Bancos",
-    "products": "Produtos"
+    "products": "Produtos",
+    "ratings": "Avaliações"
   },
   "roles": {
     "ADMIN": "Administrador",

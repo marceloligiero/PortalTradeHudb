@@ -73,7 +73,8 @@
     "settings": "Settings",
     "trainingPlans": "Training Plans",
     "banks": "Banks",
-    "products": "Products"
+    "products": "Products",
+    "ratings": "Ratings"
   },
   "roles": {
     "ADMIN": "Administrator",
