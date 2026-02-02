@@ -4,12 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
   BookOpen, Calendar, ArrowLeft, Clock, Target, AlertCircle, PlayCircle, 
-  CheckCircle2, Pause, Play, Eye, Settings2, TrendingUp, Timer, Award, Download
+  CheckCircle2, Pause, Play, Eye, Settings2, TrendingUp, Timer, Award, Download, Star
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
 import { PremiumHeader } from '../../components/premium';
+import RatingModal from '../../components/RatingModal';
 
 interface LessonItem {
   id: number;
@@ -148,6 +149,13 @@ export default function TrainingPlanDetail() {
   const [finalizingPlan, setFinalizingPlan] = useState(false);
   const [currentTime, setCurrentTime] = useState(Date.now());
 
+  // Rating state
+  const [showPlanRatingModal, setShowPlanRatingModal] = useState(false);
+  const [showTrainerRatingModal, setShowTrainerRatingModal] = useState(false);
+  const [selectedTrainer, setSelectedTrainer] = useState<TrainerInfo | null>(null);
+  const [hasPlanRating, setHasPlanRating] = useState(false);
+  const [trainerRatings, setTrainerRatings] = useState<Record<number, boolean>>({});
+
   const isStudent = user?.role === 'STUDENT' || user?.role === 'TRAINEE';
   const isTrainer = user?.role === 'TRAINER' || user?.role === 'ADMIN';
 
@@ -197,6 +205,41 @@ export default function TrainingPlanDetail() {
     if (!id) return;
     fetchPlan();
   }, [id, token, user]);
+
+  // Check if user has already rated the plan and trainers
+  useEffect(() => {
+    const checkRatings = async () => {
+      if (!plan || !isStudent) return;
+      
+      // Check plan rating
+      try {
+        const planResp = await api.get('/api/ratings/check', {
+          params: { item_type: 'TRAINING_PLAN', item_id: plan.id }
+        });
+        setHasPlanRating(planResp.data.exists);
+      } catch (err) {
+        console.log('Error checking plan rating:', err);
+      }
+      
+      // Check trainer ratings
+      if (plan.trainers) {
+        const ratingsMap: Record<number, boolean> = {};
+        for (const trainer of plan.trainers) {
+          try {
+            const trainerResp = await api.get('/api/ratings/check', {
+              params: { item_type: 'TRAINER', item_id: trainer.id }
+            });
+            ratingsMap[trainer.id] = trainerResp.data.exists;
+          } catch (err) {
+            console.log('Error checking trainer rating:', err);
+          }
+        }
+        setTrainerRatings(ratingsMap);
+      }
+    };
+    
+    checkRatings();
+  }, [plan, isStudent]);
 
   const fetchPlan = async () => {
     try {
@@ -616,6 +659,26 @@ export default function TrainingPlanDetail() {
                 }
               </p>
             </div>
+            
+            {/* Rating button for finalized plan - students only */}
+            {isStudent && completionStatus.is_finalized && (
+              <div className="flex items-center">
+                {hasPlanRating ? (
+                  <span className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-xl text-sm font-medium">
+                    <Star className="w-4 h-4 fill-green-400" />
+                    {t('trainingPlanDetail.planRated', 'Plano Classificado')} ✓
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => setShowPlanRatingModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-600 text-white rounded-xl font-medium hover:from-amber-600 hover:to-yellow-700 transition-all shadow-lg hover:shadow-xl"
+                  >
+                    <Star className="w-4 h-4" />
+                    {t('trainingPlanDetail.ratePlan', 'Classificar Plano')}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </motion.div>
       )}
@@ -636,7 +699,7 @@ export default function TrainingPlanDetail() {
             {plan.trainers.map((trainer) => (
               <div
                 key={trainer.id}
-                className={`flex items-center gap-3 px-4 py-2 rounded-xl ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl ${
                   isDark ? 'bg-white/5 border border-white/10' : 'bg-gray-50 border border-gray-200'
                 }`}
               >
@@ -647,7 +710,7 @@ export default function TrainingPlanDetail() {
                 }`}>
                   {trainer.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                 </div>
-                <div>
+                <div className="flex-1">
                   <div className={`font-medium flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
                     {trainer.full_name}
                     {trainer.is_primary && (
@@ -662,6 +725,29 @@ export default function TrainingPlanDetail() {
                     </div>
                   )}
                 </div>
+                
+                {/* Rating button for trainer - students only, when plan is finalized */}
+                {isStudent && completionStatus?.is_finalized && (
+                  <div className="ml-2">
+                    {trainerRatings[trainer.id] ? (
+                      <span className="flex items-center gap-1 px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-xs font-medium">
+                        <Star className="w-3 h-3 fill-green-400" />
+                        {t('trainingPlanDetail.rated', 'Classificado')} ✓
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setSelectedTrainer(trainer);
+                          setShowTrainerRatingModal(true);
+                        }}
+                        className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-600 text-white rounded-lg text-xs font-medium hover:from-amber-600 hover:to-yellow-700 transition-all"
+                      >
+                        <Star className="w-3 h-3" />
+                        {t('trainingPlanDetail.rateTrainer', 'Classificar')}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -1360,6 +1446,40 @@ export default function TrainingPlanDetail() {
           )}
         </div>
       </motion.div>
+
+      {/* Rating Modal for Training Plan */}
+      {plan && (
+        <RatingModal
+          isOpen={showPlanRatingModal}
+          onClose={() => setShowPlanRatingModal(false)}
+          ratingType="TRAINING_PLAN"
+          itemId={plan.id}
+          itemTitle={plan.title}
+          onSuccess={() => {
+            setHasPlanRating(true);
+            setShowPlanRatingModal(false);
+          }}
+        />
+      )}
+
+      {/* Rating Modal for Trainer */}
+      {selectedTrainer && (
+        <RatingModal
+          isOpen={showTrainerRatingModal}
+          onClose={() => {
+            setShowTrainerRatingModal(false);
+            setSelectedTrainer(null);
+          }}
+          ratingType="TRAINER"
+          itemId={selectedTrainer.id}
+          itemTitle={selectedTrainer.full_name}
+          onSuccess={() => {
+            setTrainerRatings(prev => ({ ...prev, [selectedTrainer.id]: true }));
+            setShowTrainerRatingModal(false);
+            setSelectedTrainer(null);
+          }}
+        />
+      )}
     </div>
   );
 }
