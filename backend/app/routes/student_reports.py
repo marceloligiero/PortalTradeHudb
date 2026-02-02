@@ -139,7 +139,6 @@ async def get_student_dashboard(
         func.count(models.LessonProgress.id).label('total'),
         func.sum(case((models.LessonProgress.status == 'COMPLETED', 1), else_=0)).label('completed'),
         func.sum(case((models.LessonProgress.is_approved == True, 1), else_=0)).label('approved'),
-        func.avg(models.LessonProgress.actual_time_minutes).label('avg_time'),
     ).filter(
         models.LessonProgress.user_id == user_id
     ).first()
@@ -147,7 +146,28 @@ async def get_student_dashboard(
     total_lessons = lessons_stats.total or 0
     completed_lessons = int(lessons_stats.completed or 0)
     approved_lessons = int(lessons_stats.approved or 0)
-    avg_lesson_time = float(lessons_stats.avg_time or 0)
+    
+    # Calcular tempo médio das lições (usando completed_at - started_at quando actual_time_minutes for nulo)
+    completed_lesson_records = db.query(models.LessonProgress).filter(
+        models.LessonProgress.user_id == user_id,
+        models.LessonProgress.status == 'COMPLETED',
+        models.LessonProgress.completed_at != None,
+        models.LessonProgress.started_at != None
+    ).all()
+    
+    total_time_minutes = 0
+    count_with_time = 0
+    for lp in completed_lesson_records:
+        if lp.actual_time_minutes and lp.actual_time_minutes > 0:
+            total_time_minutes += lp.actual_time_minutes
+            count_with_time += 1
+        elif lp.completed_at and lp.started_at:
+            diff = (lp.completed_at - lp.started_at).total_seconds() / 60
+            if diff > 0:
+                total_time_minutes += diff
+                count_with_time += 1
+    
+    avg_lesson_time = round(total_time_minutes / count_with_time, 1) if count_with_time > 0 else 0
     
     # 6. ÚLTIMAS ATIVIDADES
     recent_submissions = db.query(
