@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card } from '../../components/Card';
-import { Button } from '../../components/Button';
-import { Select } from '../../components/Select';
-import { Tabs } from '../../components/Tabs';
+import Card from '../../components/Card';
+import Button from '../../components/Button';
+import Select from '../../components/Select';
+import Tabs from '../../components/Tabs';
 import StarRating from '../../components/StarRating';
 import api from '../../lib/axios';
 import { useTranslation } from 'react-i18next';
