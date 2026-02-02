@@ -82,9 +82,9 @@ export const RatingModal: React.FC<RatingModalProps> = ({
         setComment('');
         setSuccess(false);
       }, 1500);
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : t('ratingModal.submitError');
-      setError(errorMessage);
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.detail || err?.message || t('ratingModal.submitError');
+      setError(typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage));
     } finally {
       setIsSubmitting(false);
     }
