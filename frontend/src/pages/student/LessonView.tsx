@@ -67,6 +67,7 @@ export default function LessonView() {
   const [isFinished, setIsFinished] = useState(false);
   const [finishLoading, setFinishLoading] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [hasRated, setHasRated] = useState(false);
 
   // Se a aula foi iniciada pelo FORMADOR, o formando pode finalizar após ler todas as páginas
   const isTrainerStarted = lesson?.started_by === 'TRAINER';
@@ -210,6 +211,7 @@ export default function LessonView() {
   // Handle rating modal close - navigate back after rating
   const handleRatingComplete = () => {
     setShowRatingModal(false);
+    setHasRated(true);
     if (planId) {
       navigate(`/training-plan/${planId}`);
     }
@@ -246,6 +248,16 @@ export default function LessonView() {
         }
       } catch (err) {
         console.log('Progresso não encontrado');
+      }
+      
+      // Verificar se já existe rating para esta lição
+      try {
+        const ratingResp = await api.get(`/api/ratings/check`, {
+          params: { rating_type: 'LESSON', lesson_id: lessonId }
+        });
+        setHasRated(ratingResp.data?.exists || false);
+      } catch (err) {
+        console.log('Erro ao verificar rating');
       }
     } catch (err: any) {
       console.error('Error fetching lesson:', err);
@@ -663,13 +675,20 @@ export default function LessonView() {
                   <CheckCircle2 className="w-5 h-5" />
                   Módulo Aprovado ✓
                 </div>
-                <button
-                  onClick={() => setShowRatingModal(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg font-medium hover:from-amber-600 hover:to-yellow-600 transition-all shadow-md"
-                >
-                  <Star className="w-4 h-4" />
-                  Classificar Lição
-                </button>
+                {hasRated ? (
+                  <div className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-500 rounded-lg font-medium border border-gray-200">
+                    <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    Lição Classificada ✓
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowRatingModal(true)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg font-medium hover:from-amber-600 hover:to-yellow-600 transition-all shadow-md"
+                  >
+                    <Star className="w-4 h-4" />
+                    Classificar Lição
+                  </button>
+                )}
               </div>
             )}
             

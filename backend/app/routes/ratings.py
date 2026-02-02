@@ -139,6 +139,38 @@ async def submit_rating(
     return _build_rating_response(rating, db)
 
 
+@router.get("/check")
+async def check_rating_exists(
+    rating_type: str = Query(..., description="COURSE, LESSON, CHALLENGE, TRAINER, TRAINING_PLAN"),
+    course_id: Optional[int] = Query(None),
+    lesson_id: Optional[int] = Query(None),
+    challenge_id: Optional[int] = Query(None),
+    trainer_id: Optional[int] = Query(None),
+    training_plan_id: Optional[int] = Query(None),
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Verifica se o usuário já fez uma avaliação para o item especificado"""
+    query = db.query(models.Rating).filter(
+        models.Rating.user_id == current_user.id,
+        models.Rating.rating_type == rating_type.upper()
+    )
+    
+    if rating_type.upper() == "COURSE" and course_id:
+        query = query.filter(models.Rating.course_id == course_id)
+    elif rating_type.upper() == "LESSON" and lesson_id:
+        query = query.filter(models.Rating.lesson_id == lesson_id)
+    elif rating_type.upper() == "CHALLENGE" and challenge_id:
+        query = query.filter(models.Rating.challenge_id == challenge_id)
+    elif rating_type.upper() == "TRAINER" and trainer_id:
+        query = query.filter(models.Rating.trainer_id == trainer_id)
+    elif rating_type.upper() == "TRAINING_PLAN" and training_plan_id:
+        query = query.filter(models.Rating.training_plan_id == training_plan_id)
+    
+    existing = query.first()
+    return {"exists": existing is not None, "rating_id": existing.id if existing else None}
+
+
 @router.get("/my-ratings", response_model=RatingsListResponse)
 async def get_my_ratings(
     current_user: models.User = Depends(auth.require_role(["TRAINEE"])),
