@@ -235,6 +235,11 @@ async def get_course_detail(
                     "end_date": tp_record.end_date.isoformat() if tp_record.end_date else None,
                 }
     
+    # Get total enrolled students count
+    total_students = db.query(models.Enrollment).filter(
+        models.Enrollment.course_id == course_id
+    ).count()
+    
     return {
         "id": course.id,
         "title": course.title,
@@ -245,6 +250,7 @@ async def get_course_detail(
         "product_name": course.product.name if hasattr(course, 'product') and course.product else None,
         "trainer_id": course.created_by,
         "trainer_name": course.creator.full_name if hasattr(course, 'creator') and course.creator else None,
+        "total_students": total_students,
         "total_lessons": len(lessons),
         "total_challenges": len(challenges),
         "created_at": course.created_at.isoformat() if course.created_at else None,
