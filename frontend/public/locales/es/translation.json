@@ -34,7 +34,15 @@
     "challenges": "Desafíos",
     "users": "Usuarios",
     "settings": "Configuración",
-    "ratings": "Evaluaciones"
+    "ratings": "Evaluaciones",
+    "trainingPlans": "Planes de Formación",
+    "trainers": "Formadores",
+    "banks": "Bancos",
+    "products": "Productos",
+    "reports": "Informes",
+    "advancedReports": "Informes Avanzados",
+    "pendingReviews": "Pendientes de Revisión",
+    "myChallenges": "Mis Desafíos"
   },
   "roles": {
     "admin": "Administrador",

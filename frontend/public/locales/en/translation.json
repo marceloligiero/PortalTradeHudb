@@ -34,7 +34,15 @@
     "challenges": "Challenges",
     "users": "Users",
     "settings": "Settings",
-    "ratings": "Ratings"
+    "ratings": "Ratings",
+    "trainingPlans": "Training Plans",
+    "trainers": "Trainers",
+    "banks": "Banks",
+    "products": "Products",
+    "reports": "Reports",
+    "advancedReports": "Advanced Reports",
+    "pendingReviews": "Pending Reviews",
+    "myChallenges": "My Challenges"
   },
   "roles": {
     "admin": "Administrator",
