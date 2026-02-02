@@ -212,7 +212,7 @@ const Reports: React.FC = () => {
         <StatCard
           title="MPU Médio"
           value={(summary.avg_mpu ?? 0).toFixed(2)}
-          subtitle="segundos/operação"
+          subtitle="minutos/unidade"
           icon={<Zap className="w-6 h-6 text-white" />}
           color="from-amber-500 to-amber-600"
           delay={0.4}
