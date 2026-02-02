@@ -198,7 +198,7 @@ export default function AdvancedReportsPage() {
                   </div>
                   <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
                     <ArrowUp className="w-3 h-3" />
-                    {summary.active_students_30d} ativos últimos 30 dias
+                    {summary.active_students_30d} {t('advancedReports.activeLast30Days')}
                   </p>
                 </div>
 
@@ -214,7 +214,7 @@ export default function AdvancedReportsPage() {
                   </div>
                   <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />
-                    {summary.pending_trainers} pendentes validação
+                    {summary.pending_trainers} {t('advancedReports.pendingValidation')}
                   </p>
                 </div>
 
@@ -229,7 +229,7 @@ export default function AdvancedReportsPage() {
                     </div>
                   </div>
                   <p className="text-xs text-gray-500 mt-2">
-                    {summary.total_training_plans} planos de formação
+                    {summary.total_training_plans} {t('advancedReports.trainingPlans')}
                   </p>
                 </div>
 
@@ -245,7 +245,7 @@ export default function AdvancedReportsPage() {
                   </div>
                   <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3" />
-                    {summary.avg_completion_rate.toFixed(1)}% taxa conclusão
+                    {summary.avg_completion_rate.toFixed(1)}% {t('advancedReports.completionRate')}
                   </p>
                 </div>
               </div>
@@ -258,7 +258,7 @@ export default function AdvancedReportsPage() {
                     <span className="font-semibold">{t('admin.studyHours', 'Horas de Estudo')}</span>
                   </div>
                   <p className="text-3xl font-bold">{summary.total_study_hours.toFixed(1)}h</p>
-                  <p className="text-blue-100 text-sm mt-1">Total acumulado na plataforma</p>
+                  <p className="text-blue-100 text-sm mt-1">{t('advancedReports.totalAccumulated')}</p>
                 </div>
 
                 <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white">
@@ -267,7 +267,7 @@ export default function AdvancedReportsPage() {
                     <span className="font-semibold">{t('admin.topBank', 'Melhor Banco')}</span>
                   </div>
                   <p className="text-3xl font-bold">{summary.top_performing_bank}</p>
-                  <p className="text-green-100 text-sm mt-1">Maior desempenho médio</p>
+                  <p className="text-green-100 text-sm mt-1">{t('advancedReports.highestPerformance')}</p>
                 </div>
 
                 <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white">
@@ -276,7 +276,7 @@ export default function AdvancedReportsPage() {
                     <span className="font-semibold">{t('admin.topProduct', 'Produto Popular')}</span>
                   </div>
                   <p className="text-3xl font-bold">{summary.most_popular_product}</p>
-                  <p className="text-purple-100 text-sm mt-1">Mais matriculados</p>
+                  <p className="text-purple-100 text-sm mt-1">{t('advancedReports.mostEnrolled')}</p>
                 </div>
               </div>
             </motion.div>
@@ -298,11 +298,11 @@ export default function AdvancedReportsPage() {
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-900">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aluno</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lições</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MPU Médio</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tempo</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Certificados</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.student')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.lessons')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.avgMpu')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.time')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.certificates')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -364,11 +364,11 @@ export default function AdvancedReportsPage() {
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-900">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Formador</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cursos</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alunos</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Planos</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Taxa Conclusão</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.trainer')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.courses')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.students')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.plans')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.completionRateHeader')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -424,13 +424,13 @@ export default function AdvancedReportsPage() {
                 <table className="w-full">
                   <thead className="bg-gray-50 dark:bg-gray-900">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Curso</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Banco</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produto</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lições</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Matrículas</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Conclusão</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MPU</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.course')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.bank')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.product')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.lessons')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.enrollments')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.completion')}</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.mpu')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -497,7 +497,7 @@ export default function AdvancedReportsPage() {
                       <XAxis dataKey="month" />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="certificates_issued" fill="#ef4444" name="Certificados Emitidos" />
+                      <Bar dataKey="certificates_issued" fill="#ef4444" name={t('advancedReports.certificatesIssued')} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -526,8 +526,8 @@ export default function AdvancedReportsPage() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="bank_code" />
                       <YAxis />
-                      <Tooltip formatter={(value: number) => [`${value} min`, 'MPU Médio']} />
-                      <Bar dataKey="avg_mpu" fill="#10b981" name="MPU Médio (min/op)" />
+                      <Tooltip formatter={(value: number) => [`${value} min`, t('advancedReports.avgMpu')]} />
+                      <Bar dataKey="avg_mpu" fill="#10b981" name={t('advancedReports.avgMpuMinOp')} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -547,10 +547,10 @@ export default function AdvancedReportsPage() {
                   <table className="w-full">
                     <thead className="bg-gray-50 dark:bg-gray-900">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Banco</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MPU Médio</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alunos</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.bank')}</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.avgMpu')}</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.students')}</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.category')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">

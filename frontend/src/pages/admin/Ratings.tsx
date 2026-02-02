@@ -44,19 +44,19 @@ interface DashboardData {
   recent_ratings: Rating[];
 }
 
-const ratingTypeLabels: Record<string, string> = {
-  COURSE: 'Cursos',
-  LESSON: 'Aulas',
-  CHALLENGE: 'Desafios',
-  TRAINER: 'Formadores',
-  TRAINING_PLAN: 'Planos de Formação'
-};
-
 export const Ratings: React.FC = () => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const ratingTypeLabels: Record<string, string> = {
+    COURSE: t('ratings.courses'),
+    LESSON: t('ratings.lessons'),
+    CHALLENGE: t('ratings.challenges'),
+    TRAINER: t('ratings.trainers'),
+    TRAINING_PLAN: t('ratings.trainingPlans')
+  };
   
   // Dashboard data
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -156,7 +156,7 @@ export const Ratings: React.FC = () => {
           <Card className="p-4">
             <div className="text-center">
               <div className="text-3xl font-bold text-blue-600">{dashboardData.total_ratings}</div>
-              <div className="text-sm text-gray-500">Total de Avaliações</div>
+              <div className="text-sm text-gray-500">{t('ratings.totalRatings')}</div>
             </div>
           </Card>
           
@@ -168,7 +168,7 @@ export const Ratings: React.FC = () => {
                 </div>
                 <div className="text-xl font-semibold">{data.avg_stars.toFixed(1)}</div>
                 <div className="text-sm text-gray-500">{ratingTypeLabels[type]}</div>
-                <div className="text-xs text-gray-400">{data.total_count} avaliações</div>
+                <div className="text-xs text-gray-400">{data.total_count} {t('ratings.ratingsFound')}</div>
               </div>
             </Card>
           ))}
@@ -176,7 +176,7 @@ export const Ratings: React.FC = () => {
 
         {/* Star Distribution */}
         <Card className="p-4">
-          <h3 className="text-lg font-semibold mb-4">Distribuição de Estrelas</h3>
+          <h3 className="text-lg font-semibold mb-4">{t('ratings.starDistribution')}</h3>
           <div className="space-y-2">
             {[5, 4, 3, 2, 1, 0].map((star) => {
               const count = dashboardData.star_distribution[String(star)] || 0;
@@ -186,7 +186,7 @@ export const Ratings: React.FC = () => {
               
               return (
                 <div key={star} className="flex items-center gap-3">
-                  <div className="w-16 text-sm">{star} estrelas</div>
+                  <div className="w-16 text-sm">{star} {t('ratings.stars')}</div>
                   <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-4">
                     <div
                       className="bg-yellow-400 h-4 rounded-full transition-all"
@@ -204,9 +204,9 @@ export const Ratings: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {/* Top Trainers */}
           <Card className="p-4">
-            <h3 className="text-lg font-semibold mb-4">🏆 Top Formadores</h3>
+            <h3 className="text-lg font-semibold mb-4">🏆 {t('ratings.topTrainers')}</h3>
             {dashboardData.top_trainers.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">Sem avaliações de formadores</p>
+              <p className="text-gray-500 text-center py-4">{t('ratings.noTrainerRatings')}</p>
             ) : (
               <div className="space-y-3">
                 {dashboardData.top_trainers.map((trainer, idx) => (
@@ -214,7 +214,7 @@ export const Ratings: React.FC = () => {
                     <span className="text-lg font-bold text-gray-400">#{idx + 1}</span>
                     <div className="flex-1">
                       <div className="font-medium">{trainer.trainer_name}</div>
-                      <div className="text-xs text-gray-500">{trainer.total_ratings} avaliações</div>
+                      <div className="text-xs text-gray-500">{trainer.total_ratings} {t('ratings.ratingsFound')}</div>
                     </div>
                     <div className="flex items-center gap-1">
                       <StarRating value={trainer.avg_stars} readonly size="sm" showValue={false} />
@@ -228,9 +228,9 @@ export const Ratings: React.FC = () => {
 
           {/* Top Courses */}
           <Card className="p-4">
-            <h3 className="text-lg font-semibold mb-4">📚 Top Cursos</h3>
+            <h3 className="text-lg font-semibold mb-4">📚 {t('ratings.topCourses')}</h3>
             {dashboardData.top_courses.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">Sem avaliações de cursos</p>
+              <p className="text-gray-500 text-center py-4">{t('ratings.noCourseRatings')}</p>
             ) : (
               <div className="space-y-3">
                 {dashboardData.top_courses.map((course, idx) => (
@@ -238,7 +238,7 @@ export const Ratings: React.FC = () => {
                     <span className="text-lg font-bold text-gray-400">#{idx + 1}</span>
                     <div className="flex-1">
                       <div className="font-medium">{course.course_title}</div>
-                      <div className="text-xs text-gray-500">{course.total_ratings} avaliações</div>
+                      <div className="text-xs text-gray-500">{course.total_ratings} {t('ratings.ratingsFound')}</div>
                     </div>
                     <div className="flex items-center gap-1">
                       <StarRating value={course.avg_stars} readonly size="sm" showValue={false} />
@@ -253,9 +253,9 @@ export const Ratings: React.FC = () => {
 
         {/* Recent Ratings */}
         <Card className="p-4">
-          <h3 className="text-lg font-semibold mb-4">📝 Avaliações Recentes</h3>
+          <h3 className="text-lg font-semibold mb-4">📝 {t('ratings.recentRatings')}</h3>
           {dashboardData.recent_ratings.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">Sem avaliações recentes</p>
+            <p className="text-gray-500 text-center py-4">{t('ratings.noRecentRatings')}</p>
           ) : (
             <div className="space-y-4">
               {dashboardData.recent_ratings.map((rating) => (
@@ -298,16 +298,16 @@ export const Ratings: React.FC = () => {
                 onChange={(e) => setFilterType(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
               >
-                <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Todos os tipos</option>
-                <option value="COURSE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Cursos</option>
-                <option value="LESSON" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Aulas</option>
-                <option value="CHALLENGE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Desafios</option>
-                <option value="TRAINER" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Formadores</option>
-                <option value="TRAINING_PLAN" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Planos de Formação</option>
+                <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.allTypes')}</option>
+                <option value="COURSE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.courses')}</option>
+                <option value="LESSON" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.lessons')}</option>
+                <option value="CHALLENGE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.challenges')}</option>
+                <option value="TRAINER" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.trainers')}</option>
+                <option value="TRAINING_PLAN" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.trainingPlans')}</option>
               </select>
             </div>
             <div className="text-sm text-gray-500">
-              {ratings.length} avaliações encontradas
+              {ratings.length} {t('ratings.ratingsFound')}
             </div>
           </div>
         </Card>
@@ -318,12 +318,12 @@ export const Ratings: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Formando</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Item</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Avaliação</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Comentário</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('ratings.student')}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('ratings.type')}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('ratings.item')}</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t('ratings.rating')}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('ratings.comment')}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('ratings.date')}</th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
@@ -357,7 +357,7 @@ export const Ratings: React.FC = () => {
           </div>
           {ratings.length === 0 && (
             <div className="p-8 text-center text-gray-500">
-              Nenhuma avaliação encontrada
+              {t('ratings.noRatingsFound')}
             </div>
           )}
         </Card>
@@ -377,16 +377,16 @@ export const Ratings: React.FC = () => {
                 onChange={(e) => setSummaryFilterType(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
               >
-                <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Todos os tipos</option>
-                <option value="COURSE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Cursos</option>
-                <option value="LESSON" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Aulas</option>
-                <option value="CHALLENGE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Desafios</option>
-                <option value="TRAINER" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Formadores</option>
-                <option value="TRAINING_PLAN" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Planos de Formação</option>
+                <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.allTypes')}</option>
+                <option value="COURSE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.courses')}</option>
+                <option value="LESSON" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.lessons')}</option>
+                <option value="CHALLENGE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.challenges')}</option>
+                <option value="TRAINER" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.trainers')}</option>
+                <option value="TRAINING_PLAN" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.trainingPlans')}</option>
               </select>
             </div>
             <div className="text-sm text-gray-500">
-              {summaries.length} itens avaliados
+              {summaries.length} {t('ratings.itemsRated')}
             </div>
           </div>
         </Card>
@@ -435,7 +435,7 @@ export const Ratings: React.FC = () => {
 
         {summaries.length === 0 && (
           <Card className="p-8 text-center text-gray-500">
-            Nenhum item com avaliações encontrado
+            {t('ratings.noItemsRated')}
           </Card>
         )}
       </div>
@@ -444,7 +444,7 @@ export const Ratings: React.FC = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">⭐ Avaliações</h1>
+      <h1 className="text-2xl font-bold mb-6">⭐ {t('ratings.title')}</h1>
 
       {/* Custom Tab Navigation */}
       <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl mb-6">
@@ -456,7 +456,7 @@ export const Ratings: React.FC = () => {
               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
           }`}
         >
-          Dashboard
+          {t('ratings.dashboard')}
         </button>
         <button
           onClick={() => setActiveTab('all')}
@@ -466,7 +466,7 @@ export const Ratings: React.FC = () => {
               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
           }`}
         >
-          Todas as Avaliações
+          {t('ratings.allRatings')}
         </button>
         <button
           onClick={() => setActiveTab('summary')}
@@ -476,7 +476,7 @@ export const Ratings: React.FC = () => {
               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
           }`}
         >
-          Resumo por Item
+          {t('ratings.summaryByItem')}
         </button>
       </div>
 
@@ -490,7 +490,7 @@ export const Ratings: React.FC = () => {
         {isLoading ? (
           <Card className="p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4 text-gray-500">A carregar...</p>
+            <p className="mt-4 text-gray-500">{t('ratings.loading')}</p>
           </Card>
         ) : (
           <>
