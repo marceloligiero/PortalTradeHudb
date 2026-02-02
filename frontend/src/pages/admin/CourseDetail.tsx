@@ -69,6 +69,7 @@ export default function CourseDetail() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'ADMIN';
+  const isStudent = user?.role === 'STUDENT' || user?.role === 'TRAINEE';
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -79,9 +80,14 @@ export default function CourseDetail() {
       setLoading(true);
       setError(null);
       // Use different API based on user role
-      const apiPath = isAdmin 
-        ? `/api/admin/courses/${courseId}` 
-        : `/api/trainer/courses/details/${courseId}`;
+      let apiPath: string;
+      if (isStudent) {
+        apiPath = `/api/student/courses/${courseId}`;
+      } else if (isAdmin) {
+        apiPath = `/api/admin/courses/${courseId}`;
+      } else {
+        apiPath = `/api/trainer/courses/details/${courseId}`;
+      }
       const response = await api.get(apiPath);
       setCourse(response.data);
     } catch (err: any) {

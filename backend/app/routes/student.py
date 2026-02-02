@@ -182,6 +182,94 @@ async def get_my_courses(
 
     return result
 
+
+@router.get("/courses/{course_id}")
+async def get_course_detail(
+    course_id: int,
+    current_user: models.User = Depends(auth.get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Return course details for a student - they must be enrolled in the course."""
+    # Check if student is enrolled in this course
+    enrollment = db.query(models.Enrollment).filter(
+        models.Enrollment.user_id == current_user.id,
+        models.Enrollment.course_id == course_id
+    ).first()
+    
+    if not enrollment:
+        raise HTTPException(status_code=403, detail="You are not enrolled in this course")
+    
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Get lessons for this course
+    lessons = db.query(models.Lesson).filter(
+        models.Lesson.course_id == course_id
+    ).order_by(models.Lesson.order_index).all()
+    
+    # Get challenges for this course
+    challenges = db.query(models.Challenge).filter(
+        models.Challenge.course_id == course_id
+    ).all()
+    
+    # Get training plan if exists
+    assigned = db.query(models.TrainingPlanAssignment).filter(
+        models.TrainingPlanAssignment.user_id == current_user.id
+    ).all()
+    assigned_plan_ids = [a.training_plan_id for a in assigned]
+    
+    tp = None
+    if assigned_plan_ids:
+        tp_course = db.query(models.TrainingPlanCourse).filter(
+            models.TrainingPlanCourse.course_id == course_id,
+            models.TrainingPlanCourse.training_plan_id.in_(assigned_plan_ids)
+        ).first()
+        if tp_course:
+            tp_record = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == tp_course.training_plan_id).first()
+            if tp_record:
+                tp = {
+                    "id": tp_record.id,
+                    "title": tp_record.title,
+                    "start_date": tp_record.start_date.isoformat() if tp_record.start_date else None,
+                    "end_date": tp_record.end_date.isoformat() if tp_record.end_date else None,
+                }
+    
+    return {
+        "id": course.id,
+        "title": course.title,
+        "description": course.description,
+        "bank_code": course.bank.code if hasattr(course, 'bank') and course.bank else None,
+        "bank_name": course.bank.name if hasattr(course, 'bank') and course.bank else None,
+        "product_code": course.product.code if hasattr(course, 'product') and course.product else None,
+        "product_name": course.product.name if hasattr(course, 'product') and course.product else None,
+        "trainer_id": course.trainer_id,
+        "trainer_name": course.trainer.full_name if hasattr(course, 'trainer') and course.trainer else None,
+        "total_lessons": len(lessons),
+        "total_challenges": len(challenges),
+        "created_at": course.created_at.isoformat() if course.created_at else None,
+        "updated_at": course.updated_at.isoformat() if course.updated_at else None,
+        "lessons": [{
+            "id": l.id,
+            "title": l.title,
+            "description": l.description,
+            "content_type": l.lesson_type if hasattr(l, 'lesson_type') else None,
+            "duration_minutes": l.estimated_minutes if hasattr(l, 'estimated_minutes') else None,
+            "order_index": l.order_index
+        } for l in lessons],
+        "challenges": [{
+            "id": c.id,
+            "title": c.title,
+            "description": c.description,
+            "challenge_type": c.challenge_type if hasattr(c, 'challenge_type') else None,
+            "difficulty": c.difficulty if hasattr(c, 'difficulty') else None,
+            "max_score": c.max_score if hasattr(c, 'max_score') else None,
+            "time_limit_minutes": c.time_limit_minutes if hasattr(c, 'time_limit_minutes') else None
+        } for c in challenges],
+        "training_plan": tp
+    }
+
+
 @router.post("/enroll/{course_id}")
 async def enroll_in_course(
     course_id: int,
