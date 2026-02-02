@@ -696,8 +696,8 @@ const ChallengeResult: React.FC = () => {
             setHasRated(true);
           }}
           ratingType="CHALLENGE"
-          targetId={submission.challenge_id}
-          targetTitle={submission.challenge.title}
+          itemId={submission.challenge_id}
+          itemTitle={submission.challenge.title}
         />
       )}
     </div>
