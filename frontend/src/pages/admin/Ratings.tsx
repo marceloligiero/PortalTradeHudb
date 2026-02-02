@@ -296,14 +296,14 @@ export const Ratings: React.FC = () => {
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-white dark:bg-white/5 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                className="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
               >
-                <option value="">Todos os tipos</option>
-                <option value="COURSE">Cursos</option>
-                <option value="LESSON">Aulas</option>
-                <option value="CHALLENGE">Desafios</option>
-                <option value="TRAINER">Formadores</option>
-                <option value="TRAINING_PLAN">Planos de Formação</option>
+                <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Todos os tipos</option>
+                <option value="COURSE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Cursos</option>
+                <option value="LESSON" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Aulas</option>
+                <option value="CHALLENGE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Desafios</option>
+                <option value="TRAINER" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Formadores</option>
+                <option value="TRAINING_PLAN" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Planos de Formação</option>
               </select>
             </div>
             <div className="text-sm text-gray-500">
@@ -375,14 +375,14 @@ export const Ratings: React.FC = () => {
               <select
                 value={summaryFilterType}
                 onChange={(e) => setSummaryFilterType(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-white dark:bg-white/5 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                className="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
               >
-                <option value="">Todos os tipos</option>
-                <option value="COURSE">Cursos</option>
-                <option value="LESSON">Aulas</option>
-                <option value="CHALLENGE">Desafios</option>
-                <option value="TRAINER">Formadores</option>
-                <option value="TRAINING_PLAN">Planos de Formação</option>
+                <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Todos os tipos</option>
+                <option value="COURSE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Cursos</option>
+                <option value="LESSON" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Aulas</option>
+                <option value="CHALLENGE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Desafios</option>
+                <option value="TRAINER" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Formadores</option>
+                <option value="TRAINING_PLAN" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Planos de Formação</option>
               </select>
             </div>
             <div className="text-sm text-gray-500">
