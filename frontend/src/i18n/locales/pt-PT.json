@@ -1356,6 +1356,28 @@
     "validateNow": "Validar Agora",
     "notAssigned": "Não atribuído"
   },
+  "ratingModal": {
+    "title": "Avaliar",
+    "theCourse": "o curso",
+    "theLesson": "a aula",
+    "theChallenge": "o desafio",
+    "theTrainer": "o formador",
+    "theTrainingPlan": "o plano de formação",
+    "howDoYouRate": "Como avalia",
+    "veryWeak": "Muito Fraco",
+    "weak": "Fraco",
+    "fair": "Razoável",
+    "good": "Bom",
+    "excellent": "Excelente",
+    "selectRating": "Por favor, selecione uma avaliação de 1 a 5 estrelas.",
+    "commentOptional": "Comentário (opcional)",
+    "shareOpinion": "Partilhe a sua opinião...",
+    "submitRating": "Submeter Avaliação",
+    "submitting": "A enviar...",
+    "thankYou": "Obrigado pela sua avaliação!",
+    "yourOpinionMatters": "A sua opinião é importante para nós.",
+    "submitError": "Erro ao submeter avaliação. Tente novamente."
+  },
   "ratings": {
     "title": "Avaliações",
     "dashboard": "Dashboard",

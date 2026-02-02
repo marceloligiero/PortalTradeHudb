@@ -1356,6 +1356,28 @@
     "validateNow": "Validate Now",
     "notAssigned": "Not assigned"
   },
+  "ratingModal": {
+    "title": "Rate",
+    "theCourse": "the course",
+    "theLesson": "the lesson",
+    "theChallenge": "the challenge",
+    "theTrainer": "the trainer",
+    "theTrainingPlan": "the training plan",
+    "howDoYouRate": "How do you rate",
+    "veryWeak": "Very Weak",
+    "weak": "Weak",
+    "fair": "Fair",
+    "good": "Good",
+    "excellent": "Excellent",
+    "selectRating": "Please select a rating from 1 to 5 stars.",
+    "commentOptional": "Comment (optional)",
+    "shareOpinion": "Share your opinion...",
+    "submitRating": "Submit Rating",
+    "submitting": "Submitting...",
+    "thankYou": "Thank you for your rating!",
+    "yourOpinionMatters": "Your opinion matters to us.",
+    "submitError": "Error submitting rating. Please try again."
+  },
   "ratings": {
     "title": "Ratings",
     "dashboard": "Dashboard",

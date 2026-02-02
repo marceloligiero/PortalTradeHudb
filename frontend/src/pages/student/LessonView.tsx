@@ -20,6 +20,7 @@ import {
   Loader2
 } from 'lucide-react';
 import api from '../../lib/axios';
+import { RatingModal } from '../../components';
 
 interface Lesson {
   id: number;
@@ -64,6 +65,7 @@ export default function LessonView() {
   const [visitedPages, setVisitedPages] = useState<Set<number>>(new Set([1]));
   const [isFinished, setIsFinished] = useState(false);
   const [finishLoading, setFinishLoading] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
 
   // Se a aula foi iniciada pelo FORMADOR, o formando pode finalizar após ler todas as páginas
   const isTrainerStarted = lesson?.started_by === 'TRAINER';
@@ -195,14 +197,20 @@ export default function LessonView() {
       localStorage.setItem(`lesson_${lessonId}_finished`, 'true');
       setIsFinished(true);
       
-      // Navigate back to training plan
-      if (planId) {
-        navigate(`/training-plan/${planId}`);
-      }
+      // Show rating modal instead of navigating immediately
+      setShowRatingModal(true);
     } catch (err) {
       console.error('Error finishing lesson:', err);
     } finally {
       setFinishLoading(false);
+    }
+  };
+
+  // Handle rating modal close - navigate back after rating
+  const handleRatingComplete = () => {
+    setShowRatingModal(false);
+    if (planId) {
+      navigate(`/training-plan/${planId}`);
     }
   };
 
@@ -857,6 +865,18 @@ export default function LessonView() {
           </motion.div>
         </div>
       </div>
+
+      {/* Rating Modal */}
+      {lesson && (
+        <RatingModal
+          isOpen={showRatingModal}
+          onClose={handleRatingComplete}
+          onSuccess={handleRatingComplete}
+          ratingType="LESSON"
+          itemId={lesson.id}
+          itemTitle={lesson.title}
+        />
+      )}
     </div>
   );
 }

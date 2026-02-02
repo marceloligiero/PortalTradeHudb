@@ -17,14 +17,6 @@ interface RatingModalProps {
   itemTitle: string;
 }
 
-const ratingTypeLabels: Record<RatingType, string> = {
-  COURSE: 'o curso',
-  LESSON: 'a aula',
-  CHALLENGE: 'o desafio',
-  TRAINER: 'o formador',
-  TRAINING_PLAN: 'o plano de formação'
-};
-
 export const RatingModal: React.FC<RatingModalProps> = ({
   isOpen,
   onClose,
@@ -40,9 +32,25 @@ export const RatingModal: React.FC<RatingModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const ratingTypeLabels: Record<RatingType, string> = {
+    COURSE: t('ratingModal.theCourse'),
+    LESSON: t('ratingModal.theLesson'),
+    CHALLENGE: t('ratingModal.theChallenge'),
+    TRAINER: t('ratingModal.theTrainer'),
+    TRAINING_PLAN: t('ratingModal.theTrainingPlan')
+  };
+
+  const starLabels: Record<number, string> = {
+    1: t('ratingModal.veryWeak'),
+    2: t('ratingModal.weak'),
+    3: t('ratingModal.fair'),
+    4: t('ratingModal.good'),
+    5: t('ratingModal.excellent')
+  };
+
   const handleSubmit = async () => {
     if (stars === 0) {
-      setError('Por favor, selecione uma avaliação de 1 a 5 estrelas.');
+      setError(t('ratingModal.selectRating'));
       return;
     }
 
@@ -75,7 +83,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
         setSuccess(false);
       }, 1500);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao submeter avaliação. Tente novamente.';
+      const errorMessage = err instanceof Error ? err.message : t('ratingModal.submitError');
       setError(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -93,23 +101,23 @@ export const RatingModal: React.FC<RatingModalProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="Avaliar">
+    <Modal isOpen={isOpen} onClose={handleClose} title={t('ratingModal.title')}>
       <div className="space-y-6">
         {success ? (
           <div className="text-center py-8">
             <div className="text-5xl mb-4">⭐</div>
             <h3 className="text-lg font-semibold text-green-600 dark:text-green-400">
-              Obrigado pela sua avaliação!
+              {t('ratingModal.thankYou')}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-              A sua opinião é importante para nós.
+              {t('ratingModal.yourOpinionMatters')}
             </p>
           </div>
         ) : (
           <>
             <div className="text-center">
               <p className="text-gray-700 dark:text-gray-300">
-                Como avalia {ratingTypeLabels[ratingType]}:
+                {t('ratingModal.howDoYouRate')} {ratingTypeLabels[ratingType]}:
               </p>
               <p className="font-semibold text-lg mt-1 text-blue-600 dark:text-blue-400">
                 {itemTitle}
@@ -128,23 +136,19 @@ export const RatingModal: React.FC<RatingModalProps> = ({
             <div className="text-center">
               {stars > 0 && (
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {stars === 1 && 'Muito Fraco'}
-                  {stars === 2 && 'Fraco'}
-                  {stars === 3 && 'Razoável'}
-                  {stars === 4 && 'Bom'}
-                  {stars === 5 && 'Excelente'}
+                  {starLabels[stars]}
                 </p>
               )}
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Comentário (opcional)
+                {t('ratingModal.commentOptional')}
               </label>
               <Textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="Partilhe a sua opinião..."
+                placeholder={t('ratingModal.shareOpinion')}
                 rows={4}
               />
             </div>
@@ -157,13 +161,13 @@ export const RatingModal: React.FC<RatingModalProps> = ({
 
             <div className="flex gap-3 justify-end">
               <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
-                Cancelar
+                {t('common.cancel')}
               </Button>
               <Button
                 onClick={handleSubmit}
                 disabled={stars === 0 || isSubmitting}
               >
-                {isSubmitting ? 'A enviar...' : 'Submeter Avaliação'}
+                {isSubmitting ? t('ratingModal.submitting') : t('ratingModal.submitRating')}
               </Button>
             </div>
           </>

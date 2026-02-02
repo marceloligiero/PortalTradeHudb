@@ -16,6 +16,7 @@ import {
   Send
 } from 'lucide-react';
 import api from '../../lib/axios';
+import { RatingModal } from '../../components';
 
 interface Challenge {
   id: number;
@@ -54,6 +55,7 @@ const StudentChallengeExecution: React.FC = () => {
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [submissionId, setSubmissionId] = useState<number | null>(existingSubmissionId ? parseInt(existingSubmissionId) : null);
   const [submitted, setSubmitted] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
   
   const [operations, setOperations] = useState<Operation[]>([]);
   const [activeOperationIndex, setActiveOperationIndex] = useState<number | null>(null);
@@ -259,9 +261,22 @@ const StudentChallengeExecution: React.FC = () => {
       await api.post(`/api/challenges/submissions/${submissionId}/submit-for-review`);
       
       setSubmitted(true);
+      // Show rating modal after submission
+      setShowRatingModal(true);
     } catch (err: any) {
       console.error('Erro ao submeter:', err);
       setError(err.response?.data?.detail || 'Erro ao submeter desafio');
+    }
+  };
+
+  // Handle rating modal close
+  const handleRatingComplete = () => {
+    setShowRatingModal(false);
+    // Navigate back to challenges list or training plan
+    if (planId) {
+      navigate(`/training-plan/${planId}`);
+    } else {
+      navigate('/challenges');
     }
   };
 
@@ -583,6 +598,18 @@ const StudentChallengeExecution: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Rating Modal */}
+      {challenge && (
+        <RatingModal
+          isOpen={showRatingModal}
+          onClose={handleRatingComplete}
+          onSuccess={handleRatingComplete}
+          ratingType="CHALLENGE"
+          itemId={challenge.id}
+          itemTitle={challenge.title}
+        />
       )}
     </div>
   );
