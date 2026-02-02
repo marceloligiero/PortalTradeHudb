@@ -10,6 +10,7 @@ export default function Sidebar() {
   const studentLinks = [
     { to: '/', icon: Home, label: t('navigation.dashboard') },
     { to: '/my-plans', icon: GraduationCap, label: t('navigation.trainingPlans') },
+    { to: '/my-courses', icon: BookOpen, label: t('navigation.myCourses', 'Meus Cursos') },
     { to: '/my-challenges', icon: Target, label: t('navigation.myChallenges') },
     { to: '/my-lessons', icon: Presentation, label: t('myLessons.title') },
     { to: '/certificates', icon: Award, label: t('navigation.certificates') },

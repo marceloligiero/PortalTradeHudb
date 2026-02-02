@@ -67,6 +67,7 @@ function App() {
           <>
             <Route index element={<StudentDashboard />} />
             <Route path="my-plans" element={<MyPlans />} />
+            <Route path="my-courses" element={<StudentCoursesPage />} />
             <Route path="my-challenges" element={<MyChallenges />} />
             <Route path="my-lessons" element={<MyLessons />} />
             <Route path="courses" element={<StudentCoursesPage />} />
