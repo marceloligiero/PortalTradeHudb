@@ -71,6 +71,7 @@ export const RatingModal: React.FC<RatingModalProps> = ({
       else if (ratingType === 'TRAINER') payload.trainer_id = itemId;
       else if (ratingType === 'TRAINING_PLAN') payload.training_plan_id = itemId;
 
+      console.log('Rating payload:', JSON.stringify(payload));
       await api.post('/api/ratings/submit', payload);
       
       setSuccess(true);
