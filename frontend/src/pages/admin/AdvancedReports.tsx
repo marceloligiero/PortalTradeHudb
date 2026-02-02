@@ -326,11 +326,11 @@ export default function AdvancedReportsPage() {
                           </td>
                           <td className="px-6 py-4">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              student.avg_mpu >= 80 ? 'bg-green-100 text-green-700' :
-                              student.avg_mpu >= 60 ? 'bg-amber-100 text-amber-700' :
-                              'bg-red-100 text-red-700'
+                              student.avg_mpu > 0 && student.avg_mpu <= 5 ? 'bg-green-100 text-green-700' :
+                              student.avg_mpu > 0 && student.avg_mpu <= 10 ? 'bg-amber-100 text-amber-700' :
+                              student.avg_mpu > 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
                             }`}>
-                              {student.avg_mpu?.toFixed(1) || 0}%
+                              {student.avg_mpu > 0 ? `${student.avg_mpu?.toFixed(1)} min` : 'N/A'}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-gray-900 dark:text-white">{student.total_time_hours?.toFixed(1) || 0}h</td>
@@ -525,9 +525,9 @@ export default function AdvancedReportsPage() {
                     <BarChart data={mpuData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="bank_code" />
-                      <YAxis domain={[0, 100]} />
-                      <Tooltip />
-                      <Bar dataKey="avg_mpu" fill="#10b981" name="MPU Médio (%)" />
+                      <YAxis />
+                      <Tooltip formatter={(value: number) => [`${value} min`, 'MPU Médio']} />
+                      <Bar dataKey="avg_mpu" fill="#10b981" name="MPU Médio (min/op)" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -566,11 +566,11 @@ export default function AdvancedReportsPage() {
                             <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{bank.bank_code}</td>
                             <td className="px-6 py-4">
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                bank.avg_mpu >= 80 ? 'bg-green-100 text-green-700' :
-                                bank.avg_mpu >= 60 ? 'bg-amber-100 text-amber-700' :
-                                'bg-red-100 text-red-700'
+                                bank.avg_mpu > 0 && bank.avg_mpu <= 5 ? 'bg-green-100 text-green-700' :
+                                bank.avg_mpu > 0 && bank.avg_mpu <= 10 ? 'bg-amber-100 text-amber-700' :
+                                bank.avg_mpu > 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
                               }`}>
-                                {bank.avg_mpu?.toFixed(1) || 0}%
+                                {bank.avg_mpu > 0 ? `${bank.avg_mpu?.toFixed(1)} min` : 'N/A'}
                               </span>
                             </td>
                             <td className="px-6 py-4 text-gray-900 dark:text-white">{bank.total_students}</td>

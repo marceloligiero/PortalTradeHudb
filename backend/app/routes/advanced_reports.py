@@ -83,7 +83,7 @@ class MPUAnalyticsItem(BaseModel):
     bank_code: str
     avg_mpu: float = 0.0
     total_students: int = 0
-    performance_category: str = "Average"
+    performance_category: str = "Sem Dados"
 
 
 class MPUAnalyticsResponse(BaseModel):
@@ -168,7 +168,7 @@ async def get_student_performance_report(
     current_user: models.User = Depends(auth.require_role(["ADMIN"])),
     db: Session = Depends(get_db)
 ) -> StudentPerformanceResponse:
-    """Detailed student performance analytics"""
+    """Detailed student performance analytics - MPU = minutos por operação"""
     
     try:
         students = db.query(models.User).filter(models.User.role == "TRAINEE").all()
@@ -183,8 +183,12 @@ async def get_student_performance_report(
             total_lessons = len(lesson_progress)
             completed_lessons = len([lp for lp in lesson_progress if lp.status == "COMPLETED"])
             
-            # Calculate average MPU
-            mpu_values = [lp.mpu for lp in lesson_progress if lp.mpu is not None]
+            # Calculate average MPU from challenge submissions (minutos por operação)
+            submissions = db.query(models.ChallengeSubmission).filter(
+                models.ChallengeSubmission.user_id == student.id,
+                models.ChallengeSubmission.calculated_mpu.isnot(None)
+            ).all()
+            mpu_values = [s.calculated_mpu for s in submissions if s.calculated_mpu and s.calculated_mpu > 0]
             avg_mpu = sum(mpu_values) / len(mpu_values) if mpu_values else 0
             
             # Calculate total time
@@ -269,7 +273,7 @@ async def get_course_analytics_report(
     current_user: models.User = Depends(auth.require_role(["ADMIN"])),
     db: Session = Depends(get_db)
 ) -> CourseAnalyticsResponse:
-    """Detailed analytics for each course"""
+    """Detailed analytics for each course - MPU = minutos por operação"""
     
     try:
         courses = db.query(models.Course).all()
@@ -305,14 +309,19 @@ async def get_course_analytics_report(
             completed = len([e for e in enrollments if e.completed_at])
             avg_completion_rate = (completed / total_enrollments * 100) if total_enrollments > 0 else 0
             
-            # Calculate average MPU from lesson progress
-            enrollment_ids = [e.id for e in enrollments]
-            if enrollment_ids:
-                mpu_result = db.query(func.avg(models.LessonProgress.mpu)).filter(
-                    models.LessonProgress.enrollment_id.in_(enrollment_ids),
-                    models.LessonProgress.mpu.isnot(None)
-                ).scalar()
-                avg_mpu = mpu_result or 0
+            # Calculate average MPU from challenge submissions (minutos por operação)
+            challenges = db.query(models.Challenge).filter(
+                models.Challenge.course_id == course.id
+            ).all()
+            challenge_ids = [c.id for c in challenges]
+            
+            if challenge_ids:
+                submissions = db.query(models.ChallengeSubmission).filter(
+                    models.ChallengeSubmission.challenge_id.in_(challenge_ids),
+                    models.ChallengeSubmission.calculated_mpu.isnot(None)
+                ).all()
+                mpu_values = [s.calculated_mpu for s in submissions if s.calculated_mpu and s.calculated_mpu > 0]
+                avg_mpu = sum(mpu_values) / len(mpu_values) if mpu_values else 0
             else:
                 avg_mpu = 0
             
@@ -384,7 +393,7 @@ async def get_mpu_analytics(
     current_user: models.User = Depends(auth.require_role(["ADMIN"])),
     db: Session = Depends(get_db)
 ) -> MPUAnalyticsResponse:
-    """MPU performance analytics by bank"""
+    """MPU performance analytics by bank - MPU = minutos por operação nos desafios"""
     
     try:
         banks = db.query(models.Bank).all()
@@ -402,41 +411,38 @@ async def get_mpu_analytics(
                     bank_code=bank.code,
                     avg_mpu=0,
                     total_students=0,
-                    performance_category="No Data"
+                    performance_category="Sem Dados"
                 ))
                 continue
             
             course_ids = [c.id for c in courses]
             
-            # Get enrollments for these courses
-            enrollments = db.query(models.Enrollment).filter(
-                models.Enrollment.course_id.in_(course_ids)
+            # Get challenge submissions for these courses
+            submissions = db.query(models.ChallengeSubmission).join(
+                models.Challenge, models.ChallengeSubmission.challenge_id == models.Challenge.id
+            ).filter(
+                models.Challenge.course_id.in_(course_ids),
+                models.ChallengeSubmission.calculated_mpu.isnot(None)
             ).all()
             
-            total_students = len(set([e.user_id for e in enrollments]))
+            # Calculate average MPU from submissions
+            mpu_values = [s.calculated_mpu for s in submissions if s.calculated_mpu and s.calculated_mpu > 0]
+            avg_mpu = sum(mpu_values) / len(mpu_values) if mpu_values else 0
             
-            # Get average MPU
-            enrollment_ids = [e.id for e in enrollments]
-            if enrollment_ids:
-                avg_mpu_result = db.query(func.avg(models.LessonProgress.mpu)).filter(
-                    models.LessonProgress.enrollment_id.in_(enrollment_ids),
-                    models.LessonProgress.mpu.isnot(None)
-                ).scalar()
-                avg_mpu = avg_mpu_result or 0
-            else:
-                avg_mpu = 0
+            # Count unique students
+            total_students = len(set([s.user_id for s in submissions]))
             
-            # Determine performance category
-            if avg_mpu >= 80:
-                performance_category = "Excellent"
-            elif avg_mpu >= 60:
-                performance_category = "Good"
-            elif avg_mpu >= 40:
-                performance_category = "Average"
+            # Determine performance category based on MPU (lower is better for time)
+            if avg_mpu > 0 and avg_mpu <= 3:
+                performance_category = "Excelente"
+            elif avg_mpu > 0 and avg_mpu <= 5:
+                performance_category = "Bom"
+            elif avg_mpu > 0 and avg_mpu <= 10:
+                performance_category = "Regular"
             elif avg_mpu > 0:
-                performance_category = "Needs Improvement"
+                performance_category = "Precisa Melhorar"
             else:
-                performance_category = "No Data"
+                performance_category = "Sem Dados"
             
             mpu_list.append(MPUAnalyticsItem(
                 bank_code=bank.code,
