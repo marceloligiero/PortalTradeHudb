@@ -76,9 +76,8 @@ export default function StudentCoursesPage() {
   };
 
   const handleCourseClick = (course: Course) => {
-    if (course.training_plan?.id) {
-      navigate(`/training-plan/${course.training_plan.id}`);
-    }
+    // Navigate to course detail page
+    navigate(`/courses/${course.id}`);
   };
 
   const uniqueBanks = ['ALL', ...Array.from(new Set(courses.map((c) => c.bank_code)))];
@@ -211,9 +210,7 @@ export default function StudentCoursesPage() {
               key={course.id}
               variants={cardVariants}
               onClick={() => handleCourseClick(course)}
-              className={`rounded-2xl border overflow-hidden transition-all ${
-                course.training_plan?.id ? 'cursor-pointer hover:scale-[1.02] hover:shadow-xl' : ''
-              } ${isDark 
+              className={`rounded-2xl border overflow-hidden transition-all cursor-pointer hover:scale-[1.02] hover:shadow-xl ${isDark 
                 ? 'bg-white/5 border-white/10 hover:border-white/20' 
                 : 'bg-white border-gray-200 hover:border-gray-300 shadow-sm'
               }`}

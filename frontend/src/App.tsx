@@ -71,6 +71,7 @@ function App() {
             <Route path="my-challenges" element={<MyChallenges />} />
             <Route path="my-lessons" element={<MyLessons />} />
             <Route path="courses" element={<StudentCoursesPage />} />
+            <Route path="courses/:courseId" element={<AdminCourseDetail />} />
             <Route path="certificates" element={<CertificatesPage />} />
             <Route path="reports" element={<StudentReportsPage />} />
             <Route path="training-plan/:id" element={<TrainingPlanDetail />} />
