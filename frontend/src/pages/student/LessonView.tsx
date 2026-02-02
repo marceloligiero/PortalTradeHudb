@@ -811,56 +811,46 @@ export default function LessonView() {
             </div>
           </motion.div>
 
-          {/* Status */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100 p-6"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <Sparkles className="w-5 h-5 text-green-500" />
-              <h3 className="font-semibold text-gray-900">{t('admin.lessonStatus')}</h3>
-            </div>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">{t('admin.content')}</span>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  lesson.content ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                }`}>
-                  {lesson.content ? (
-                    <><CheckCircle2 className="w-4 h-4 inline mr-1" />{t('admin.complete')}</>
-                  ) : (
-                    t('admin.pending')
-                  )}
-                </span>
+          {/* Status - apenas mostrar se há conteúdo ou recursos */}
+          {(lesson.content || lesson.video_url || lesson.materials_url) && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100 p-6"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <Sparkles className="w-5 h-5 text-green-500" />
+                <h3 className="font-semibold text-gray-900">{t('admin.lessonStatus')}</h3>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">{t('admin.video')}</span>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  lesson.video_url ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                }`}>
-                  {lesson.video_url ? (
-                    <><CheckCircle2 className="w-4 h-4 inline mr-1" />{t('admin.added')}</>
-                  ) : (
-                    t('admin.notAdded')
-                  )}
-                </span>
+              <div className="space-y-3">
+                {lesson.content && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">{t('admin.content')}</span>
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                      <CheckCircle2 className="w-4 h-4 inline mr-1" />{t('admin.complete')}
+                    </span>
+                  </div>
+                )}
+                {lesson.video_url && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">{t('admin.video')}</span>
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                      <CheckCircle2 className="w-4 h-4 inline mr-1" />{t('admin.added')}
+                    </span>
+                  </div>
+                )}
+                {lesson.materials_url && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-600">{t('admin.materials')}</span>
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                      <CheckCircle2 className="w-4 h-4 inline mr-1" />{t('admin.added')}
+                    </span>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-gray-600">{t('admin.materials')}</span>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  lesson.materials_url ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                }`}>
-                  {lesson.materials_url ? (
-                    <><CheckCircle2 className="w-4 h-4 inline mr-1" />{t('admin.added')}</>
-                  ) : (
-                    t('admin.notAdded')
-                  )}
-                </span>
-              </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          )}
         </div>
       </div>
 

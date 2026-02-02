@@ -84,11 +84,13 @@ export default function MyChallenges() {
   };
 
   const getInProgressSubmissions = () => {
-    return submissions.filter(s => s.is_in_progress);
+    // Em progresso: ainda não tem completed_at E não foi aprovado
+    return submissions.filter(s => !s.completed_at && !s.is_approved);
   };
 
   const getCompletedSubmissions = () => {
-    return submissions.filter(s => s.completed_at);
+    // Concluído: tem completed_at OU foi aprovado (independente de completed_at)
+    return submissions.filter(s => s.completed_at || s.is_approved);
   };
 
   const getAvailableChallenges = () => {

@@ -1753,6 +1753,9 @@ async def finalize_submission_review(
     submission.mpu_vs_target = round((calculated_mpu / target_mpu * 100) if target_mpu > 0 else 100, 1)
     submission.is_approved = is_approved
     submission.status = "APPROVED" if is_approved else "REJECTED"
+    # Garantir que completed_at seja definido
+    if not submission.completed_at:
+        submission.completed_at = datetime.utcnow()
     submission.updated_at = datetime.utcnow()
     
     db.commit()
