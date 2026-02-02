@@ -101,14 +101,14 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
           <div className="px-6 pb-4">
             <div className="flex items-center justify-between text-xs mb-1.5">
               <span className="font-medium text-gray-500 dark:text-gray-400">Progresso</span>
-              <span className="font-bold text-[#ec0000]">{progress}%</span>
+              <span className="font-bold text-emerald-600">{progress}%</span>
             </div>
             <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 1, ease: "easeOut" }}
-                className="h-full bg-gradient-to-r from-[#ec0000] to-[#ff4444] rounded-full"
+                className="h-full bg-gradient-to-r from-emerald-500 to-green-400 rounded-full"
               />
             </div>
           </div>
