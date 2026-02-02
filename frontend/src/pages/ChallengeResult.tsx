@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, TrendingUp, Target, Clock, Award, Check, X, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Clock, Award, Check, X, AlertTriangle, Star } from 'lucide-react';
 import api from '../lib/axios';
 import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../contexts/ThemeContext';
+import { RatingModal } from '../components';
 
 interface OperationError {
   error_type: string;
@@ -97,6 +98,8 @@ const ChallengeResult: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [submission, setSubmission] = useState<ChallengeSubmissionDetail | null>(null);
   const [approving, setApproving] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [hasRated, setHasRated] = useState(false);
 
   // Verificar se é formador/admin
   const isTrainerOrAdmin = user?.role === 'ADMIN' || user?.role === 'TRAINER';
@@ -112,6 +115,18 @@ const ChallengeResult: React.FC = () => {
     try {
       const response = await api.get(`/api/challenges/submissions/${submissionId}`);
       setSubmission(response.data);
+      
+      // Check if user already rated this challenge
+      if (response.data?.challenge_id) {
+        try {
+          const ratingResp = await api.get(`/api/ratings/check`, {
+            params: { rating_type: 'CHALLENGE', challenge_id: response.data.challenge_id }
+          });
+          setHasRated(ratingResp.data?.exists || false);
+        } catch (err) {
+          console.log('Erro ao verificar rating');
+        }
+      }
     } catch (err) {
       console.error('Erro ao carregar resultado:', err);
     } finally {
@@ -630,6 +645,37 @@ const ChallengeResult: React.FC = () => {
           </div>
         )}
 
+        {/* Botão de Classificação (para formando com desafio aprovado) */}
+        {!isTrainerOrAdmin && submission.is_approved === true && (
+          <div className="bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/20 rounded-xl p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-amber-400 mb-2 flex items-center gap-2">
+                  <Star className="w-5 h-5" />
+                  Avalie este Desafio
+                </h2>
+                <p className="text-gray-400">
+                  {hasRated ? 'Obrigado pela sua avaliação!' : 'A sua opinião é importante para melhorarmos.'}
+                </p>
+              </div>
+              {hasRated ? (
+                <div className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-gray-400 rounded-lg">
+                  <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
+                  Desafio Classificado ✓
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowRatingModal(true)}
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg font-medium hover:from-amber-600 hover:to-yellow-600 transition-all shadow-md"
+                >
+                  <Star className="w-5 h-5" />
+                  Classificar Desafio
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Ações */}
         <div className="flex justify-center gap-4">
           <button
@@ -640,6 +686,20 @@ const ChallengeResult: React.FC = () => {
           </button>
         </div>
       </div>
+      
+      {/* Rating Modal */}
+      {submission && (
+        <RatingModal
+          isOpen={showRatingModal}
+          onClose={() => {
+            setShowRatingModal(false);
+            setHasRated(true);
+          }}
+          ratingType="CHALLENGE"
+          targetId={submission.challenge_id}
+          targetTitle={submission.challenge.title}
+        />
+      )}
     </div>
   );
 };
