@@ -76,6 +76,9 @@ async def submit_rating(
 ):
     """Formando submete uma avaliação após finalização"""
     
+    # Debug log
+    print(f"Rating submit: type={rating_data.rating_type}, stars={rating_data.stars}, challenge_id={rating_data.challenge_id}, user={current_user.id}")
+    
     # Validar tipo de avaliação
     valid_types = ["COURSE", "LESSON", "CHALLENGE", "TRAINER", "TRAINING_PLAN"]
     if rating_data.rating_type not in valid_types:
