@@ -677,7 +677,8 @@ export default function LessonView() {
                   <CheckCircle2 className="w-5 h-5" />
                   Módulo Aprovado ✓
                 </div>
-                {hasRated ? (
+                {/* Rating only available when lesson is part of a training plan */}
+                {planId && (hasRated ? (
                   <div className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-500 rounded-lg font-medium border border-gray-200">
                     <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
                     Lição Classificada ✓
@@ -690,7 +691,7 @@ export default function LessonView() {
                     <Star className="w-4 h-4" />
                     Classificar Lição
                   </button>
-                )}
+                ))}
               </div>
             )}
             

@@ -649,8 +649,8 @@ const ChallengeResult: React.FC = () => {
           </div>
         )}
 
-        {/* Botão de Classificação (para formando com desafio aprovado) */}
-        {!isTrainerOrAdmin && submission.is_approved === true && (
+        {/* Botão de Classificação (para formando com desafio aprovado e vinculado a um plano) */}
+        {!isTrainerOrAdmin && submission.is_approved === true && planId && (
           <div className="bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/20 rounded-xl p-6 mb-8">
             <div className="flex items-center justify-between">
               <div>

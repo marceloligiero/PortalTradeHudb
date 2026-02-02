@@ -642,7 +642,8 @@ export default function CourseDetail() {
               </div>
             )}
 
-            {/* Rating Section */}
+            {/* Rating Section - Only show if course belongs to a training plan */}
+            {course.training_plan && (
             <div className="flex items-center gap-4 p-4 bg-amber-50 dark:bg-amber-500/10 rounded-lg border border-amber-200 dark:border-amber-500/20">
               <div className="w-12 h-12 bg-amber-100 dark:bg-amber-500/20 rounded-xl flex items-center justify-center">
                 <Star className={`w-6 h-6 ${hasCourseRating ? 'text-amber-500 fill-amber-500' : 'text-amber-600 dark:text-amber-400'}`} />
@@ -673,6 +674,7 @@ export default function CourseDetail() {
                 </button>
               )}
             </div>
+            )}
           </div>
         </motion.div>
       )}
