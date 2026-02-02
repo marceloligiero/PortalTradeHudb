@@ -4,7 +4,7 @@ import { Button } from '../../components/Button';
 import { Select } from '../../components/Select';
 import { Tabs } from '../../components/Tabs';
 import StarRating from '../../components/StarRating';
-import { api } from '../../services/api';
+import api from '../../lib/axios';
 import { useTranslation } from 'react-i18next';
 
 interface Rating {

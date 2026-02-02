@@ -3,7 +3,7 @@ import { Modal } from './Modal';
 import { Button } from './Button';
 import { Textarea } from './Textarea';
 import StarRating from './StarRating';
-import { api } from '../services/api';
+import api from '../lib/axios';
 import { useTranslation } from 'react-i18next';
 
 type RatingType = 'COURSE' | 'LESSON' | 'CHALLENGE' | 'TRAINER' | 'TRAINING_PLAN';
