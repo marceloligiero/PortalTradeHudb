@@ -1443,4 +1443,6 @@
     "avgDays": "Avg Days",
     "mpuByBank": "MPU by Bank",
     "mpuDetails": "MPU Details by Bank",
-    "category": "Category",
+    "category": "Category",    "performance": "Performance"
+  }
+}
