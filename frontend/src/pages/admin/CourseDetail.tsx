@@ -120,7 +120,7 @@ export default function CourseDetail() {
       if (!course || !isStudent) return;
       try {
         const resp = await api.get('/api/ratings/check', {
-          params: { item_type: 'COURSE', item_id: course.id }
+          params: { rating_type: 'COURSE', course_id: course.id }
         });
         setHasCourseRating(resp.data.exists);
       } catch (err) {

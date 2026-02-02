@@ -217,7 +217,7 @@ export default function TrainingPlanDetail() {
       // Check plan rating
       try {
         const planResp = await api.get('/api/ratings/check', {
-          params: { item_type: 'TRAINING_PLAN', item_id: plan.id }
+          params: { rating_type: 'TRAINING_PLAN', training_plan_id: plan.id }
         });
         setHasPlanRating(planResp.data.exists);
       } catch (err) {
@@ -230,7 +230,7 @@ export default function TrainingPlanDetail() {
         for (const trainer of plan.trainers) {
           try {
             const trainerResp = await api.get('/api/ratings/check', {
-              params: { item_type: 'TRAINER', item_id: trainer.id }
+              params: { rating_type: 'TRAINER', trainer_id: trainer.id }
             });
             ratingsMap[trainer.id] = trainerResp.data.exists;
           } catch (err) {
@@ -246,7 +246,7 @@ export default function TrainingPlanDetail() {
         for (const course of plan.courses) {
           try {
             const courseResp = await api.get('/api/ratings/check', {
-              params: { item_type: 'COURSE', item_id: course.id }
+              params: { rating_type: 'COURSE', course_id: course.id }
             });
             courseRatingsMap[course.id] = courseResp.data.exists;
           } catch (err) {
