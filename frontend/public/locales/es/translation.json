@@ -33,7 +33,8 @@
     "students": "Formandos",
     "challenges": "Desafíos",
     "users": "Usuarios",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "ratings": "Evaluaciones"
   },
   "roles": {
     "admin": "Administrador",
