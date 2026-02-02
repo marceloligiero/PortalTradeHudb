@@ -427,3 +427,37 @@ class Certificate(Base):
     
     user = relationship("User", back_populates="certificates")
     training_plan = relationship("TrainingPlan", back_populates="certificates")
+
+
+class Rating(Base):
+    """Sistema de avaliação com estrelas (0-5) para cursos, aulas, desafios, formadores e planos"""
+    __tablename__ = "ratings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Formando que avaliou
+    
+    # Tipo de item avaliado
+    rating_type = Column(String(50), nullable=False)  # COURSE, LESSON, CHALLENGE, TRAINER, TRAINING_PLAN
+    
+    # IDs dos itens avaliados (apenas um será preenchido)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=True)
+    lesson_id = Column(Integer, ForeignKey("lessons.id"), nullable=True)
+    challenge_id = Column(Integer, ForeignKey("challenges.id"), nullable=True)
+    trainer_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Formador avaliado
+    training_plan_id = Column(Integer, ForeignKey("training_plans.id"), nullable=True)
+    
+    # Avaliação
+    stars = Column(Integer, nullable=False)  # 0 a 5 estrelas
+    comment = Column(Text, nullable=True)  # Comentário opcional
+    
+    # Metadados
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    course = relationship("Course", foreign_keys=[course_id])
+    lesson = relationship("Lesson", foreign_keys=[lesson_id])
+    challenge = relationship("Challenge", foreign_keys=[challenge_id])
+    trainer = relationship("User", foreign_keys=[trainer_id])
+    training_plan = relationship("TrainingPlan", foreign_keys=[training_plan_id])

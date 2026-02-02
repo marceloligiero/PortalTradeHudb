@@ -23,6 +23,7 @@ import AdminTrainingPlanForm from './pages/admin/TrainingPlanForm';
 import AdminTrainingPlans from './pages/admin/TrainingPlans';
 import AdminReportsPage from './pages/admin/Reports';
 import AdminAdvancedReportsPage from './pages/admin/AdvancedReports';
+import AdminRatingsPage from './pages/admin/Ratings';
 import AdminSettingsPage from './pages/admin/Settings';
 import AdminBanksPage from './pages/admin/Banks';
 import AdminProductsPage from './pages/admin/Products';
@@ -131,6 +132,7 @@ function App() {
             <Route path="submissions/:submissionId/review" element={<SubmissionReview />} />
             <Route path="reports" element={<AdminReportsPage />} />
             <Route path="advanced-reports" element={<AdminAdvancedReportsPage />} />
+            <Route path="ratings" element={<AdminRatingsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="banks" element={<AdminBanksPage />} />
             <Route path="products" element={<AdminProductsPage />} />

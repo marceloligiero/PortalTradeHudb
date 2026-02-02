@@ -33,7 +33,8 @@
     "students": "Students",
     "challenges": "Challenges",
     "users": "Users",
-    "settings": "Settings"
+    "settings": "Settings",
+    "ratings": "Ratings"
   },
   "roles": {
     "admin": "Administrator",

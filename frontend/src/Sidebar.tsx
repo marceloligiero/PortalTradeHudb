@@ -1,4 +1,4 @@
-import { Home, BookOpen, Award, Users, Settings, Building2, Package, GraduationCap, BarChart3, Target, Presentation, ClipboardCheck } from 'lucide-react';
+import { Home, BookOpen, Award, Users, Settings, Building2, Package, GraduationCap, BarChart3, Target, Presentation, ClipboardCheck, Star } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
@@ -36,6 +36,7 @@ export default function Sidebar() {
     { to: '/products', icon: Package, label: t('navigation.products') },
     { to: '/reports', icon: Award, label: t('navigation.reports') },
     { to: '/advanced-reports', icon: BarChart3, label: t('navigation.advancedReports') },
+    { to: '/ratings', icon: Star, label: t('navigation.ratings') },
     { to: '/settings', icon: Settings, label: t('navigation.settings') },
   ];
 

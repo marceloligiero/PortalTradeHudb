@@ -17,4 +17,5 @@ export { default as Checkbox } from './Checkbox';
 export { default as RadioGroup } from './RadioGroup';
 export { default as Progress } from './Progress';
 export { default as Avatar } from './Avatar';
-export { default as Toast, ToastContainer } from './Toast';
+export { default as Toast, ToastContainer } from './Toast';export { default as StarRating } from './StarRating';
+export { default as RatingModal } from './RatingModal';
