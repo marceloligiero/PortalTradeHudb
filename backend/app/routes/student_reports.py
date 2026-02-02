@@ -21,14 +21,19 @@ async def get_student_dashboard(
     user_id = current_user.id
     
     # 1. RESUMO GERAL
-    # Planos atribuídos
-    plans_query = db.query(
+    # Planos atribuídos (via student_id no TrainingPlan ou via TrainingPlanAssignment)
+    plans_direct = db.query(
+        func.count(models.TrainingPlan.id).label('total'),
+        func.sum(case((models.TrainingPlan.completed_at != None, 1), else_=0)).label('completed')
+    ).filter(models.TrainingPlan.student_id == user_id).first()
+    
+    plans_assigned = db.query(
         func.count(models.TrainingPlanAssignment.id).label('total'),
         func.sum(case((models.TrainingPlanAssignment.completed_at != None, 1), else_=0)).label('completed')
     ).filter(models.TrainingPlanAssignment.user_id == user_id).first()
     
-    total_plans = plans_query.total or 0
-    completed_plans = int(plans_query.completed or 0)
+    total_plans = (plans_direct.total or 0) + (plans_assigned.total or 0)
+    completed_plans = int(plans_direct.completed or 0) + int(plans_assigned.completed or 0)
     
     # Certificados
     certificates_count = db.query(func.count(models.Certificate.id)).filter(
