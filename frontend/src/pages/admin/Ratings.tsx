@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
-import Select from '../../components/Select';
 import StarRating from '../../components/StarRating';
 import api from '../../lib/axios';
 import { useTranslation } from 'react-i18next';
@@ -294,9 +293,10 @@ export const Ratings: React.FC = () => {
         <Card className="p-4">
           <div className="flex gap-4 items-center">
             <div className="flex-1 max-w-xs">
-              <Select
+              <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-white dark:bg-white/5 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
               >
                 <option value="">Todos os tipos</option>
                 <option value="COURSE">Cursos</option>
@@ -304,7 +304,7 @@ export const Ratings: React.FC = () => {
                 <option value="CHALLENGE">Desafios</option>
                 <option value="TRAINER">Formadores</option>
                 <option value="TRAINING_PLAN">Planos de Formação</option>
-              </Select>
+              </select>
             </div>
             <div className="text-sm text-gray-500">
               {ratings.length} avaliações encontradas
@@ -372,9 +372,10 @@ export const Ratings: React.FC = () => {
         <Card className="p-4">
           <div className="flex gap-4 items-center">
             <div className="flex-1 max-w-xs">
-              <Select
+              <select
                 value={summaryFilterType}
                 onChange={(e) => setSummaryFilterType(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-white dark:bg-white/5 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
               >
                 <option value="">Todos os tipos</option>
                 <option value="COURSE">Cursos</option>
@@ -382,7 +383,7 @@ export const Ratings: React.FC = () => {
                 <option value="CHALLENGE">Desafios</option>
                 <option value="TRAINER">Formadores</option>
                 <option value="TRAINING_PLAN">Planos de Formação</option>
-              </Select>
+              </select>
             </div>
             <div className="text-sm text-gray-500">
               {summaries.length} itens avaliados
