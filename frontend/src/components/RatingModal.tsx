@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Modal } from './Modal';
-import { Button } from './Button';
-import { Textarea } from './Textarea';
+import Modal from './Modal';
+import Button from './Button';
+import Textarea from './Textarea';
 import StarRating from './StarRating';
 import api from '../lib/axios';
 import { useTranslation } from 'react-i18next';
