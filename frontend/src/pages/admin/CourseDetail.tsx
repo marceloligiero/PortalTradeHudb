@@ -386,7 +386,8 @@ export default function CourseDetail() {
                 </div>
               </div>
 
-              {/* Quick Actions */}
+              {/* Quick Actions - Only for trainers/admins */}
+              {!isStudent && (
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('admin.quickActions')}</h3>
                 <div className="grid grid-cols-2 gap-4">
@@ -418,7 +419,7 @@ export default function CourseDetail() {
                   </button>
                 </div>
               </div>
-            </div>
+              )}
 
             {/* Sidebar */}
             <div className="space-y-6">
@@ -496,8 +497,8 @@ export default function CourseDetail() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    onClick={() => navigate(`/courses/${course.id}/lessons/${lesson.id}`)}
-                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => !isStudent && navigate(`/courses/${course.id}/lessons/${lesson.id}`)}
+                    className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 transition-shadow ${!isStudent ? 'hover:shadow-md cursor-pointer' : ''}`}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center text-green-600 dark:text-green-400 font-semibold">
@@ -516,7 +517,7 @@ export default function CourseDetail() {
                           {lesson.content_type}
                         </span>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
+                      {!isStudent && <ChevronRight className="w-5 h-5 text-gray-400" />}
                     </div>
                   </motion.div>
                 ))}
@@ -563,8 +564,8 @@ export default function CourseDetail() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    onClick={() => navigate(`/courses/${course.id}/challenges/${challenge.id}`)}
-                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => !isStudent && navigate(`/courses/${course.id}/challenges/${challenge.id}`)}
+                    className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 transition-shadow ${!isStudent ? 'hover:shadow-md cursor-pointer' : ''}`}
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
@@ -587,10 +588,12 @@ export default function CourseDetail() {
                           {challenge.max_score} pts
                         </span>
                       </div>
-                      <span className="text-red-600 font-medium flex items-center gap-1">
-                        <Play className="w-4 h-4" />
-                        {t('common.view')}
-                      </span>
+                      {!isStudent && (
+                        <span className="text-red-600 font-medium flex items-center gap-1">
+                          <Play className="w-4 h-4" />
+                          {t('common.view')}
+                        </span>
+                      )}
                     </div>
                   </motion.div>
                 ))}
