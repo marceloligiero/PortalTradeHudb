@@ -17,7 +17,8 @@ import {
   AlertCircle,
   Sparkles,
   Flag,
-  Loader2
+  Loader2,
+  Star
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { RatingModal } from '../../components';
@@ -657,9 +658,18 @@ export default function LessonView() {
             
             {/* Aula concluída e aprovada */}
             {isFinished && lessonProgress?.is_approved && (
-              <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-100 text-green-700 rounded-lg font-medium border border-green-200">
-                <CheckCircle2 className="w-5 h-5" />
-                Módulo Aprovado ✓
+              <div className="space-y-3">
+                <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-100 text-green-700 rounded-lg font-medium border border-green-200">
+                  <CheckCircle2 className="w-5 h-5" />
+                  Módulo Aprovado ✓
+                </div>
+                <button
+                  onClick={() => setShowRatingModal(true)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg font-medium hover:from-amber-600 hover:to-yellow-600 transition-all shadow-md"
+                >
+                  <Star className="w-4 h-4" />
+                  Classificar Lição
+                </button>
               </div>
             )}
             
