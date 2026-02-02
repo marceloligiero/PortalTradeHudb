@@ -49,7 +49,7 @@ async def get_student_dashboard(
         func.sum(models.ChallengeSubmission.error_procedure).label('errors_procedure'),
     ).filter(
         models.ChallengeSubmission.user_id == user_id,
-        models.ChallengeSubmission.status == 'REVIEWED'
+        models.ChallengeSubmission.status.in_(['REVIEWED', 'APPROVED', 'REJECTED'])
     ).first()
     
     total_submissions = challenge_stats.total or 0
@@ -110,7 +110,7 @@ async def get_student_dashboard(
         models.ChallengeSubmission, models.Challenge.id == models.ChallengeSubmission.challenge_id
     ).filter(
         models.ChallengeSubmission.user_id == user_id,
-        models.ChallengeSubmission.status == 'REVIEWED'
+        models.ChallengeSubmission.status.in_(['REVIEWED', 'APPROVED', 'REJECTED'])
     ).group_by(
         models.Challenge.id, models.Challenge.title, models.Challenge.target_mpu
     ).all()
