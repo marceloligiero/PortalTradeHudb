@@ -303,6 +303,44 @@
     "updateError": "Error updating challenge",
     "loadResultError": "Error loading result"
   },
+  "errors": {
+    "concepts": {
+      "title": "Errors by Concept",
+      "methodology": "Methodology",
+      "methodologyDesc": "Errors in form/execution method",
+      "knowledge": "Knowledge",
+      "knowledgeDesc": "Errors due to lack of knowledge",
+      "detail": "Detail",
+      "detailDesc": "Attention to detail errors",
+      "procedure": "Procedure",
+      "procedureDesc": "Errors in procedure/sequence",
+      "total": "Total Errors",
+      "maxAllowed": "Maximum allowed"
+    }
+  },
+  "lessonProgress": {
+    "notStarted": "Not Started",
+    "inProgress": "In Progress",
+    "paused": "Paused",
+    "completed": "Completed",
+    "start": "Start",
+    "pause": "Pause",
+    "resume": "Resume",
+    "finish": "Finish",
+    "timeRemaining": "Time Remaining",
+    "timeElapsed": "Time Elapsed",
+    "timeExceeded": "Time Exceeded",
+    "estimatedTime": "Estimated Time"
+  },
+  "planStatus": {
+    "pending": "Pending",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "delayed": "Delayed",
+    "daysRemaining": "days remaining",
+    "daysDelayed": "days delayed",
+    "canFinalize": "Ready to finalize"
+  },
   "certificates": {
     "title": "Certificates",
     "certificateNumber": "Certificate Number",

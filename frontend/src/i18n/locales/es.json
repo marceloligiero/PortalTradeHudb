@@ -303,6 +303,44 @@
     "updateError": "Error al actualizar desafío",
     "loadResultError": "Error al cargar resultado"
   },
+  "errors": {
+    "concepts": {
+      "title": "Errores por Concepto",
+      "methodology": "Metodología",
+      "methodologyDesc": "Errores en la forma/método de ejecución",
+      "knowledge": "Conocimiento",
+      "knowledgeDesc": "Errores por falta de conocimiento",
+      "detail": "Detalle",
+      "detailDesc": "Errores de atención al detalle",
+      "procedure": "Procedimiento",
+      "procedureDesc": "Errores en el procedimiento/secuencia",
+      "total": "Total de Errores",
+      "maxAllowed": "Máximo permitido"
+    }
+  },
+  "lessonProgress": {
+    "notStarted": "No Iniciada",
+    "inProgress": "En Progreso",
+    "paused": "Pausada",
+    "completed": "Completada",
+    "start": "Iniciar",
+    "pause": "Pausar",
+    "resume": "Reanudar",
+    "finish": "Finalizar",
+    "timeRemaining": "Tiempo Restante",
+    "timeElapsed": "Tiempo Transcurrido",
+    "timeExceeded": "Tiempo Excedido",
+    "estimatedTime": "Tiempo Estimado"
+  },
+  "planStatus": {
+    "pending": "Pendiente",
+    "inProgress": "En Curso",
+    "completed": "Completado",
+    "delayed": "Atrasado",
+    "daysRemaining": "días restantes",
+    "daysDelayed": "días de atraso",
+    "canFinalize": "Listo para finalizar"
+  },
   "certificates": {
     "title": "Certificados",
     "certificateNumber": "Número de Certificado",
