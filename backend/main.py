@@ -112,6 +112,16 @@ async def root():
 async def health():
     return {"status": "healthy"}
 
+@app.get("/api/debug/db-info")
+async def debug_db_info():
+    """Temporary debug endpoint to check database configuration"""
+    from app.database import engine
+    db_url = str(engine.url)
+    # Mask password
+    import re
+    db_url_masked = re.sub(r':([^:@]+)@', ':***@', db_url)
+    return {"database_url": db_url_masked}
+
 if __name__ == "__main__":
     import uvicorn
     import signal
