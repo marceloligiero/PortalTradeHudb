@@ -232,21 +232,19 @@ export default function LessonView() {
       const response = await api.get(`/api/lessons/${lessonId}/detail`);
       setLesson(response.data);
       
-      // Buscar progresso da aula se tiver planId
-      if (planId) {
-        try {
-          const progressResp = await api.get(`/api/lessons/${lessonId}/progress`, {
-            params: { training_plan_id: planId }
-          });
-          setLessonProgress(progressResp.data);
-          
-          // Verificar se já está concluída
-          if (progressResp.data?.status === 'COMPLETED') {
-            setIsFinished(true);
-          }
-        } catch (err) {
-          console.log('Progresso não encontrado');
+      // Buscar progresso da aula (sempre tentar, mesmo sem planId)
+      try {
+        const progressResp = await api.get(`/api/lessons/${lessonId}/progress`, {
+          params: planId ? { training_plan_id: planId } : undefined
+        });
+        setLessonProgress(progressResp.data);
+        
+        // Verificar se já está concluída
+        if (progressResp.data?.status === 'COMPLETED') {
+          setIsFinished(true);
         }
+      } catch (err) {
+        console.log('Progresso não encontrado');
       }
     } catch (err: any) {
       console.error('Error fetching lesson:', err);
@@ -258,10 +256,10 @@ export default function LessonView() {
 
   // Função para buscar apenas o progresso (para polling)
   const fetchProgress = async () => {
-    if (!planId || !lessonId) return;
+    if (!lessonId) return;
     try {
       const progressResp = await api.get(`/api/lessons/${lessonId}/progress`, {
-        params: { training_plan_id: planId }
+        params: planId ? { training_plan_id: planId } : undefined
       });
       setLessonProgress(progressResp.data);
       
@@ -282,7 +280,7 @@ export default function LessonView() {
 
   // Polling para atualizar progresso automaticamente (para formando ver alterações do formador)
   useEffect(() => {
-    if (!planId || !lessonId) return;
+    if (!lessonId) return;
     
     const pollInterval = setInterval(() => {
       fetchProgress();
