@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import Card from '../../components/Card';
 import Button from '../../components/Button';
 import Select from '../../components/Select';
-import Tabs from '../../components/Tabs';
 import StarRating from '../../components/StarRating';
 import api from '../../lib/axios';
 import { useTranslation } from 'react-i18next';
@@ -446,15 +445,39 @@ export const Ratings: React.FC = () => {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">⭐ Avaliações</h1>
 
-      <Tabs
-        tabs={[
-          { id: 'dashboard', label: 'Dashboard' },
-          { id: 'all', label: 'Todas as Avaliações' },
-          { id: 'summary', label: 'Resumo por Item' }
-        ]}
-        activeTab={activeTab}
-        onChange={setActiveTab}
-      />
+      {/* Custom Tab Navigation */}
+      <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl mb-6">
+        <button
+          onClick={() => setActiveTab('dashboard')}
+          className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+            activeTab === 'dashboard'
+              ? 'bg-red-600 text-white shadow-lg'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+          }`}
+        >
+          Dashboard
+        </button>
+        <button
+          onClick={() => setActiveTab('all')}
+          className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+            activeTab === 'all'
+              ? 'bg-red-600 text-white shadow-lg'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+          }`}
+        >
+          Todas as Avaliações
+        </button>
+        <button
+          onClick={() => setActiveTab('summary')}
+          className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+            activeTab === 'summary'
+              ? 'bg-red-600 text-white shadow-lg'
+              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+          }`}
+        >
+          Resumo por Item
+        </button>
+      </div>
 
       <div className="mt-6">
         {error && (
