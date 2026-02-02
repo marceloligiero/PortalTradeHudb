@@ -21,18 +21,18 @@ interface DashboardData {
   summary: {
     total_submissions: number;
     approved_submissions: number;
-    reproved_submissions: number;
-    pending_submissions: number;
+    rejected_submissions: number;
     approval_rate: number;
     total_operations: number;
     total_errors: number;
-    error_rate: number;
-    avg_time_seconds: number;
     avg_mpu: number;
-    total_challenges: number;
-    completed_challenges: number;
-    certificates_count: number;
-    lessons_completed: number;
+    total_plans: number;
+    completed_plans: number;
+    certificates: number;
+    total_lessons: number;
+    completed_lessons: number;
+    approved_lessons: number;
+    avg_lesson_time: number;
   };
   errors_by_type: {
     methodology: number;
@@ -41,7 +41,7 @@ interface DashboardData {
     procedure: number;
   };
   evolution: Array<{
-    month: string;
+    date: string;
     submissions: number;
     approved: number;
     avg_mpu: number;
@@ -49,24 +49,25 @@ interface DashboardData {
   challenges: Array<{
     id: number;
     title: string;
-    submissions: number;
+    target_mpu: number;
+    attempts: number;
+    approvals: number;
+    approval_rate: number;
+    avg_mpu: number;
     best_mpu: number;
-    best_time: number;
-    status: string;
   }>;
   recent_activity: Array<{
-    date: string;
+    id: number;
     challenge_title: string;
-    status: string;
-    mpu: number;
-    time_seconds: number;
+    is_approved: boolean | null;
+    calculated_mpu: number;
+    errors_count: number;
+    completed_at: string | null;
   }>;
   best_performance: {
     challenge_title: string;
     mpu: number;
-    time_seconds: number;
-    operations_correct: number;
-    date: string;
+    date: string | null;
   } | null;
 }
 
@@ -195,15 +196,15 @@ const Reports: React.FC = () => {
         <StatCard
           title="Taxa de Aprovação"
           value={`${(summary.approval_rate ?? 0).toFixed(1)}%`}
-          subtitle={`${summary.reproved_submissions} reprovações`}
+          subtitle={`${summary.rejected_submissions} reprovações`}
           icon={<Trophy className="w-6 h-6 text-white" />}
           color="from-green-500 to-green-600"
           delay={0.2}
         />
         <StatCard
-          title="Tempo Médio"
-          value={`${Math.round(summary.avg_time_seconds)}s`}
-          subtitle="por submissão"
+          title="Tempo Médio (Lições)"
+          value={`${Math.round(summary.avg_lesson_time || 0)} min`}
+          subtitle="por lição"
           icon={<Clock className="w-6 h-6 text-white" />}
           color="from-purple-500 to-purple-600"
           delay={0.3}
@@ -223,23 +224,23 @@ const Reports: React.FC = () => {
         <StatCard
           title="Operações Realizadas"
           value={summary.total_operations}
-          subtitle={`${summary.total_errors ?? 0} erros (${(summary.error_rate ?? 0).toFixed(1)}%)`}
+          subtitle={`${summary.total_errors ?? 0} erros`}
           icon={<Sparkles className="w-6 h-6 text-white" />}
           color="from-indigo-500 to-indigo-600"
           delay={0.5}
         />
         <StatCard
-          title="Desafios Concluídos"
-          value={`${summary.completed_challenges}/${summary.total_challenges}`}
-          subtitle="desafios disponíveis"
+          title="Planos Concluídos"
+          value={`${summary.completed_plans}/${summary.total_plans}`}
+          subtitle="planos de formação"
           icon={<Flame className="w-6 h-6 text-white" />}
           color="from-orange-500 to-orange-600"
           delay={0.6}
         />
         <StatCard
           title="Certificados"
-          value={summary.certificates_count}
-          subtitle={`${summary.lessons_completed} lições concluídas`}
+          value={summary.certificates}
+          subtitle={`${summary.completed_lessons} lições concluídas`}
           icon={<GraduationCap className="w-6 h-6 text-white" />}
           color="from-teal-500 to-teal-600"
           delay={0.7}
@@ -265,23 +266,17 @@ const Reports: React.FC = () => {
                 <p className="text-sm text-gray-500">Desafio</p>
                 <p className="font-semibold text-gray-800">{best_performance.challenge_title}</p>
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-white rounded-xl p-3 text-center shadow-sm">
-                  <p className="text-2xl font-bold text-green-600">{(best_performance.mpu ?? 0).toFixed(2)}</p>
-                  <p className="text-xs text-gray-500">MPU</p>
-                </div>
-                <div className="bg-white rounded-xl p-3 text-center shadow-sm">
-                  <p className="text-2xl font-bold text-blue-600">{best_performance.time_seconds}s</p>
-                  <p className="text-xs text-gray-500">Tempo</p>
-                </div>
-                <div className="bg-white rounded-xl p-3 text-center shadow-sm">
-                  <p className="text-2xl font-bold text-purple-600">{best_performance.operations_correct}</p>
-                  <p className="text-xs text-gray-500">Operações</p>
+              <div className="flex justify-center">
+                <div className="bg-white rounded-xl p-4 text-center shadow-sm">
+                  <p className="text-3xl font-bold text-green-600">{(best_performance.mpu ?? 0).toFixed(2)}</p>
+                  <p className="text-sm text-gray-500">MPU (Melhor)</p>
                 </div>
               </div>
-              <p className="text-xs text-gray-400 text-right">
-                📅 {new Date(best_performance.date).toLocaleDateString('pt-BR')}
-              </p>
+              {best_performance.date && (
+                <p className="text-xs text-gray-400 text-right mt-2">
+                  📅 {new Date(best_performance.date).toLocaleDateString('pt-BR')}
+                </p>
+              )}
             </div>
           </motion.div>
         )}
@@ -360,10 +355,10 @@ const Reports: React.FC = () => {
               <thead>
                 <tr className="border-b border-gray-200">
                   <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Desafio</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Submissões</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Tentativas</th>
                   <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Melhor MPU</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Melhor Tempo</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Status</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">MPU Médio</th>
+                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Resultado</th>
                 </tr>
               </thead>
               <tbody>
@@ -376,35 +371,35 @@ const Reports: React.FC = () => {
                     className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                   >
                     <td className="py-3 px-4 font-medium text-gray-800">{challenge.title}</td>
-                    <td className="py-3 px-4 text-center text-gray-600">{challenge.submissions}</td>
+                    <td className="py-3 px-4 text-center text-gray-600">{challenge.attempts}</td>
                     <td className="py-3 px-4 text-center">
                       <span className="font-mono text-green-600 font-medium">
                         {(challenge.best_mpu ?? 0).toFixed(2)}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <span className="font-mono text-blue-600">{challenge.best_time}s</span>
+                      <span className="font-mono text-blue-600">{(challenge.avg_mpu ?? 0).toFixed(2)}</span>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span
                         className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-                          challenge.status === 'COMPLETE'
+                          challenge.approvals > 0
                             ? 'bg-green-100 text-green-700'
-                            : challenge.status === 'IN_PROGRESS'
+                            : challenge.attempts > 0
                             ? 'bg-blue-100 text-blue-700'
                             : 'bg-gray-100 text-gray-700'
                         }`}
                       >
-                        {challenge.status === 'COMPLETE' ? (
+                        {challenge.approvals > 0 ? (
                           <>
-                            <CheckCircle2 className="w-4 h-4" /> Concluído
+                            <CheckCircle2 className="w-4 h-4" /> {challenge.approvals} Aprovações
                           </>
-                        ) : challenge.status === 'IN_PROGRESS' ? (
+                        ) : challenge.attempts > 0 ? (
                           <>
-                            <Clock className="w-4 h-4" /> Em Progresso
+                            <Clock className="w-4 h-4" /> {challenge.attempts} Tentativas
                           </>
                         ) : (
-                          'Disponível'
+                          'Sem tentativas'
                         )}
                       </span>
                     </td>
@@ -436,43 +431,47 @@ const Reports: React.FC = () => {
           <div className="space-y-3">
             {recent_activity.map((activity, idx) => (
               <motion.div
-                key={idx}
+                key={activity.id}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 1 + idx * 0.05 }}
                 className={`flex items-center justify-between p-4 rounded-xl border ${
-                  activity.status === 'APPROVED'
+                  activity.is_approved === true
                     ? 'bg-green-50 border-green-200'
-                    : 'bg-red-50 border-red-200'
+                    : activity.is_approved === false
+                    ? 'bg-red-50 border-red-200'
+                    : 'bg-yellow-50 border-yellow-200'
                 }`}
               >
                 <div className="flex items-center gap-4">
-                  {activity.status === 'APPROVED' ? (
+                  {activity.is_approved === true ? (
                     <CheckCircle2 className="w-8 h-8 text-green-500" />
-                  ) : (
+                  ) : activity.is_approved === false ? (
                     <XCircle className="w-8 h-8 text-red-500" />
+                  ) : (
+                    <Clock className="w-8 h-8 text-yellow-500" />
                   )}
                   <div>
                     <p className="font-medium text-gray-800">{activity.challenge_title}</p>
                     <p className="text-sm text-gray-500">
-                      {new Date(activity.date).toLocaleDateString('pt-BR', {
+                      {activity.completed_at ? new Date(activity.completed_at).toLocaleDateString('pt-BR', {
                         day: '2-digit',
                         month: 'short',
                         year: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit',
-                      })}
+                      }) : 'Em análise'}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 text-sm">
                   <div className="text-center">
-                    <p className="font-bold text-gray-800">{(activity.mpu ?? 0).toFixed(2)}</p>
+                    <p className="font-bold text-gray-800">{(activity.calculated_mpu ?? 0).toFixed(2)}</p>
                     <p className="text-xs text-gray-400">MPU</p>
                   </div>
                   <div className="text-center">
-                    <p className="font-bold text-gray-800">{activity.time_seconds}s</p>
-                    <p className="text-xs text-gray-400">Tempo</p>
+                    <p className="font-bold text-gray-800">{activity.errors_count}</p>
+                    <p className="text-xs text-gray-400">Erros</p>
                   </div>
                 </div>
               </motion.div>
@@ -496,13 +495,13 @@ const Reports: React.FC = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {evolution.map((item, idx) => (
               <motion.div
-                key={item.month}
+                key={item.date}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 1.2 + idx * 0.1 }}
                 className="bg-white rounded-xl p-4 text-center shadow-sm"
               >
-                <p className="text-sm font-medium text-indigo-600 mb-2">{item.month}</p>
+                <p className="text-sm font-medium text-indigo-600 mb-2">{new Date(item.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</p>
                 <p className="text-2xl font-bold text-gray-800">{item.submissions}</p>
                 <p className="text-xs text-gray-500">submissões</p>
                 <div className="mt-2 pt-2 border-t">
