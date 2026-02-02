@@ -112,39 +112,6 @@ async def root():
 async def health():
     return {"status": "healthy"}
 
-@app.get("/api/debug/db-info")
-async def debug_db_info():
-    """Temporary debug endpoint to check database configuration"""
-    from app.database import engine, SessionLocal
-    from app.models import User
-    import bcrypt
-    
-    db_url = str(engine.url)
-    # Mask password
-    import re
-    db_url_masked = re.sub(r':([^:@]+)@', ':***@', db_url)
-    
-    # Test user query
-    db = SessionLocal()
-    try:
-        admin = db.query(User).filter(User.email == "admin@tradehub.com").first()
-        user_info = None
-        if admin:
-            # Check if password admin123 works
-            password_valid = bcrypt.checkpw("admin123".encode('utf-8'), admin.hashed_password.encode('utf-8'))
-            user_info = {
-                "id": admin.id,
-                "email": admin.email,
-                "role": admin.role,
-                "is_active": admin.is_active,
-                "hash_prefix": admin.hashed_password[:30] + "...",
-                "password_admin123_valid": password_valid
-            }
-    finally:
-        db.close()
-    
-    return {"database_url": db_url_masked, "admin_user": user_info}
-
 if __name__ == "__main__":
     import uvicorn
     import signal

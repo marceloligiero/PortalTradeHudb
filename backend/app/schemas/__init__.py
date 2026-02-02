@@ -267,6 +267,25 @@ class Challenge(ChallengeBase):
     model_config = {"from_attributes": True}
 
 
+class ChallengeBasic(BaseModel):
+    """Schema simplificado de Challenge para listagens"""
+    id: int
+    course_id: int
+    title: str
+    description: Optional[str] = None
+    challenge_type: str
+    operations_required: int
+    time_limit_minutes: int
+    target_mpu: Optional[float] = None
+    max_errors: Optional[int] = None
+    is_released: Optional[bool] = False
+    created_by: Optional[int] = None
+    is_active: Optional[bool] = True
+    created_at: Optional[datetime] = None
+    
+    model_config = {"from_attributes": True}
+
+
 class ChallengeRelease(BaseModel):
     """Schema para liberar desafio"""
     is_released: bool = True
@@ -443,7 +462,7 @@ class ChallengeSubmissionDetail(ChallengeSubmission):
     parts: list[ChallengePart] = []
     operations: list[ChallengeOperation] = []  # Para desafios COMPLETE
     submission_errors: list[SubmissionErrorDetail] = []  # Para desafios SUMMARY
-    challenge: Optional[Challenge] = None
+    challenge: Optional[ChallengeBasic] = None
     user: Optional[UserBasic] = None
     submitter: Optional[UserBasic] = None
     errors_summary: Optional[ErrorsSummary] = None
