@@ -101,6 +101,10 @@ async def submit_rating(
     if rating_data.rating_type not in valid_types:
         raise HTTPException(status_code=400, detail=f"Tipo de avaliação inválido. Use: {', '.join(valid_types)}")
     
+    # Todas as avaliações (exceto TRAINING_PLAN) devem estar vinculadas a um plano de formação
+    if rating_data.rating_type != "TRAINING_PLAN" and not rating_data.training_plan_id:
+        raise HTTPException(status_code=400, detail="training_plan_id é obrigatório - avaliações devem estar vinculadas a um plano de formação")
+    
     # Validar que o ID correspondente foi fornecido
     if rating_data.rating_type == "COURSE" and not rating_data.course_id:
         raise HTTPException(status_code=400, detail="course_id é obrigatório para avaliar cursos")
@@ -113,11 +117,15 @@ async def submit_rating(
     elif rating_data.rating_type == "TRAINING_PLAN" and not rating_data.training_plan_id:
         raise HTTPException(status_code=400, detail="training_plan_id é obrigatório para avaliar planos de formação")
     
-    # Verificar se já existe uma avaliação do mesmo usuário para o mesmo item
+    # Verificar se já existe uma avaliação do mesmo usuário para o mesmo item + plano de formação
     existing_query = db.query(models.Rating).filter(
         models.Rating.user_id == current_user.id,
         models.Rating.rating_type == rating_data.rating_type
     )
+    
+    # Sempre filtrar por training_plan_id para garantir unicidade por plano
+    if rating_data.training_plan_id:
+        existing_query = existing_query.filter(models.Rating.training_plan_id == rating_data.training_plan_id)
     
     if rating_data.course_id:
         existing_query = existing_query.filter(models.Rating.course_id == rating_data.course_id)
@@ -127,8 +135,6 @@ async def submit_rating(
         existing_query = existing_query.filter(models.Rating.challenge_id == rating_data.challenge_id)
     if rating_data.trainer_id:
         existing_query = existing_query.filter(models.Rating.trainer_id == rating_data.trainer_id)
-    if rating_data.training_plan_id:
-        existing_query = existing_query.filter(models.Rating.training_plan_id == rating_data.training_plan_id)
     
     existing = existing_query.first()
     if existing:
@@ -170,11 +176,15 @@ async def check_rating_exists(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Verifica se o usuário já fez uma avaliação para o item especificado"""
+    """Verifica se o usuário já fez uma avaliação para o item especificado no contexto do plano de formação"""
     query = db.query(models.Rating).filter(
         models.Rating.user_id == current_user.id,
         models.Rating.rating_type == rating_type.upper()
     )
+    
+    # Sempre filtrar por training_plan_id para verificar unicidade por plano
+    if training_plan_id:
+        query = query.filter(models.Rating.training_plan_id == training_plan_id)
     
     if rating_type.upper() == "COURSE" and course_id:
         query = query.filter(models.Rating.course_id == course_id)

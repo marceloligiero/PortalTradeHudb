@@ -116,11 +116,15 @@ const ChallengeResult: React.FC = () => {
       const response = await api.get(`/api/challenges/submissions/${submissionId}`);
       setSubmission(response.data);
       
-      // Check if user already rated this challenge
-      if (response.data?.challenge_id) {
+      // Check if user already rated this challenge (no contexto do plano de formação)
+      if (response.data?.challenge_id && (urlPlanId || response.data?.training_plan_id)) {
         try {
           const ratingResp = await api.get(`/api/ratings/check`, {
-            params: { rating_type: 'CHALLENGE', challenge_id: response.data.challenge_id }
+            params: { 
+              rating_type: 'CHALLENGE', 
+              challenge_id: response.data.challenge_id,
+              training_plan_id: urlPlanId || response.data.training_plan_id
+            }
           });
           setHasRated(ratingResp.data?.exists || false);
         } catch (err) {
@@ -688,7 +692,7 @@ const ChallengeResult: React.FC = () => {
       </div>
       
       {/* Rating Modal */}
-      {submission && (
+      {submission && planId && (
         <RatingModal
           isOpen={showRatingModal}
           onClose={() => {
@@ -698,6 +702,7 @@ const ChallengeResult: React.FC = () => {
           ratingType="CHALLENGE"
           itemId={submission.challenge_id}
           itemTitle={submission.challenge.title}
+          trainingPlanId={parseInt(planId)}
         />
       )}
     </div>

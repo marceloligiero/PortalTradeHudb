@@ -15,6 +15,7 @@ interface RatingModalProps {
   ratingType: RatingType;
   itemId: number;
   itemTitle: string;
+  trainingPlanId?: number; // Obrigatório para avaliações vinculadas a um plano
 }
 
 export const RatingModal: React.FC<RatingModalProps> = ({
@@ -23,7 +24,8 @@ export const RatingModal: React.FC<RatingModalProps> = ({
   onSuccess,
   ratingType,
   itemId,
-  itemTitle
+  itemTitle,
+  trainingPlanId
 }) => {
   const { t } = useTranslation();
   const [stars, setStars] = useState(0);
@@ -70,6 +72,11 @@ export const RatingModal: React.FC<RatingModalProps> = ({
       else if (ratingType === 'CHALLENGE') payload.challenge_id = itemId;
       else if (ratingType === 'TRAINER') payload.trainer_id = itemId;
       else if (ratingType === 'TRAINING_PLAN') payload.training_plan_id = itemId;
+
+      // Sempre incluir training_plan_id para vincular ao plano de formação
+      if (trainingPlanId) {
+        payload.training_plan_id = trainingPlanId;
+      }
 
       console.log('Rating payload:', JSON.stringify(payload));
       await api.post('/api/ratings/submit', payload);

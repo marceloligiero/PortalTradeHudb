@@ -230,7 +230,7 @@ export default function TrainingPlanDetail() {
         for (const trainer of plan.trainers) {
           try {
             const trainerResp = await api.get('/api/ratings/check', {
-              params: { rating_type: 'TRAINER', trainer_id: trainer.id }
+              params: { rating_type: 'TRAINER', trainer_id: trainer.id, training_plan_id: plan.id }
             });
             ratingsMap[trainer.id] = trainerResp.data.exists;
           } catch (err) {
@@ -246,7 +246,7 @@ export default function TrainingPlanDetail() {
         for (const course of plan.courses) {
           try {
             const courseResp = await api.get('/api/ratings/check', {
-              params: { rating_type: 'COURSE', course_id: course.id }
+              params: { rating_type: 'COURSE', course_id: course.id, training_plan_id: plan.id }
             });
             courseRatingsMap[course.id] = courseResp.data.exists;
           } catch (err) {
@@ -1505,7 +1505,7 @@ export default function TrainingPlanDetail() {
       )}
 
       {/* Rating Modal for Trainer */}
-      {selectedTrainer && (
+      {selectedTrainer && plan && (
         <RatingModal
           isOpen={showTrainerRatingModal}
           onClose={() => {
@@ -1515,6 +1515,7 @@ export default function TrainingPlanDetail() {
           ratingType="TRAINER"
           itemId={selectedTrainer.id}
           itemTitle={selectedTrainer.full_name}
+          trainingPlanId={plan.id}
           onSuccess={() => {
             setTrainerRatings(prev => ({ ...prev, [selectedTrainer.id]: true }));
             setShowTrainerRatingModal(false);
@@ -1524,7 +1525,7 @@ export default function TrainingPlanDetail() {
       )}
 
       {/* Rating Modal for Course */}
-      {selectedCourse && (
+      {selectedCourse && plan && (
         <RatingModal
           isOpen={showCourseRatingModal}
           onClose={() => {
@@ -1534,6 +1535,7 @@ export default function TrainingPlanDetail() {
           ratingType="COURSE"
           itemId={selectedCourse.id}
           itemTitle={selectedCourse.title}
+          trainingPlanId={plan.id}
           onSuccess={() => {
             setCourseRatings(prev => ({ ...prev, [selectedCourse.id]: true }));
             setShowCourseRatingModal(false);

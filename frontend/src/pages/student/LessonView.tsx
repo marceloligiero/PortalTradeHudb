@@ -250,14 +250,16 @@ export default function LessonView() {
         console.log('Progresso não encontrado');
       }
       
-      // Verificar se já existe rating para esta lição
-      try {
-        const ratingResp = await api.get(`/api/ratings/check`, {
-          params: { rating_type: 'LESSON', lesson_id: lessonId }
-        });
-        setHasRated(ratingResp.data?.exists || false);
-      } catch (err) {
-        console.log('Erro ao verificar rating');
+      // Verificar se já existe rating para esta lição (no contexto do plano de formação)
+      if (planId) {
+        try {
+          const ratingResp = await api.get(`/api/ratings/check`, {
+            params: { rating_type: 'LESSON', lesson_id: lessonId, training_plan_id: planId }
+          });
+          setHasRated(ratingResp.data?.exists || false);
+        } catch (err) {
+          console.log('Erro ao verificar rating');
+        }
       }
     } catch (err: any) {
       console.error('Error fetching lesson:', err);
@@ -884,7 +886,7 @@ export default function LessonView() {
       </div>
 
       {/* Rating Modal */}
-      {lesson && (
+      {lesson && planId && (
         <RatingModal
           isOpen={showRatingModal}
           onClose={handleRatingComplete}
@@ -892,6 +894,7 @@ export default function LessonView() {
           ratingType="LESSON"
           itemId={lesson.id}
           itemTitle={lesson.title}
+          trainingPlanId={parseInt(planId)}
         />
       )}
     </div>

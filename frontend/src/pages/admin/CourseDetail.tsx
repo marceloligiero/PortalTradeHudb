@@ -114,13 +114,13 @@ export default function CourseDetail() {
     }
   }, [courseId, user]);
 
-  // Check if student has rated this course
+  // Check if student has rated this course (in the context of training plan)
   useEffect(() => {
     const checkRating = async () => {
-      if (!course || !isStudent) return;
+      if (!course || !isStudent || !course.training_plan) return;
       try {
         const resp = await api.get('/api/ratings/check', {
-          params: { rating_type: 'COURSE', course_id: course.id }
+          params: { rating_type: 'COURSE', course_id: course.id, training_plan_id: course.training_plan.id }
         });
         setHasCourseRating(resp.data.exists);
       } catch (err) {
@@ -678,13 +678,14 @@ export default function CourseDetail() {
       )}
 
       {/* Rating Modal */}
-      {course && (
+      {course && course.training_plan && (
         <RatingModal
           isOpen={showCourseRatingModal}
           onClose={() => setShowCourseRatingModal(false)}
           ratingType="COURSE"
           itemId={course.id}
           itemTitle={course.title}
+          trainingPlanId={course.training_plan.id}
           onSuccess={() => {
             setHasCourseRating(true);
             setShowCourseRatingModal(false);
