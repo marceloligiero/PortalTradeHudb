@@ -20,10 +20,12 @@ import {
   AlertCircle,
   Sparkles,
   ChevronRight,
-  Play
+  Play,
+  Star
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
+import RatingModal from '../../components/RatingModal';
 
 interface Lesson {
   id: number;
@@ -61,6 +63,10 @@ interface Course {
   updated_at: string;
   lessons: Lesson[];
   challenges: Challenge[];
+  training_plan?: {
+    id: number;
+    title: string;
+  } | null;
 }
 
 export default function CourseDetail() {
@@ -74,6 +80,10 @@ export default function CourseDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'lessons' | 'challenges'>('overview');
+  
+  // Rating state for students
+  const [showCourseRatingModal, setShowCourseRatingModal] = useState(false);
+  const [hasCourseRating, setHasCourseRating] = useState(false);
 
   const fetchCourse = async () => {
     try {
@@ -103,6 +113,22 @@ export default function CourseDetail() {
       fetchCourse();
     }
   }, [courseId, user]);
+
+  // Check if student has rated this course
+  useEffect(() => {
+    const checkRating = async () => {
+      if (!course || !isStudent) return;
+      try {
+        const resp = await api.get('/api/ratings/check', {
+          params: { item_type: 'COURSE', item_id: course.id }
+        });
+        setHasCourseRating(resp.data.exists);
+      } catch (err) {
+        console.log('Error checking course rating:', err);
+      }
+    };
+    checkRating();
+  }, [course, isStudent]);
 
   const handleDeleteCourse = async () => {
     if (!course || !window.confirm(t('admin.confirmDeleteCourse'))) return;
@@ -573,6 +599,94 @@ export default function CourseDetail() {
           </div>
         )}
       </motion.div>
+
+      {/* Student Enrollment & Rating Section */}
+      {isStudent && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6"
+        >
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('courses.myEnrollment', 'A Minha Inscrição')}</h3>
+          
+          <div className="space-y-4">
+            {/* Enrollment Status */}
+            <div className="flex items-center gap-4 p-4 bg-green-50 dark:bg-green-500/10 rounded-lg border border-green-200 dark:border-green-500/20">
+              <div className="w-12 h-12 bg-green-100 dark:bg-green-500/20 rounded-xl flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-green-700 dark:text-green-400">{t('courses.enrolled', 'Inscrito neste Curso')}</p>
+                <p className="text-sm text-green-600 dark:text-green-500">{t('courses.enrolledDescription', 'Você tem acesso a todas as aulas e desafios deste curso')}</p>
+              </div>
+            </div>
+
+            {/* Training Plan Link */}
+            {course.training_plan && (
+              <div 
+                onClick={() => navigate(`/training-plan/${course.training_plan?.id}`)}
+                className="flex items-center gap-4 p-4 bg-purple-50 dark:bg-purple-500/10 rounded-lg border border-purple-200 dark:border-purple-500/20 cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-colors"
+              >
+                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-500/20 rounded-xl flex items-center justify-center">
+                  <GraduationCap className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-purple-700 dark:text-purple-400">{t('courses.trainingPlan', 'Plano de Formação')}</p>
+                  <p className="text-sm text-purple-600 dark:text-purple-500">{course.training_plan.title}</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-purple-500" />
+              </div>
+            )}
+
+            {/* Rating Section */}
+            <div className="flex items-center gap-4 p-4 bg-amber-50 dark:bg-amber-500/10 rounded-lg border border-amber-200 dark:border-amber-500/20">
+              <div className="w-12 h-12 bg-amber-100 dark:bg-amber-500/20 rounded-xl flex items-center justify-center">
+                <Star className={`w-6 h-6 ${hasCourseRating ? 'text-amber-500 fill-amber-500' : 'text-amber-600 dark:text-amber-400'}`} />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-amber-700 dark:text-amber-400">
+                  {hasCourseRating ? t('courses.courseRated', 'Curso Classificado') : t('courses.rateCourse', 'Classificar Curso')}
+                </p>
+                <p className="text-sm text-amber-600 dark:text-amber-500">
+                  {hasCourseRating 
+                    ? t('courses.thankYouRating', 'Obrigado pela sua avaliação!') 
+                    : t('courses.helpImprove', 'Ajude-nos a melhorar com a sua avaliação')
+                  }
+                </p>
+              </div>
+              {hasCourseRating ? (
+                <span className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 rounded-xl text-sm font-medium">
+                  <CheckCircle2 className="w-4 h-4" />
+                  {t('courses.rated', 'Classificado')} ✓
+                </span>
+              ) : (
+                <button
+                  onClick={() => setShowCourseRatingModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-600 text-white rounded-xl font-medium hover:from-amber-600 hover:to-yellow-700 transition-all shadow-lg"
+                >
+                  <Star className="w-4 h-4" />
+                  {t('courses.rate', 'Classificar')}
+                </button>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Rating Modal */}
+      {course && (
+        <RatingModal
+          isOpen={showCourseRatingModal}
+          onClose={() => setShowCourseRatingModal(false)}
+          ratingType="COURSE"
+          itemId={course.id}
+          itemTitle={course.title}
+          onSuccess={() => {
+            setHasCourseRating(true);
+            setShowCourseRatingModal(false);
+          }}
+        />
+      )}
     </div>
   );
 }
