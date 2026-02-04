@@ -437,7 +437,7 @@ export default function CourseDetail() {
                   <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                     <GraduationCap className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.trainer')}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.createdBy') || 'Criado por'}</p>
                       <p className="font-medium text-gray-900 dark:text-white">{course.trainer_name || '-'}</p>
                     </div>
                   </div>

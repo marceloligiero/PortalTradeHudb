@@ -59,11 +59,11 @@ const LessonForm: React.FC = () => {
   });
 
   const steps = [
-    { number: 1, title: t('lessons.basicInfo') || 'Informações', icon: Target, description: 'Título e tipo do módulo' },
-    { number: 2, title: t('lessons.content') || 'Conteúdo', icon: FileText, description: 'Conteúdo do módulo' },
-    { number: 3, title: t('lessons.resources') || 'Recursos', icon: Video, description: 'Vídeo e materiais' },
-    { number: 4, title: t('lessons.settings') || 'Configurações', icon: Settings, description: 'Duração e ordem' },
-    { number: 5, title: t('lessons.review') || 'Revisão', icon: Eye, description: 'Conferir e criar' }
+    { number: 1, title: t('lessons.basicInfo'), icon: Target, description: t('lessons.basicInfoTitle') },
+    { number: 2, title: t('lessons.content'), icon: FileText, description: t('lessons.contentTitle') },
+    { number: 3, title: t('lessons.resources'), icon: Video, description: t('lessons.resourcesTitle') },
+    { number: 4, title: t('lessons.settings'), icon: Settings, description: t('lessons.settingsTitle') },
+    { number: 5, title: t('lessons.review'), icon: Eye, description: t('lessons.reviewTitle') }
   ];
 
   useEffect(() => {
@@ -180,7 +180,7 @@ const LessonForm: React.FC = () => {
       }, 2000);
     } catch (err: any) {
       console.error('Error saving lesson:', err);
-      setError(err.response?.data?.detail || 'Erro ao salvar módulo');
+      setError(err.response?.data?.detail || t('lessons.saveError'));
     } finally {
       setLoading(false);
     }
@@ -191,7 +191,7 @@ const LessonForm: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#111] to-[#0a0a0a] flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
-          <span className="text-gray-400">Carregando módulo...</span>
+          <span className="text-gray-400">{t('lessons.loading')}</span>
         </div>
       </div>
     );
@@ -215,9 +215,9 @@ const LessonForm: React.FC = () => {
             <CheckCircle2 className="w-12 h-12 text-white" />
           </motion.div>
           <h2 className="text-3xl font-bold text-white mb-2">
-            {isEditing ? 'Módulo Atualizado!' : 'Módulo Criado!'}
+            {isEditing ? t('lessons.lessonUpdated') : t('lessons.lessonCreated')}
           </h2>
-          <p className="text-gray-400">Redirecionando para o curso...</p>
+          <p className="text-gray-400">{t('lessons.redirecting')}</p>
         </motion.div>
       </div>
     );
@@ -241,7 +241,7 @@ const LessonForm: React.FC = () => {
             className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-6 group"
           >
             <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            Voltar ao Curso
+            {t('lessons.backToCourse')}
           </motion.button>
 
           <motion.div
@@ -254,7 +254,7 @@ const LessonForm: React.FC = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-white">
-                {isEditing ? 'Editar Módulo' : 'Criar Novo Módulo'}
+                {isEditing ? t('lessons.editLesson') : t('lessons.createLesson')}
               </h1>
               <p className="text-gray-400 mt-1">
                 {steps[currentStep - 1].description}
@@ -342,21 +342,21 @@ const LessonForm: React.FC = () => {
                   <div className="w-10 h-10 rounded-xl bg-purple-600/20 flex items-center justify-center">
                     <Target className="w-5 h-5 text-purple-400" />
                   </div>
-                  <h2 className="text-xl font-bold text-white">Informações Básicas</h2>
+                  <h2 className="text-xl font-bold text-white">{t('lessons.basicInfoTitle')}</h2>
                 </div>
 
                 <div className="space-y-6">
                   {/* Title */}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Título da Aula *
+                      {t('lessons.titleLabel')}
                     </label>
                     <input
                       type="text"
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                       className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                      placeholder="Ex: Introdução aos Processos de Trade Finance"
+                      placeholder={t('lessons.titlePlaceholder')}
                     />
                   </div>
 
@@ -365,21 +365,21 @@ const LessonForm: React.FC = () => {
                   {/* Description */}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Descrição Breve
+                      {t('lessons.descriptionLabel')}
                     </label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       rows={3}
                       className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all resize-none"
-                      placeholder="Uma breve descrição do que será abordado nesta aula..."
+                      placeholder={t('lessons.descriptionPlaceholder')}
                     />
                   </div>
 
                   {/* Quem Inicia a Aula */}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Quem Inicia a Aula
+                      {t('lessons.startedByLabel')}
                     </label>
                     <div className="grid grid-cols-2 gap-4">
                       <button
@@ -398,8 +398,8 @@ const LessonForm: React.FC = () => {
                             <Settings className="w-5 h-5 text-white" />
                           </div>
                           <div className="text-left">
-                            <h3 className="font-semibold text-white">Formador</h3>
-                            <p className="text-xs text-gray-400">O formador inicia a aula</p>
+                            <h3 className="font-semibold text-white">{t('lessons.startedByTrainer')}</h3>
+                            <p className="text-xs text-gray-400">{t('lessons.startedByTrainerDesc')}</p>
                           </div>
                         </div>
                       </button>
@@ -419,8 +419,8 @@ const LessonForm: React.FC = () => {
                             <Play className="w-5 h-5 text-white" />
                           </div>
                           <div className="text-left">
-                            <h3 className="font-semibold text-white">Formando</h3>
-                            <p className="text-xs text-gray-400">O formando inicia sozinho</p>
+                            <h3 className="font-semibold text-white">{t('lessons.startedByTrainee')}</h3>
+                            <p className="text-xs text-gray-400">{t('lessons.startedByTraineeDesc')}</p>
                           </div>
                         </div>
                       </button>
@@ -444,15 +444,15 @@ const LessonForm: React.FC = () => {
                     <FileText className="w-5 h-5 text-blue-400" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">Conteúdo da Aula</h2>
-                    <p className="text-sm text-gray-400">Use o editor para formatar o conteúdo</p>
+                    <h2 className="text-xl font-bold text-white">{t('lessons.contentTitle')}</h2>
+                    <p className="text-sm text-gray-400">{t('lessons.contentSubtitle')}</p>
                   </div>
                 </div>
 
                 <RichTextEditor
                   content={formData.content}
                   onChange={(html) => setFormData({ ...formData, content: html })}
-                  placeholder="Comece a escrever o conteúdo da aula aqui..."
+                  placeholder={t('lessons.contentPlaceholder')}
                   isDark={true}
                 />
               </motion.div>
@@ -472,8 +472,8 @@ const LessonForm: React.FC = () => {
                     <Video className="w-5 h-5 text-pink-400" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">Recursos</h2>
-                    <p className="text-sm text-gray-400">Adicione vídeo e materiais de apoio</p>
+                    <h2 className="text-xl font-bold text-white">{t('lessons.resourcesTitle')}</h2>
+                    <p className="text-sm text-gray-400">{t('lessons.resourcesSubtitle')}</p>
                   </div>
                 </div>
 
@@ -481,7 +481,7 @@ const LessonForm: React.FC = () => {
                   {/* Video URL */}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      URL do Vídeo (opcional)
+                      {t('lessons.videoUrlLabel')}
                     </label>
                     <div className="relative">
                       <Video className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
@@ -490,18 +490,18 @@ const LessonForm: React.FC = () => {
                         value={formData.video_url}
                         onChange={(e) => setFormData({ ...formData, video_url: e.target.value })}
                         className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                        placeholder="https://youtube.com/watch?v=..."
+                        placeholder={t('lessons.videoUrlPlaceholder')}
                       />
                     </div>
                     <p className="mt-2 text-xs text-gray-500">
-                      Suporta YouTube, Vimeo e links diretos de vídeo
+                      {t('lessons.videoUrlHelp')}
                     </p>
                   </div>
 
                   {/* Materials URL */}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Link para Materiais (opcional)
+                      {t('lessons.materialsUrlLabel')}
                     </label>
                     <div className="relative">
                       <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
@@ -510,18 +510,18 @@ const LessonForm: React.FC = () => {
                         value={formData.materials_url}
                         onChange={(e) => setFormData({ ...formData, materials_url: e.target.value })}
                         className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                        placeholder="https://drive.google.com/..."
+                        placeholder={t('lessons.materialsUrlPlaceholder')}
                       />
                     </div>
                     <p className="mt-2 text-xs text-gray-500">
-                      PDFs, apresentações ou documentos de apoio
+                      {t('lessons.materialsUrlHelp')}
                     </p>
                   </div>
 
                   {/* Preview Box */}
                   {(formData.video_url || formData.materials_url) && (
                     <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-                      <h4 className="text-sm font-medium text-gray-400 mb-3">Recursos Adicionados</h4>
+                      <h4 className="text-sm font-medium text-gray-400 mb-3">{t('lessons.resourcesAdded')}</h4>
                       <div className="space-y-2">
                         {formData.video_url && (
                           <div className="flex items-center gap-3 text-sm">
@@ -556,8 +556,8 @@ const LessonForm: React.FC = () => {
                     <Settings className="w-5 h-5 text-yellow-400" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">Configurações</h2>
-                    <p className="text-sm text-gray-400">Duração e ordenação da aula</p>
+                    <h2 className="text-xl font-bold text-white">{t('lessons.settingsTitle')}</h2>
+                    <p className="text-sm text-gray-400">{t('lessons.settingsSubtitle')}</p>
                   </div>
                 </div>
 
@@ -569,8 +569,8 @@ const LessonForm: React.FC = () => {
                         <Clock className="w-5 h-5 text-yellow-400" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-white">Duração</h3>
-                        <p className="text-xs text-gray-500">Tempo estimado</p>
+                        <h3 className="font-semibold text-white">{t('lessons.durationLabel')}</h3>
+                        <p className="text-xs text-gray-500">{t('lessons.estimatedTime')}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -581,7 +581,7 @@ const LessonForm: React.FC = () => {
                         min={1}
                         className="w-24 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-center focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
                       />
-                      <span className="text-gray-400">minutos</span>
+                      <span className="text-gray-400">{t('lessons.minutes')}</span>
                     </div>
                   </div>
 
@@ -592,15 +592,15 @@ const LessonForm: React.FC = () => {
                         <Layers className="w-5 h-5 text-blue-400" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-white">Ordem</h3>
-                        <p className="text-xs text-gray-500">Posição no curso (automático)</p>
+                        <h3 className="font-semibold text-white">{t('lessons.orderLabel')}</h3>
+                        <p className="text-xs text-gray-500">{t('lessons.orderAutomatic')}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="w-24 px-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white text-center">
                         {formData.order_index}
                       </div>
-                      <span className="text-gray-400">ª aula</span>
+                      <span className="text-gray-400">{t('lessons.lessonPosition')}</span>
                     </div>
                   </div>
                 </div>
@@ -621,8 +621,8 @@ const LessonForm: React.FC = () => {
                     <Eye className="w-5 h-5 text-green-400" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">Revisão Final</h2>
-                    <p className="text-sm text-gray-400">Confirme os dados antes de salvar</p>
+                    <h2 className="text-xl font-bold text-white">{t('lessons.reviewTitle')}</h2>
+                    <p className="text-sm text-gray-400">{t('lessons.reviewSubtitle')}</p>
                   </div>
                 </div>
 
@@ -636,7 +636,7 @@ const LessonForm: React.FC = () => {
                           ? 'bg-purple-500/20 text-purple-300' 
                           : 'bg-green-500/20 text-green-300'
                       }`}>
-                        {formData.lesson_type === 'THEORETICAL' ? 'Teórica' : 'Prática'}
+                        {formData.lesson_type === 'THEORETICAL' ? t('lessons.theoretical') : t('lessons.practical')}
                       </span>
                     </div>
                     {formData.description && (
@@ -649,24 +649,24 @@ const LessonForm: React.FC = () => {
                     <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
                       <Clock className="w-6 h-6 text-yellow-400 mx-auto mb-2" />
                       <div className="text-2xl font-bold text-white">{formData.estimated_minutes}</div>
-                      <div className="text-xs text-gray-500">minutos</div>
+                      <div className="text-xs text-gray-500">{t('lessons.minutes')}</div>
                     </div>
                     <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
                       <Layers className="w-6 h-6 text-blue-400 mx-auto mb-2" />
                       <div className="text-2xl font-bold text-white">{formData.order_index}ª</div>
-                      <div className="text-xs text-gray-500">aula</div>
+                      <div className="text-xs text-gray-500">{t('lessons.lesson')}</div>
                     </div>
                     <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
                       <Video className="w-6 h-6 text-pink-400 mx-auto mb-2" />
                       <div className="text-2xl font-bold text-white">{formData.video_url ? '1' : '0'}</div>
-                      <div className="text-xs text-gray-500">vídeo</div>
+                      <div className="text-xs text-gray-500">{t('lessons.video')}</div>
                     </div>
                   </div>
 
                   {/* Content Preview */}
                   {formData.content && (
                     <div className="bg-white/5 rounded-xl p-5 border border-white/10">
-                      <h4 className="text-sm font-medium text-gray-400 mb-3">Prévia do Conteúdo</h4>
+                      <h4 className="text-sm font-medium text-gray-400 mb-3">{t('lessons.contentPreview')}</h4>
                       <div 
                         className="prose prose-invert prose-sm max-w-none max-h-40 overflow-y-auto"
                         dangerouslySetInnerHTML={{ __html: formData.content }}
@@ -689,7 +689,7 @@ const LessonForm: React.FC = () => {
                   className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  Voltar
+                  {t('common.back')}
                 </motion.button>
               )}
             </div>
@@ -697,7 +697,7 @@ const LessonForm: React.FC = () => {
             <div className="flex items-center gap-4">
               {/* Step indicator */}
               <span className="text-sm text-gray-500">
-                Passo {currentStep} de {steps.length}
+                {t('lessons.stepOf', { current: currentStep, total: steps.length })}
               </span>
 
               {currentStep < steps.length ? (
@@ -707,7 +707,7 @@ const LessonForm: React.FC = () => {
                   onClick={handleNext}
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-purple-700 text-white font-medium shadow-lg shadow-purple-900/30 hover:shadow-purple-900/50 transition-all"
                 >
-                  Próximo
+                  {t('common.next')}
                   <ArrowRight className="w-4 h-4" />
                 </motion.button>
               ) : (
@@ -721,12 +721,12 @@ const LessonForm: React.FC = () => {
                   {loading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Salvando...
+                      {t('common.saving')}
                     </>
                   ) : (
                     <>
                       <Save className="w-4 h-4" />
-                      {isEditing ? 'Salvar Alterações' : 'Criar Aula'}
+                      {isEditing ? t('lessons.saveChanges') : t('lessons.createLesson')}
                     </>
                   )}
                 </motion.button>
