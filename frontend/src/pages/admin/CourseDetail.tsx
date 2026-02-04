@@ -54,6 +54,8 @@ interface Course {
   bank_name: string;
   product_code: string;
   product_name: string;
+  banks?: { id: number; code: string; name: string }[];
+  products?: { id: number; code: string; name: string }[];
   trainer_id: number;
   trainer_name: string;
   total_students: number;
@@ -243,13 +245,29 @@ export default function CourseDetail() {
                 <BookOpen className="w-10 h-10 text-white" />
               </div>
               <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="px-3 py-1 bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 rounded-full text-sm font-medium">
-                    {course.bank_code}
-                  </span>
-                  <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-sm">
-                    {course.product_name || course.product_code}
-                  </span>
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  {course.banks && course.banks.length > 0 ? (
+                    course.banks.map(bank => (
+                      <span key={bank.id} className="px-3 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full text-sm font-medium">
+                        {bank.code}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="px-3 py-1 bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 rounded-full text-sm font-medium">
+                      {course.bank_code}
+                    </span>
+                  )}
+                  {course.products && course.products.length > 0 ? (
+                    course.products.map(product => (
+                      <span key={product.id} className="px-3 py-1 bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-full text-sm font-medium">
+                        {product.name}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-sm">
+                      {course.product_name || course.product_code}
+                    </span>
+                  )}
                 </div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{course.title}</h1>
                 <p className="text-gray-600 dark:text-gray-400 max-w-2xl">{course.description}</p>
@@ -382,18 +400,38 @@ export default function CourseDetail() {
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('admin.courseDetails')}</h3>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <Building2 className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.bank')}</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{course.bank_name || course.bank_code}</p>
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Building2 className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.banks') || t('admin.bank')}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {course.banks && course.banks.length > 0 ? (
+                        course.banks.map(bank => (
+                          <span key={bank.id} className="px-3 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 rounded-lg text-sm font-medium">
+                            {bank.code} - {bank.name}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="font-medium text-gray-900 dark:text-white">{course.bank_name || course.bank_code || '-'}</span>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <Package className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                    <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.product')}</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{course.product_name || course.product_code}</p>
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Package className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.products') || t('admin.product')}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {course.products && course.products.length > 0 ? (
+                        course.products.map(product => (
+                          <span key={product.id} className="px-3 py-1 bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 rounded-lg text-sm font-medium">
+                            {product.name}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="font-medium text-gray-900 dark:text-white">{course.product_name || course.product_code || '-'}</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
