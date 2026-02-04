@@ -26,10 +26,11 @@ interface Course {
   title: string;
   description: string;
   bank_id: number;
-  bank_code: string;
-  bank_name: string;
+  bank_ids: number[];
+  banks: { id: number; code: string; name: string }[];
   product_id: number;
-  product_name: string;
+  product_ids: number[];
+  products: { id: number; code: string; name: string }[];
   trainer_id: number;
   trainer_name: string;
   total_students: number;
@@ -99,8 +100,8 @@ export default function CoursesPage() {
         course.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         course.trainer_name?.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesProduct = !filterProduct || course.product_id === parseInt(filterProduct);
-      const matchesBank = !filterBank || course.bank_id === parseInt(filterBank);
+      const matchesProduct = !filterProduct || course.product_ids?.includes(parseInt(filterProduct));
+      const matchesBank = !filterBank || course.bank_ids?.includes(parseInt(filterBank));
       
       return matchesSearch && matchesProduct && matchesBank;
     });
@@ -112,7 +113,7 @@ export default function CoursesPage() {
     
     const groups: Record<string, Course[]> = {};
     filteredCourses.forEach(course => {
-      const key = course.product_name || 'Sem Produto';
+      const key = course.products?.[0]?.name || 'Sem Produto';
       if (!groups[key]) groups[key] = [];
       groups[key].push(course);
     });
@@ -488,11 +489,16 @@ export default function CoursesPage() {
                           >
                             <BookOpen className="w-7 h-7 text-white" />
                           </motion.div>
-                          <div className="flex flex-col items-end gap-1">
-                            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 rounded text-xs font-semibold flex items-center gap-1">
-                              <Building2 className="w-3 h-3" />
-                              {course.bank_code}
-                            </span>
+                          <div className="flex flex-col items-end gap-1 max-w-[120px]">
+                            {course.banks?.slice(0, 2).map(bank => (
+                              <span key={bank.id} className="px-2 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 rounded text-xs font-semibold flex items-center gap-1">
+                                <Building2 className="w-3 h-3" />
+                                {bank.code}
+                              </span>
+                            ))}
+                            {course.banks?.length > 2 && (
+                              <span className="text-xs text-gray-500">+{course.banks.length - 2}</span>
+                            )}
                           </div>
                         </div>
                         
@@ -503,9 +509,22 @@ export default function CoursesPage() {
                           {course.description || t('admin.noDescription')}
                         </p>
                         
-                        <div className="flex items-center gap-2 mb-4 text-sm text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center gap-2 mb-2 text-sm text-gray-500 dark:text-gray-400">
                           <GraduationCap className="w-4 h-4 text-gray-400" />
                           <span>{course.trainer_name}</span>
+                        </div>
+                        
+                        {/* Products badges */}
+                        <div className="flex flex-wrap gap-1 mb-4">
+                          {course.products?.slice(0, 2).map(product => (
+                            <span key={product.id} className="px-2 py-0.5 bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 rounded text-xs font-medium flex items-center gap-1">
+                              <Package className="w-3 h-3" />
+                              {product.name}
+                            </span>
+                          ))}
+                          {course.products?.length > 2 && (
+                            <span className="text-xs text-gray-500">+{course.products.length - 2}</span>
+                          )}
                         </div>
 
                         <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-white/5">
@@ -574,14 +593,30 @@ export default function CoursesPage() {
                             <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-red-600 transition-colors truncate">
                               {course.title}
                             </h3>
-                            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 rounded text-xs font-medium flex-shrink-0 flex items-center gap-1">
-                              <Building2 className="w-3 h-3" />
-                              {course.bank_code}
-                            </span>
+                            {course.banks?.slice(0, 2).map(bank => (
+                              <span key={bank.id} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 rounded text-xs font-medium flex-shrink-0 flex items-center gap-1">
+                                <Building2 className="w-3 h-3" />
+                                {bank.code}
+                              </span>
+                            ))}
+                            {course.banks?.length > 2 && (
+                              <span className="text-xs text-gray-500">+{course.banks.length - 2}</span>
+                            )}
                           </div>
                           <p className="text-gray-500 dark:text-gray-400 text-sm truncate">
                             {course.description || t('admin.noDescription')}
                           </p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {course.products?.slice(0, 3).map(product => (
+                              <span key={product.id} className="px-2 py-0.5 bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 rounded text-xs font-medium flex items-center gap-1">
+                                <Package className="w-3 h-3" />
+                                {product.name}
+                              </span>
+                            ))}
+                            {course.products?.length > 3 && (
+                              <span className="text-xs text-gray-500">+{course.products.length - 3}</span>
+                            )}
+                          </div>
                         </div>
 
                         <div className="hidden md:flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">
