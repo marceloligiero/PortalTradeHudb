@@ -84,6 +84,7 @@ export default function CourseDetail() {
   // Rating state for students
   const [showCourseRatingModal, setShowCourseRatingModal] = useState(false);
   const [hasCourseRating, setHasCourseRating] = useState(false);
+  const [isPlanFinalized, setIsPlanFinalized] = useState(false);
 
   const fetchCourse = async () => {
     try {
@@ -114,10 +115,20 @@ export default function CourseDetail() {
     }
   }, [courseId, user]);
 
-  // Check if student has rated this course (in the context of training plan)
+  // Check if student has rated this course and if plan is finalized
   useEffect(() => {
-    const checkRating = async () => {
+    const checkRatingAndPlanStatus = async () => {
       if (!course || !isStudent || !course.training_plan) return;
+      
+      // Check if plan is finalized
+      try {
+        const planResp = await api.get(`/api/training-plans/${course.training_plan.id}/completion-status`);
+        setIsPlanFinalized(planResp.data?.is_finalized || false);
+      } catch (err) {
+        console.log('Error checking plan status:', err);
+      }
+      
+      // Check if already rated
       try {
         const resp = await api.get('/api/ratings/check', {
           params: { rating_type: 'COURSE', course_id: course.id, training_plan_id: course.training_plan.id }
@@ -127,7 +138,7 @@ export default function CourseDetail() {
         console.log('Error checking course rating:', err);
       }
     };
-    checkRating();
+    checkRatingAndPlanStatus();
   }, [course, isStudent]);
 
   const handleDeleteCourse = async () => {
@@ -642,8 +653,8 @@ export default function CourseDetail() {
               </div>
             )}
 
-            {/* Rating Section - Only show if course belongs to a training plan */}
-            {course.training_plan && (
+            {/* Rating Section - Only show if plan is finalized */}
+            {course.training_plan && isPlanFinalized && (
             <div className="flex items-center gap-4 p-4 bg-amber-50 dark:bg-amber-500/10 rounded-lg border border-amber-200 dark:border-amber-500/20">
               <div className="w-12 h-12 bg-amber-100 dark:bg-amber-500/20 rounded-xl flex items-center justify-center">
                 <Star className={`w-6 h-6 ${hasCourseRating ? 'text-amber-500 fill-amber-500' : 'text-amber-600 dark:text-amber-400'}`} />
@@ -679,8 +690,8 @@ export default function CourseDetail() {
         </motion.div>
       )}
 
-      {/* Rating Modal */}
-      {course && course.training_plan && (
+      {/* Rating Modal - Only available when plan is finalized */}
+      {course && course.training_plan && isPlanFinalized && (
         <RatingModal
           isOpen={showCourseRatingModal}
           onClose={() => setShowCourseRatingModal(false)}

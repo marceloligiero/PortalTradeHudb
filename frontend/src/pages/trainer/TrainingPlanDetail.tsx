@@ -828,8 +828,8 @@ export default function TrainingPlanDetail() {
                       <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>{course.description}</p>
                     </div>
                     
-                    {/* Course Rating Button - students only, when course is complete */}
-                    {isStudent && getCourseCompletionStatus(course.id)?.is_complete && (
+                    {/* Course Rating Button - students only, when plan is finalized */}
+                    {isStudent && completionStatus?.is_finalized && getCourseCompletionStatus(course.id)?.is_complete && (
                       <div className="flex items-center ml-4">
                         {courseRatings[course.id] ? (
                           <span className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-xl text-sm font-medium">

@@ -100,6 +100,7 @@ const ChallengeResult: React.FC = () => {
   const [approving, setApproving] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [hasRated, setHasRated] = useState(false);
+  const [isPlanFinalized, setIsPlanFinalized] = useState(false);
 
   // Verificar se é formador/admin
   const isTrainerOrAdmin = user?.role === 'ADMIN' || user?.role === 'TRAINER';
@@ -116,19 +117,31 @@ const ChallengeResult: React.FC = () => {
       const response = await api.get(`/api/challenges/submissions/${submissionId}`);
       setSubmission(response.data);
       
-      // Check if user already rated this challenge (no contexto do plano de formação)
-      if (response.data?.challenge_id && (urlPlanId || response.data?.training_plan_id)) {
+      const effectivePlanId = urlPlanId || response.data?.training_plan_id;
+      
+      // Check if plan is finalized
+      if (effectivePlanId) {
         try {
-          const ratingResp = await api.get(`/api/ratings/check`, {
-            params: { 
-              rating_type: 'CHALLENGE', 
-              challenge_id: response.data.challenge_id,
-              training_plan_id: urlPlanId || response.data.training_plan_id
-            }
-          });
-          setHasRated(ratingResp.data?.exists || false);
+          const planResp = await api.get(`/api/training-plans/${effectivePlanId}/completion-status`);
+          setIsPlanFinalized(planResp.data?.is_finalized || false);
         } catch (err) {
-          console.log('Erro ao verificar rating');
+          console.log('Erro ao verificar status do plano');
+        }
+        
+        // Check if user already rated this challenge (no contexto do plano de formação)
+        if (response.data?.challenge_id) {
+          try {
+            const ratingResp = await api.get(`/api/ratings/check`, {
+              params: { 
+                rating_type: 'CHALLENGE', 
+                challenge_id: response.data.challenge_id,
+                training_plan_id: effectivePlanId
+              }
+            });
+            setHasRated(ratingResp.data?.exists || false);
+          } catch (err) {
+            console.log('Erro ao verificar rating');
+          }
         }
       }
     } catch (err) {
@@ -649,8 +662,8 @@ const ChallengeResult: React.FC = () => {
           </div>
         )}
 
-        {/* Botão de Classificação (para formando com desafio aprovado e vinculado a um plano) */}
-        {!isTrainerOrAdmin && submission.is_approved === true && planId && (
+        {/* Botão de Classificação (para formando com desafio aprovado e plano finalizado) */}
+        {!isTrainerOrAdmin && submission.is_approved === true && planId && isPlanFinalized && (
           <div className="bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/20 rounded-xl p-6 mb-8">
             <div className="flex items-center justify-between">
               <div>

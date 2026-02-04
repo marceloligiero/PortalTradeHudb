@@ -68,6 +68,7 @@ export default function LessonView() {
   const [finishLoading, setFinishLoading] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [hasRated, setHasRated] = useState(false);
+  const [isPlanFinalized, setIsPlanFinalized] = useState(false);
 
   // Se a aula foi iniciada pelo FORMADOR, o formando pode finalizar após ler todas as páginas
   const isTrainerStarted = lesson?.started_by === 'TRAINER';
@@ -250,8 +251,16 @@ export default function LessonView() {
         console.log('Progresso não encontrado');
       }
       
-      // Verificar se já existe rating para esta lição (no contexto do plano de formação)
+      // Verificar se o plano de formação está finalizado
       if (planId) {
+        try {
+          const planResp = await api.get(`/api/training-plans/${planId}/completion-status`);
+          setIsPlanFinalized(planResp.data?.is_finalized || false);
+        } catch (err) {
+          console.log('Erro ao verificar status do plano');
+        }
+        
+        // Verificar se já existe rating para esta lição (no contexto do plano de formação)
         try {
           const ratingResp = await api.get(`/api/ratings/check`, {
             params: { rating_type: 'LESSON', lesson_id: lessonId, training_plan_id: planId }
@@ -677,8 +686,8 @@ export default function LessonView() {
                   <CheckCircle2 className="w-5 h-5" />
                   Módulo Aprovado ✓
                 </div>
-                {/* Rating only available when lesson is part of a training plan */}
-                {planId && (hasRated ? (
+                {/* Rating only available when plan is finalized */}
+                {planId && isPlanFinalized && (hasRated ? (
                   <div className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-500 rounded-lg font-medium border border-gray-200">
                     <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
                     Lição Classificada ✓
