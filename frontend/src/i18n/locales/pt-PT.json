@@ -73,7 +73,7 @@
     "settings": "Definições",
     "trainingPlans": "Planos de Formação",
     "banks": "Bancos",
-    "products": "Produtos",
+    "products": "Servi�os",
     "ratings": "Avaliações"
   },
   "roles": {
@@ -172,7 +172,7 @@
     "courseName": "Nome do Curso",
     "description": "Descrição",
     "bank": "Banco",
-    "product": "Produto",
+    "product": "Servi�o",
     "lessons": "Módulos",
     "enroll": "Inscrever-me",
     "enrolling": "Inscrevendo...",
@@ -551,7 +551,7 @@
     "newTrainingPlan": "Novo Plano de Formação",
     "newBank": "Novo Banco",
     "newProduct": "Novo Produto",
-    "products": "Produtos",
+    "products": "Servi�os",
     "createNewCourse": "Criar novo curso de formação",
     "createNewPlan": "Criar novo plano de formação",
     "createNewBank": "Criar Novo Banco",
@@ -677,7 +677,7 @@
     "confirmDeleteCourse": "Tem a certeza que deseja eliminar este curso?",
     "confirmDeleteLesson": "Tem a certeza que deseja eliminar este módulo?",
     "confirmDeleteChallenge": "Tem a certeza que deseja eliminar este desafio?",
-    "product": "Produto",
+    "product": "Servi�o",
     "theoretical": "Teórico",
     "practical": "Prático",
     "estimatedMinutes": "Minutos Estimados",
@@ -873,10 +873,94 @@
       "p2": "Através de trilhas de formação estruturadas por área operacional, os colaboradores desenvolvem competências técnicas alinhadas com os processos oficiais, regulamentações internacionais e melhores práticas do setor."
     },
     "processes": {
-      "badge": "4 Áreas Especializadas",
-      "title": "Áreas Operacionais de Trade",
-      "subtitle": "Formação especializada para cada etapa do processo de Trade Finance",
+      "badge": "7 Áreas Especializadas",
+      "title": "Nossos Serviços",
+      "subtitle": "Formação especializada em Trade Finance para o seu desenvolvimento profissional",
       "focus": "Foco",
+      "creditosImportacion": {
+        "title": "Créditos Importação",
+        "description": "Gestão completa de operações de crédito para importação com controlo de prazos e liquidação.",
+        "items": [
+          "Liberação de recursos conforme contrato",
+          "Controlo de contratos ativos",
+          "Cálculo de juros e encargos",
+          "Interface operacional com área de câmbio",
+          "Liquidação no vencimento"
+        ],
+        "focus": "Controlo e liquidação de operações de crédito"
+      },
+      "remesasImportacion": {
+        "title": "Remessas Importação",
+        "description": "Processamento de remessas internacionais para operações de importação.",
+        "items": [
+          "Processamento de remessas de entrada",
+          "Validação de dados do ordenante e beneficiário",
+          "Envio e receção de mensagens SWIFT",
+          "Validação de compliance e sanções",
+          "Liquidação e conciliação"
+        ],
+        "focus": "Execução correta de remessas de importação"
+      },
+      "remesasExportacion": {
+        "title": "Remessas Exportação",
+        "description": "Gestão de remessas para operações de exportação e comércio exterior.",
+        "items": [
+          "Processamento de remessas de saída",
+          "Validação de documentos de exportação",
+          "Controlo de câmbio e divisas",
+          "Tratamento de exceções",
+          "Conciliação de operações"
+        ],
+        "focus": "Fluxo eficiente de remessas de exportação"
+      },
+      "garantiasEmitidas": {
+        "title": "Garantias Emitidas",
+        "description": "Emissão e gestão de garantias bancárias internacionais.",
+        "items": [
+          "Emissão de garantias bancárias",
+          "Controlo de vencimentos",
+          "Gestão de renovações",
+          "Comunicação com bancos correspondentes",
+          "Liberação e cancelamento"
+        ],
+        "focus": "Gestão integral de garantias emitidas"
+      },
+      "garantiasRecibidas": {
+        "title": "Garantias Recebidas",
+        "description": "Controlo e acompanhamento de garantias recebidas de terceiros.",
+        "items": [
+          "Receção e validação de garantias",
+          "Controlo de autenticidade",
+          "Acompanhamento de vencimentos",
+          "Gestão de reclamações",
+          "Arquivo e custódia"
+        ],
+        "focus": "Controlo rigoroso de garantias recebidas"
+      },
+      "ordenesPagoFinanciadas": {
+        "title": "Ordens de Pagamento Financiadas",
+        "description": "Financiamento de ordens de pagamento para operações comerciais.",
+        "items": [
+          "Análise e aprovação de financiamento",
+          "Liberação de fundos",
+          "Controlo de prazos",
+          "Cálculo de juros",
+          "Liquidação no vencimento"
+        ],
+        "focus": "Financiamento eficiente de operações"
+      },
+      "eurocobros": {
+        "title": "Eurocobros",
+        "description": "Cobranças internacionais com gestão documental e financeira completa.",
+        "items": [
+          "Receção de documentos comerciais",
+          "Envio ao banco do importador",
+          "Controlo D/P e D/A",
+          "Acompanhamento de aceite e pagamento",
+          "Liquidação de valores"
+        ],
+        "focus": "Controlo do ciclo completo de cobrança"
+      },
       "remittances": {
         "title": "Remessas Internacionais",
         "description": "Execução dos fluxos financeiros associados às operações de comércio exterior, garantindo a correta movimentação de fundos entre ordenante e beneficiário.",
@@ -1339,7 +1423,7 @@
     "platformCatalog": "Catálogo da Plataforma",
     "availableResources": "Recursos disponíveis no sistema",
     "banks": "Bancos",
-    "products": "Produtos",
+    "products": "Servi�os",
     "courses": "Cursos",
     "lessons": "Módulos",
     "studyHours": "Horas Estudo",
@@ -1453,7 +1537,7 @@
     "courseAnalyticsTable": "Análise de Cursos",
     "course": "Curso",
     "bank": "Banco",
-    "product": "Produto",
+    "product": "Servi�o",
     "lessons": "Aulas",
     "enrollments": "Inscrições",
     "completion": "Conclusão",

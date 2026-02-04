@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import auth, admin, student, trainer, training_plans, advanced_reports, certificates, student_reports, ratings
+from app.routes import auth, admin, student, trainer, training_plans, advanced_reports, certificates, student_reports, ratings, password_reset
 from app.routers import challenges, stats, lessons, finalization
 
 app = FastAPI(title="Trade Data Hub API", version="1.0.0")
@@ -84,6 +84,7 @@ async def log_requests(request: Request, call_next):
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(password_reset.router, prefix="/api", tags=["auth"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(student.router, prefix="/api/student", tags=["student"])
 app.include_router(trainer.router, prefix="/api/trainer", tags=["trainer"])

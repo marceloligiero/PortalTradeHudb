@@ -3,6 +3,8 @@ import { useAuthStore } from './stores/authStore';
 import TradeDatahubLanding from './pages/TradeDatahubLanding';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import StudentDashboard from './pages/student/Dashboard';
 import StudentCoursesPage from './pages/student/Courses';
 import CertificatesPage from './pages/student/Certificates';
@@ -55,6 +57,8 @@ function App() {
         <Route path="/" element={<TradeDatahubLanding />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );

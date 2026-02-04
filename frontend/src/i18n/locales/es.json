@@ -73,7 +73,7 @@
     "settings": "Configuración",
     "trainingPlans": "Planes de Formación",
     "banks": "Bancos",
-    "products": "Productos",
+    "products": "Servicios",
     "ratings": "Evaluaciones"
   },
   "roles": {
@@ -172,7 +172,7 @@
     "courseName": "Nombre del Curso",
     "description": "Descripción",
     "bank": "Banco",
-    "product": "Producto",
+    "product": "Servicio",
     "lessons": "Módulos",
     "enroll": "Inscribirse",
     "enrolling": "Inscribiendo...",
@@ -531,7 +531,7 @@
     "newTrainingPlan": "Nuevo Plan de Formación",
     "newBank": "Nuevo Banco",
     "newProduct": "Nuevo Producto",
-    "products": "Productos",
+    "products": "Servicios",
     "createNewCourse": "Crear nuevo curso de formación",
     "createNewPlan": "Crear nuevo plan de formación",
     "createNewBank": "Crear Nuevo Banco",
@@ -655,7 +655,7 @@
     "confirmDeleteCourse": "¿Estás seguro de que quieres eliminar este curso?",
     "confirmDeleteLesson": "¿Estás seguro de que quieres eliminar esta lección?",
     "confirmDeleteChallenge": "¿Estás seguro de que quieres eliminar este desafío?",
-    "product": "Producto",
+    "product": "Servicio",
     "theoretical": "Teórico",
     "practical": "Práctico",
     "estimatedMinutes": "Minutos Estimados",
@@ -873,10 +873,94 @@
       "p2": "A través de rutas de formación estructuradas por área operacional, los colaboradores desarrollan competencias técnicas alineadas con los procesos oficiales, regulaciones internacionales y mejores prácticas del sector."
     },
     "processes": {
-      "badge": "4 Áreas Especializadas",
-      "title": "Áreas Operacionales de Trade",
-      "subtitle": "Formación especializada para cada etapa del proceso de Trade Finance",
+      "badge": "7 Áreas Especializadas",
+      "title": "Nuestros Servicios",
+      "subtitle": "Formación especializada en Trade Finance para tu desarrollo profesional",
       "focus": "Enfoque",
+      "creditosImportacion": {
+        "title": "Créditos Importación",
+        "description": "Gestión completa de operaciones de crédito para importación con control de plazos y liquidación.",
+        "items": [
+          "Liberación de recursos conforme contrato",
+          "Control de contratos activos",
+          "Cálculo de intereses y cargos",
+          "Interfaz operacional con área de cambio",
+          "Liquidación al vencimiento"
+        ],
+        "focus": "Control y liquidación de operaciones de crédito"
+      },
+      "remesasImportacion": {
+        "title": "Remesas Importación",
+        "description": "Procesamiento de remesas internacionales para operaciones de importación.",
+        "items": [
+          "Procesamiento de remesas de entrada",
+          "Validación de datos del ordenante y beneficiario",
+          "Envío y recepción de mensajes SWIFT",
+          "Validación de compliance y sanciones",
+          "Liquidación y conciliación"
+        ],
+        "focus": "Ejecución correcta de remesas de importación"
+      },
+      "remesasExportacion": {
+        "title": "Remesas Exportación",
+        "description": "Gestión de remesas para operaciones de exportación y comercio exterior.",
+        "items": [
+          "Procesamiento de remesas de salida",
+          "Validación de documentos de exportación",
+          "Control de cambio y divisas",
+          "Tratamiento de excepciones",
+          "Conciliación de operaciones"
+        ],
+        "focus": "Flujo eficiente de remesas de exportación"
+      },
+      "garantiasEmitidas": {
+        "title": "Garantías Emitidas",
+        "description": "Emisión y gestión de garantías bancarias internacionales.",
+        "items": [
+          "Emisión de garantías bancarias",
+          "Control de vencimientos",
+          "Gestión de renovaciones",
+          "Comunicación con bancos corresponsales",
+          "Liberación y cancelación"
+        ],
+        "focus": "Gestión integral de garantías emitidas"
+      },
+      "garantiasRecibidas": {
+        "title": "Garantías Recibidas",
+        "description": "Control y seguimiento de garantías recibidas de terceros.",
+        "items": [
+          "Recepción y validación de garantías",
+          "Control de autenticidad",
+          "Seguimiento de vencimientos",
+          "Gestión de reclamaciones",
+          "Archivo y custodia"
+        ],
+        "focus": "Control riguroso de garantías recibidas"
+      },
+      "ordenesPagoFinanciadas": {
+        "title": "Órdenes de Pago Financiadas",
+        "description": "Financiamiento de órdenes de pago para operaciones comerciales.",
+        "items": [
+          "Análisis y aprobación de financiamiento",
+          "Liberación de fondos",
+          "Control de plazos",
+          "Cálculo de intereses",
+          "Liquidación al vencimiento"
+        ],
+        "focus": "Financiamiento eficiente de operaciones"
+      },
+      "eurocobros": {
+        "title": "Eurocobros",
+        "description": "Cobranzas internacionales con gestión documental y financiera completa.",
+        "items": [
+          "Recepción de documentos comerciales",
+          "Envío al banco del importador",
+          "Control D/P y D/A",
+          "Seguimiento de aceptación y pago",
+          "Liquidación de valores"
+        ],
+        "focus": "Control del ciclo completo de cobranza"
+      },
       "remittances": {
         "title": "Remesas Internacionales",
         "description": "Ejecución de los flujos financieros asociados a las operaciones de comercio exterior, garantizando el correcto movimiento de fondos entre ordenante y beneficiario.",
@@ -1339,7 +1423,7 @@
     "platformCatalog": "Catálogo de la Plataforma",
     "availableResources": "Recursos disponibles en el sistema",
     "banks": "Bancos",
-    "products": "Productos",
+    "products": "Servicios",
     "courses": "Cursos",
     "lessons": "Clases",
     "studyHours": "Horas de Estudio",
@@ -1453,7 +1537,7 @@
     "courseAnalyticsTable": "Análisis de Cursos",
     "course": "Curso",
     "bank": "Banco",
-    "product": "Producto",
+    "product": "Servicio",
     "lessons": "Clases",
     "enrollments": "Inscripciones",
     "completion": "Conclusión",
@@ -1469,3 +1553,4 @@
     "performance": "Desempeño"
   }
 }
+

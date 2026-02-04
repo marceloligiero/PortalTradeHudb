@@ -17,6 +17,18 @@ class Settings(BaseSettings):
     APP_NAME: str = "TradeHub Formações"
     DEBUG: bool = False
     
+    # Email (for password recovery)
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+    SMTP_FROM_NAME: str = "TradeHub Formações"
+    SMTP_TLS: bool = True
+    
+    # Frontend URL for password reset links
+    FRONTEND_URL: str = "https://srv1242193.hstgr.cloud"
+    
     class Config:
         # Ensure we always load the backend .env regardless of cwd
         env_file = str(Path(__file__).resolve().parents[1] / ".env")

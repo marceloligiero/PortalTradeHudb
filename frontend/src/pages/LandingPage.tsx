@@ -16,7 +16,6 @@ import {
   Zap,
   Shield,
   Award,
-  Clock,
   BarChart3,
   Sparkles,
   ChevronRight,
@@ -665,7 +664,7 @@ export default function PremiumLandingPage() {
               }`} />
               <span className={`text-sm font-semibold ${
                 isDark ? 'text-red-300' : 'text-red-600'
-              }`}>Recursos Premium</span>
+              }`}>Áreas de Formação</span>
             </motion.div>
 
             <h2 className="text-5xl md:text-6xl lg:text-7xl font-black">
@@ -678,7 +677,7 @@ export default function PremiumLandingPage() {
                   isDark ? 'from-white via-red-200 to-white' : 'from-gray-900 via-red-600 to-gray-900'
                 }`}
               >
-                {t('landing.featuresTitle')}
+                Nossos Serviços
               </motion.span>
             </h2>
 
@@ -691,7 +690,7 @@ export default function PremiumLandingPage() {
                 isDark ? 'text-white/60' : 'text-gray-600'
               }`}
             >
-              Ferramentas e recursos <span className="text-red-400 font-semibold">premium</span> para sua evolução profissional
+              Formação especializada em <span className="text-red-400 font-semibold">Trade Finance</span> para sua evolução profissional
             </motion.p>
           </motion.div>
 
@@ -700,8 +699,8 @@ export default function PremiumLandingPage() {
             {[
               {
                 icon: Rocket,
-                title: t('landing.feature1Title'),
-                desc: t('landing.feature1Desc'),
+                title: 'Créditos Importación',
+                desc: 'Gestão completa de operações de crédito para importação com controlo de prazos e liquidação.',
                 color: 'from-red-600 to-red-700',
                 span: 'md:col-span-6 lg:col-span-7 lg:row-span-2',
                 particles: 16,
@@ -709,18 +708,18 @@ export default function PremiumLandingPage() {
                 image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80&auto=format&fit=crop'
               },
               {
-                icon: Award,
-                title: t('landing.feature2Title'),
-                desc: t('landing.feature2Desc'),
+                icon: Globe,
+                title: 'Remessas Importación',
+                desc: 'Processamento de remessas internacionais para operações de importação.',
                 color: 'from-blue-600 to-blue-700',
                 span: 'md:col-span-3 lg:col-span-5',
                 particles: 10,
                 size: 'medium'
               },
               {
-                icon: BarChart3,
-                title: t('landing.feature3Title'),
-                desc: t('landing.feature3Desc'),
+                icon: TrendingUp,
+                title: 'Remessas Exportación',
+                desc: 'Gestão de remessas para operações de exportação e comércio exterior.',
                 color: 'from-purple-600 to-purple-700',
                 span: 'md:col-span-3 lg:col-span-5',
                 particles: 10,
@@ -728,17 +727,17 @@ export default function PremiumLandingPage() {
               },
               {
                 icon: Shield,
-                title: 'Segurança Garantida',
-                desc: 'Proteção de dados com criptografia de nível bancário',
+                title: 'Garantias Emitidas',
+                desc: 'Emissão e gestão de garantias bancárias internacionais.',
                 color: 'from-cyan-600 to-cyan-700',
                 span: 'md:col-span-3 lg:col-span-4',
                 particles: 8,
                 size: 'small'
               },
               {
-                icon: Clock,
-                title: 'Aprenda no Seu Ritmo',
-                desc: 'Acesso 24/7 a todo conteúdo com flexibilidade total',
+                icon: Award,
+                title: 'Garantias Recibidas',
+                desc: 'Controlo e acompanhamento de garantias recebidas.',
                 color: 'from-green-600 to-green-700',
                 span: 'md:col-span-3 lg:col-span-4',
                 particles: 8,
@@ -746,10 +745,19 @@ export default function PremiumLandingPage() {
               },
               {
                 icon: Briefcase,
-                title: 'Network Profissional',
-                desc: 'Conecte-se com especialistas globais em Trade',
+                title: 'Ordenes de Pago Financiadas',
+                desc: 'Financiamento de ordens de pagamento para operações comerciais.',
                 color: 'from-yellow-600 to-yellow-700',
-                span: 'md:col-span-6 lg:col-span-4',
+                span: 'md:col-span-3 lg:col-span-4',
+                particles: 10,
+                size: 'small'
+              },
+              {
+                icon: BarChart3,
+                title: 'Eurocobros',
+                desc: 'Cobranças internacionais com gestão documental e financeira completa.',
+                color: 'from-indigo-600 to-indigo-700',
+                span: 'md:col-span-6 lg:col-span-12',
                 particles: 12,
                 size: 'medium',
                 image: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?w=600&q=80&auto=format&fit=crop'

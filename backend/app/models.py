@@ -22,6 +22,22 @@ class User(Base):
     training_plan_assignments = relationship("TrainingPlanAssignment", foreign_keys="[TrainingPlanAssignment.user_id]", back_populates="user")
     assigned_training_plans = relationship("TrainingPlanAssignment", foreign_keys="[TrainingPlanAssignment.assigned_by]", back_populates="assigner")
     certificates = relationship("Certificate", back_populates="user")
+    password_reset_tokens = relationship("PasswordResetToken", back_populates="user")
+
+
+class PasswordResetToken(Base):
+    """Token para recuperação de senha"""
+    __tablename__ = "password_reset_tokens"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    token = Column(String(255), unique=True, nullable=False, index=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    user = relationship("User", back_populates="password_reset_tokens")
+
 
 class Bank(Base):
     __tablename__ = "banks"

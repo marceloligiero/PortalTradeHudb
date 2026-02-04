@@ -28,7 +28,10 @@ import {
   Sparkles,
   Zap,
   Star,
-  Play
+  Play,
+  TrendingUp,
+  Briefcase,
+  Receipt
 } from 'lucide-react';
 
 // Language options with flags (using FlagCDN images)
@@ -689,54 +692,92 @@ export default function TradeDatahubLanding() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-10">
-            {/* Remessas Internacionais */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Créditos Importación */}
             <ProcessCard
-              icon={Globe}
-              title={t('landing.processes.remittances.title')}
-              description={t('landing.processes.remittances.description')}
-              items={t('landing.processes.remittances.items', { returnObjects: true }) as string[]}
-              focus={t('landing.processes.remittances.focus')}
-              gradient="from-blue-600 to-blue-700"
+              icon={CreditCard}
+              title={t('landing.processes.creditosImportacion.title')}
+              description={t('landing.processes.creditosImportacion.description')}
+              items={t('landing.processes.creditosImportacion.items', { returnObjects: true }) as string[]}
+              focus={t('landing.processes.creditosImportacion.focus')}
+              gradient="from-red-600 to-red-700"
               isDark={isDark}
               index={0}
             />
 
-            {/* Cobranças Internacionais */}
+            {/* Remesas Importación */}
             <ProcessCard
-              icon={FileText}
-              title={t('landing.processes.collections.title')}
-              description={t('landing.processes.collections.description')}
-              items={t('landing.processes.collections.items', { returnObjects: true }) as string[]}
-              focus={t('landing.processes.collections.focus')}
-              gradient="from-green-600 to-green-700"
+              icon={Globe}
+              title={t('landing.processes.remesasImportacion.title')}
+              description={t('landing.processes.remesasImportacion.description')}
+              items={t('landing.processes.remesasImportacion.items', { returnObjects: true }) as string[]}
+              focus={t('landing.processes.remesasImportacion.focus')}
+              gradient="from-blue-600 to-blue-700"
               isDark={isDark}
               index={1}
             />
 
-            {/* Cartas de Crédito */}
+            {/* Remesas Exportación */}
             <ProcessCard
-              icon={CreditCard}
-              title={t('landing.processes.lcs.title')}
-              description={t('landing.processes.lcs.description')}
-              items={t('landing.processes.lcs.items', { returnObjects: true }) as string[]}
-              focus={t('landing.processes.lcs.focus')}
-              gradient="from-red-600 to-red-700"
+              icon={TrendingUp}
+              title={t('landing.processes.remesasExportacion.title')}
+              description={t('landing.processes.remesasExportacion.description')}
+              items={t('landing.processes.remesasExportacion.items', { returnObjects: true }) as string[]}
+              focus={t('landing.processes.remesasExportacion.focus')}
+              gradient="from-purple-600 to-purple-700"
               isDark={isDark}
               index={2}
             />
 
-            {/* Financiamentos */}
+            {/* Garantías Emitidas */}
             <ProcessCard
-              icon={Landmark}
-              title={t('landing.processes.financing.title')}
-              description={t('landing.processes.financing.description')}
-              items={t('landing.processes.financing.items', { returnObjects: true }) as string[]}
-              focus={t('landing.processes.financing.focus')}
-              gradient="from-purple-600 to-purple-700"
+              icon={Shield}
+              title={t('landing.processes.garantiasEmitidas.title')}
+              description={t('landing.processes.garantiasEmitidas.description')}
+              items={t('landing.processes.garantiasEmitidas.items', { returnObjects: true }) as string[]}
+              focus={t('landing.processes.garantiasEmitidas.focus')}
+              gradient="from-cyan-600 to-cyan-700"
               isDark={isDark}
               index={3}
             />
+
+            {/* Garantías Recibidas */}
+            <ProcessCard
+              icon={Award}
+              title={t('landing.processes.garantiasRecibidas.title')}
+              description={t('landing.processes.garantiasRecibidas.description')}
+              items={t('landing.processes.garantiasRecibidas.items', { returnObjects: true }) as string[]}
+              focus={t('landing.processes.garantiasRecibidas.focus')}
+              gradient="from-green-600 to-green-700"
+              isDark={isDark}
+              index={4}
+            />
+
+            {/* Órdenes de Pago Financiadas */}
+            <ProcessCard
+              icon={Briefcase}
+              title={t('landing.processes.ordenesPagoFinanciadas.title')}
+              description={t('landing.processes.ordenesPagoFinanciadas.description')}
+              items={t('landing.processes.ordenesPagoFinanciadas.items', { returnObjects: true }) as string[]}
+              focus={t('landing.processes.ordenesPagoFinanciadas.focus')}
+              gradient="from-yellow-600 to-yellow-700"
+              isDark={isDark}
+              index={5}
+            />
+
+            {/* Eurocobros - Full width */}
+            <div className="md:col-span-2 lg:col-span-3">
+              <ProcessCard
+                icon={Receipt}
+                title={t('landing.processes.eurocobros.title')}
+                description={t('landing.processes.eurocobros.description')}
+                items={t('landing.processes.eurocobros.items', { returnObjects: true }) as string[]}
+                focus={t('landing.processes.eurocobros.focus')}
+                gradient="from-indigo-600 to-indigo-700"
+                isDark={isDark}
+                index={6}
+              />
+            </div>
           </div>
         </div>
       </Section>

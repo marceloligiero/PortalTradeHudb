@@ -210,6 +210,20 @@ export default function LoginPage() {
                 required
               />
 
+              {/* Forgot Password Link */}
+              <div className="text-right">
+                <Link
+                  to="/forgot-password"
+                  className={`text-sm font-medium transition-colors ${
+                    isDark 
+                      ? 'text-gray-400 hover:text-red-400' 
+                      : 'text-gray-600 hover:text-red-600'
+                  }`}
+                >
+                  {t('auth.forgotPassword', 'Esqueceu a senha?')}
+                </Link>
+              </div>
+
               {/* Error Message */}
               {loginMutation.isError && (
                 <Alert type="error" message={t('auth.loginError')} />
