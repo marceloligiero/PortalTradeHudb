@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
   BookOpen, Calendar, ArrowLeft, Clock, Target, AlertCircle, PlayCircle, 
-  CheckCircle2, Pause, Play, Eye, Settings2, TrendingUp, Timer, Award, Download, Star
+  CheckCircle2, Pause, Play, Eye, Settings2, TrendingUp, Timer, Award, Download, Star, User, ChevronDown
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -158,6 +158,7 @@ export default function TrainingPlanDetail() {
   const [hasPlanRating, setHasPlanRating] = useState(false);
   const [trainerRatings, setTrainerRatings] = useState<Record<number, boolean>>({});
   const [courseRatings, setCourseRatings] = useState<Record<number, boolean>>({});
+  const [pendingRatingsCount, setPendingRatingsCount] = useState(0);
 
   const isStudent = user?.role === 'STUDENT' || user?.role === 'TRAINEE';
   const isTrainer = user?.role === 'TRAINER' || user?.role === 'ADMIN';
@@ -214,12 +215,17 @@ export default function TrainingPlanDetail() {
     const checkRatings = async () => {
       if (!plan || !isStudent) return;
       
+      let pendingCount = 0;
+      
       // Check plan rating
+      let planRated = false;
       try {
         const planResp = await api.get('/api/ratings/check', {
           params: { rating_type: 'TRAINING_PLAN', training_plan_id: plan.id }
         });
-        setHasPlanRating(planResp.data.exists);
+        planRated = planResp.data.exists;
+        setHasPlanRating(planRated);
+        if (!planRated) pendingCount++;
       } catch (err) {
         console.log('Error checking plan rating:', err);
       }
@@ -233,6 +239,7 @@ export default function TrainingPlanDetail() {
               params: { rating_type: 'TRAINER', trainer_id: trainer.id, training_plan_id: plan.id }
             });
             ratingsMap[trainer.id] = trainerResp.data.exists;
+            if (!trainerResp.data.exists) pendingCount++;
           } catch (err) {
             console.log('Error checking trainer rating:', err);
           }
@@ -249,12 +256,15 @@ export default function TrainingPlanDetail() {
               params: { rating_type: 'COURSE', course_id: course.id, training_plan_id: plan.id }
             });
             courseRatingsMap[course.id] = courseResp.data.exists;
+            if (!courseResp.data.exists) pendingCount++;
           } catch (err) {
             console.log('Error checking course rating:', err);
           }
         }
         setCourseRatings(courseRatingsMap);
       }
+      
+      setPendingRatingsCount(pendingCount);
     };
     
     checkRatings();
@@ -698,6 +708,48 @@ export default function TrainingPlanDetail() {
                 )}
               </div>
             )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Pending Ratings Alert - Only for students when plan is finalized */}
+      {isStudent && completionStatus?.is_finalized && pendingRatingsCount > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-orange-500/20 border-2 border-amber-500/50 rounded-2xl p-6"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg animate-pulse">
+                <Star className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-amber-400 flex items-center gap-2">
+                  🎉 {t('trainingPlanDetail.pendingRatings', 'Avaliações Pendentes')}
+                  <span className="px-3 py-1 bg-amber-500 text-white rounded-full text-sm font-bold animate-bounce">
+                    {pendingRatingsCount}
+                  </span>
+                </h3>
+                <p className="text-amber-300/80 mt-1">
+                  {t('trainingPlanDetail.pendingRatingsDesc', 'Parabéns pela conclusão! Avalie o plano, formadores e cursos para nos ajudar a melhorar.')}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-2">
+                <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center border-2 border-amber-600">
+                  <BookOpen className="w-4 h-4 text-white" />
+                </div>
+                <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center border-2 border-yellow-600">
+                  <User className="w-4 h-4 text-white" />
+                </div>
+                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center border-2 border-orange-600">
+                  <Award className="w-4 h-4 text-white" />
+                </div>
+              </div>
+              <ChevronDown className="w-5 h-5 text-amber-400 animate-bounce" />
+            </div>
           </div>
         </motion.div>
       )}
