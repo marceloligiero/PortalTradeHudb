@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { GraduationCap, BookOpen, Users } from 'lucide-react';
+import { GraduationCap, BookOpen, Users, Check, Building2, Package } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -18,6 +18,7 @@ interface Bank {
   id: number;
   name: string;
   code: string;
+  country?: string;
 }
 
 interface Product {
@@ -41,8 +42,8 @@ export default function TrainingPlanForm() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    bank_id: '',
-    product_id: '',
+    bank_ids: [] as number[],
+    product_ids: [] as number[],
     start_date: '',
     end_date: '',
     selectedCourses: [] as number[],
@@ -148,8 +149,8 @@ export default function TrainingPlanForm() {
         description: formData.description,
         trainer_id: user?.id, // ID do trainer logado (legado)
         trainer_ids: [user?.id], // Novo formato - trainer logado como único formador
-        bank_id: formData.bank_id ? parseInt(formData.bank_id) : null,
-        product_id: formData.product_id ? parseInt(formData.product_id) : null,
+        bank_ids: formData.bank_ids,
+        product_ids: formData.product_ids,
         start_date: formData.start_date || null,
         end_date: formData.end_date || null,
         course_ids: formData.selectedCourses,
@@ -232,34 +233,68 @@ export default function TrainingPlanForm() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    {t('trainingPlan.bank')}
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-4 h-4" />
+                      {t('trainingPlan.banks')} <span className="text-slate-500 text-xs">({t('admin.selectMultiple')})</span>
+                    </div>
                   </label>
-                  <select
-                    value={formData.bank_id}
-                    onChange={(e) => setFormData({ ...formData, bank_id: e.target.value })}
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 [&>option]:bg-slate-800 [&>option]:text-white"
-                  >
-                    <option value="" className="bg-slate-800 text-white">{t('trainingPlan.selectBank')}</option>
+                  <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 bg-white/5 border border-white/10 rounded-lg">
                     {banks.map(bank => (
-                      <option key={bank.id} value={bank.id} className="bg-slate-800 text-white">{bank.name}</option>
+                      <button
+                        key={bank.id}
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            bank_ids: prev.bank_ids.includes(bank.id)
+                              ? prev.bank_ids.filter(id => id !== bank.id)
+                              : [...prev.bank_ids, bank.id]
+                          }));
+                        }}
+                        className={`p-2 rounded-lg text-left text-sm transition-all flex items-center justify-between ${
+                          formData.bank_ids.includes(bank.id)
+                            ? 'bg-blue-500/20 border border-blue-500'
+                            : 'bg-white/5 border border-white/10 hover:border-blue-500/50'
+                        }`}
+                      >
+                        <span className="text-white">{bank.name}</span>
+                        {formData.bank_ids.includes(bank.id) && <Check className="w-4 h-4 text-blue-500" />}
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">
-                    {t('trainingPlan.productType')}
+                    <div className="flex items-center gap-2">
+                      <Package className="w-4 h-4" />
+                      {t('trainingPlan.services')} <span className="text-slate-500 text-xs">({t('admin.selectMultiple')})</span>
+                    </div>
                   </label>
-                  <select
-                    value={formData.product_id}
-                    onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 [&>option]:bg-slate-800 [&>option]:text-white"
-                  >
-                    <option value="" className="bg-slate-800 text-white">{t('trainingPlan.selectProduct')}</option>
+                  <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 bg-white/5 border border-white/10 rounded-lg">
                     {products.map(product => (
-                      <option key={product.id} value={product.id} className="bg-slate-800 text-white">{product.name}</option>
+                      <button
+                        key={product.id}
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            product_ids: prev.product_ids.includes(product.id)
+                              ? prev.product_ids.filter(id => id !== product.id)
+                              : [...prev.product_ids, product.id]
+                          }));
+                        }}
+                        className={`p-2 rounded-lg text-left text-sm transition-all flex items-center justify-between ${
+                          formData.product_ids.includes(product.id)
+                            ? 'bg-blue-500/20 border border-blue-500'
+                            : 'bg-white/5 border border-white/10 hover:border-blue-500/50'
+                        }`}
+                      >
+                        <span className="text-white">{product.name}</span>
+                        {formData.product_ids.includes(product.id) && <Check className="w-4 h-4 text-blue-500" />}
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 </div>
               </div>
 

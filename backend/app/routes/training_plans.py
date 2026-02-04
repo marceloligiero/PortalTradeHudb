@@ -218,6 +218,34 @@ async def list_training_plans(
                     "email": plan.trainer.email if hasattr(plan.trainer, 'email') else None,
                     "is_primary": True
                 })
+            
+            # Buscar bancos associados (N:N)
+            plan_banks = db.query(models.TrainingPlanBank).filter(
+                models.TrainingPlanBank.training_plan_id == plan.id
+            ).all()
+            banks_list = []
+            for pb in plan_banks:
+                bank = db.query(models.Bank).filter(models.Bank.id == pb.bank_id).first()
+                if bank:
+                    banks_list.append({"id": bank.id, "code": bank.code, "name": bank.name})
+            
+            # Fallback para banco legado
+            if not banks_list and plan.bank:
+                banks_list.append({"id": plan.bank.id, "code": plan.bank.code, "name": plan.bank.name})
+            
+            # Buscar produtos associados (N:N)
+            plan_products = db.query(models.TrainingPlanProduct).filter(
+                models.TrainingPlanProduct.training_plan_id == plan.id
+            ).all()
+            products_list = []
+            for pp in plan_products:
+                product = db.query(models.Product).filter(models.Product.id == pp.product_id).first()
+                if product:
+                    products_list.append({"id": product.id, "code": product.code, "name": product.name})
+            
+            # Fallback para produto legado
+            if not products_list and plan.product:
+                products_list.append({"id": plan.product.id, "code": plan.product.code, "name": plan.product.name})
 
             result.append({
                 "id": plan.id,
@@ -235,12 +263,17 @@ async def list_training_plans(
                 "start_date": plan.start_date.isoformat() if plan.start_date else None,
                 "end_date": plan.end_date.isoformat() if plan.end_date else None,
                 "created_at": plan.created_at.isoformat() if plan.created_at else None,
-                # Bank and Product info
+                # Bank and Product info (legacy single)
                 "bank_id": plan.bank_id,
-                "bank_code": plan.bank.code if plan.bank else None,
-                "bank_name": plan.bank.name if plan.bank else None,
+                "bank_code": banks_list[0]["code"] if banks_list else None,
+                "bank_name": banks_list[0]["name"] if banks_list else None,
                 "product_id": plan.product_id,
-                "product_name": plan.product.name if plan.product else None,
+                "product_name": products_list[0]["name"] if products_list else None,
+                # Multiple banks and products
+                "bank_ids": [b["id"] for b in banks_list],
+                "product_ids": [p["id"] for p in products_list],
+                "banks": banks_list,
+                "products": products_list,
                 # Novos campos de status
                 "status": plan_status["status"],
                 "progress_percentage": plan_status["progress_percentage"],
@@ -319,17 +352,25 @@ async def create_training_plan(
             detail="O aluno não pode ser também formador do mesmo plano de formação."
         )
     
-    # Validar banco se fornecido
-    if plan.bank_id:
-        bank = db.query(models.Bank).filter(models.Bank.id == plan.bank_id).first()
-        if not bank:
-            raise HTTPException(status_code=400, detail="Bank not found")
+    # Validar bancos (suporte a múltiplos)
+    bank_ids = plan.bank_ids if hasattr(plan, 'bank_ids') and plan.bank_ids else []
+    if plan.bank_id and plan.bank_id not in bank_ids:
+        bank_ids.append(plan.bank_id)
     
-    # Validar produto se fornecido
-    if plan.product_id:
-        product = db.query(models.Product).filter(models.Product.id == plan.product_id).first()
+    for bid in bank_ids:
+        bank = db.query(models.Bank).filter(models.Bank.id == bid).first()
+        if not bank:
+            raise HTTPException(status_code=400, detail=f"Bank with ID {bid} not found")
+    
+    # Validar produtos (suporte a múltiplos)
+    product_ids = plan.product_ids if hasattr(plan, 'product_ids') and plan.product_ids else []
+    if plan.product_id and plan.product_id not in product_ids:
+        product_ids.append(plan.product_id)
+    
+    for pid in product_ids:
+        product = db.query(models.Product).filter(models.Product.id == pid).first()
         if not product:
-            raise HTTPException(status_code=400, detail="Product not found")
+            raise HTTPException(status_code=400, detail=f"Product with ID {pid} not found")
     
     # Converter datas para datetime se fornecidas. Accept both str and datetime inputs.
     from datetime import datetime
@@ -383,6 +424,23 @@ async def create_training_plan(
                 assigned_by=current_user.id
             )
             db.add(plan_trainer)
+        
+        # Adicionar bancos à tabela de associação N:N
+        for bid in bank_ids:
+            plan_bank = models.TrainingPlanBank(
+                training_plan_id=db_plan.id,
+                bank_id=bid
+            )
+            db.add(plan_bank)
+        
+        # Adicionar produtos à tabela de associação N:N
+        for pid in product_ids:
+            plan_product = models.TrainingPlanProduct(
+                training_plan_id=db_plan.id,
+                product_id=pid
+            )
+            db.add(plan_product)
+        
         db.commit()
         
     except Exception as e:
@@ -420,6 +478,8 @@ async def create_training_plan(
             "student_id": db_plan.student_id,
             "bank_id": db_plan.bank_id,
             "product_id": db_plan.product_id,
+            "bank_ids": bank_ids,
+            "product_ids": product_ids,
             "start_date": db_plan.start_date.isoformat() if db_plan.start_date else None,
             "end_date": db_plan.end_date.isoformat() if db_plan.end_date else None,
             "created_by": db_plan.created_by,
@@ -741,8 +801,50 @@ async def update_training_plan(
                 )
                 db.add(plan_course)
     
+    # Atualizar bancos se fornecidos (N:N)
+    if hasattr(plan_update, 'bank_ids') and plan_update.bank_ids is not None:
+        # Remover associações antigas
+        db.query(models.TrainingPlanBank).filter(
+            models.TrainingPlanBank.training_plan_id == plan_id
+        ).delete()
+        
+        # Adicionar novas associações
+        for bank_id in plan_update.bank_ids:
+            bank = db.query(models.Bank).filter(models.Bank.id == bank_id).first()
+            if bank:
+                plan_bank = models.TrainingPlanBank(
+                    training_plan_id=plan_id,
+                    bank_id=bank_id
+                )
+                db.add(plan_bank)
+    
+    # Atualizar produtos se fornecidos (N:N)
+    if hasattr(plan_update, 'product_ids') and plan_update.product_ids is not None:
+        # Remover associações antigas
+        db.query(models.TrainingPlanProduct).filter(
+            models.TrainingPlanProduct.training_plan_id == plan_id
+        ).delete()
+        
+        # Adicionar novas associações
+        for product_id in plan_update.product_ids:
+            product = db.query(models.Product).filter(models.Product.id == product_id).first()
+            if product:
+                plan_product = models.TrainingPlanProduct(
+                    training_plan_id=plan_id,
+                    product_id=product_id
+                )
+                db.add(plan_product)
+    
     db.commit()
     db.refresh(db_plan)
+    
+    # Get updated associations
+    bank_ids = [pb.bank_id for pb in db.query(models.TrainingPlanBank).filter(
+        models.TrainingPlanBank.training_plan_id == plan_id
+    ).all()]
+    product_ids = [pp.product_id for pp in db.query(models.TrainingPlanProduct).filter(
+        models.TrainingPlanProduct.training_plan_id == plan_id
+    ).all()]
 
     # Return serialized dict to avoid ResponseValidationError on datetime fields
     return {
@@ -752,6 +854,8 @@ async def update_training_plan(
         "trainer_id": db_plan.trainer_id,
         "bank_id": db_plan.bank_id,
         "product_id": db_plan.product_id,
+        "bank_ids": bank_ids,
+        "product_ids": product_ids,
         "start_date": db_plan.start_date.isoformat() if db_plan.start_date else None,
         "end_date": db_plan.end_date.isoformat() if db_plan.end_date else None,
         "created_by": db_plan.created_by,

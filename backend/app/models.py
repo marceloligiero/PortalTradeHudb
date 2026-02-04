@@ -49,7 +49,11 @@ class Bank(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
+    # Legacy relationship (for backward compatibility)
     courses = relationship("Course", back_populates="bank")
+    # Many-to-many relationships
+    course_associations = relationship("CourseBank", back_populates="bank")
+    training_plan_associations = relationship("TrainingPlanBank", back_populates="bank")
 
 class Product(Base):
     __tablename__ = "products"
@@ -61,7 +65,65 @@ class Product(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
+    # Legacy relationship (for backward compatibility)
     courses = relationship("Course", back_populates="product")
+    # Many-to-many relationships
+    course_associations = relationship("CourseProduct", back_populates="product")
+    training_plan_associations = relationship("TrainingPlanProduct", back_populates="product")
+
+
+# ============== MANY-TO-MANY ASSOCIATION TABLES ==============
+
+class CourseBank(Base):
+    """Associação de múltiplos bancos a um curso"""
+    __tablename__ = "course_banks"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    bank_id = Column(Integer, ForeignKey("banks.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    course = relationship("Course", back_populates="bank_associations")
+    bank = relationship("Bank", back_populates="course_associations")
+
+
+class CourseProduct(Base):
+    """Associação de múltiplos produtos/serviços a um curso"""
+    __tablename__ = "course_products"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    course = relationship("Course", back_populates="product_associations")
+    product = relationship("Product", back_populates="course_associations")
+
+
+class TrainingPlanBank(Base):
+    """Associação de múltiplos bancos a um plano de formação"""
+    __tablename__ = "training_plan_banks"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    training_plan_id = Column(Integer, ForeignKey("training_plans.id", ondelete="CASCADE"), nullable=False)
+    bank_id = Column(Integer, ForeignKey("banks.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    training_plan = relationship("TrainingPlan", back_populates="bank_associations")
+    bank = relationship("Bank", back_populates="training_plan_associations")
+
+
+class TrainingPlanProduct(Base):
+    """Associação de múltiplos produtos/serviços a um plano de formação"""
+    __tablename__ = "training_plan_products"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    training_plan_id = Column(Integer, ForeignKey("training_plans.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    training_plan = relationship("TrainingPlan", back_populates="product_associations")
+    product = relationship("Product", back_populates="training_plan_associations")
 
 class Course(Base):
     __tablename__ = "courses"
@@ -69,16 +131,19 @@ class Course(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text)
-    bank_id = Column(Integer, ForeignKey("banks.id"), nullable=False)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    bank_id = Column(Integer, ForeignKey("banks.id"), nullable=True)  # Legacy - nullable for new multi-bank courses
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True)  # Legacy - nullable for new multi-product courses
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationships
-    bank = relationship("Bank", back_populates="courses")
-    product = relationship("Product", back_populates="courses")
+    bank = relationship("Bank", back_populates="courses")  # Legacy single bank
+    product = relationship("Product", back_populates="courses")  # Legacy single product
+    # Many-to-many relationships
+    bank_associations = relationship("CourseBank", back_populates="course", cascade="all, delete-orphan")
+    product_associations = relationship("CourseProduct", back_populates="course", cascade="all, delete-orphan")
     creator = relationship("User", back_populates="created_courses", foreign_keys=[created_by])
     lessons = relationship("Lesson", back_populates="course", cascade="all, delete-orphan")
     enrollments = relationship("Enrollment", back_populates="course")
@@ -181,8 +246,8 @@ class TrainingPlan(Base):
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     trainer_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Formador responsável
     student_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Aluno (1 por plano)
-    bank_id = Column(Integer, ForeignKey("banks.id"))
-    product_id = Column(Integer, ForeignKey("products.id"))
+    bank_id = Column(Integer, ForeignKey("banks.id"), nullable=True)  # Legacy - nullable for new multi-bank plans
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True)  # Legacy - nullable for new multi-product plans
     start_date = Column(DateTime(timezone=True))
     end_date = Column(DateTime(timezone=True))
     is_active = Column(Boolean, default=True)
@@ -199,8 +264,11 @@ class TrainingPlan(Base):
     trainer = relationship("User", foreign_keys=[trainer_id])  # Formador principal (retrocompatibilidade)
     student = relationship("User", foreign_keys=[student_id])
     finalizer = relationship("User", foreign_keys=[finalized_by])
-    bank = relationship("Bank")
-    product = relationship("Product")
+    bank = relationship("Bank")  # Legacy single bank
+    product = relationship("Product")  # Legacy single product
+    # Many-to-many relationships
+    bank_associations = relationship("TrainingPlanBank", back_populates="training_plan", cascade="all, delete-orphan")
+    product_associations = relationship("TrainingPlanProduct", back_populates="training_plan", cascade="all, delete-orphan")
 
 class TrainingPlanCourse(Base):
     __tablename__ = "training_plan_courses"

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Target, Calendar, CheckCircle2, AlertCircle, Users, Building2, Package } from 'lucide-react';
+import { Target, Calendar, CheckCircle2, AlertCircle, Users, Building2, Package, Check } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 
@@ -23,6 +23,7 @@ interface Bank {
   id: number;
   name: string;
   code: string;
+  country?: string;
 }
 
 interface Product {
@@ -55,8 +56,8 @@ export default function AdminTrainingPlanForm() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    bank_id: '',
-    product_id: '',
+    bank_ids: [] as number[],
+    product_ids: [] as number[],
     start_date: '',
     end_date: '',
     trainer_ids: [] as number[],
@@ -202,8 +203,8 @@ export default function AdminTrainingPlanForm() {
       const payload = {
         title: formData.title.trim(),
         description: formData.description.trim(),
-        bank_id: formData.bank_id ? parseInt(formData.bank_id) : null,
-        product_id: formData.product_id ? parseInt(formData.product_id) : null,
+        bank_ids: formData.bank_ids,
+        product_ids: formData.product_ids,
         start_date: formData.start_date || null,
         end_date: formData.end_date || null,
         trainer_id: formData.trainer_ids[0] || null,
@@ -387,60 +388,89 @@ export default function AdminTrainingPlanForm() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-3">
                     <div className="flex items-center gap-2">
                       <Building2 className="w-4 h-4" />
-                      Banco {banks.length > 0 && <span className="text-xs text-green-400">({banks.length} disponíveis)</span>}
+                      Bancos <span className="text-gray-400 text-xs">(selecione múltiplos)</span>
                     </div>
                   </label>
-                  <select
-                    value={formData.bank_id}
-                    onChange={(e) => {
-                      console.log('Banco selecionado:', e.target.value);
-                      setFormData({ ...formData, bank_id: e.target.value });
-                    }}
-                    className="w-full px-4 py-3 bg-slate-800 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 cursor-pointer"
-                  >
-                    <option value="">Selecione um banco</option>
-                    {banks.length === 0 ? (
-                      <option value="" disabled>Carregando...</option>
-                    ) : (
-                      banks.map(bank => (
-                        <option key={bank.id} value={bank.id}>{bank.name}</option>
-                      ))
-                    )}
-                  </select>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {banks.map(bank => (
+                      <button
+                        key={bank.id}
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            bank_ids: prev.bank_ids.includes(bank.id)
+                              ? prev.bank_ids.filter(id => id !== bank.id)
+                              : [...prev.bank_ids, bank.id]
+                          }));
+                        }}
+                        className={`p-4 rounded-xl border-2 text-left transition-all ${
+                          formData.bank_ids.includes(bank.id)
+                            ? 'border-purple-500 bg-purple-500/20'
+                            : 'border-white/10 hover:border-purple-500/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-white">{bank.code}</p>
+                            <p className="text-sm text-gray-400">{bank.name}</p>
+                            {bank.country && <p className="text-xs text-gray-500">{bank.country}</p>}
+                          </div>
+                          {formData.bank_ids.includes(bank.id) && (
+                            <Check className="w-5 h-5 text-purple-500" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                   {banks.length === 0 && (
                     <div className="text-yellow-400 text-xs mt-1">⚠️ {t('errors.noBanks')}</div>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-3">
                     <div className="flex items-center gap-2">
                       <Package className="w-4 h-4" />
-                      Produto {products.length > 0 && <span className="text-xs text-green-400">({products.length} disponíveis)</span>}
+                      Serviços <span className="text-gray-400 text-xs">(selecione múltiplos)</span>
                     </div>
                   </label>
-                  <select
-                    value={formData.product_id}
-                    onChange={(e) => {
-                      console.log('Produto selecionado:', e.target.value);
-                      setFormData({ ...formData, product_id: e.target.value });
-                    }}
-                    className="w-full px-4 py-3 bg-slate-800 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 cursor-pointer"
-                  >
-                    <option value="">Selecione um produto</option>
-                    {products.length === 0 ? (
-                      <option value="" disabled>Carregando...</option>
-                    ) : (
-                      products.map(product => (
-                        <option key={product.id} value={product.id}>{product.name}</option>
-                      ))
-                    )}
-                  </select>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {products.map(product => (
+                      <button
+                        key={product.id}
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            product_ids: prev.product_ids.includes(product.id)
+                              ? prev.product_ids.filter(id => id !== product.id)
+                              : [...prev.product_ids, product.id]
+                          }));
+                        }}
+                        className={`p-4 rounded-xl border-2 text-left transition-all ${
+                          formData.product_ids.includes(product.id)
+                            ? 'border-purple-500 bg-purple-500/20'
+                            : 'border-white/10 hover:border-purple-500/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-white">{product.name}</p>
+                            <p className="text-xs text-gray-500">{product.code}</p>
+                          </div>
+                          {formData.product_ids.includes(product.id) && (
+                            <Check className="w-5 h-5 text-purple-500" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                   {products.length === 0 && (
                     <div className="text-yellow-400 text-xs mt-1">⚠️ {t('errors.noProducts')}</div>
                   )}
@@ -738,26 +768,42 @@ export default function AdminTrainingPlanForm() {
 
                 <div className="bg-white/5 p-4 rounded-xl border border-white/10">
                   <div className="text-sm text-gray-400 mb-3">Detalhes</div>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-1 gap-3 text-sm">
                     <div>
-                      <span className="text-gray-400">Banco:</span>
-                      <span className="text-white ml-2">
-                        {formData.bank_id ? banks.find(b => b.id === parseInt(formData.bank_id))?.name : '-'}
-                      </span>
+                      <span className="text-gray-400">Bancos:</span>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {formData.bank_ids.length > 0 ? formData.bank_ids.map(bid => {
+                          const bank = banks.find(b => b.id === bid);
+                          return bank ? (
+                            <span key={bid} className="bg-purple-500/20 text-purple-300 px-2 py-1 rounded text-xs">
+                              {bank.name}
+                            </span>
+                          ) : null;
+                        }) : <span className="text-gray-500">Nenhum selecionado</span>}
+                      </div>
                     </div>
                     <div>
-                      <span className="text-gray-400">Produto:</span>
-                      <span className="text-white ml-2">
-                        {formData.product_id ? products.find(p => p.id === parseInt(formData.product_id))?.name : '-'}
-                      </span>
+                      <span className="text-gray-400">Serviços:</span>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {formData.product_ids.length > 0 ? formData.product_ids.map(pid => {
+                          const product = products.find(p => p.id === pid);
+                          return product ? (
+                            <span key={pid} className="bg-green-500/20 text-green-300 px-2 py-1 rounded text-xs">
+                              {product.name}
+                            </span>
+                          ) : null;
+                        }) : <span className="text-gray-500">Nenhum selecionado</span>}
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-gray-400">Data de Início:</span>
-                      <span className="text-white ml-2">{formData.start_date || '-'}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-400">Data de Fim:</span>
-                      <span className="text-white ml-2">{formData.end_date || '-'}</span>
+                    <div className="flex gap-6">
+                      <div>
+                        <span className="text-gray-400">Data de Início:</span>
+                        <span className="text-white ml-2">{formData.start_date || '-'}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">Data de Fim:</span>
+                        <span className="text-white ml-2">{formData.end_date || '-'}</span>
+                      </div>
                     </div>
                   </div>
                 </div>

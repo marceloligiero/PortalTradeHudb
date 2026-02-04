@@ -53,17 +53,33 @@ class TokenData(BaseModel):
 class CourseBase(BaseModel):
     title: str
     description: Optional[str] = None
-    bank_id: int
-    product_id: int
+    # Legacy single bank/product (for backward compatibility)
+    bank_id: Optional[int] = None
+    product_id: Optional[int] = None
+    # New multi-bank/product support
+    bank_ids: Optional[list[int]] = []
+    product_ids: Optional[list[int]] = []
 
 class CourseCreate(CourseBase):
     pass
+
+class CourseUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    bank_id: Optional[int] = None
+    product_id: Optional[int] = None
+    bank_ids: Optional[list[int]] = None
+    product_ids: Optional[list[int]] = None
+    is_active: Optional[bool] = None
 
 class Course(CourseBase):
     id: int
     created_by: int
     is_active: bool
     created_at: datetime
+    # Lista de bancos e produtos associados
+    banks: Optional[list] = []
+    products: Optional[list] = []
     
     model_config = {"from_attributes": True}
 
@@ -133,8 +149,12 @@ class TrainingPlanBase(BaseModel):
     trainer_id: Optional[int] = None  # Formador principal (retrocompatibilidade)
     trainer_ids: Optional[list[int]] = []  # Lista de formadores
     student_id: Optional[int] = None  # 1 aluno por plano
+    # Legacy single bank/product (for backward compatibility)
     bank_id: Optional[int] = None
     product_id: Optional[int] = None
+    # New multi-bank/product support
+    bank_ids: Optional[list[int]] = []
+    product_ids: Optional[list[int]] = []
     # Use string dates (ISO) for API responses to match frontend expectations
     # Routes currently return ISO strings via .isoformat(), so keep schema as str
     start_date: Optional[str] = None
@@ -149,6 +169,10 @@ class TrainingPlanUpdate(BaseModel):
     trainer_id: Optional[int] = None  # Formador principal
     trainer_ids: Optional[list[int]] = None  # Lista de formadores
     student_id: Optional[int] = None
+    bank_id: Optional[int] = None
+    product_id: Optional[int] = None
+    bank_ids: Optional[list[int]] = None
+    product_ids: Optional[list[int]] = None
     is_active: Optional[bool] = None
     course_ids: Optional[list[int]] = None
 
@@ -161,6 +185,9 @@ class TrainingPlan(TrainingPlanBase):
     completed_minutes: Optional[int] = None  # Tempo completado
     remaining_minutes: Optional[int] = None  # Tempo restante
     progress_percentage: Optional[float] = None  # Percentual de conclusão
+    # Lista de bancos e produtos associados
+    banks: Optional[list] = []
+    products: Optional[list] = []
     
     model_config = {"from_attributes": True}
 

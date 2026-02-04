@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, Save, X, Users, Building2, Package, CheckCircle2, AlertCircle } from 'lucide-react';
+import { BookOpen, Save, X, Users, Building2, Package, CheckCircle2, AlertCircle, Check } from 'lucide-react';
 import api from '../../lib/axios';
 
 interface Trainer {
@@ -36,8 +36,8 @@ export default function CourseForm() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    bank_id: '',
-    product_id: '',
+    bank_ids: [] as number[],
+    product_ids: [] as number[],
   });
 
   useEffect(() => {
@@ -66,8 +66,8 @@ export default function CourseForm() {
       if (!formData.title.trim()) newErrors.title = t('admin.titleRequired');
       if (!formData.description.trim()) newErrors.description = t('admin.descriptionRequired');
     } else if (step === 2) {
-      if (!formData.bank_id) newErrors.bank_id = t('admin.bankRequired');
-      if (!formData.product_id) newErrors.product_id = t('admin.productTypeRequired');
+      if (formData.bank_ids.length === 0) newErrors.bank_ids = t('admin.bankRequired');
+      if (formData.product_ids.length === 0) newErrors.product_ids = t('admin.productTypeRequired');
     }
     
     setErrors(newErrors);
@@ -84,6 +84,24 @@ export default function CourseForm() {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
+  const toggleBank = (bankId: number) => {
+    setFormData(prev => ({
+      ...prev,
+      bank_ids: prev.bank_ids.includes(bankId)
+        ? prev.bank_ids.filter(id => id !== bankId)
+        : [...prev.bank_ids, bankId]
+    }));
+  };
+
+  const toggleProduct = (productId: number) => {
+    setFormData(prev => ({
+      ...prev,
+      product_ids: prev.product_ids.includes(productId)
+        ? prev.product_ids.filter(id => id !== productId)
+        : [...prev.product_ids, productId]
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -94,8 +112,8 @@ export default function CourseForm() {
       await api.post('/api/admin/courses', {
         title: formData.title,
         description: formData.description,
-        bank_id: parseInt(formData.bank_id),
-        product_id: parseInt(formData.product_id),
+        bank_ids: formData.bank_ids,
+        product_ids: formData.product_ids,
       });
       
       // Success animation
@@ -235,41 +253,66 @@ export default function CourseForm() {
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       <Building2 className="w-4 h-4" />
-                      {t('admin.bank')} *
+                      {t('admin.banks')} * <span className="text-gray-400 text-xs">({t('admin.selectMultiple')})</span>
                     </label>
-                    <select
-                      value={formData.bank_id}
-                      onChange={(e) => setFormData({ ...formData, bank_id: e.target.value })}
-                      className={`w-full px-5 py-4 bg-white dark:bg-gray-800 border ${errors.bank_id ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-xl text-gray-900 dark:text-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg`}
-                    >
-                      <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('admin.selectBank')}</option>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {banks.map((bank) => (
-                        <option key={bank.id} value={bank.id} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
-                          {bank.code} - {bank.name} ({bank.country})
-                        </option>
+                        <button
+                          key={bank.id}
+                          type="button"
+                          onClick={() => toggleBank(bank.id)}
+                          className={`p-4 rounded-xl border-2 text-left transition-all ${
+                            formData.bank_ids.includes(bank.id)
+                              ? 'border-red-500 bg-red-500/10 dark:bg-red-500/20'
+                              : 'border-gray-200 dark:border-white/10 hover:border-red-500/50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-gray-900 dark:text-white">{bank.code}</p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">{bank.name}</p>
+                              <p className="text-xs text-gray-500">{bank.country}</p>
+                            </div>
+                            {formData.bank_ids.includes(bank.id) && (
+                              <Check className="w-5 h-5 text-red-500" />
+                            )}
+                          </div>
+                        </button>
                       ))}
-                    </select>
-                    {errors.bank_id && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.bank_id}</p>}
+                    </div>
+                    {errors.bank_ids && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.bank_ids}</p>}
                   </div>
 
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       <Package className="w-4 h-4" />
-                      {t('admin.productType')} *
+                      {t('admin.services')} * <span className="text-gray-400 text-xs">({t('admin.selectMultiple')})</span>
                     </label>
-                    <select
-                      value={formData.product_id}
-                      onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
-                      className={`w-full px-5 py-4 bg-white dark:bg-gray-800 border ${errors.product_id ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-xl text-gray-900 dark:text-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg`}
-                    >
-                      <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('admin.selectProduct')}</option>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {products.map((product) => (
-                        <option key={product.id} value={product.id} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">
-                          {product.name} ({product.code})
-                        </option>
+                        <button
+                          key={product.id}
+                          type="button"
+                          onClick={() => toggleProduct(product.id)}
+                          className={`p-4 rounded-xl border-2 text-left transition-all ${
+                            formData.product_ids.includes(product.id)
+                              ? 'border-red-500 bg-red-500/10 dark:bg-red-500/20'
+                              : 'border-gray-200 dark:border-white/10 hover:border-red-500/50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-gray-900 dark:text-white">{product.name}</p>
+                              <p className="text-xs text-gray-500">{product.code}</p>
+                            </div>
+                            {formData.product_ids.includes(product.id) && (
+                              <Check className="w-5 h-5 text-red-500" />
+                            )}
+                          </div>
+                        </button>
                       ))}
-                    </select>
-                    {errors.product_id && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.product_id}</p>}
+                    </div>
+                    {errors.product_ids && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.product_ids}</p>}
                   </div>
                 </div>
               )}

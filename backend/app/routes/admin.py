@@ -486,15 +486,47 @@ async def list_admin_courses(
             models.Enrollment.course_id == course.id
         ).count()
         
+        # Get associated banks (from new N:N table)
+        bank_associations = db.query(models.CourseBank).filter(
+            models.CourseBank.course_id == course.id
+        ).all()
+        banks = []
+        for ba in bank_associations:
+            bank = db.query(models.Bank).filter(models.Bank.id == ba.bank_id).first()
+            if bank:
+                banks.append({"id": bank.id, "code": bank.code, "name": bank.name})
+        
+        # Fallback to legacy single bank if no associations
+        if not banks and course.bank:
+            banks.append({"id": course.bank.id, "code": course.bank.code, "name": course.bank.name})
+        
+        # Get associated products (from new N:N table)
+        product_associations = db.query(models.CourseProduct).filter(
+            models.CourseProduct.course_id == course.id
+        ).all()
+        products = []
+        for pa in product_associations:
+            product = db.query(models.Product).filter(models.Product.id == pa.product_id).first()
+            if product:
+                products.append({"id": product.id, "code": product.code, "name": product.name})
+        
+        # Fallback to legacy single product if no associations
+        if not products and course.product:
+            products.append({"id": course.product.id, "code": course.product.code, "name": course.product.name})
+        
         courses_list.append({
             "id": course.id,
             "title": course.title,
             "description": course.description,
-            "bank_id": course.bank_id,
-            "product_id": course.product_id,
-            "bank_code": course.bank.code if course.bank else "N/A",
-            "bank_name": course.bank.name if course.bank else "N/A",
-            "product_name": course.product.name if course.product else "N/A",
+            "bank_id": course.bank_id,  # Legacy
+            "product_id": course.product_id,  # Legacy
+            "bank_ids": [b["id"] for b in banks],
+            "product_ids": [p["id"] for p in products],
+            "banks": banks,
+            "products": products,
+            "bank_code": banks[0]["code"] if banks else "N/A",
+            "bank_name": banks[0]["name"] if banks else "N/A",
+            "product_name": products[0]["name"] if products else "N/A",
             "trainer_id": course.created_by,
             "trainer_name": trainer.full_name if trainer else "Unknown",
             "total_students": total_students,
@@ -518,11 +550,33 @@ async def get_admin_course(
     # Get creator/trainer info (created_by is the trainer)
     trainer = db.query(models.User).filter(models.User.id == course.created_by).first() if course.created_by else None
     
-    # Get bank info
-    bank = db.query(models.Bank).filter(models.Bank.id == course.bank_id).first() if course.bank_id else None
+    # Get associated banks (from new N:N table)
+    bank_associations = db.query(models.CourseBank).filter(
+        models.CourseBank.course_id == course.id
+    ).all()
+    banks = []
+    for ba in bank_associations:
+        bank = db.query(models.Bank).filter(models.Bank.id == ba.bank_id).first()
+        if bank:
+            banks.append({"id": bank.id, "code": bank.code, "name": bank.name})
     
-    # Get product info  
-    product = db.query(models.Product).filter(models.Product.id == course.product_id).first() if course.product_id else None
+    # Fallback to legacy single bank if no associations
+    if not banks and course.bank:
+        banks.append({"id": course.bank.id, "code": course.bank.code, "name": course.bank.name})
+    
+    # Get associated products (from new N:N table)
+    product_associations = db.query(models.CourseProduct).filter(
+        models.CourseProduct.course_id == course.id
+    ).all()
+    products = []
+    for pa in product_associations:
+        product = db.query(models.Product).filter(models.Product.id == pa.product_id).first()
+        if product:
+            products.append({"id": product.id, "code": product.code, "name": product.name})
+    
+    # Fallback to legacy single product if no associations
+    if not products and course.product:
+        products.append({"id": course.product.id, "code": course.product.code, "name": course.product.name})
     
     # Get lessons
     lessons = db.query(models.Lesson).filter(models.Lesson.course_id == course_id).order_by(models.Lesson.order_index).all()
@@ -537,12 +591,16 @@ async def get_admin_course(
         "id": course.id,
         "title": course.title,
         "description": course.description,
-        "bank_id": course.bank_id,
-        "bank_code": bank.code if bank else None,
-        "bank_name": bank.name if bank else None,
-        "product_id": course.product_id,
-        "product_code": product.code if product else None,
-        "product_name": product.name if product else None,
+        "bank_id": course.bank_id,  # Legacy
+        "product_id": course.product_id,  # Legacy
+        "bank_ids": [b["id"] for b in banks],
+        "product_ids": [p["id"] for p in products],
+        "banks": banks,
+        "products": products,
+        "bank_code": banks[0]["code"] if banks else None,
+        "bank_name": banks[0]["name"] if banks else None,
+        "product_code": products[0]["code"] if products else None,
+        "product_name": products[0]["name"] if products else None,
         "trainer_id": course.created_by,
         "trainer_name": trainer.full_name if trainer else None,
         "total_students": total_students,
@@ -759,15 +817,27 @@ async def delete_admin_challenge(
     db.commit()
     return None
 
-@router.post("/courses", response_model=schemas.Course, status_code=status.HTTP_201_CREATED)
+@router.post("/courses", status_code=status.HTTP_201_CREATED)
 async def create_admin_course(
     course: schemas.CourseCreate,
     current_user: models.User = Depends(auth.require_role(["ADMIN"])),
     db: Session = Depends(get_db)
 ):
-    """Create a new course as admin"""
+    """Create a new course as admin with multiple banks and products support"""
+    # Extract bank_ids and product_ids from request
+    bank_ids = course.bank_ids or []
+    product_ids = course.product_ids or []
+    
+    # For backward compatibility, include legacy bank_id/product_id if provided
+    if course.bank_id and course.bank_id not in bank_ids:
+        bank_ids.append(course.bank_id)
+    if course.product_id and course.product_id not in product_ids:
+        product_ids.append(course.product_id)
+    
+    # Create course without bank_ids and product_ids
+    course_data = course.dict(exclude={'bank_ids', 'product_ids'})
     db_course = models.Course(
-        **course.dict(),
+        **course_data,
         created_by=current_user.id
     )
     
@@ -775,7 +845,87 @@ async def create_admin_course(
     db.commit()
     db.refresh(db_course)
     
-    return db_course
+    # Create bank associations
+    for bank_id in bank_ids:
+        bank_assoc = models.CourseBank(course_id=db_course.id, bank_id=bank_id)
+        db.add(bank_assoc)
+    
+    # Create product associations
+    for product_id in product_ids:
+        product_assoc = models.CourseProduct(course_id=db_course.id, product_id=product_id)
+        db.add(product_assoc)
+    
+    db.commit()
+    
+    # Return course with banks and products
+    return {
+        "id": db_course.id,
+        "title": db_course.title,
+        "description": db_course.description,
+        "bank_id": db_course.bank_id,
+        "product_id": db_course.product_id,
+        "bank_ids": bank_ids,
+        "product_ids": product_ids,
+        "created_by": db_course.created_by,
+        "is_active": db_course.is_active,
+        "created_at": db_course.created_at.isoformat() if db_course.created_at else None
+    }
+
+
+@router.put("/courses/{course_id}")
+async def update_admin_course(
+    course_id: int,
+    course_update: schemas.CourseUpdate,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db)
+):
+    """Update a course with multiple banks and products support"""
+    db_course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    if not db_course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Update basic fields
+    update_data = course_update.dict(exclude={'bank_ids', 'product_ids'}, exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_course, key, value)
+    
+    # Update bank associations if provided
+    if course_update.bank_ids is not None:
+        # Clear existing associations
+        db.query(models.CourseBank).filter(models.CourseBank.course_id == course_id).delete()
+        # Create new associations
+        for bank_id in course_update.bank_ids:
+            bank_assoc = models.CourseBank(course_id=course_id, bank_id=bank_id)
+            db.add(bank_assoc)
+    
+    # Update product associations if provided
+    if course_update.product_ids is not None:
+        # Clear existing associations
+        db.query(models.CourseProduct).filter(models.CourseProduct.course_id == course_id).delete()
+        # Create new associations
+        for product_id in course_update.product_ids:
+            product_assoc = models.CourseProduct(course_id=course_id, product_id=product_id)
+            db.add(product_assoc)
+    
+    db.commit()
+    db.refresh(db_course)
+    
+    # Get updated associations
+    bank_ids = [ba.bank_id for ba in db.query(models.CourseBank).filter(models.CourseBank.course_id == course_id).all()]
+    product_ids = [pa.product_id for pa in db.query(models.CourseProduct).filter(models.CourseProduct.course_id == course_id).all()]
+    
+    return {
+        "id": db_course.id,
+        "title": db_course.title,
+        "description": db_course.description,
+        "bank_id": db_course.bank_id,
+        "product_id": db_course.product_id,
+        "bank_ids": bank_ids,
+        "product_ids": product_ids,
+        "created_by": db_course.created_by,
+        "is_active": db_course.is_active,
+        "created_at": db_course.created_at.isoformat() if db_course.created_at else None
+    }
 
 # Students List (for dropdowns) - includes TRAINEE and TRAINER users
 # TRAINERs can be students in training plans where they are not trainers
