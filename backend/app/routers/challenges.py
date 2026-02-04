@@ -638,10 +638,22 @@ async def start_challenge_complete_self(
         )
     
     # Verificar se o formando está atribuído a um plano que contenha o curso do desafio
-    plans_with_course = db.query(models.TrainingPlan).join(models.TrainingPlanCourse).filter(
+    # Usar TrainingPlanAssignment para verificar atribuição (novo modelo N:N)
+    plans_with_course = db.query(models.TrainingPlan).join(
+        models.TrainingPlanCourse
+    ).join(
+        models.TrainingPlanAssignment
+    ).filter(
         models.TrainingPlanCourse.course_id == challenge.course_id,
-        models.TrainingPlan.student_id == current_user.id
+        models.TrainingPlanAssignment.user_id == current_user.id
     ).all()
+    
+    # Fallback: também verificar student_id legacy
+    if not plans_with_course:
+        plans_with_course = db.query(models.TrainingPlan).join(models.TrainingPlanCourse).filter(
+            models.TrainingPlanCourse.course_id == challenge.course_id,
+            models.TrainingPlan.student_id == current_user.id
+        ).all()
     
     if not plans_with_course:
         raise HTTPException(status_code=403, detail="Não está atribuído a um plano que contenha este desafio")
