@@ -2050,3 +2050,77 @@ async def can_start_challenge(
             return {"can_start": False, "reason": "Desafio reprovado e não permite novas tentativas"}
     
     return {"can_start": False, "reason": "Estado desconhecido"}
+
+
+# ===== FORMADOR: Finalizar Submission SUMMARY em Retry =====
+@router.post("/submissions/{submission_id}/finalize-summary")
+async def finalize_summary_submission(
+    submission_id: int,
+    total_operations: int = Body(..., embed=True),
+    total_time_minutes: float = Body(..., embed=True),
+    errors_count: int = Body(0, embed=True),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+):
+    """
+    Formador finaliza uma submission SUMMARY (útil para retry ou submissions em progresso).
+    Preenche os dados e calcula aprovação por KPI.
+    """
+    submission = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.id == submission_id
+    ).first()
+    
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission não encontrada")
+    
+    if submission.submission_type != "SUMMARY":
+        raise HTTPException(status_code=400, detail="Este endpoint é apenas para submissions SUMMARY")
+    
+    if submission.status not in ["IN_PROGRESS", "PENDING_REVIEW"]:
+        raise HTTPException(status_code=400, detail=f"Submission já finalizada com status: {submission.status}")
+    
+    challenge = db.query(models.Challenge).filter(
+        models.Challenge.id == submission.challenge_id
+    ).first()
+    
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Desafio não encontrado")
+    
+    # Calcular MPU
+    calculated_mpu = calculate_mpu(total_operations, total_time_minutes)
+    
+    # Verificar aprovação por KPIs
+    kpi_mode = getattr(challenge, 'kpi_mode', 'AUTO') or 'AUTO'
+    
+    if kpi_mode == 'MANUAL':
+        is_approved = None
+        status = "PENDING_REVIEW"
+    else:
+        is_approved, kpi_details = calculate_kpi_approval(challenge, total_operations, calculated_mpu, errors_count)
+        status = "APPROVED" if is_approved else "REJECTED"
+    
+    # Atualizar submission
+    submission.total_operations = total_operations
+    submission.total_time_minutes = int(total_time_minutes)
+    submission.errors_count = errors_count
+    submission.calculated_mpu = calculated_mpu
+    submission.mpu_vs_target = round((challenge.target_mpu / calculated_mpu * 100) if calculated_mpu > 0 else 0, 1)
+    submission.is_approved = is_approved
+    submission.status = status
+    submission.completed_at = datetime.now()
+    submission.updated_at = datetime.now()
+    
+    db.commit()
+    db.refresh(submission)
+    
+    return {
+        "id": submission.id,
+        "status": submission.status,
+        "is_approved": submission.is_approved,
+        "total_operations": submission.total_operations,
+        "total_time_minutes": submission.total_time_minutes,
+        "calculated_mpu": submission.calculated_mpu,
+        "errors_count": submission.errors_count,
+        "retry_count": getattr(submission, 'retry_count', 0),
+        "message": f"Submission finalizada com status: {status}"
+    }
