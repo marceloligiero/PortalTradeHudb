@@ -514,10 +514,24 @@ async def submit_challenge_summary(
         # Se o curso não está em nenhum plano, rejeitamos por segurança
         raise HTTPException(status_code=400, detail="Curso do desafio não está associado a nenhum plano de formação")
 
-    # Verificar se existe pelo menos um plano onde o estudante seja o student_id
+    # Verificar se existe pelo menos um plano onde o estudante esteja atribuído
     assignment_found = False
     for plan in plans_with_course:
-        # Agora usamos student_id diretamente no plano (1 aluno por plano)
+        # Verificar via TrainingPlanAssignment (novo modelo N:N)
+        assignment = db.query(models.TrainingPlanAssignment).filter(
+            models.TrainingPlanAssignment.training_plan_id == plan.id,
+            models.TrainingPlanAssignment.user_id == submission.user_id
+        ).first()
+        
+        if assignment:
+            # Se o aplicador for TRAINER, garantir que o plan pertence ao trainer atual
+            if current_user.role == 'TRAINER' and plan.trainer_id != current_user.id:
+                # este plano não pertence ao trainer atual — ignorar e continuar procurando
+                continue
+            assignment_found = True
+            break
+        
+        # Fallback: verificar student_id legacy no plano
         if plan.student_id == submission.user_id:
             # Se o aplicador for TRAINER, garantir que o plan pertence ao trainer atual
             if current_user.role == 'TRAINER' and plan.trainer_id != current_user.id:
