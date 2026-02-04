@@ -169,6 +169,15 @@ export default function CourseDetail() {
     }
   };
 
+  const getDifficultyLabel = (difficulty: string) => {
+    switch (difficulty?.toLowerCase()) {
+      case 'easy': return t('challenges.difficultyEasy');
+      case 'medium': return t('challenges.difficultyMedium');
+      case 'hard': return t('challenges.difficultyHard');
+      default: return difficulty || t('challenges.difficultyMedium');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -584,7 +593,7 @@ export default function CourseDetail() {
                         <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(challenge.difficulty)}`}>
-                        {challenge.difficulty}
+                        {getDifficultyLabel(challenge.difficulty)}
                       </span>
                     </div>
                     <h4 className="font-medium text-gray-900 dark:text-white mb-2">{challenge.title}</h4>
