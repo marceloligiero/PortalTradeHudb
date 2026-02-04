@@ -107,15 +107,25 @@ export default function CoursesPage() {
     });
   }, [courses, searchTerm, filterProduct, filterBank]);
 
-  // Agrupar cursos por produto
+  // Agrupar cursos por produto (um curso pode aparecer em múltiplos grupos)
   const groupedCourses = useMemo(() => {
     if (!groupByProduct) return { 'all': filteredCourses };
     
     const groups: Record<string, Course[]> = {};
     filteredCourses.forEach(course => {
-      const key = course.products?.[0]?.name || 'Sem Produto';
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(course);
+      // Se o curso tem produtos, adiciona a cada grupo de produto
+      if (course.products && course.products.length > 0) {
+        course.products.forEach(product => {
+          const key = product.name;
+          if (!groups[key]) groups[key] = [];
+          groups[key].push(course);
+        });
+      } else {
+        // Sem produto
+        const key = 'Sem Produto';
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(course);
+      }
     });
     return groups;
   }, [filteredCourses, groupByProduct]);
