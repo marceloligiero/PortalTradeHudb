@@ -248,6 +248,7 @@ class UserBasic(BaseModel):
 class ChallengeBase(BaseModel):
     title: str
     description: Optional[str] = None
+    difficulty: str = "medium"  # easy, medium, hard
     challenge_type: str = "COMPLETE"  # COMPLETE or SUMMARY
     operations_required: int  # Meta de operações
     time_limit_minutes: int  # Meta de tempo em minutos
@@ -268,6 +269,7 @@ class ChallengeCreate(ChallengeBase):
 class ChallengeUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
+    difficulty: Optional[str] = None
     challenge_type: Optional[str] = None
     operations_required: Optional[int] = None
     time_limit_minutes: Optional[int] = None

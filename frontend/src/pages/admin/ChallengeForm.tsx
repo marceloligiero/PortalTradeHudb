@@ -7,6 +7,7 @@ import api from '../../lib/axios';
 interface ChallengeFormData {
   title: string;
   description: string;
+  difficulty: 'easy' | 'medium' | 'hard';
   challenge_type: string;
   operations_required: number;
   time_limit_minutes: number;
@@ -36,6 +37,7 @@ const ChallengeForm: React.FC = () => {
   const [formData, setFormData] = useState<ChallengeFormData>({
     title: '',
     description: '',
+    difficulty: 'medium',
     challenge_type: 'COMPLETE',
     operations_required: 10,
     time_limit_minutes: 60,
@@ -64,6 +66,7 @@ const ChallengeForm: React.FC = () => {
       setFormData({
         title: challenge.title || '',
         description: challenge.description || '',
+        difficulty: challenge.difficulty || 'medium',
         challenge_type: challenge.challenge_type || 'COMPLETE',
         operations_required: challenge.operations_required || 10,
         time_limit_minutes: challenge.time_limit_minutes || 60,
@@ -249,6 +252,56 @@ const ChallengeForm: React.FC = () => {
                       <p className="text-sm text-gray-400">{t('challenges.typeSummaryDesc')}</p>
                     </div>
                   </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Dificuldade */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-3">
+                {t('challenges.difficultyLabel') || 'Dificuldade'}
+              </label>
+              <div className="grid grid-cols-3 gap-4">
+                {/* Fácil */}
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, difficulty: 'easy' })}
+                  className={`p-4 rounded-lg border-2 transition-all text-center ${
+                    formData.difficulty === 'easy'
+                      ? 'border-green-500 bg-green-500/10'
+                      : 'border-white/10 bg-white/5 hover:border-white/20'
+                  }`}
+                >
+                  <span className="text-2xl mb-2 block">🟢</span>
+                  <h3 className="font-semibold text-white">{t('challenges.difficultyEasy') || 'Fácil'}</h3>
+                </button>
+
+                {/* Médio */}
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, difficulty: 'medium' })}
+                  className={`p-4 rounded-lg border-2 transition-all text-center ${
+                    formData.difficulty === 'medium'
+                      ? 'border-yellow-500 bg-yellow-500/10'
+                      : 'border-white/10 bg-white/5 hover:border-white/20'
+                  }`}
+                >
+                  <span className="text-2xl mb-2 block">🟡</span>
+                  <h3 className="font-semibold text-white">{t('challenges.difficultyMedium') || 'Médio'}</h3>
+                </button>
+
+                {/* Difícil */}
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, difficulty: 'hard' })}
+                  className={`p-4 rounded-lg border-2 transition-all text-center ${
+                    formData.difficulty === 'hard'
+                      ? 'border-red-500 bg-red-500/10'
+                      : 'border-white/10 bg-white/5 hover:border-white/20'
+                  }`}
+                >
+                  <span className="text-2xl mb-2 block">🔴</span>
+                  <h3 className="font-semibold text-white">{t('challenges.difficultyHard') || 'Difícil'}</h3>
                 </button>
               </div>
             </div>

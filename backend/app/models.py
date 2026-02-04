@@ -326,6 +326,7 @@ class Challenge(Base):
     course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
     title = Column(String(255), nullable=False)
     description = Column(Text)
+    difficulty = Column(String(20), default="medium")  # easy, medium, hard
     challenge_type = Column(String(50), default="COMPLETE")  # COMPLETE or SUMMARY
     operations_required = Column(Integer, default=100, nullable=False)  # Meta de operações
     time_limit_minutes = Column(Integer, default=60, nullable=False)  # Meta de tempo
