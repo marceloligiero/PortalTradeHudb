@@ -369,7 +369,7 @@ export default function ProductsPage() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
-                    placeholder="Nome do produto"
+                    placeholder={t('admin.productNamePlaceholder')}
                     required
                   />
                 </div>
