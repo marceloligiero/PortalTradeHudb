@@ -757,6 +757,7 @@
     "managePlansDescription": "Manage your plans and track progress",
     "manageAllPlans": "Manage all training plans on the platform",
     "noPlan": "No training plan",
+    "noPlans": "No training plans available",
     "createFirstPlan": "Create the first training plan to get started",
     "createPlan": "Create Plan",
     "basicInfo": "Basic Information",

@@ -899,6 +899,7 @@
     "managePlansDescription": "Gestiona tus planes y sigue el progreso",
     "manageAllPlans": "Gestionar todos los planes de formación de la plataforma",
     "noPlan": "Ningún plan de formación",
+    "noPlans": "No hay planes de formación disponibles",
     "createFirstPlan": "Crea el primer plan de formación para comenzar",
     "createPlan": "Crear Plan",
     "basicInfo": "Información Básica",
