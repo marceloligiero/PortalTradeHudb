@@ -27,7 +27,8 @@
     "saving": "Saving...",
     "creating": "Creating...",
     "allBanks": "All Banks",
-    "backToCourse": "Back to Course"
+    "backToCourse": "Back to Course",
+    "you": "You"
   },
   "auth": {
     "login": "Login",
@@ -79,7 +80,8 @@
   "roles": {
     "ADMIN": "Administrator",
     "TRAINER": "Trainer",
-    "STUDENT": "Student"
+    "STUDENT": "Student",
+    "trainer": "Trainer"
   },
   "dashboard": {
     "student": {
@@ -223,6 +225,7 @@
     "selectAtLeastOneCourse": "Select at least one course",
     "endDateMustBeAfterStartDate": "End date must be after start date",
     "createError": "Failed to create training plan",
+    "cannotSelectSelf": "You cannot select yourself as a student in your own training plan",
     "newLesson": "New Module"
   },
   "lessons": {
@@ -814,6 +817,25 @@
     "noPlans": "No training plans available",
     "upcoming": "Upcoming",
     "completed": "Completed"
+  },
+  "trainerStudents": {
+    "title": "My Students",
+    "subtitle": "Students assigned to your training plans",
+    "totalStudents": "Total Students",
+    "activePlans": "Active Plans",
+    "avgProgress": "Average Progress",
+    "searchPlaceholder": "Search by name or email...",
+    "filterByStatus": "Filter by status",
+    "allStatuses": "All Statuses",
+    "active": "Active",
+    "inactive": "Inactive",
+    "plans": "Plans",
+    "progress": "Progress",
+    "assignedPlans": "Assigned Plans",
+    "noStudents": "No students found",
+    "noStudentsDescription": "Students will appear here when they are assigned to your training plans.",
+    "assignedAt": "Assigned at",
+    "viewPlan": "View Plan"
   },
   "trainerReports": {
     "title": "Trainer Reports",

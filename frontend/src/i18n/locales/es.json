@@ -27,7 +27,8 @@
     "saving": "Guardando...",
     "creating": "Creando...",
     "allBanks": "Todos los Bancos",
-    "backToCourse": "Volver al Curso"
+    "backToCourse": "Volver al Curso",
+    "you": "Tú"
   },
   "auth": {
     "login": "Iniciar Sesión",
@@ -79,7 +80,8 @@
   "roles": {
     "ADMIN": "Administrador",
     "TRAINER": "Formador",
-    "STUDENT": "Formando"
+    "STUDENT": "Formando",
+    "trainer": "Formador"
   },
   "dashboard": {
     "student": {
@@ -225,6 +227,7 @@
     "selectAtLeastOneCourse": "Seleccione al menos un curso",
     "endDateMustBeAfterStartDate": "La fecha de fin debe ser posterior a la fecha de inicio",
     "createError": "Error al crear plan de formación",
+    "cannotSelectSelf": "No puede seleccionarse como alumno en su propio plan de formación",
     "newLesson": "Nuevo Módulo"
   },
   "lessons": {
@@ -471,6 +474,25 @@
     "noPlans": "No hay planes de formación disponibles",
     "upcoming": "Próximo",
     "completed": "Completado"
+  },
+  "trainerStudents": {
+    "title": "Mis Alumnos",
+    "subtitle": "Alumnos asignados a tus planes de formación",
+    "totalStudents": "Total de Alumnos",
+    "activePlans": "Planes Activos",
+    "avgProgress": "Progreso Medio",
+    "searchPlaceholder": "Buscar por nombre o email...",
+    "filterByStatus": "Filtrar por estado",
+    "allStatuses": "Todos los Estados",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "plans": "Planes",
+    "progress": "Progreso",
+    "assignedPlans": "Planes Asignados",
+    "noStudents": "No se encontraron alumnos",
+    "noStudentsDescription": "Los alumnos aparecerán aquí cuando sean asignados a tus planes de formación.",
+    "assignedAt": "Asignado el",
+    "viewPlan": "Ver Plan"
   },
   "trainerReports": {
     "title": "Informes del Formador",

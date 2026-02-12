@@ -2,66 +2,53 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   Users, BookOpen, Clock, CheckCircle, 
-  XCircle, Download, Filter, BarChart3,
-  Target, Activity
+  Download, Filter, BarChart3,
+  Target, Activity, Award, Sparkles, GraduationCap
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import api from '../../lib/axios';
 
 interface TrainerOverview {
+  total_courses: number;
+  total_students: number;
   total_plans: number;
-  active_plans: number;
-  completed_plans: number;
-  total_students: number;
   active_students: number;
-  avg_completion_rate: number;
-  total_lessons: number;
-  completed_lessons: number;
+  certificates_issued: number;
 }
 
-interface PlanProgress {
-  plan_id: number;
-  plan_title: string;
+interface PlanReport {
+  id: number;
+  title: string;
+  description: string;
   bank_code: string;
-  total_students: number;
-  active_students: number;
-  completion_rate: number;
-  avg_progress: number;
-  start_date: string;
-  end_date: string;
-  status: 'active' | 'completed' | 'upcoming';
+  students_assigned: number;
+  start_date: string | null;
+  end_date: string | null;
+  status: string;
 }
 
-interface StudentProgress {
-  student_name: string;
-  student_email: string;
-  plan_title: string;
-  progress: number;
-  completed_lessons: number;
+interface StudentReport {
+  id: number;
+  name: string;
+  email: string;
+  courses_enrolled: number;
+  average_progress: number;
+}
+
+interface LessonReport {
   total_lessons: number;
-  last_activity: string;
-  status: 'active' | 'completed' | 'at_risk';
-}
-
-interface LessonMetrics {
-  lesson_title: string;
-  plan_title: string;
-  total_students: number;
-  completed: number;
-  in_progress: number;
-  not_started: number;
-  avg_completion_time: number;
+  total_duration_minutes: number;
+  lessons_per_course: number;
 }
 
 export default function TrainerReportsPage() {
   const { t } = useTranslation();
   const [overview, setOverview] = useState<TrainerOverview | null>(null);
-  const [planProgress, setPlanProgress] = useState<PlanProgress[]>([]);
-  const [studentProgress, setStudentProgress] = useState<StudentProgress[]>([]);
-  const [lessonMetrics, setLessonMetrics] = useState<LessonMetrics[]>([]);
+  const [planReports, setPlanReports] = useState<PlanReport[]>([]);
+  const [studentReports, setStudentReports] = useState<StudentReport[]>([]);
+  const [lessonReport, setLessonReport] = useState<LessonReport | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [selectedBank, setSelectedBank] = useState('ALL');
+  const [activeTab, setActiveTab] = useState<'plans' | 'students' | 'lessons'>('plans');
   const [selectedStatus, setSelectedStatus] = useState('ALL');
 
   useEffect(() => {
@@ -79,9 +66,9 @@ export default function TrainerReportsPage() {
       ]);
 
       setOverview(overviewRes.data);
-      setPlanProgress(plansRes.data);
-      setStudentProgress(studentsRes.data);
-      setLessonMetrics(lessonsRes.data);
+      setPlanReports(plansRes.data);
+      setStudentReports(studentsRes.data);
+      setLessonReport(lessonsRes.data);
     } catch (error) {
       console.error('Error fetching trainer reports:', error);
     } finally {
@@ -89,43 +76,23 @@ export default function TrainerReportsPage() {
     }
   };
 
-  const handleExportPDF = () => {
-    alert(t('trainerReports.exportingPDF'));
-  };
-
-  const handleExportExcel = () => {
-    alert(t('trainerReports.exportingExcel'));
-  };
-
-  const applyFilters = () => {
-    fetchReports();
-  };
-
-  const filteredPlans = planProgress.filter(plan => {
-    const bankMatch = selectedBank === 'ALL' || plan.bank_code === selectedBank;
-    const statusMatch = selectedStatus === 'ALL' || plan.status === selectedStatus;
-    return bankMatch && statusMatch;
-  });
-
-  const filteredStudents = studentProgress.filter(student => {
-    const statusMatch = selectedStatus === 'ALL' || student.status === selectedStatus;
-    return statusMatch;
+  const filteredPlans = planReports.filter(plan => {
+    return selectedStatus === 'ALL' || plan.status === selectedStatus;
   });
 
   const getStatusBadge = (status: string) => {
-    const styles = {
-      active: 'bg-green-500/20 text-green-400 border-green-500/30',
-      completed: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-      upcoming: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      at_risk: 'bg-red-500/20 text-red-400 border-red-500/30',
+    const styles: Record<string, string> = {
+      active: 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-500/30',
+      completed: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/30',
+      upcoming: 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-500/30',
     };
-    return styles[status as keyof typeof styles] || styles.active;
+    return styles[status] || styles.active;
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
@@ -133,388 +100,346 @@ export default function TrainerReportsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-red-400 to-red-600 bg-clip-text text-transparent">
-            {t('trainerReports.title')}
-          </h1>
-          <p className="text-gray-400 mt-1">{t('trainerReports.subtitle')}</p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={handleExportPDF}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all"
-          >
-            <Download className="w-4 h-4" />
-            PDF
-          </button>
-          <button
-            onClick={handleExportExcel}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-all"
-          >
-            <Download className="w-4 h-4" />
-            Excel
-          </button>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Filter className="w-5 h-5 text-red-400" />
-          <h2 className="text-lg font-semibold text-white">{t('trainerReports.filters')}</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm text-gray-400 mb-2">
-              {t('trainerReports.dateFrom')}
-            </label>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-            />
+      <div className="relative overflow-hidden bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-2xl p-6">
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-indigo-500/5 dark:from-indigo-500/10 dark:via-purple-500/10 dark:to-indigo-500/10" />
+        <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+              <BarChart3 className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
+                {t('trainerReports.title')}
+              </h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">{t('trainerReports.subtitle')}</p>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm text-gray-400 mb-2">
-              {t('trainerReports.dateTo')}
-            </label>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-400 mb-2">
-              {t('trainerReports.bank')}
-            </label>
-            <select
-              value={selectedBank}
-              onChange={(e) => setSelectedBank(e.target.value)}
-              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-            >
-              <option value="ALL">{t('trainerReports.allBanks')}</option>
-              <option value="PT">Portugal</option>
-              <option value="ES">España</option>
-              <option value="UN">United Kingdom</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm text-gray-400 mb-2">
-              {t('trainerReports.status')}
-            </label>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-            >
-              <option value="ALL">{t('trainerReports.allStatuses')}</option>
-              <option value="active">{t('trainerReports.activeStatus')}</option>
-              <option value="completed">{t('trainerReports.completedStatus')}</option>
-              <option value="upcoming">{t('trainerReports.upcomingStatus')}</option>
-            </select>
-          </div>
+          <Sparkles className="absolute top-4 right-4 w-5 h-5 text-indigo-400 animate-pulse" />
         </div>
-        <button
-          onClick={applyFilters}
-          className="mt-4 px-6 py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-lg transition-all"
-        >
-          {t('trainerReports.applyFilters')}
-        </button>
       </div>
 
       {/* Overview Stats */}
       {overview && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-500/20 rounded-xl p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-500/10 dark:to-blue-600/10 border border-blue-200 dark:border-blue-500/20 rounded-xl p-5"
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">{t('trainerReports.totalPlans')}</p>
-                <p className="text-3xl font-bold text-white mt-1">{overview.total_plans}</p>
-                <p className="text-sm text-blue-400 mt-2">
-                  {overview.active_plans} {t('trainerReports.active').toLowerCase()}
-                </p>
+                <p className="text-sm text-blue-600 dark:text-blue-400">{t('trainerReports.totalPlans')}</p>
+                <p className="text-3xl font-bold text-blue-700 dark:text-white mt-1">{overview.total_plans}</p>
               </div>
-              <BookOpen className="w-12 h-12 text-blue-400 opacity-50" />
+              <BookOpen className="w-10 h-10 text-blue-400 opacity-50" />
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-gradient-to-br from-green-500/10 to-green-600/10 border border-green-500/20 rounded-xl p-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-500/10 dark:to-green-600/10 border border-green-200 dark:border-green-500/20 rounded-xl p-5"
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">{t('trainerReports.totalStudents')}</p>
-                <p className="text-3xl font-bold text-white mt-1">{overview.total_students}</p>
-                <p className="text-sm text-green-400 mt-2">
+                <p className="text-sm text-green-600 dark:text-green-400">{t('trainerReports.totalStudents')}</p>
+                <p className="text-3xl font-bold text-green-700 dark:text-white mt-1">{overview.total_students}</p>
+                <p className="text-xs text-green-500 dark:text-green-400 mt-1">
                   {overview.active_students} {t('trainerReports.active').toLowerCase()}
                 </p>
               </div>
-              <Users className="w-12 h-12 text-green-400 opacity-50" />
+              <Users className="w-10 h-10 text-green-400 opacity-50" />
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-gradient-to-br from-purple-500/10 to-purple-600/10 border border-purple-500/20 rounded-xl p-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-500/10 dark:to-purple-600/10 border border-purple-200 dark:border-purple-500/20 rounded-xl p-5"
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">{t('trainerReports.avgCompletion')}</p>
-                <p className="text-3xl font-bold text-white mt-1">
-                  {overview.avg_completion_rate.toFixed(1)}%
-                </p>
-                <p className="text-sm text-purple-400 mt-2">
-                  {t('trainerReports.allPlans')}
-                </p>
+                <p className="text-sm text-purple-600 dark:text-purple-400">{t('courses.title')}</p>
+                <p className="text-3xl font-bold text-purple-700 dark:text-white mt-1">{overview.total_courses}</p>
               </div>
-              <Target className="w-12 h-12 text-purple-400 opacity-50" />
+              <Target className="w-10 h-10 text-purple-400 opacity-50" />
             </div>
-          </div>
+          </motion.div>
 
-          <div className="bg-gradient-to-br from-orange-500/10 to-orange-600/10 border border-orange-500/20 rounded-xl p-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-500/10 dark:to-orange-600/10 border border-orange-200 dark:border-orange-500/20 rounded-xl p-5"
+          >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-400 text-sm">{t('trainerReports.completedLessons')}</p>
-                <p className="text-3xl font-bold text-white mt-1">
-                  {overview.completed_lessons}/{overview.total_lessons}
+                <p className="text-sm text-orange-600 dark:text-orange-400">{t('trainerReports.lessons')}</p>
+                <p className="text-3xl font-bold text-orange-700 dark:text-white mt-1">
+                  {lessonReport?.total_lessons || 0}
                 </p>
-                <p className="text-sm text-orange-400 mt-2">
-                  {((overview.completed_lessons / overview.total_lessons) * 100).toFixed(0)}%
+                <p className="text-xs text-orange-500 dark:text-orange-400 mt-1">
+                  {lessonReport?.lessons_per_course || 0} {t('trainerReports.avgProgress').toLowerCase()}
                 </p>
               </div>
-              <CheckCircle className="w-12 h-12 text-orange-400 opacity-50" />
+              <Clock className="w-10 h-10 text-orange-400 opacity-50" />
             </div>
-          </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-500/10 dark:to-indigo-600/10 border border-indigo-200 dark:border-indigo-500/20 rounded-xl p-5"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-indigo-600 dark:text-indigo-400">{t('certificates.title')}</p>
+                <p className="text-3xl font-bold text-indigo-700 dark:text-white mt-1">{overview.certificates_issued}</p>
+              </div>
+              <Award className="w-10 h-10 text-indigo-400 opacity-50" />
+            </div>
+          </motion.div>
         </div>
       )}
 
-      {/* Training Plans Progress */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-6">
-          <BarChart3 className="w-5 h-5 text-red-400" />
-          <h2 className="text-xl font-semibold text-white">{t('trainerReports.planProgress')}</h2>
-        </div>
-        
-        {filteredPlans.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/10">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.planName')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.bank')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.students')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.completion')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.avgProgress')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.status')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPlans.map((plan) => (
-                  <tr key={plan.plan_id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="py-4 px-4">
-                      <div className="font-medium text-white">{plan.plan_title}</div>
-                      <div className="text-sm text-gray-400">
-                        {new Date(plan.start_date).toLocaleDateString()} - {new Date(plan.end_date).toLocaleDateString()}
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="px-2 py-1 bg-blue-500/20 text-blue-400 rounded text-sm">
-                        {plan.bank_code}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="text-white">{plan.active_students}/{plan.total_students}</div>
-                      <div className="text-xs text-gray-400">{t('trainerReports.active')}</div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-white/10 rounded-full h-2">
-                          <div
-                            className="bg-gradient-to-r from-red-500 to-red-600 h-2 rounded-full transition-all"
-                            style={{ width: `${plan.completion_rate}%` }}
-                          />
-                        </div>
-                        <span className="text-sm text-white min-w-[3rem] text-right">
-                          {plan.completion_rate.toFixed(0)}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-white">
-                      {plan.avg_progress.toFixed(0)}%
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className={`px-2 py-1 rounded text-sm border ${getStatusBadge(plan.status)}`}>
-                        {t(`trainerReports.${plan.status}`)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-center text-gray-400 py-8">{t('trainerReports.noPlans')}</p>
-        )}
+      {/* Tab Navigation */}
+      <div className="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-xl p-1.5 flex gap-1">
+        {[
+          { key: 'plans' as const, label: t('trainerReports.planProgress'), icon: BookOpen },
+          { key: 'students' as const, label: t('trainerReports.studentProgress'), icon: Users },
+          { key: 'lessons' as const, label: t('trainerReports.lessonMetrics'), icon: Clock },
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all ${
+              activeTab === tab.key
+                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'
+            }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            <span className="hidden sm:inline">{tab.label}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Student Progress */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Activity className="w-5 h-5 text-red-400" />
-          <h2 className="text-xl font-semibold text-white">{t('trainerReports.studentProgress')}</h2>
-        </div>
-        
-        {filteredStudents.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/10">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.studentName')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.planName')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.progress')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.lessons')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.lastActivity')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.status')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredStudents.map((student, idx) => (
-                  <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="py-4 px-4">
-                      <div className="font-medium text-white">{student.student_name}</div>
-                      <div className="text-sm text-gray-400">{student.student_email}</div>
-                    </td>
-                    <td className="py-4 px-4 text-white">
-                      {student.plan_title}
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-white/10 rounded-full h-2 max-w-[100px]">
-                          <div
-                            className="bg-gradient-to-r from-green-500 to-green-600 h-2 rounded-full transition-all"
-                            style={{ width: `${student.progress}%` }}
-                          />
+      {/* Plans Tab */}
+      {activeTab === 'plans' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-xl p-6"
+        >
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-indigo-500" />
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('trainerReports.planProgress')}</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-400" />
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="ALL">{t('trainerReports.allStatuses')}</option>
+                <option value="active">{t('trainerReports.activeStatus')}</option>
+                <option value="completed">{t('trainerReports.completedStatus')}</option>
+              </select>
+            </div>
+          </div>
+          
+          {filteredPlans.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-white/10">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {t('trainerReports.planName')}
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {t('trainerReports.bank')}
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {t('trainerReports.students')}
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {t('trainerReports.status')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPlans.map((plan) => (
+                    <tr key={plan.id} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                      <td className="py-4 px-4">
+                        <div className="font-medium text-gray-900 dark:text-white">{plan.title}</div>
+                        {plan.start_date && plan.end_date && (
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {new Date(plan.start_date).toLocaleDateString()} — {new Date(plan.end_date).toLocaleDateString()}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-4 px-4">
+                        {plan.bank_code ? (
+                          <span className="px-2.5 py-1 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 rounded-lg text-sm border border-indigo-200 dark:border-indigo-500/30">
+                            {plan.bank_code}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-1.5">
+                          <Users className="w-4 h-4 text-gray-400" />
+                          <span className="text-gray-900 dark:text-white">{plan.students_assigned}</span>
                         </div>
-                        <span className="text-sm text-white min-w-[3rem] text-right">
-                          {student.progress.toFixed(0)}%
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-medium border ${getStatusBadge(plan.status)}`}>
+                          {t(`trainerReports.${plan.status}`) || plan.status}
                         </span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-white">
-                      {student.completed_lessons}/{student.total_lessons}
-                    </td>
-                    <td className="py-4 px-4 text-gray-400 text-sm">
-                      {new Date(student.last_activity).toLocaleDateString()}
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className={`px-2 py-1 rounded text-sm border ${getStatusBadge(student.status)}`}>
-                        {t(`trainerReports.${student.status}`)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-center text-gray-400 py-8">{t('trainerReports.noStudents')}</p>
-        )}
-      </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <BookOpen className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-500 dark:text-gray-400">{t('trainerReports.noPlans')}</p>
+            </div>
+          )}
+        </motion.div>
+      )}
 
-      {/* Lesson Metrics */}
-      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Clock className="w-5 h-5 text-red-400" />
-          <h2 className="text-xl font-semibold text-white">{t('trainerReports.lessonMetrics')}</h2>
-        </div>
-        
-        {lessonMetrics.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/10">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.lessonName')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.planName')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.completed')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.inProgress')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.notStarted')}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-400">
-                    {t('trainerReports.avgTime')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {lessonMetrics.map((lesson, idx) => (
-                  <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td className="py-4 px-4 font-medium text-white">
-                      {lesson.lesson_title}
-                    </td>
-                    <td className="py-4 px-4 text-gray-400">
-                      {lesson.plan_title}
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-400" />
-                        <span className="text-white">{lesson.completed}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-yellow-400" />
-                        <span className="text-white">{lesson.in_progress}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-2">
-                        <XCircle className="w-4 h-4 text-gray-400" />
-                        <span className="text-white">{lesson.not_started}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4 text-white">
-                      {lesson.avg_completion_time}h
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Students Tab */}
+      {activeTab === 'students' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-xl p-6"
+        >
+          <div className="flex items-center gap-2 mb-6">
+            <Activity className="w-5 h-5 text-indigo-500" />
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('trainerReports.studentProgress')}</h2>
           </div>
-        ) : (
-          <p className="text-center text-gray-400 py-8">{t('trainerReports.noLessons')}</p>
-        )}
-      </div>
+          
+          {studentReports.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-white/10">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {t('trainerReports.studentName')}
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {t('courses.title')}
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 dark:text-gray-400">
+                      {t('trainerReports.progress')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {studentReports.map((student) => (
+                    <tr key={student.id} className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                            <span className="text-white font-bold text-sm">
+                              {student.name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900 dark:text-white">{student.name}</div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">{student.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4">
+                        <span className="text-gray-900 dark:text-white font-medium">{student.courses_enrolled}</span>
+                      </td>
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-2 max-w-[120px]">
+                            <div
+                              className={`h-2 rounded-full transition-all ${
+                                student.average_progress >= 75
+                                  ? 'bg-gradient-to-r from-green-400 to-green-500'
+                                  : student.average_progress >= 40
+                                  ? 'bg-gradient-to-r from-yellow-400 to-yellow-500'
+                                  : 'bg-gradient-to-r from-indigo-400 to-indigo-500'
+                              }`}
+                              style={{ width: `${Math.min(student.average_progress, 100)}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-medium text-gray-700 dark:text-white min-w-[3rem] text-right">
+                            {student.average_progress}%
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <GraduationCap className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-500 dark:text-gray-400">{t('trainerReports.noStudents')}</p>
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {/* Lessons Tab */}
+      {activeTab === 'lessons' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-xl p-6"
+        >
+          <div className="flex items-center gap-2 mb-6">
+            <Clock className="w-5 h-5 text-indigo-500" />
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('trainerReports.lessonMetrics')}</h2>
+          </div>
+          
+          {lessonReport && lessonReport.total_lessons > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-6 border border-gray-200 dark:border-white/10 text-center">
+                <BookOpen className="w-10 h-10 text-indigo-400 mx-auto mb-3 opacity-70" />
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{lessonReport.total_lessons}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('trainerReports.lessonName')}</p>
+              </div>
+              <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-6 border border-gray-200 dark:border-white/10 text-center">
+                <Clock className="w-10 h-10 text-purple-400 mx-auto mb-3 opacity-70" />
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                  {Math.round(lessonReport.total_duration_minutes / 60)}h
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {lessonReport.total_duration_minutes} min
+                </p>
+              </div>
+              <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-6 border border-gray-200 dark:border-white/10 text-center">
+                <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-3 opacity-70" />
+                <p className="text-3xl font-bold text-gray-900 dark:text-white">{lessonReport.lessons_per_course}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('trainerReports.avgProgress')}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Clock className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-500 dark:text-gray-400">{t('trainerReports.noLessons')}</p>
+            </div>
+          )}
+        </motion.div>
+      )}
     </div>
   );
 }

@@ -74,7 +74,7 @@ export default function TrainingPlanForm() {
         api.get('/api/trainer/courses'),
         api.get('/api/admin/banks'),
         api.get('/api/admin/products'),
-        api.get('/api/admin/students')
+        api.get('/api/trainer/students/list')
       ]);
       setCourses(coursesRes.data);
       setBanks(banksRes.data);
@@ -99,7 +99,7 @@ export default function TrainingPlanForm() {
   const handleStudentToggle = (studentId: number) => {
     // Não permitir que o formador se selecione como aluno
     if (user?.id === studentId) {
-      setError('Não pode selecionar-se como aluno no seu próprio plano de formação');
+      setError(t('trainingPlan.cannotSelectSelf'));
       return;
     }
     
@@ -160,7 +160,7 @@ export default function TrainingPlanForm() {
       });
 
       console.log('Training plan created:', response.data);
-      navigate('/trainer/training-plans');
+      navigate('/training-plans');
     } catch (error: any) {
       console.error('Error creating training plan:', error);
       setError(error.response?.data?.detail || t('trainingPlan.createError'));
@@ -175,7 +175,7 @@ export default function TrainingPlanForm() {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate('/trainer/training-plans')}
+            onClick={() => navigate('/training-plans')}
             className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 mb-4 flex items-center gap-2"
           >
             ← {t('common.back')}
@@ -213,13 +213,13 @@ export default function TrainingPlanForm() {
                   required
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder={t('trainingPlan.titlePlaceholder')}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                   {t('trainingPlan.description')}
                 </label>
                 <textarea
@@ -227,20 +227,20 @@ export default function TrainingPlanForm() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={4}
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder={t('trainingPlan.descriptionPlaceholder')}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                     <div className="flex items-center gap-2">
                       <Building2 className="w-4 h-4" />
-                      {t('trainingPlan.banks')} <span className="text-slate-500 text-xs">({t('admin.selectMultiple')})</span>
+                      {t('trainingPlan.banks')} <span className="text-gray-400 dark:text-slate-500 text-xs">({t('admin.selectMultiple')})</span>
                     </div>
                   </label>
-                  <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 bg-white/5 border border-white/10 rounded-lg">
+                  <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg">
                     {banks.map(bank => (
                       <button
                         key={bank.id}
@@ -255,11 +255,11 @@ export default function TrainingPlanForm() {
                         }}
                         className={`p-2 rounded-lg text-left text-sm transition-all flex items-center justify-between ${
                           formData.bank_ids.includes(bank.id)
-                            ? 'bg-blue-500/20 border border-blue-500'
-                            : 'bg-white/5 border border-white/10 hover:border-blue-500/50'
+                          ? 'bg-blue-100 dark:bg-blue-500/20 border border-blue-500'
+                          : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-blue-500/50'
                         }`}
                       >
-                        <span className="text-white">{bank.name}</span>
+                        <span className="text-gray-900 dark:text-white">{bank.name}</span>
                         {formData.bank_ids.includes(bank.id) && <Check className="w-4 h-4 text-blue-500" />}
                       </button>
                     ))}
@@ -267,13 +267,13 @@ export default function TrainingPlanForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                     <div className="flex items-center gap-2">
                       <Package className="w-4 h-4" />
-                      {t('trainingPlan.services')} <span className="text-slate-500 text-xs">({t('admin.selectMultiple')})</span>
+                      {t('trainingPlan.services')} <span className="text-gray-400 dark:text-slate-500 text-xs">({t('admin.selectMultiple')})</span>
                     </div>
                   </label>
-                  <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 bg-white/5 border border-white/10 rounded-lg">
+                  <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg">
                     {products.map(product => (
                       <button
                         key={product.id}
@@ -288,11 +288,11 @@ export default function TrainingPlanForm() {
                         }}
                         className={`p-2 rounded-lg text-left text-sm transition-all flex items-center justify-between ${
                           formData.product_ids.includes(product.id)
-                            ? 'bg-blue-500/20 border border-blue-500'
-                            : 'bg-white/5 border border-white/10 hover:border-blue-500/50'
+                          ? 'bg-blue-100 dark:bg-blue-500/20 border border-blue-500'
+                          : 'bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 hover:border-blue-500/50'
                         }`}
                       >
-                        <span className="text-white">{getTranslatedProductName(t, product.code, product.name)}</span>
+                        <span className="text-gray-900 dark:text-white">{getTranslatedProductName(t, product.code, product.name)}</span>
                         {formData.product_ids.includes(product.id) && <Check className="w-4 h-4 text-blue-500" />}
                       </button>
                     ))}
@@ -302,26 +302,26 @@ export default function TrainingPlanForm() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                     {t('trainingPlan.startDate')}
                   </label>
                   <input
                     type="date"
                     value={formData.start_date}
                     onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                     {t('trainingPlan.endDate')}
                   </label>
                   <input
                     type="date"
                     value={formData.end_date}
                     onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                    className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
@@ -428,12 +428,12 @@ export default function TrainingPlanForm() {
                         {student.full_name}
                         {student.role === 'TRAINER' && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
-                            Formador
+                            {t('roles.trainer')}
                           </span>
                         )}
                         {isCurrentTrainer && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
-                            (Você)
+                            ({t('common.you')})
                           </span>
                         )}
                       </div>
@@ -442,7 +442,7 @@ export default function TrainingPlanForm() {
                       </div>
                       {isCurrentTrainer && (
                         <div className="text-xs text-amber-400 mt-1">
-                          Não pode ser aluno no seu próprio plano
+                          {t('trainingPlan.cannotSelectSelf')}
                         </div>
                       )}
                     </div>
@@ -464,8 +464,8 @@ export default function TrainingPlanForm() {
           <div className="flex justify-end gap-4">
             <button
               type="button"
-              onClick={() => navigate('/trainer/training-plans')}
-              className="px-6 py-2 border border-white/20 text-white rounded-lg hover:bg-white/5 transition-colors"
+              onClick={() => navigate('/training-plans')}
+              className="px-6 py-2 border border-gray-300 dark:border-white/20 text-gray-700 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
             >
               {t('common.cancel')}
             </button>

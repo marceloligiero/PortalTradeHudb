@@ -624,6 +624,135 @@ async def create_training_plan(
     }
 
 
+# ==================== STUDENTS ENDPOINTS ====================
+
+@router.get("/students")
+async def list_trainer_students(
+    current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
+    db: Session = Depends(get_db)
+) -> List[Dict[str, Any]]:
+    """List all students assigned to trainer's training plans"""
+    
+    if current_user.role == "TRAINER":
+        # Get plans where trainer is responsible
+        plan_ids = [p.id for p in db.query(models.TrainingPlan.id).filter(
+            models.TrainingPlan.created_by == current_user.id
+        ).all()]
+    else:
+        plan_ids = [p.id for p in db.query(models.TrainingPlan.id).all()]
+    
+    if not plan_ids:
+        return []
+    
+    # Get unique students from assignments
+    assignments = db.query(models.TrainingPlanAssignment).filter(
+        models.TrainingPlanAssignment.training_plan_id.in_(plan_ids)
+    ).all()
+    
+    # Also get students from student_id in plans
+    direct_students = db.query(models.TrainingPlan).filter(
+        models.TrainingPlan.id.in_(plan_ids),
+        models.TrainingPlan.student_id.isnot(None)
+    ).all()
+    
+    # Collect all unique student IDs
+    student_ids = set()
+    student_plan_map = {}  # user_id -> list of plan info
+    
+    for assignment in assignments:
+        student_ids.add(assignment.user_id)
+        if assignment.user_id not in student_plan_map:
+            student_plan_map[assignment.user_id] = []
+        plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == assignment.training_plan_id).first()
+        if plan:
+            student_plan_map[assignment.user_id].append({
+                "plan_id": plan.id,
+                "plan_title": plan.title,
+                "assigned_at": assignment.assigned_at.isoformat() if assignment.assigned_at else None
+            })
+    
+    for plan in direct_students:
+        student_ids.add(plan.student_id)
+        if plan.student_id not in student_plan_map:
+            student_plan_map[plan.student_id] = []
+        student_plan_map[plan.student_id].append({
+            "plan_id": plan.id,
+            "plan_title": plan.title,
+            "assigned_at": plan.created_at.isoformat() if plan.created_at else None
+        })
+    
+    if not student_ids:
+        return []
+    
+    # Get user details
+    users = db.query(models.User).filter(models.User.id.in_(student_ids)).all()
+    
+    result = []
+    for user in users:
+        plans_info = student_plan_map.get(user.id, [])
+        
+        # Calculate overall progress across all plans
+        total_progress = 0
+        total_courses = 0
+        for plan_info in plans_info:
+            plan_courses = db.query(models.TrainingPlanCourse).filter(
+                models.TrainingPlanCourse.training_plan_id == plan_info["plan_id"]
+            ).all()
+            for pc in plan_courses:
+                enrollment = db.query(models.Enrollment).filter(
+                    models.Enrollment.user_id == user.id,
+                    models.Enrollment.course_id == pc.course_id
+                ).first()
+                if enrollment:
+                    # Count completed lessons vs total
+                    total_lessons = db.query(models.Lesson).filter(
+                        models.Lesson.course_id == pc.course_id
+                    ).count()
+                    completed_lessons = db.query(models.LessonProgress).filter(
+                        models.LessonProgress.enrollment_id == enrollment.id,
+                        models.LessonProgress.completed_at.isnot(None)
+                    ).count()
+                    if total_lessons > 0:
+                        total_progress += (completed_lessons / total_lessons * 100)
+                        total_courses += 1
+        
+        avg_progress = round(total_progress / total_courses, 1) if total_courses > 0 else 0
+        
+        result.append({
+            "id": user.id,
+            "full_name": user.full_name,
+            "email": user.email,
+            "is_active": user.is_active,
+            "plans_count": len(plans_info),
+            "plans": plans_info,
+            "avg_progress": avg_progress,
+            "created_at": user.created_at.isoformat() if user.created_at else None
+        })
+    
+    return result
+
+
+@router.get("/students/list")
+async def list_students_for_dropdown(
+    current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
+    db: Session = Depends(get_db)
+) -> List[Dict[str, Any]]:
+    """List all available students for trainer dropdowns (TRAINEE + TRAINER users)"""
+    students = db.query(models.User).filter(
+        models.User.role.in_(["TRAINEE", "TRAINER"]),
+        models.User.is_active == True
+    ).all()
+    return [
+        {
+            "id": s.id,
+            "email": s.email,
+            "full_name": s.full_name,
+            "role": s.role
+        }
+        for s in students
+    ]
+
+
 # ==================== REPORTS ENDPOINTS ====================
 
 @router.get("/reports/overview")
