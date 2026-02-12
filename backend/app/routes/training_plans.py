@@ -64,13 +64,17 @@ def calculate_plan_status(db: Session, plan: models.TrainingPlan, student_id: in
         plan_status = "COMPLETED"
     elif completed_lessons > 0 or completed_courses > 0:
         plan_status = "IN_PROGRESS"
-        # Verificar atraso
+        # Verificar atraso - só está atrasado se a data de fim já passou
         if effective_end and now > effective_end:
             plan_status = "DELAYED"
     else:
-        if effective_start and now > effective_start:
-            # Deveria ter começado mas não tem progresso
+        # Sem progresso
+        if effective_end and now > effective_end:
+            # A data de fim já passou sem qualquer progresso
             plan_status = "DELAYED"
+        elif effective_start and now >= effective_start:
+            # Já começou mas não há progresso ainda - não está atrasado, está pendente/não iniciado
+            plan_status = "NOT_STARTED"
         else:
             plan_status = "PENDING"
     

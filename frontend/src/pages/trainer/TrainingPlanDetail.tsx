@@ -669,12 +669,13 @@ export default function TrainingPlanDetail() {
             <div className={`px-3 py-1 rounded-lg text-sm font-bold inline-block ${
               plan.status === 'COMPLETED' ? 'bg-amber-500/20 text-amber-400' :
               plan.status === 'ONGOING' || plan.status === 'IN_PROGRESS' ? 'bg-green-500/20 text-green-400' : 
-              plan.status === 'UPCOMING' || plan.status === 'PENDING' ? 'bg-blue-500/20 text-blue-400' : 
+              plan.status === 'UPCOMING' || plan.status === 'PENDING' || plan.status === 'NOT_STARTED' ? 'bg-blue-500/20 text-blue-400' : 
               plan.status === 'DELAYED' ? 'bg-red-500/20 text-red-400' :
               'bg-gray-500/20 text-gray-400'
             }`}>
               {plan.status === 'COMPLETED' ? `✅ ${t('trainingPlanDetail.completed')}` : 
                plan.status === 'IN_PROGRESS' || plan.status === 'ONGOING' ? `🔄 ${t('trainingPlanDetail.inProgress')}` :
+               plan.status === 'NOT_STARTED' ? `📋 ${t('planStatus.notStarted')}` :
                plan.status === 'PENDING' || plan.status === 'UPCOMING' ? `⏳ ${t('trainingPlanDetail.pending')}` :
                plan.status === 'DELAYED' ? `⚠️ ${t('trainingPlanDetail.delayed')}` :
                plan.status || t('trainingPlanDetail.active')}
@@ -1048,6 +1049,7 @@ export default function TrainingPlanDetail() {
                       {student.status === 'COMPLETED' ? `✅ ${t('trainingPlanDetail.completed')}` :
                        student.status === 'IN_PROGRESS' ? `🔄 ${t('trainingPlanDetail.inProgress')}` :
                        student.status === 'DELAYED' ? `⚠️ ${t('trainingPlanDetail.delayed')}` :
+                       student.status === 'NOT_STARTED' ? `📋 ${t('planStatus.notStarted')}` :
                        `⏳ ${t('trainingPlanDetail.pending')}`}
                     </span>
                     {/* Remove button */}

@@ -421,6 +421,7 @@
   },
   "planStatus": {
     "pending": "Pendente",
+    "notStarted": "Não Iniciado",
     "inProgress": "Em Curso",
     "completed": "Concluído",
     "delayed": "Atrasado",

@@ -528,6 +528,7 @@ export default function TrainingPlans() {
                             {plan.status === 'IN_PROGRESS' ? t('planStatus.inProgress')
                               : plan.status === 'COMPLETED' ? t('planStatus.completed')
                               : plan.status === 'DELAYED' ? t('planStatus.delayed')
+                              : plan.status === 'NOT_STARTED' ? t('planStatus.notStarted')
                               : t('planStatus.pending')}
                           </div>
                           <ChevronRight className={`w-5 h-5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
