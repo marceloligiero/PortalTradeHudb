@@ -1681,6 +1681,41 @@ async def finalize_submission_review(
     if not challenge:
         raise HTTPException(status_code=404, detail="Desafio não encontrado")
     
+    # ===== SUMMARY type: data already calculated at submission time =====
+    if submission.submission_type == "SUMMARY":
+        submission.is_approved = approve
+        submission.status = "APPROVED" if approve else "REJECTED"
+        if not submission.completed_at:
+            submission.completed_at = datetime.utcnow()
+        submission.updated_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(submission)
+        
+        return {
+            "id": submission.id,
+            "status": submission.status,
+            "is_approved": submission.is_approved,
+            "total_operations": submission.total_operations or 0,
+            "correct_operations": submission.total_operations or 0,
+            "operations_with_error": submission.errors_count or 0,
+            "total_errors_registered": (
+                (submission.error_methodology or 0) + (submission.error_knowledge or 0) +
+                (submission.error_detail or 0) + (submission.error_procedure or 0)
+            ),
+            "error_breakdown": {
+                "methodology": submission.error_methodology or 0,
+                "knowledge": submission.error_knowledge or 0,
+                "detail": submission.error_detail or 0,
+                "procedure": submission.error_procedure or 0
+            },
+            "calculated_mpu": submission.calculated_mpu or 0,
+            "target_mpu": challenge.target_mpu or 0,
+            "mpu_vs_target": submission.mpu_vs_target or 0,
+            "message": f"Desafio {'aprovado' if approve else 'reprovado'} com sucesso!"
+        }
+    
+    # ===== COMPLETE type: calculate from operations =====
     # Buscar operações
     operations = db.query(models.ChallengeOperation).filter(
         models.ChallengeOperation.submission_id == submission_id
