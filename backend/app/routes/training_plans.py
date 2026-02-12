@@ -100,8 +100,6 @@ def calculate_plan_status(db: Session, plan: models.TrainingPlan, student_id: in
     
     if student_id and student_completed:
         plan_status = "COMPLETED"
-    elif not student_id and plan.completed_at:
-        plan_status = "COMPLETED"
     elif completed_lessons > 0 or completed_courses > 0:
         plan_status = "IN_PROGRESS"
         # Verificar atraso - só está atrasado se a data de fim já passou
@@ -733,22 +731,13 @@ async def get_training_plan(
                 days_total = delta_total if delta_total >= 0 else 0
                 days_remaining = delta_remaining if delta_remaining >= 0 else 0
 
-                # Only override status if it's not already COMPLETED (from finalization)
-                if plan.status != "COMPLETED" and plan.completed_at is None:
-                    if today.date() < start.date():
-                        status_str = "UPCOMING"
-                    elif today.date() > end.date():
-                        status_str = "DELAYED"
-                    else:
-                        status_str = "ONGOING"
-                elif plan.completed_at is not None:
-                    # Check if ALL enrolled students have completed
-                    all_enrollments = db.query(models.TrainingPlanAssignment).filter(
-                        models.TrainingPlanAssignment.training_plan_id == plan.id
-                    ).all()
-                    if all_enrollments and any(e.completed_at is None for e in all_enrollments):
-                        # Not all students finished - plan is still in progress
-                        status_str = "IN_PROGRESS"
+                # Plan is a catalog - status based on dates, never COMPLETED at plan level
+                if today.date() < start.date():
+                    status_str = "UPCOMING"
+                elif today.date() > end.date():
+                    status_str = "DELAYED"
+                else:
+                    status_str = "ONGOING"
             except Exception:
                 days_total = None
                 days_remaining = None
