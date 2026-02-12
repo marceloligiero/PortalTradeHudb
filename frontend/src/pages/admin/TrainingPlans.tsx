@@ -45,6 +45,8 @@ interface TrainingPlan {
   product_id?: number;
   product_name?: string;
   product_code?: string;
+  product_ids?: number[];
+  bank_ids?: number[];
   student?: {
     id: number;
     full_name: string;
@@ -159,8 +161,10 @@ export default function TrainingPlans() {
         plan.student?.full_name?.toLowerCase().includes(searchLower) ||
         matchesTrainers;
       
-      const matchesProduct = !filterProduct || plan.product_id === parseInt(filterProduct);
-      const matchesBank = !filterBank || plan.bank_id === parseInt(filterBank);
+      const fpId = parseInt(filterProduct);
+      const matchesProduct = !filterProduct || plan.product_id === fpId || (plan.product_ids?.includes(fpId) ?? false);
+      const fbId = parseInt(filterBank);
+      const matchesBank = !filterBank || plan.bank_id === fbId || (plan.bank_ids?.includes(fbId) ?? false);
       
       return matchesSearch && matchesProduct && matchesBank;
     });

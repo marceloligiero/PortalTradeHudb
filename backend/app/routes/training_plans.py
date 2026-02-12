@@ -354,11 +354,11 @@ async def list_training_plans(
                 "start_date": plan.start_date.isoformat() if plan.start_date else None,
                 "end_date": plan.end_date.isoformat() if plan.end_date else None,
                 "created_at": plan.created_at.isoformat() if plan.created_at else None,
-                # Bank and Product info (legacy single)
-                "bank_id": plan.bank_id,
+                # Bank and Product info (legacy single, fallback to N:N)
+                "bank_id": plan.bank_id or (banks_list[0]["id"] if banks_list else None),
                 "bank_code": banks_list[0]["code"] if banks_list else None,
                 "bank_name": banks_list[0]["name"] if banks_list else None,
-                "product_id": plan.product_id,
+                "product_id": plan.product_id or (products_list[0]["id"] if products_list else None),
                 "product_name": products_list[0]["name"] if products_list else None,
                 "product_code": products_list[0]["code"] if products_list else None,
                 # Multiple banks and products
@@ -498,13 +498,17 @@ async def create_training_plan(
         # For backward compatibility, set student_id to first student if any
         primary_student_id = all_student_ids[0] if all_student_ids else plan.student_id
         
+        # For backward compatibility, set legacy bank_id/product_id from arrays
+        primary_bank_id = bank_ids[0] if bank_ids else plan.bank_id
+        primary_product_id = product_ids[0] if product_ids else plan.product_id
+        
         db_plan = models.TrainingPlan(
             title=plan.title,
             description=plan.description,
             trainer_id=primary_trainer_id,  # Formador principal para retrocompatibilidade
             student_id=primary_student_id,  # First student for backward compat (nullable)
-            bank_id=plan.bank_id,
-            product_id=plan.product_id,
+            bank_id=primary_bank_id,
+            product_id=primary_product_id,
             start_date=start_date_dt,
             end_date=end_date_dt,
             created_by=current_user.id,
