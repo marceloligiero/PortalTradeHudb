@@ -28,7 +28,8 @@
     "creating": "A criar...",
     "allBanks": "Todos os Bancos",
     "backToCourse": "Voltar ao Curso",
-    "you": "Você"
+    "you": "Você",
+    "noResults": "Nenhum resultado encontrado"
   },
   "auth": {
     "login": "Iniciar Sessão",
@@ -245,7 +246,12 @@
     "endDateMustBeAfterStartDate": "A data de fim deve ser posterior à data de início",
     "createError": "Falha ao criar plano de formação",
     "cannotSelectSelf": "Não pode selecionar-se como aluno no seu próprio plano de formação",
-    "newLesson": "Novo Módulo"
+    "newLesson": "Novo Módulo",
+    "banks": "Bancos",
+    "services": "Serviços",
+    "searchCourses": "Pesquisar cursos por nome, banco ou serviço...",
+    "searchStudents": "Pesquisar formandos por nome ou email...",
+    "selectStudents": "Selecionar Formandos"
   },
   "lessons": {
     "title": "Módulos",
@@ -1018,7 +1024,11 @@
     "selectAtLeastOneCourse": "Selecione pelo menos um curso",
     "endDateMustBeAfterStartDate": "A data de fim deve ser posterior à data de início",
     "createError": "Falha ao criar plano de formação",
-    "newLesson": "Novo Módulo"
+    "newLesson": "Novo Módulo",
+    "cannotSelectSelf": "Não pode selecionar-se como aluno no seu próprio plano de formação",
+    "searchCourses": "Pesquisar cursos por nome, banco ou serviço...",
+    "searchStudents": "Pesquisar formandos por nome ou email...",
+    "selectStudents": "Selecionar Formandos"
   },
   "landing": {
     "badge": "Santander Digital Services | Shared Services",

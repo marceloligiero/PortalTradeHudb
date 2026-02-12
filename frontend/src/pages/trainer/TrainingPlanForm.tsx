@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { GraduationCap, BookOpen, Users, Check, Building2, Package } from 'lucide-react';
+import { GraduationCap, BookOpen, Users, Check, Building2, Package, Search } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -58,6 +58,8 @@ export default function TrainingPlanForm() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [courseSearch, setCourseSearch] = useState('');
+  const [studentSearch, setStudentSearch] = useState('');
 
   useEffect(() => {
     if (!token || !user) {
@@ -329,47 +331,81 @@ export default function TrainingPlanForm() {
           </div>
 
           {/* Course Selection */}
-          <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <BookOpen className="w-5 h-5 text-blue-400" />
-              <h2 className="text-xl font-bold text-white">
-                {t('trainingPlan.selectCourses')}
-              </h2>
+          <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <BookOpen className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  {t('trainingPlan.selectCourses')}
+                </h2>
+              </div>
+              {formData.selectedCourses.length > 0 && (
+                <span className="text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-3 py-1 rounded-full">
+                  {formData.selectedCourses.length} {t('trainingPlan.coursesSelected')}
+                </span>
+              )}
+            </div>
+
+            {/* Course Search Filter */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-slate-500" />
+              <input
+                type="text"
+                value={courseSearch}
+                onChange={(e) => setCourseSearch(e.target.value)}
+                placeholder={t('trainingPlan.searchCourses')}
+                className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
             </div>
 
             {courses.length === 0 ? (
-              <p className="text-slate-400 text-center py-8">
+              <p className="text-gray-500 dark:text-slate-400 text-center py-8">
                 {t('courses.noCourses')}
               </p>
             ) : (
-              <div className="space-y-3">
-                {courses.map((course) => (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {courses
+                  .filter(course => {
+                    if (!courseSearch.trim()) return true;
+                    const search = courseSearch.toLowerCase();
+                    return (
+                      course.title.toLowerCase().includes(search) ||
+                      course.description?.toLowerCase().includes(search) ||
+                      course.bank_name?.toLowerCase().includes(search) ||
+                      course.product_name?.toLowerCase().includes(search)
+                    );
+                  })
+                  .map((course) => (
                   <label
                     key={course.id}
-                    className="flex items-start gap-3 p-4 bg-white/5 rounded-lg border border-white/10 cursor-pointer hover:bg-white/10 transition-colors"
+                    className={`flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
+                      formData.selectedCourses.includes(course.id)
+                        ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-300 dark:border-blue-500/50'
+                        : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/10'
+                    }`}
                   >
                     <input
                       type="checkbox"
                       checked={formData.selectedCourses.includes(course.id)}
                       onChange={() => handleCourseToggle(course.id)}
-                      className="mt-1 w-4 h-4 text-blue-500 bg-white/5 border-white/20 rounded focus:ring-blue-500"
+                      className="mt-1 w-4 h-4 text-blue-500 bg-gray-50 dark:bg-white/5 border-gray-300 dark:border-white/20 rounded focus:ring-blue-500"
                     />
                     <div className="flex-1">
-                      <div className="font-semibold text-white mb-1">
+                      <div className="font-semibold text-gray-900 dark:text-white mb-1">
                         {course.title}
                       </div>
-                      <div className="text-sm text-slate-400 mb-2">
+                      <div className="text-sm text-gray-500 dark:text-slate-400 mb-2">
                         {course.description}
                       </div>
                       {(course.bank_name || course.product_name) && (
                         <div className="flex gap-2 text-xs">
                           {course.bank_name && (
-                            <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded">
+                            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 rounded">
                               {course.bank_name}
                             </span>
                           )}
                           {course.product_name && (
-                            <span className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded">
+                            <span className="px-2 py-1 bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-300 rounded">
                               {getTranslatedProductName(t, course.product_code, course.product_name)}
                             </span>
                           )}
@@ -378,14 +414,20 @@ export default function TrainingPlanForm() {
                     </div>
                   </label>
                 ))}
-              </div>
-            )}
-
-            {formData.selectedCourses.length > 0 && (
-              <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                <p className="text-sm text-blue-300">
-                  {formData.selectedCourses.length} {t('trainingPlan.coursesSelected')}
-                </p>
+                {courses.filter(course => {
+                  if (!courseSearch.trim()) return true;
+                  const search = courseSearch.toLowerCase();
+                  return (
+                    course.title.toLowerCase().includes(search) ||
+                    course.description?.toLowerCase().includes(search) ||
+                    course.bank_name?.toLowerCase().includes(search) ||
+                    course.product_name?.toLowerCase().includes(search)
+                  );
+                }).length === 0 && courseSearch.trim() && (
+                  <p className="text-gray-500 dark:text-slate-400 text-center py-6 text-sm">
+                    {t('common.noResults')}
+                  </p>
+                )}
               </div>
             )}
           </div>

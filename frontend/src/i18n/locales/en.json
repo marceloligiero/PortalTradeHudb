@@ -28,7 +28,8 @@
     "creating": "Creating...",
     "allBanks": "All Banks",
     "backToCourse": "Back to Course",
-    "you": "You"
+    "you": "You",
+    "noResults": "No results found"
   },
   "auth": {
     "login": "Login",
@@ -245,7 +246,12 @@
     "endDateMustBeAfterStartDate": "End date must be after start date",
     "createError": "Failed to create training plan",
     "cannotSelectSelf": "You cannot select yourself as a student in your own training plan",
-    "newLesson": "New Module"
+    "newLesson": "New Module",
+    "banks": "Banks",
+    "services": "Services",
+    "searchCourses": "Search courses by name, bank or service...",
+    "searchStudents": "Search students by name or email...",
+    "selectStudents": "Select Students"
   },
   "lessons": {
     "title": "Modules",
@@ -817,7 +823,11 @@
     "selectAtLeastOneCourse": "Select at least one course",
     "endDateMustBeAfterStartDate": "End date must be after start date",
     "createError": "Failed to create training plan",
-    "newLesson": "New Lesson"
+    "newLesson": "New Lesson",
+    "cannotSelectSelf": "You cannot select yourself as a student in your own training plan",
+    "searchCourses": "Search courses by name, bank or service...",
+    "searchStudents": "Search students by name or email...",
+    "selectStudents": "Select Students"
   },
   "reports": {
     "title": "Reports and Statistics",

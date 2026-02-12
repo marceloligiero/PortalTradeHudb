@@ -28,7 +28,8 @@
     "creating": "Creando...",
     "allBanks": "Todos los Bancos",
     "backToCourse": "Volver al Curso",
-    "you": "Tú"
+    "you": "Tú",
+    "noResults": "No se encontraron resultados"
   },
   "auth": {
     "login": "Iniciar Sesión",
@@ -247,7 +248,10 @@
     "endDateMustBeAfterStartDate": "La fecha de fin debe ser posterior a la fecha de inicio",
     "createError": "Error al crear plan de formación",
     "cannotSelectSelf": "No puede seleccionarse como alumno en su propio plan de formación",
-    "newLesson": "Nuevo Módulo"
+    "newLesson": "Nuevo Módulo",
+    "searchCourses": "Buscar cursos por nombre, banco o servicio...",
+    "searchStudents": "Buscar estudiantes por nombre o email...",
+    "selectStudents": "Seleccionar Estudiantes"
   },
   "lessons": {
     "title": "Módulos",
@@ -1001,7 +1005,11 @@
     "selectAtLeastOneCourse": "Selecciona al menos un curso",
     "endDateMustBeAfterStartDate": "La fecha de fin debe ser posterior a la fecha de inicio",
     "createError": "Error al crear plan de formación",
-    "newLesson": "Nueva Lección"
+    "newLesson": "Nueva Lección",
+    "cannotSelectSelf": "No puede seleccionarse como alumno en su propio plan de formación",
+    "searchCourses": "Buscar cursos por nombre, banco o servicio...",
+    "searchStudents": "Buscar estudiantes por nombre o email...",
+    "selectStudents": "Seleccionar Estudiantes"
   },
   "errors": {
     "loadData": "Error al cargar datos",
