@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
   BookOpen, Calendar, ArrowLeft, Clock, Target, AlertCircle, PlayCircle, 
-  CheckCircle2, Pause, Play, Eye, Settings2, TrendingUp, Timer, Award, Download, Star, User, ChevronDown
+  CheckCircle2, Pause, Play, Eye, Settings2, TrendingUp, Timer, Award, Download, Star, User, ChevronDown, Users, UserPlus, UserMinus, Edit3
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -104,6 +104,22 @@ interface TrainerInfo {
   assigned_at?: string;
 }
 
+interface EnrolledStudent {
+  id: number;
+  full_name: string;
+  email: string;
+  enrollment_id: number;
+  status: string;
+  progress_percentage: number;
+  start_date?: string;
+  end_date?: string;
+  assigned_at?: string;
+  completed_at?: string;
+  notes?: string;
+  days_remaining?: number;
+  is_delayed?: boolean;
+}
+
 interface PlanDetail {
   id: number;
   title: string;
@@ -118,6 +134,8 @@ interface PlanDetail {
   student?: { id: number; full_name: string; email: string };
   student_id?: number;
   trainers?: TrainerInfo[];
+  enrolled_students?: EnrolledStudent[];
+  enrolled_count?: number;
 }
 
 const containerVariants = {
@@ -148,6 +166,12 @@ export default function TrainingPlanDetail() {
   const [completionStatus, setCompletionStatus] = useState<PlanCompletionStatus | null>(null);
   const [finalizingPlan, setFinalizingPlan] = useState(false);
   const [currentTime, setCurrentTime] = useState(Date.now());
+  
+  // Enrollment management state
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
+  const [showEnrollmentPanel, setShowEnrollmentPanel] = useState(false);
+  const [availableStudents, setAvailableStudents] = useState<any[]>([]);
+  const [enrollingStudents, setEnrollingStudents] = useState(false);
 
   // Rating state
   const [showPlanRatingModal, setShowPlanRatingModal] = useState(false);
@@ -200,6 +224,14 @@ export default function TrainingPlanDetail() {
     
     return () => clearInterval(pollInterval);
   }, [plan, isTrainer]);
+
+  // Refetch progress when selected student changes
+  useEffect(() => {
+    if (plan && selectedStudentId && isTrainer) {
+      fetchProgressData(plan);
+      fetchCompletionStatus();
+    }
+  }, [selectedStudentId]);
 
   useEffect(() => {
     if (!token || !user) {
@@ -275,6 +307,19 @@ export default function TrainingPlanDetail() {
       setLoading(true);
       const resp = await api.get(`/api/training-plans/${id}`);
       setPlan(resp.data);
+      
+      // Set selected student for progress viewing
+      if (isStudent) {
+        setSelectedStudentId(user?.id || null);
+      } else if (resp.data.enrolled_students?.length > 0) {
+        // For trainer: select first enrolled student if none selected
+        if (!selectedStudentId) {
+          setSelectedStudentId(resp.data.enrolled_students[0].id);
+        }
+      } else if (resp.data.student_id) {
+        setSelectedStudentId(resp.data.student_id);
+      }
+      
       if (resp.data.courses) {
         await fetchProgressData(resp.data);
       }
@@ -290,7 +335,11 @@ export default function TrainingPlanDetail() {
 
   const fetchCompletionStatus = async () => {
     try {
-      const resp = await api.get(`/api/training-plans/${id}/completion-status`);
+      const params: any = {};
+      if (selectedStudentId && isTrainer) {
+        params.student_id = selectedStudentId;
+      }
+      const resp = await api.get(`/api/training-plans/${id}/completion-status`, { params });
       setCompletionStatus(resp.data);
     } catch (err) {
       console.error('Error fetching completion status:', err);
@@ -309,7 +358,7 @@ export default function TrainingPlanDetail() {
     
     setFinalizingPlan(true);
     try {
-      const resp = await api.post(`/api/training-plans/${id}/finalize`);
+      const resp = await api.post(`/api/training-plans/${id}/finalize${selectedStudentId ? `?student_id=${selectedStudentId}` : ''}`);
       alert(`${resp.data.message}\n\nCertificado: ${resp.data.certificate.certificate_number}`);
       await fetchCompletionStatus();
       await fetchPlan();
@@ -330,7 +379,7 @@ export default function TrainingPlanDetail() {
     const progressMap: Record<number, LessonProgressData> = {};
     const submissionsMap: Record<number, SubmissionData> = {};
     const releasesMap: Record<number, boolean> = {};
-    const targetUserId = isStudent ? user?.id : planData.student_id;
+    const targetUserId = isStudent ? user?.id : (selectedStudentId || planData.student_id);
     if (!targetUserId) return;
 
     for (const course of planData.courses || []) {
@@ -381,7 +430,7 @@ export default function TrainingPlanDetail() {
     setActionLoading(challengeId);
     
     try {
-      const targetUserId = plan?.student_id;
+      const targetUserId = selectedStudentId || plan?.student_id;
       if (!targetUserId) {
         alert(t('trainingPlanDetail.studentNotFound'));
         return;
@@ -406,7 +455,7 @@ export default function TrainingPlanDetail() {
     setActionLoading(lessonId);
 
     try {
-      const targetUserId = isStudent ? user?.id : plan?.student_id;
+      const targetUserId = isStudent ? user?.id : (selectedStudentId || plan?.student_id);
       
       if (action === 'confirm') {
         // Formando confirma que fez a aula
@@ -822,6 +871,215 @@ export default function TrainingPlanDetail() {
               </div>
             ))}
           </div>
+        </motion.div>
+      )}
+
+      {/* Enrolled Students Section - for trainers/admins */}
+      {isTrainer && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`rounded-2xl border p-6 ${
+            isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'
+          }`}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-lg font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              <Users className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+              {t('trainingPlanDetail.enrolledStudents', 'Formandos Inscritos')} ({plan.enrolled_students?.length || 0})
+            </h3>
+            <button
+              onClick={async () => {
+                setShowEnrollmentPanel(!showEnrollmentPanel);
+                if (!showEnrollmentPanel && availableStudents.length === 0) {
+                  try {
+                    const resp = await api.get('/api/trainer/students/list');
+                    setAvailableStudents(resp.data);
+                  } catch (err) {
+                    console.error('Error loading students:', err);
+                  }
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all"
+            >
+              <UserPlus className="w-4 h-4" />
+              {t('trainingPlanDetail.addStudent', 'Inscrever Formando')}
+            </button>
+          </div>
+
+          {/* Add Student Panel */}
+          {showEnrollmentPanel && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className={`mb-4 p-4 rounded-xl border ${
+                isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200'
+              }`}
+            >
+              <h4 className={`text-sm font-bold mb-3 ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
+                {t('trainingPlanDetail.selectStudentsToEnroll', 'Selecionar formandos para inscrever')}
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                {availableStudents
+                  .filter(s => !plan.enrolled_students?.some(es => es.id === s.id))
+                  .filter(s => !plan.trainers?.some(tr => tr.id === s.id))
+                  .map(student => (
+                    <button
+                      key={student.id}
+                      disabled={enrollingStudents}
+                      onClick={async () => {
+                        setEnrollingStudents(true);
+                        try {
+                          await api.post(`/api/training-plans/${id}/assign`, {
+                            student_id: student.id
+                          });
+                          await fetchPlan();
+                          setShowEnrollmentPanel(false);
+                        } catch (err: any) {
+                          alert(err?.response?.data?.detail || 'Error enrolling student');
+                        } finally {
+                          setEnrollingStudents(false);
+                        }
+                      }}
+                      className={`flex items-center gap-3 p-3 rounded-lg text-left transition-all ${
+                        isDark 
+                          ? 'bg-white/5 hover:bg-white/10 border border-white/10' 
+                          : 'bg-white hover:bg-blue-50 border border-gray-200'
+                      } disabled:opacity-50`}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                        isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {student.full_name?.charAt(0)?.toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-sm font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {student.full_name}
+                        </div>
+                        <div className={`text-xs truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {student.email}
+                        </div>
+                      </div>
+                      <UserPlus className={`w-4 h-4 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
+                    </button>
+                  ))}
+              </div>
+              {availableStudents.filter(s => !plan.enrolled_students?.some(es => es.id === s.id)).length === 0 && (
+                <p className={`text-sm text-center py-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {t('trainingPlanDetail.allStudentsEnrolled', 'Todos os formandos já estão inscritos')}
+                </p>
+              )}
+            </motion.div>
+          )}
+
+          {/* Enrolled Students List */}
+          {plan.enrolled_students && plan.enrolled_students.length > 0 ? (
+            <div className="space-y-3">
+              {plan.enrolled_students.map((student) => (
+                <div
+                  key={student.id}
+                  onClick={() => {
+                    setSelectedStudentId(student.id);
+                    if (plan) fetchProgressData(plan);
+                    fetchCompletionStatus();
+                  }}
+                  className={`flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all ${
+                    selectedStudentId === student.id
+                      ? isDark ? 'bg-blue-500/20 border-2 border-blue-500/50' : 'bg-blue-50 border-2 border-blue-300'
+                      : isDark ? 'bg-white/5 border border-white/10 hover:bg-white/10' : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
+                  }`}
+                >
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
+                    selectedStudentId === student.id
+                      ? 'bg-gradient-to-br from-blue-500 to-indigo-600 text-white'
+                      : isDark ? 'bg-gray-700 text-gray-300' : 'bg-gray-200 text-gray-700'
+                  }`}>
+                    {student.full_name?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                        {student.full_name}
+                      </span>
+                      {selectedStudentId === student.id && (
+                        <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">
+                          {t('trainingPlanDetail.viewing', 'A ver')}
+                        </span>
+                      )}
+                    </div>
+                    <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {student.email}
+                    </div>
+                    <div className="flex items-center gap-3 mt-1">
+                      {student.start_date && (
+                        <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                          📅 {new Date(student.start_date).toLocaleDateString('pt-PT')}
+                          {student.end_date && ` → ${new Date(student.end_date).toLocaleDateString('pt-PT')}`}
+                        </span>
+                      )}
+                      {student.days_remaining !== null && student.days_remaining !== undefined && (
+                        <span className={`text-xs ${student.is_delayed ? 'text-red-400' : 'text-green-400'}`}>
+                          {student.is_delayed ? `⚠️ ${t('trainingPlanDetail.delayed')}` : `${student.days_remaining} ${t('trainingPlanDetail.remainingDays')}`}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {/* Progress */}
+                    <div className="text-center">
+                      <div className={`text-lg font-bold ${
+                        student.progress_percentage >= 100 ? 'text-green-400' :
+                        student.progress_percentage > 0 ? 'text-blue-400' : 
+                        isDark ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        {Math.round(student.progress_percentage || 0)}%
+                      </div>
+                      <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                        {t('trainingPlanDetail.progress', 'Progresso')}
+                      </div>
+                    </div>
+                    {/* Status badge */}
+                    <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                      student.status === 'COMPLETED' ? 'bg-green-500/20 text-green-400' :
+                      student.status === 'IN_PROGRESS' ? 'bg-blue-500/20 text-blue-400' :
+                      student.status === 'DELAYED' ? 'bg-red-500/20 text-red-400' :
+                      isDark ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-100 text-gray-500'
+                    }`}>
+                      {student.status === 'COMPLETED' ? `✅ ${t('trainingPlanDetail.completed')}` :
+                       student.status === 'IN_PROGRESS' ? `🔄 ${t('trainingPlanDetail.inProgress')}` :
+                       student.status === 'DELAYED' ? `⚠️ ${t('trainingPlanDetail.delayed')}` :
+                       `⏳ ${t('trainingPlanDetail.pending')}`}
+                    </span>
+                    {/* Remove button */}
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (!confirm(t('trainingPlanDetail.confirmRemoveStudent', 'Tem certeza que deseja remover este formando?'))) return;
+                        try {
+                          await api.delete(`/api/training-plans/${id}/unassign/${student.id}`);
+                          await fetchPlan();
+                        } catch (err: any) {
+                          alert(err?.response?.data?.detail || 'Error removing student');
+                        }
+                      }}
+                      className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                      title={t('trainingPlanDetail.removeStudent', 'Remover formando')}
+                    >
+                      <UserMinus className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+              <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p>{t('trainingPlanDetail.noStudentsEnrolled', 'Nenhum formando inscrito')}</p>
+              <p className={`text-sm mt-1 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                {t('trainingPlanDetail.clickAddStudentToEnroll', 'Clique em "Inscrever Formando" para adicionar')}
+              </p>
+            </div>
+          )}
         </motion.div>
       )}
 

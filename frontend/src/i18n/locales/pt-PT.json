@@ -426,6 +426,8 @@
     "active": "Ativo",
     "progress": "Progresso",
     "student": "Formando",
+    "students": "Formandos",
+    "enrolledStudents": "Formandos Inscritos",
     "noStudentAssigned": "Nenhum formando atribuído",
     "noDescription": "Sem descrição",
     "courses": "Cursos",
@@ -1565,7 +1567,17 @@
     "continueChallenge": "Continuar Desafio",
     "applyChallenge": "Aplicar Desafio",
     "inProgressStatus": "Em Andamento",
-    "correct": "Corrigir"
+    "correct": "Corrigir",
+    "enrolledStudents": "Formandos Inscritos",
+    "addStudent": "Inscrever Formando",
+    "selectStudentsToEnroll": "Selecionar formandos para inscrever",
+    "allStudentsEnrolled": "Todos os formandos já estão inscritos",
+    "noStudentsEnrolled": "Nenhum formando inscrito",
+    "clickAddStudentToEnroll": "Clique em \"Inscrever Formando\" para adicionar",
+    "viewing": "A ver",
+    "progress": "Progresso",
+    "removeStudent": "Remover formando",
+    "confirmRemoveStudent": "Tem certeza que deseja remover este formando do plano?"
   },
   "adminDashboard": {
     "controlPanel": "Painel de Controlo",

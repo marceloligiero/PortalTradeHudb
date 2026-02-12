@@ -290,6 +290,8 @@ class TrainingPlanCourse(Base):
     finalizer = relationship("User", foreign_keys=[finalized_by])
 
 class TrainingPlanAssignment(Base):
+    """Enrollment of a student in a training plan (catalog model).
+    Each student gets their own start/end dates, status, and progress."""
     __tablename__ = "training_plan_assignments"
     
     id = Column(Integer, primary_key=True, index=True)
@@ -297,6 +299,12 @@ class TrainingPlanAssignment(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     assigned_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     assigned_at = Column(DateTime(timezone=True), server_default=func.now())
+    # Individual enrollment dates (override plan dates per student)
+    start_date = Column(DateTime(timezone=True), nullable=True)
+    end_date = Column(DateTime(timezone=True), nullable=True)
+    status = Column(String(50), default="PENDING")  # PENDING, IN_PROGRESS, COMPLETED, DELAYED
+    progress_percentage = Column(Float, default=0)
+    notes = Column(Text, nullable=True)
     completed_at = Column(DateTime(timezone=True))
     
     training_plan = relationship("TrainingPlan", back_populates="assignments")

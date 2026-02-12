@@ -431,6 +431,8 @@
     "active": "Active",
     "progress": "Progress",
     "student": "Student",
+    "students": "Students",
+    "enrolledStudents": "Enrolled Students",
     "noStudentAssigned": "No student assigned",
     "noDescription": "No description",
     "courses": "Courses",
@@ -1477,7 +1479,17 @@
     "continueChallenge": "Continue Challenge",
     "applyChallenge": "Apply Challenge",
     "inProgressStatus": "In Progress",
-    "correct": "Correct"
+    "correct": "Correct",
+    "enrolledStudents": "Enrolled Students",
+    "addStudent": "Enroll Student",
+    "selectStudentsToEnroll": "Select students to enroll",
+    "allStudentsEnrolled": "All students are already enrolled",
+    "noStudentsEnrolled": "No students enrolled",
+    "clickAddStudentToEnroll": "Click \"Enroll Student\" to add",
+    "viewing": "Viewing",
+    "progress": "Progress",
+    "removeStudent": "Remove student",
+    "confirmRemoveStudent": "Are you sure you want to remove this student from the plan?"
   },
   "adminDashboard": {
     "controlPanel": "Control Panel",

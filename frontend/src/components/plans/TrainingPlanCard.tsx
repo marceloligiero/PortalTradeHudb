@@ -118,7 +118,11 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
         <div className="mx-6 mb-4 p-4 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 rounded-2xl border border-blue-100 dark:border-blue-800/50">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-              {plan?.student ? (
+              {(plan?.enrolled_count || 0) > 0 ? (
+                <span className="text-white font-bold text-lg">
+                  {plan.enrolled_count}
+                </span>
+              ) : plan?.student ? (
                 <span className="text-white font-bold text-lg">
                   {plan.student.full_name?.charAt(0)?.toUpperCase() || 'F'}
                 </span>
@@ -127,8 +131,19 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-0.5">{t('planCard.student')}</p>
-              {plan?.student ? (
+              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-0.5">
+                {(plan?.enrolled_count || 0) > 1 ? t('planCard.enrolledStudents') : t('planCard.student')}
+              </p>
+              {(plan?.enrolled_count || 0) > 1 ? (
+                <>
+                  <p className="font-bold text-gray-900 dark:text-white">
+                    {plan.enrolled_count} {t('planCard.students')}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {plan.enrolled_students?.filter((s: any) => s.status === 'IN_PROGRESS').length || 0} {t('planCard.active').toLowerCase()}
+                  </p>
+                </>
+              ) : plan?.student ? (
                 <>
                   <p className="font-bold text-gray-900 dark:text-white truncate">{plan.student.full_name}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{plan.student.email}</p>

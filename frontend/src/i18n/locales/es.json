@@ -433,6 +433,8 @@
     "active": "Activo",
     "progress": "Progreso",
     "student": "Estudiante",
+    "students": "Estudiantes",
+    "enrolledStudents": "Estudiantes Inscritos",
     "noStudentAssigned": "Ningún estudiante asignado",
     "noDescription": "Sin descripción",
     "courses": "Cursos",
@@ -1565,7 +1567,17 @@
     "continueChallenge": "Continuar Desafío",
     "applyChallenge": "Aplicar Desafío",
     "inProgressStatus": "En Progreso",
-    "correct": "Corregir"
+    "correct": "Corregir",
+    "enrolledStudents": "Estudiantes Inscritos",
+    "addStudent": "Inscribir Estudiante",
+    "selectStudentsToEnroll": "Seleccionar estudiantes para inscribir",
+    "allStudentsEnrolled": "Todos los estudiantes ya están inscritos",
+    "noStudentsEnrolled": "Ningún estudiante inscrito",
+    "clickAddStudentToEnroll": "Haga clic en \"Inscribir Estudiante\" para agregar",
+    "viewing": "Viendo",
+    "progress": "Progreso",
+    "removeStudent": "Eliminar estudiante",
+    "confirmRemoveStudent": "¿Está seguro de que desea eliminar este estudiante del plan?"
   },
   "adminDashboard": {
     "controlPanel": "Panel de Control",

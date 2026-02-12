@@ -148,7 +148,8 @@ class TrainingPlanBase(BaseModel):
     description: Optional[str] = None
     trainer_id: Optional[int] = None  # Formador principal (retrocompatibilidade)
     trainer_ids: Optional[list[int]] = []  # Lista de formadores
-    student_id: Optional[int] = None  # 1 aluno por plano
+    student_id: Optional[int] = None  # Legacy: 1 aluno por plano (backward compat)
+    student_ids: Optional[list[int]] = []  # Catalog model: múltiplos alunos
     # Legacy single bank/product (for backward compatibility)
     bank_id: Optional[int] = None
     product_id: Optional[int] = None
@@ -201,6 +202,15 @@ class TrainingPlanDetail(TrainingPlan):
 # Training Plan Assignment Schemas
 class AssignStudentToPlan(BaseModel):
     student_id: int
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    notes: Optional[str] = None
+
+class AssignMultipleStudentsToPlan(BaseModel):
+    student_ids: list[int]
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    notes: Optional[str] = None
 
 class TrainingPlanAssignment(BaseModel):
     id: int
@@ -208,9 +218,20 @@ class TrainingPlanAssignment(BaseModel):
     user_id: int
     assigned_by: int
     assigned_at: datetime
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    status: Optional[str] = "PENDING"
+    progress_percentage: Optional[float] = 0
+    notes: Optional[str] = None
     completed_at: Optional[datetime] = None
     
     model_config = {"from_attributes": True}
+
+class EnrollmentUpdate(BaseModel):
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class TrainingPlanTrainerInfo(BaseModel):
@@ -228,10 +249,18 @@ class StudentAssignment(BaseModel):
     id: int
     user_id: int
     assigned_at: datetime
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    status: Optional[str] = "PENDING"
+    progress_percentage: Optional[float] = 0
+    notes: Optional[str] = None
     completed_at: Optional[datetime] = None
     # Campos do utilizador
     name: Optional[str] = None
     email: Optional[str] = None
+    # Computed fields
+    days_remaining: Optional[int] = None
+    is_delayed: Optional[bool] = False
     
     model_config = {"from_attributes": True}
 
