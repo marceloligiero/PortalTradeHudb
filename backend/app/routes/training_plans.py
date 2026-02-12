@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func as sa_func
 from typing import List
 from datetime import datetime
 from app.database import get_db
@@ -37,11 +38,23 @@ def calculate_plan_status(db: Session, plan: models.TrainingPlan, student_id: in
             
             lesson_ids = [l.id for l in lessons]
             if lesson_ids:
-                completed = db.query(models.LessonProgress).filter(
+                # Filter by training_plan_id to avoid cross-plan counting
+                # Also use distinct lesson_id as safety measure
+                completed = db.query(sa_func.count(sa_func.distinct(models.LessonProgress.lesson_id))).filter(
                     models.LessonProgress.lesson_id.in_(lesson_ids),
                     models.LessonProgress.user_id == target_student,
-                    models.LessonProgress.status == "COMPLETED"
-                ).count()
+                    models.LessonProgress.status == "COMPLETED",
+                    models.LessonProgress.training_plan_id == plan.id
+                ).scalar() or 0
+                
+                # Fallback: if no records with training_plan_id, try without it (legacy data)
+                if completed == 0:
+                    completed = db.query(sa_func.count(sa_func.distinct(models.LessonProgress.lesson_id))).filter(
+                        models.LessonProgress.lesson_id.in_(lesson_ids),
+                        models.LessonProgress.user_id == target_student,
+                        models.LessonProgress.status == "COMPLETED"
+                    ).scalar() or 0
+                
                 completed_lessons += completed
     
     # Use enrollment dates if available, fall back to plan dates

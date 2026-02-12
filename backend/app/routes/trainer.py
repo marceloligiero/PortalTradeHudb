@@ -518,12 +518,19 @@ async def list_training_plans(
                     models.Enrollment.course_id.in_(course_ids)
                 ).all()
                 
-                # Sum actual time from lesson progress
+                # Sum actual time from lesson progress (filter by plan to avoid cross-plan counting)
                 for enrollment in enrollments:
                     progress_records = db.query(models.LessonProgress).filter(
                         models.LessonProgress.enrollment_id == enrollment.id,
-                        models.LessonProgress.completed_at.isnot(None)
+                        models.LessonProgress.completed_at.isnot(None),
+                        models.LessonProgress.training_plan_id == plan.id
                     ).all()
+                    # Fallback: if no records with training_plan_id, try without it (legacy data)
+                    if not progress_records:
+                        progress_records = db.query(models.LessonProgress).filter(
+                            models.LessonProgress.enrollment_id == enrollment.id,
+                            models.LessonProgress.completed_at.isnot(None)
+                        ).all()
                     total_completed += sum(p.actual_time_minutes or 0 for p in progress_records)
             
             completed_minutes = total_completed // assignments_count if assignments_count > 0 else 0
