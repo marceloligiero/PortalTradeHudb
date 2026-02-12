@@ -17,7 +17,7 @@ const RegisterPage = () => {
     password: '',
     confirmPassword: '',
     full_name: '',
-    role: 'STUDENT'
+    role: 'TRAINEE'
   });
   
   const [error, setError] = useState('');
@@ -95,7 +95,7 @@ const RegisterPage = () => {
           password: '',
           confirmPassword: '',
           full_name: '',
-          role: 'STUDENT'
+          role: 'TRAINEE'
         });
         
         // Redirect to login after 2 seconds
@@ -218,15 +218,15 @@ const RegisterPage = () => {
                   {/* Student Option */}
                   <button
                     type="button"
-                    onClick={() => handleRoleChange('STUDENT')}
+                    onClick={() => handleRoleChange('TRAINEE')}
                     className={`flex items-center p-4 rounded-2xl border-2 transition-all text-left group ${
-                      formData.role === 'STUDENT'
+                      formData.role === 'TRAINEE'
                         ? 'border-red-600 bg-red-600/10'
                         : 'border-white/10 bg-white/5 hover:bg-white/10'
                     }`}
                   >
                     <div className={`p-3 rounded-xl mr-4 transition-colors ${
-                      formData.role === 'STUDENT' ? 'bg-red-600 text-white' : 'bg-white/10 text-gray-400'
+                      formData.role === 'TRAINEE' ? 'bg-red-600 text-white' : 'bg-white/10 text-gray-400'
                     }`}>
                       <GraduationCap className="w-6 h-6" />
                     </div>
