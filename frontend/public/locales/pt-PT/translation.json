@@ -10,7 +10,11 @@
     "edit": "Editar",
     "create": "Criar",
     "logout": "Sair",
-    "welcome": "Bem-vindo"
+    "welcome": "Bem-vindo",
+    "clearAll": "Limpar todos",
+    "course": "curso",
+    "courses": "cursos",
+    "viewDetails": "Ver Detalhes"
   },
   "auth": {
     "login": "Iniciar Sessão",
@@ -68,20 +72,22 @@
     "lessons": "Módulos",
     "enroll": "Inscrever-se",
     "enrolled": "Inscrito",
+    "enrolling": "A inscrever...",
+    "enrollError": "Erro ao inscrever-se",
     "progress": "Progresso",
     "startCourse": "Iniciar Curso",
     "continueCourse": "Continuar Curso",
-    "completeCourse": "Terminar Curso"
-  },
-  "lessons": {
-    "lesson": "Módulo",
-    "content": "Conteúdo",
-    "duration": "Duração",
-    "minutes": "minutos",
-    "startLesson": "Iniciar Módulo",
-    "completeLesson": "Terminar Módulo",
-    "nextLesson": "Próximo Módulo",
-    "previousLesson": "Módulo Anterior"
+    "completeCourse": "Terminar Curso",
+    "subtitle": "Cursos disponíveis e em progresso",
+    "totalCourses": "Total de Cursos",
+    "enrolledCourses": "Cursos Inscritos",
+    "availableCourses": "Disponíveis",
+    "banks": "Bancos",
+    "searchPlaceholder": "Pesquisar cursos...",
+    "noCourses": "Nenhum curso encontrado",
+    "tryDifferentFilter": "Tente um filtro diferente",
+    "trainingPlan": "Plano de Formação",
+    "viewPlan": "Ver Plano de Formação"
   },
   "challenges": {
     "title": "Desafios",
@@ -159,12 +165,29 @@
     "userName": "Nome do Utilizador",
     "userRole": "Função do Utilizador",
     "active": "Ativo",
-    "inactive": "Inativo"
+    "inactive": "Inativo",
+    "courseManagement": "Gestão de Cursos",
+    "newCourse": "Novo Curso",
+    "totalCourses": "Total de Cursos",
+    "totalEnrollments": "Total de Inscrições",
+    "activeTrainers": "Formadores Ativos",
+    "searchCourses": "Pesquisar por nome do curso...",
+    "allProducts": "Todos Serviços",
+    "allBanks": "Todos Bancos",
+    "groupByProduct": "Agrupar por Serviço",
+    "activeFilters": "Filtros ativos",
+    "noCoursesFound": "Nenhum curso encontrado",
+    "noCourses": "Nenhum curso disponível",
+    "tryDifferentSearch": "Tente uma pesquisa diferente",
+    "createFirstCourse": "Crie o primeiro curso para começar",
+    "noDescription": "Sem descrição",
+    "noProduct": "Sem Serviço"
   },
   "messages": {
     "welcomeAdmin": "Bem-vindo, Administrador",
     "welcomeFormador": "Bem-vindo, Formador",
     "welcomeFormando": "Bem-vindo, Formando",
+    "loading": "A carregar...",
     "noData": "Sem dados disponíveis",
     "loadingData": "A carregar dados...",
     "errorLoading": "Erro ao carregar dados",
@@ -179,10 +202,24 @@
     "passwordMinLength": "A palavra-passe deve ter pelo menos 8 caracteres",
     "passwordMatch": "As palavras-passe não correspondem"
   },
+  "trainer": {
+    "courseCatalog": "Catálogo de Cursos",
+    "coursesWillAppear": "Os cursos serão adicionados pelo administrador"
+  },
+  "trainingPlan": {
+    "newLesson": "Nova Aula"
+  },
   "lessons": {
+    "lesson": "Aula",
+    "content": "Conteúdo",
+    "duration": "Duração",
+    "minutes": "minutos",
+    "startLesson": "Iniciar Módulo",
+    "completeLesson": "Terminar Módulo",
+    "nextLesson": "Próximo Módulo",
+    "previousLesson": "Módulo Anterior",
     "basicInfo": "Informações Básicas",
     "basicInfoTitle": "Informações básicas da aula",
-    "content": "Conteúdo",
     "contentTitle": "Conteúdo da Aula",
     "contentSubtitle": "Escreva o conteúdo detalhado da aula",
     "contentPlaceholder": "Escreva aqui o conteúdo da aula...",

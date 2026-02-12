@@ -10,7 +10,11 @@
     "edit": "Edit",
     "create": "Create",
     "logout": "Logout",
-    "welcome": "Welcome"
+    "welcome": "Welcome",
+    "clearAll": "Clear all",
+    "course": "course",
+    "courses": "courses",
+    "viewDetails": "View Details"
   },
   "auth": {
     "login": "Login",
@@ -68,23 +72,26 @@
     "lessons": "Modules",
     "enroll": "Enroll",
     "enrolled": "Enrolled",
+    "enrolling": "Enrolling...",
+    "enrollError": "Error enrolling",
     "progress": "Progress",
     "startCourse": "Start Course",
     "continueCourse": "Continue Course",
-    "completeCourse": "Complete Course"
-  },
-  "lessons": {
-    "lesson": "Module",
-    "content": "Content",
-    "duration": "Duration",
-    "minutes": "minutes",
-    "startLesson": "Start Module",
-    "completeLesson": "Complete Module",
-    "nextLesson": "Next Module",
-    "previousLesson": "Previous Module"
+    "completeCourse": "Complete Course",
+    "subtitle": "Available courses and in progress",
+    "totalCourses": "Total Courses",
+    "enrolledCourses": "Enrolled Courses",
+    "availableCourses": "Available",
+    "banks": "Banks",
+    "searchPlaceholder": "Search courses...",
+    "noCourses": "No courses found",
+    "tryDifferentFilter": "Try a different filter",
+    "trainingPlan": "Training Plan",
+    "viewPlan": "View Training Plan"
   },
   "challenges": {
     "challenge": "Challenge",
+    "createNew": "Create New Challenge",
     "submit": "Submit",
     "submitted": "Submitted",
     "approved": "Approved",
@@ -111,12 +118,29 @@
     "userName": "User Name",
     "userRole": "User Role",
     "active": "Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "courseManagement": "Course Management",
+    "newCourse": "New Course",
+    "totalCourses": "Total Courses",
+    "totalEnrollments": "Total Enrollments",
+    "activeTrainers": "Active Trainers",
+    "searchCourses": "Search by course name...",
+    "allProducts": "All Services",
+    "allBanks": "All Banks",
+    "groupByProduct": "Group by Service",
+    "activeFilters": "Active filters",
+    "noCoursesFound": "No courses found",
+    "noCourses": "No courses available",
+    "tryDifferentSearch": "Try a different search",
+    "createFirstCourse": "Create the first course to get started",
+    "noDescription": "No description",
+    "noProduct": "No Service"
   },
   "messages": {
     "welcomeAdmin": "Welcome, Administrator",
     "welcomeFormador": "Welcome, Trainer",
     "welcomeFormando": "Welcome, Student",
+    "loading": "Loading...",
     "noData": "No data available",
     "loadingData": "Loading data...",
     "errorLoading": "Error loading data",
@@ -131,7 +155,22 @@
     "passwordMinLength": "Password must be at least 8 characters",
     "passwordMatch": "Passwords do not match"
   },
+  "trainer": {
+    "courseCatalog": "Course Catalog",
+    "coursesWillAppear": "Courses will be added by the administrator"
+  },
+  "trainingPlan": {
+    "newLesson": "New Lesson"
+  },
   "lessons": {
+    "lesson": "Lesson",
+    "content": "Content",
+    "duration": "Duration",
+    "minutes": "minutes",
+    "startLesson": "Start Module",
+    "completeLesson": "Complete Module",
+    "nextLesson": "Next Module",
+    "previousLesson": "Previous Module",
     "basicInfo": "Basic Info",
     "basicInfoTitle": "Basic lesson information",
     "content": "Content",
