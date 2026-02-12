@@ -132,17 +132,34 @@ async def get_dashboard_summary(
             models.LessonProgress.started_at >= month_ago
         ).scalar() or 0
         
-        # Top performing bank - simplified
+        # Top performing bank - by most enrollments across its courses
         top_performing_bank = "N/A"
-        banks = db.query(models.Bank).all()
-        if banks:
-            top_performing_bank = banks[0].code if banks else "N/A"
+        bank_scores = []
+        for bank in db.query(models.Bank).filter(models.Bank.is_active == True).all():
+            # Legacy courses
+            legacy_course_ids = [c.id for c in db.query(models.Course.id).filter(models.Course.bank_id == bank.id).all()]
+            # Many-to-many courses
+            m2m_course_ids = [cb.course_id for cb in db.query(models.CourseBank.course_id).filter(models.CourseBank.bank_id == bank.id).all()]
+            all_course_ids = list(set(legacy_course_ids + m2m_course_ids))
+            if all_course_ids:
+                enroll_count = db.query(models.Enrollment).filter(models.Enrollment.course_id.in_(all_course_ids)).count()
+                bank_scores.append((bank.code, enroll_count))
+        if bank_scores:
+            bank_scores.sort(key=lambda x: x[1], reverse=True)
+            top_performing_bank = bank_scores[0][0]
         
-        # Most popular product - simplified
+        # Most popular product - by most courses + plans associated
         most_popular_product = "N/A"
-        products = db.query(models.Product).all()
-        if products:
-            most_popular_product = products[0].code if products else "N/A"
+        product_scores = []
+        for product in db.query(models.Product).filter(models.Product.is_active == True).all():
+            p_courses = db.query(models.Course).filter(models.Course.product_id == product.id).count()
+            p_courses += db.query(models.CourseProduct).filter(models.CourseProduct.product_id == product.id).count()
+            p_plans = db.query(models.TrainingPlan).filter(models.TrainingPlan.product_id == product.id).count()
+            p_plans += db.query(models.TrainingPlanProduct).filter(models.TrainingPlanProduct.product_id == product.id).count()
+            product_scores.append((product.code, p_courses + p_plans))
+        if product_scores:
+            product_scores.sort(key=lambda x: x[1], reverse=True)
+            most_popular_product = product_scores[0][0]
         
         return DashboardSummary(
             total_students=total_students,
@@ -280,16 +297,33 @@ async def get_course_analytics_report(
         analytics_list = []
         
         for course in courses:
-            # Get bank and product codes
+            # Get bank and product codes (many-to-many + legacy fallback)
             bank_code = "N/A"
             product_code = "N/A"
             
-            if course.bank_id:
+            # Try many-to-many first
+            course_banks = db.query(models.CourseBank).filter(models.CourseBank.course_id == course.id).all()
+            if course_banks:
+                bank_codes = []
+                for cb in course_banks:
+                    b = db.query(models.Bank).filter(models.Bank.id == cb.bank_id).first()
+                    if b:
+                        bank_codes.append(b.code)
+                bank_code = ", ".join(bank_codes) if bank_codes else "N/A"
+            elif course.bank_id:
                 bank = db.query(models.Bank).filter(models.Bank.id == course.bank_id).first()
                 if bank:
                     bank_code = bank.code
             
-            if course.product_id:
+            course_products = db.query(models.CourseProduct).filter(models.CourseProduct.course_id == course.id).all()
+            if course_products:
+                prod_codes = []
+                for cp in course_products:
+                    p = db.query(models.Product).filter(models.Product.id == cp.product_id).first()
+                    if p:
+                        prod_codes.append(p.code)
+                product_code = ", ".join(prod_codes) if prod_codes else "N/A"
+            elif course.product_id:
                 product = db.query(models.Product).filter(models.Product.id == course.product_id).first()
                 if product:
                     product_code = product.code
@@ -400,10 +434,19 @@ async def get_mpu_analytics(
         mpu_list = []
         
         for bank in banks:
-            # Get courses for this bank
-            courses = db.query(models.Course).filter(
+            # Get courses for this bank (legacy + many-to-many)
+            legacy_courses = db.query(models.Course).filter(
                 models.Course.bank_id == bank.id
             ).all()
+            m2m_course_ids = [cb.course_id for cb in db.query(models.CourseBank.course_id).filter(models.CourseBank.bank_id == bank.id).all()]
+            m2m_courses = db.query(models.Course).filter(models.Course.id.in_(m2m_course_ids)).all() if m2m_course_ids else []
+            # Merge unique
+            seen_ids = set()
+            courses = []
+            for c in legacy_courses + m2m_courses:
+                if c.id not in seen_ids:
+                    seen_ids.add(c.id)
+                    courses.append(c)
             
             if not courses:
                 # Add bank with no data

@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
-  BarChart3, TrendingUp, Users, BookOpen, Download, Target, Activity, 
-  Clock, Award, ArrowUp, Zap, CheckCircle2, AlertCircle, Building2, 
-  Package, Calendar, Filter, RefreshCw
+  BarChart3, TrendingUp, Users, BookOpen, Target, 
+  Clock, Award, ArrowUp, CheckCircle2, AlertCircle, Building2, 
+  Package, RefreshCw
 } from 'lucide-react';
 import { 
-  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, 
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, 
-  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar 
+  BarChart, Bar, 
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { motion } from 'framer-motion';
 import api from '../../lib/axios';
@@ -69,8 +68,6 @@ interface MPUData {
   total_students: number;
   performance_category: string;
 }
-
-const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#10b981', '#14b8a6', '#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6'];
 
 export default function AdvancedReportsPage() {
   const { t } = useTranslation();
@@ -146,7 +143,7 @@ export default function AdvancedReportsPage() {
         </div>
         <button
           onClick={fetchData}
-          className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           {t('common.refresh', 'Atualizar')}
@@ -161,7 +158,7 @@ export default function AdvancedReportsPage() {
             onClick={() => setActiveTab(tab.id as any)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
               activeTab === tab.id
-                ? 'bg-red-600 text-white'
+                ? 'bg-indigo-600 text-white'
                 : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
@@ -173,7 +170,7 @@ export default function AdvancedReportsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
         </div>
       ) : (
         <>
@@ -497,7 +494,7 @@ export default function AdvancedReportsPage() {
                       <XAxis dataKey="month" />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="certificates_issued" fill="#ef4444" name={t('advancedReports.certificatesIssued')} />
+                      <Bar dataKey="certificates_issued" fill="#6366f1" name={t('advancedReports.certificatesIssued')} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
