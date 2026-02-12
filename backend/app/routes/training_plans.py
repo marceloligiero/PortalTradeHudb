@@ -1197,6 +1197,30 @@ async def unassign_student_from_plan(
     if not assignment:
         raise HTTPException(status_code=404, detail="Assignment not found")
     
+    # Verificar se o formando já tem progresso em aulas ou desafios
+    lesson_progress = db.query(models.LessonProgress).filter(
+        models.LessonProgress.training_plan_id == plan_id,
+        models.LessonProgress.user_id == student_id,
+        models.LessonProgress.status.notin_(["NOT_STARTED"])
+    ).first()
+    
+    if lesson_progress:
+        raise HTTPException(
+            status_code=400,
+            detail="Não é possível remover este formando pois já tem aulas iniciadas ou concluídas neste plano."
+        )
+    
+    challenge_submission = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.training_plan_id == plan_id,
+        models.ChallengeSubmission.user_id == student_id
+    ).first()
+    
+    if challenge_submission:
+        raise HTTPException(
+            status_code=400,
+            detail="Não é possível remover este formando pois já tem desafios iniciados ou concluídos neste plano."
+        )
+    
     db.delete(assignment)
     db.commit()
     
