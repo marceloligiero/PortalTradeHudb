@@ -253,6 +253,13 @@
     "searchStudents": "Pesquisar formandos por nome ou email...",
     "selectStudents": "Selecionar Formandos"
   },
+  "trainingPlans": {
+    "selectStudent": "Selecionar Formando",
+    "selectStudentDesc": "Selecione o formando que irá realizar este plano",
+    "studentSelected": "Formando selecionado",
+    "noStudentSelected": "Nenhum formando selecionado",
+    "student": "Formando"
+  },
   "lessons": {
     "title": "Módulos",
     "lessonName": "Nome do Módulo",

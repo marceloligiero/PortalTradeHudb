@@ -253,6 +253,13 @@
     "searchStudents": "Search students by name or email...",
     "selectStudents": "Select Students"
   },
+  "trainingPlans": {
+    "selectStudent": "Select Student",
+    "selectStudentDesc": "Select the student who will complete this plan",
+    "studentSelected": "Student selected",
+    "noStudentSelected": "No student selected",
+    "student": "Student"
+  },
   "lessons": {
     "title": "Modules",
     "lessonName": "Module Name",

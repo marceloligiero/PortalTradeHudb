@@ -253,6 +253,13 @@
     "searchStudents": "Buscar estudiantes por nombre o email...",
     "selectStudents": "Seleccionar Estudiantes"
   },
+  "trainingPlans": {
+    "selectStudent": "Seleccionar Estudiante",
+    "selectStudentDesc": "Selecciona el estudiante que realizará este plan",
+    "studentSelected": "Estudiante seleccionado",
+    "noStudentSelected": "Ningún estudiante seleccionado",
+    "student": "Estudiante"
+  },
   "lessons": {
     "title": "Módulos",
     "lessonName": "Nombre del Módulo",
