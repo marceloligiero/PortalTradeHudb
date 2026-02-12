@@ -1204,6 +1204,128 @@ async def unassign_student_from_plan(
     
     return None
 
+
+# ============== TRAINER MANAGEMENT ==============
+
+@router.post("/{plan_id}/add-trainer")
+async def add_trainer_to_plan(
+    plan_id: int,
+    data: dict,
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    db: Session = Depends(get_db)
+):
+    """
+    Adicionar formador a um plano de formação
+    """
+    trainer_id = data.get("trainer_id")
+    is_primary = data.get("is_primary", False)
+    
+    if not trainer_id:
+        raise HTTPException(status_code=400, detail="trainer_id é obrigatório")
+    
+    plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plano não encontrado")
+    
+    # Verificar permissões
+    if current_user.role == "TRAINER":
+        is_plan_trainer = plan.trainer_id == current_user.id
+        trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.training_plan_id == plan_id,
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).first()
+        if not is_plan_trainer and not trainer_assignment:
+            raise HTTPException(status_code=403, detail="Sem permissão para adicionar formadores a este plano")
+    
+    # Verificar se o formador existe
+    trainer = db.query(models.User).filter(
+        models.User.id == trainer_id,
+        models.User.role.in_(["TRAINER", "ADMIN"]),
+        models.User.is_active == True
+    ).first()
+    if not trainer:
+        raise HTTPException(status_code=404, detail="Formador não encontrado")
+    
+    # Verificar se o formador já é aluno do plano
+    is_student = db.query(models.TrainingPlanAssignment).filter(
+        models.TrainingPlanAssignment.training_plan_id == plan_id,
+        models.TrainingPlanAssignment.user_id == trainer_id
+    ).first()
+    if is_student:
+        raise HTTPException(status_code=400, detail="Este utilizador já está inscrito como formando neste plano")
+    
+    # Verificar se já está atribuído como formador
+    existing = db.query(models.TrainingPlanTrainer).filter(
+        models.TrainingPlanTrainer.training_plan_id == plan_id,
+        models.TrainingPlanTrainer.trainer_id == trainer_id
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Formador já está atribuído a este plano")
+    
+    # Se is_primary, remover primary dos outros
+    if is_primary:
+        db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.training_plan_id == plan_id,
+            models.TrainingPlanTrainer.is_primary == True
+        ).update({"is_primary": False})
+    
+    new_trainer = models.TrainingPlanTrainer(
+        training_plan_id=plan_id,
+        trainer_id=trainer_id,
+        is_primary=is_primary,
+        assigned_at=datetime.now()
+    )
+    db.add(new_trainer)
+    db.commit()
+    
+    return {
+        "message": f"Formador {trainer.full_name} adicionado ao plano",
+        "trainer": {
+            "id": trainer.id,
+            "full_name": trainer.full_name,
+            "email": trainer.email,
+            "is_primary": is_primary
+        }
+    }
+
+
+@router.delete("/{plan_id}/remove-trainer/{trainer_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_trainer_from_plan(
+    plan_id: int,
+    trainer_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    db: Session = Depends(get_db)
+):
+    """
+    Remover formador de um plano de formação
+    """
+    plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plano não encontrado")
+    
+    # Verificar permissões
+    if current_user.role == "TRAINER":
+        if plan.trainer_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Apenas o formador principal ou admin pode remover formadores")
+    
+    # Não pode remover o trainer_id legacy do plano
+    if plan.trainer_id == trainer_id:
+        raise HTTPException(status_code=400, detail="Não é possível remover o formador principal do plano")
+    
+    assignment = db.query(models.TrainingPlanTrainer).filter(
+        models.TrainingPlanTrainer.training_plan_id == plan_id,
+        models.TrainingPlanTrainer.trainer_id == trainer_id
+    ).first()
+    
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Formador não encontrado neste plano")
+    
+    db.delete(assignment)
+    db.commit()
+    
+    return None
+
+
 @router.get("/{plan_id}/students", response_model=List[schemas.StudentAssignment])
 async def list_plan_students(
     plan_id: int,

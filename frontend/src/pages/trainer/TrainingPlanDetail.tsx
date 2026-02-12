@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
   BookOpen, Calendar, ArrowLeft, Clock, Target, AlertCircle, PlayCircle, 
-  CheckCircle2, Pause, Play, Eye, Settings2, TrendingUp, Timer, Award, Download, Star, User, ChevronDown, Users, UserPlus, UserMinus, Edit3
+  CheckCircle2, Pause, Play, Eye, Settings2, TrendingUp, Timer, Award, Download, Star, User, ChevronDown, Users, UserPlus, UserMinus, Edit3, Search, Trash2
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -172,6 +172,15 @@ export default function TrainingPlanDetail() {
   const [showEnrollmentPanel, setShowEnrollmentPanel] = useState(false);
   const [availableStudents, setAvailableStudents] = useState<any[]>([]);
   const [enrollingStudents, setEnrollingStudents] = useState(false);
+
+  // Trainer management state
+  const [showTrainerPanel, setShowTrainerPanel] = useState(false);
+  const [availableTrainers, setAvailableTrainers] = useState<any[]>([]);
+  const [addingTrainer, setAddingTrainer] = useState(false);
+
+  // Filter state
+  const [studentFilter, setStudentFilter] = useState('');
+  const [trainerFilter, setTrainerFilter] = useState('');
 
   // Rating state
   const [showPlanRatingModal, setShowPlanRatingModal] = useState(false);
@@ -816,7 +825,7 @@ export default function TrainingPlanDetail() {
       )}
 
       {/* Trainers Section */}
-      {plan.trainers && plan.trainers.length > 0 && (
+      {(plan.trainers && plan.trainers.length > 0 || isTrainer) && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -824,11 +833,119 @@ export default function TrainingPlanDetail() {
             isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'
           }`}
         >
-          <h3 className={`text-lg font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            {t('trainingPlanDetail.trainers', 'Formadores')} ({plan.trainers.length})
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              {t('trainingPlanDetail.trainers', 'Formadores')} ({plan.trainers?.length || 0})
+            </h3>
+            {isTrainer && (
+              <button
+                onClick={async () => {
+                  setShowTrainerPanel(!showTrainerPanel);
+                  if (!showTrainerPanel && availableTrainers.length === 0) {
+                    try {
+                      const resp = await api.get('/api/admin/trainers');
+                      setAvailableTrainers(resp.data);
+                    } catch (err) {
+                      console.error('Error loading trainers:', err);
+                    }
+                  }
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-sm font-medium hover:from-purple-700 hover:to-indigo-700 transition-all"
+              >
+                <UserPlus className="w-4 h-4" />
+                {t('trainingPlanDetail.addTrainer', 'Adicionar Formador')}
+              </button>
+            )}
+          </div>
+
+          {/* Add Trainer Panel */}
+          {showTrainerPanel && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className={`mb-4 p-4 rounded-xl border ${
+                isDark ? 'bg-purple-500/10 border-purple-500/20' : 'bg-purple-50 border-purple-200'
+              }`}
+            >
+              <h4 className={`text-sm font-bold mb-3 ${isDark ? 'text-purple-300' : 'text-purple-700'}`}>
+                {t('trainingPlanDetail.selectTrainerToAdd', 'Selecionar formador para adicionar')}
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                {availableTrainers
+                  .filter(t => !plan.trainers?.some(tr => tr.id === t.id))
+                  .map(trainer => (
+                    <button
+                      key={trainer.id}
+                      disabled={addingTrainer}
+                      onClick={async () => {
+                        setAddingTrainer(true);
+                        try {
+                          await api.post(`/api/training-plans/${id}/add-trainer`, {
+                            trainer_id: trainer.id
+                          });
+                          await fetchPlan();
+                          setShowTrainerPanel(false);
+                        } catch (err: any) {
+                          alert(err?.response?.data?.detail || 'Error adding trainer');
+                        } finally {
+                          setAddingTrainer(false);
+                        }
+                      }}
+                      className={`flex items-center gap-3 p-3 rounded-lg text-left transition-all ${
+                        isDark 
+                          ? 'bg-white/5 hover:bg-white/10 border border-white/10' 
+                          : 'bg-white hover:bg-purple-50 border border-gray-200'
+                      } disabled:opacity-50`}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
+                        isDark ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-700'
+                      }`}>
+                        {trainer.full_name?.charAt(0)?.toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className={`text-sm font-medium truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {trainer.full_name}
+                        </div>
+                        <div className={`text-xs truncate ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {trainer.email}
+                        </div>
+                      </div>
+                      <UserPlus className={`w-4 h-4 ${isDark ? 'text-purple-400' : 'text-purple-600'}`} />
+                    </button>
+                  ))}
+              </div>
+              {availableTrainers.filter(t => !plan.trainers?.some(tr => tr.id === t.id)).length === 0 && (
+                <p className={`text-sm text-center py-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {t('trainingPlanDetail.allTrainersAdded', 'Todos os formadores já estão adicionados')}
+                </p>
+              )}
+            </motion.div>
+          )}
+
+          {/* Trainer filter */}
+          {plan.trainers && plan.trainers.length > 2 && (
+            <div className="mb-3">
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+                isDark ? 'bg-white/5 border border-white/10' : 'bg-gray-50 border border-gray-200'
+              }`}>
+                <Search className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                <input
+                  type="text"
+                  placeholder={t('trainingPlanDetail.filterTrainers', 'Filtrar formadores...')}
+                  value={trainerFilter}
+                  onChange={(e) => setTrainerFilter(e.target.value)}
+                  className={`flex-1 bg-transparent border-none outline-none text-sm ${
+                    isDark ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-400'
+                  }`}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-3">
-            {plan.trainers.map((trainer) => (
+            {(plan.trainers || [])
+              .filter(trainer => !trainerFilter || trainer.full_name.toLowerCase().includes(trainerFilter.toLowerCase()) || trainer.email?.toLowerCase().includes(trainerFilter.toLowerCase()))
+              .map((trainer) => (
               <div
                 key={trainer.id}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl ${
@@ -879,6 +996,26 @@ export default function TrainingPlanDetail() {
                       </button>
                     )}
                   </div>
+                )}
+
+                {/* Remove trainer button - for admins/trainers, not for primary */}
+                {isTrainer && !trainer.is_primary && (
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (!confirm(t('trainingPlanDetail.confirmRemoveTrainer', 'Tem certeza que deseja remover este formador?'))) return;
+                      try {
+                        await api.delete(`/api/training-plans/${id}/remove-trainer/${trainer.id}`);
+                        await fetchPlan();
+                      } catch (err: any) {
+                        alert(err?.response?.data?.detail || 'Error removing trainer');
+                      }
+                    }}
+                    className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                    title={t('trainingPlanDetail.removeTrainer', 'Remover formador')}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 )}
               </div>
             ))}
@@ -984,10 +1121,32 @@ export default function TrainingPlanDetail() {
             </motion.div>
           )}
 
+          {/* Student filter */}
+          {plan.enrolled_students && plan.enrolled_students.length > 2 && (
+            <div className="mb-3">
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${
+                isDark ? 'bg-white/5 border border-white/10' : 'bg-gray-50 border border-gray-200'
+              }`}>
+                <Search className={`w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                <input
+                  type="text"
+                  placeholder={t('trainingPlanDetail.filterStudents', 'Filtrar formandos...')}
+                  value={studentFilter}
+                  onChange={(e) => setStudentFilter(e.target.value)}
+                  className={`flex-1 bg-transparent border-none outline-none text-sm ${
+                    isDark ? 'text-white placeholder-gray-500' : 'text-gray-900 placeholder-gray-400'
+                  }`}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Enrolled Students List */}
           {plan.enrolled_students && plan.enrolled_students.length > 0 ? (
             <div className="space-y-3">
-              {plan.enrolled_students.map((student) => (
+              {plan.enrolled_students
+                .filter(student => !studentFilter || student.full_name?.toLowerCase().includes(studentFilter.toLowerCase()) || student.email?.toLowerCase().includes(studentFilter.toLowerCase()))
+                .map((student) => (
                 <div
                   key={student.id}
                   onClick={() => {
