@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, distinct
 from typing import List, Dict, Any
 from app.database import get_db
 from app import models, schemas, auth
@@ -759,11 +759,21 @@ async def list_trainer_students(
                     models.Enrollment.course_id == pc.course_id
                 ).first()
                 if enrollment:
-                    completed_lessons = db.query(models.LessonProgress).filter(
-                        models.LessonProgress.enrollment_id == enrollment.id,
-                        models.LessonProgress.status == "COMPLETED",
-                        models.LessonProgress.student_confirmed == True
-                    ).count()
+                    # Count DISTINCT completed lessons (avoid duplicate progress records)
+                    lesson_ids_in_course = [l.id for l in db.query(models.Lesson.id).filter(
+                        models.Lesson.course_id == pc.course_id
+                    ).all()]
+                    if lesson_ids_in_course:
+                        completed_lessons = db.query(
+                            func.count(distinct(models.LessonProgress.lesson_id))
+                        ).filter(
+                            models.LessonProgress.enrollment_id == enrollment.id,
+                            models.LessonProgress.lesson_id.in_(lesson_ids_in_course),
+                            models.LessonProgress.status == "COMPLETED",
+                            models.LessonProgress.student_confirmed == True
+                        ).scalar()
+                    else:
+                        completed_lessons = 0
                     plan_completed_lessons += completed_lessons
             
             plan_progress = round(plan_completed_lessons / plan_total_lessons * 100, 1) if plan_total_lessons > 0 else 0
