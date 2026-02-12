@@ -80,6 +80,7 @@
   "roles": {
     "ADMIN": "Administrador",
     "TRAINER": "Formador",
+    "TRAINEE": "Formando",
     "STUDENT": "Formando",
     "trainer": "Formador"
   },
@@ -193,6 +194,8 @@
     "managePlansDescription": "Gerencie os seus planos e acompanhe o progresso",
     "manageAllPlans": "Gerir todos os planos de formação da plataforma",
     "noPlan": "Nenhum plano de formação",
+    "noAssignedPlans": "Ainda não tem planos de formação atribuídos",
+    "contactTrainer": "Contacte o seu formador para ser adicionado a um plano",
     "createFirstPlan": "Crie o primeiro plano de formação para começar",
     "createPlan": "Criar Plano",
     "basicInfo": "Informações Básicas",
@@ -957,6 +960,8 @@
     "manageAllPlans": "Gestionar todos os planos de formação da plataforma",
     "noPlan": "Nenhum plano de formação",
     "noPlans": "Nenhum plano de formação disponível",
+    "noAssignedPlans": "Ainda não tem planos de formação atribuídos",
+    "contactTrainer": "Contacte o seu formador para ser adicionado a um plano",
     "createFirstPlan": "Crie o primeiro plano de formação para começar",
     "createPlan": "Criar Plano",
     "basicInfo": "Informações Básicas",

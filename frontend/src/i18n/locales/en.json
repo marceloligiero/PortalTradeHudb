@@ -80,6 +80,7 @@
   "roles": {
     "ADMIN": "Administrator",
     "TRAINER": "Trainer",
+    "TRAINEE": "Student",
     "STUDENT": "Student",
     "trainer": "Trainer"
   },
@@ -193,6 +194,8 @@
     "managePlansDescription": "Manage your plans and track progress",
     "manageAllPlans": "Manage all training plans in the platform",
     "noPlan": "No training plan",
+    "noAssignedPlans": "You don't have any assigned training plans yet",
+    "contactTrainer": "Contact your trainer to be added to a plan",
     "createFirstPlan": "Create the first training plan to get started",
     "createPlan": "Create Plan",
     "basicInfo": "Basic Information",
@@ -758,6 +761,8 @@
     "manageAllPlans": "Manage all training plans on the platform",
     "noPlan": "No training plan",
     "noPlans": "No training plans available",
+    "noAssignedPlans": "You don't have any assigned training plans yet",
+    "contactTrainer": "Contact your trainer to be added to a plan",
     "createFirstPlan": "Create the first training plan to get started",
     "createPlan": "Create Plan",
     "basicInfo": "Basic Information",
