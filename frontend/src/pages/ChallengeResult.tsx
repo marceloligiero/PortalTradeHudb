@@ -217,7 +217,7 @@ const ChallengeResult: React.FC = () => {
               <h1 className="text-4xl font-bold bg-gradient-to-r from-red-500 to-yellow-500 bg-clip-text text-transparent">
                 {t('challengeResult.title')}
               </h1>
-              <p className="text-gray-400 mt-2">{submission.challenge.title}</p>
+              <p className="text-gray-500 dark:text-gray-400 mt-2">{submission.challenge.title}</p>
               <p className="text-sm text-gray-500 mt-1">
                 {t('challengeResult.student')}: {submission.user.full_name}
               </p>
@@ -250,24 +250,24 @@ const ChallengeResult: React.FC = () => {
             
             {/* Status Badge */}
             {submission.status === 'APPROVED' ? (
-              <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-green-500/10 border-2 border-green-500/30">
+              <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-green-100 dark:bg-green-500/10 border-2 border-green-300 dark:border-green-500/30">
                 <Check className="w-6 h-6 text-green-500" />
-                <span className="text-green-500 font-bold text-lg">{t('challengeResult.approved')}</span>
+                <span className="text-green-600 dark:text-green-500 font-bold text-lg">{t('challengeResult.approved')}</span>
               </div>
             ) : submission.status === 'REJECTED' ? (
-              <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-red-500/10 border-2 border-red-500/30">
+              <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-red-100 dark:bg-red-500/10 border-2 border-red-300 dark:border-red-500/30">
                 <X className="w-6 h-6 text-red-500" />
-                <span className="text-red-500 font-bold text-lg">{t('challengeResult.rejected')}</span>
+                <span className="text-red-600 dark:text-red-500 font-bold text-lg">{t('challengeResult.rejected')}</span>
               </div>
             ) : submission.status === 'PENDING_REVIEW' ? (
-              <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-yellow-500/10 border-2 border-yellow-500/30">
+              <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-yellow-100 dark:bg-yellow-500/10 border-2 border-yellow-300 dark:border-yellow-500/30">
                 <Clock className="w-6 h-6 text-yellow-500" />
-                <span className="text-yellow-500 font-bold text-lg">{t('challengeResult.pendingReview')}</span>
+                <span className="text-yellow-600 dark:text-yellow-500 font-bold text-lg">{t('challengeResult.pendingReview')}</span>
               </div>
             ) : (
-              <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-blue-500/10 border-2 border-blue-500/30">
+              <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-blue-100 dark:bg-blue-500/10 border-2 border-blue-300 dark:border-blue-500/30">
                 <Clock className="w-6 h-6 text-blue-500" />
-                <span className="text-blue-500 font-bold text-lg">{t('challengeResult.inProgress')}</span>
+                <span className="text-blue-600 dark:text-blue-500 font-bold text-lg">{t('challengeResult.inProgress')}</span>
               </div>
             )}
           </div>
@@ -276,7 +276,7 @@ const ChallengeResult: React.FC = () => {
         {/* Métricas Principais */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {/* Card Volume/Operações */}
-          <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 backdrop-blur-lg rounded-xl border border-green-500/20 p-6">
+          <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 dark:from-green-500/10 dark:to-emerald-500/5 backdrop-blur-lg rounded-xl border border-green-200 dark:border-green-500/20 p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
@@ -297,7 +297,7 @@ const ChallengeResult: React.FC = () => {
             </div>
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-5xl font-bold text-white">{submission.total_operations}</p>
+                <p className="text-5xl font-bold text-gray-900 dark:text-white">{submission.total_operations}</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('challengeResult.ofRequired', { count: submission.challenge.operations_required })}</p>
               </div>
               <div className="text-right">
@@ -306,7 +306,7 @@ const ChallengeResult: React.FC = () => {
                 </p>
               </div>
             </div>
-            <div className="mt-4 h-3 bg-white/10 rounded-full overflow-hidden">
+            <div className="mt-4 h-3 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all"
                 style={{ width: `${Math.min((submission.total_operations / submission.challenge.operations_required) * 100, 100)}%` }}
@@ -315,7 +315,7 @@ const ChallengeResult: React.FC = () => {
           </div>
 
           {/* Card Erros */}
-          <div className="bg-gradient-to-br from-red-500/10 to-orange-500/5 backdrop-blur-lg rounded-xl border border-red-500/20 p-6">
+          <div className="bg-gradient-to-br from-red-500/10 to-orange-500/5 dark:from-red-500/10 dark:to-orange-500/5 backdrop-blur-lg rounded-xl border border-red-200 dark:border-red-500/20 p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
@@ -339,7 +339,7 @@ const ChallengeResult: React.FC = () => {
             </div>
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-5xl font-bold text-white">
+                <p className="text-5xl font-bold text-gray-900 dark:text-white">
                   {submission.errors_summary?.operations_with_errors ?? submission.errors_count ?? 0}
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -348,7 +348,7 @@ const ChallengeResult: React.FC = () => {
               </div>
             </div>
             {submission.errors_summary && (
-              <div className="mt-4 h-3 bg-white/10 rounded-full overflow-hidden">
+              <div className="mt-4 h-3 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
                 <div
                   className={`h-full transition-all ${
                     submission.errors_summary.operations_with_errors <= (submission.errors_summary.max_errors_allowed || 0)
@@ -364,7 +364,7 @@ const ChallengeResult: React.FC = () => {
           </div>
 
           {/* Card Tempo */}
-          <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/5 backdrop-blur-lg rounded-xl border border-blue-500/20 p-6">
+          <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/5 backdrop-blur-lg rounded-xl border border-blue-200 dark:border-blue-500/20 p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
@@ -385,7 +385,7 @@ const ChallengeResult: React.FC = () => {
             </div>
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-5xl font-bold text-white">{submission.total_time_minutes}<span className="text-xl text-gray-400 ml-1">min</span></p>
+                <p className="text-5xl font-bold text-gray-900 dark:text-white">{submission.total_time_minutes}<span className="text-xl text-gray-500 dark:text-gray-400 ml-1">min</span></p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('challengeResult.timeLimit')}: {submission.challenge.time_limit_minutes} {t('challengeResult.minutes')}</p>
               </div>
               <div className="text-right">
@@ -394,7 +394,7 @@ const ChallengeResult: React.FC = () => {
                 </p>
               </div>
             </div>
-            <div className="mt-4 h-3 bg-white/10 rounded-full overflow-hidden">
+            <div className="mt-4 h-3 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
               <div
                 className={`h-full transition-all ${
                   submission.total_time_minutes <= submission.challenge.time_limit_minutes
@@ -407,7 +407,7 @@ const ChallengeResult: React.FC = () => {
           </div>
 
           {/* Card MPU */}
-          <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/5 backdrop-blur-lg rounded-xl border border-yellow-500/20 p-6">
+          <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/5 dark:from-yellow-500/10 dark:to-amber-500/5 backdrop-blur-lg rounded-xl border border-yellow-200 dark:border-yellow-500/20 p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center">
@@ -428,11 +428,11 @@ const ChallengeResult: React.FC = () => {
             </div>
             <div className="flex items-end justify-between">
               <div>
-                <p className="text-5xl font-bold text-yellow-400">{(submission.calculated_mpu ?? 0).toFixed(2)}<span className="text-xl text-gray-400 ml-1">min/op</span></p>
+                <p className="text-5xl font-bold text-yellow-500 dark:text-yellow-400">{(submission.calculated_mpu ?? 0).toFixed(2)}<span className="text-xl text-gray-500 dark:text-gray-400 ml-1">min/op</span></p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('challengeResult.mpuTarget')}: ≤ {(submission.challenge?.target_mpu ?? 0).toFixed(2)} min/op ({t('challengeResult.lowerIsBetter')})</p>
               </div>
             </div>
-            <div className="mt-4 h-3 bg-white/10 rounded-full overflow-hidden">
+            <div className="mt-4 h-3 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
               <div
                 className={`h-full transition-all ${
                   (submission.calculated_mpu ?? 0) <= (submission.challenge?.target_mpu ?? 0)
@@ -447,11 +447,11 @@ const ChallengeResult: React.FC = () => {
 
         {/* Detalhes por Tipo */}
         {submission.submission_type === 'COMPLETE' && submission.parts.length > 0 && (
-          <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-6 mb-8">
+          <div className="bg-white dark:bg-white/5 backdrop-blur-lg rounded-xl border border-gray-200 dark:border-white/10 p-6 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('challengeResult.partsBreakdown')}</h2>
             <div className="space-y-3">
               {submission.parts.map((part) => (
-                <div key={part.id} className="bg-white/5 rounded-lg p-4 flex items-center justify-between">
+                <div key={part.id} className="bg-gray-50 dark:bg-white/5 rounded-lg p-4 flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-red-500/10 rounded-lg flex items-center justify-center">
                       <span className="text-red-500 font-bold">#{part.part_number}</span>
@@ -468,7 +468,7 @@ const ChallengeResult: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-yellow-500">{(part.mpu ?? 0).toFixed(2)}</p>
-                    <p className="text-xs text-gray-400">min/op</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">min/op</p>
                   </div>
                 </div>
               ))}
@@ -477,7 +477,7 @@ const ChallengeResult: React.FC = () => {
         )}
 
         {submission.submission_type === 'SUMMARY' && (
-          <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-6 mb-8">
+          <div className="bg-white dark:bg-white/5 backdrop-blur-lg rounded-xl border border-gray-200 dark:border-white/10 p-6 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('challengeResult.summary')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -486,7 +486,7 @@ const ChallengeResult: React.FC = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t('challengeResult.completed')}</p>
-                <p className="text-white">{formatDate(submission.completed_at)}</p>
+                <p className="text-gray-900 dark:text-white">{formatDate(submission.completed_at)}</p>
               </div>
             </div>
           </div>
@@ -494,27 +494,27 @@ const ChallengeResult: React.FC = () => {
 
         {/* Detalhamento de Erros */}
         {submission.errors_summary && submission.errors_summary.operations_with_errors > 0 && (
-          <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-6 mb-8">
-            <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+          <div className="bg-white dark:bg-white/5 backdrop-blur-lg rounded-xl border border-gray-200 dark:border-white/10 p-6 mb-8">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <AlertTriangle className="w-6 h-6 text-red-500" />
               {t('challengeResult.errorsBreakdown')}
             </h2>
             
             {/* Resumo por Tipo de Erro */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white/5 rounded-lg p-3 text-center">
+              <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-red-400">{submission.errors_summary.error_methodology}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.methodology')}</p>
               </div>
-              <div className="bg-white/5 rounded-lg p-3 text-center">
+              <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-orange-400">{submission.errors_summary.error_knowledge}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.knowledge')}</p>
               </div>
-              <div className="bg-white/5 rounded-lg p-3 text-center">
+              <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-yellow-400">{submission.errors_summary.error_detail}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.detail')}</p>
               </div>
-              <div className="bg-white/5 rounded-lg p-3 text-center">
+              <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-blue-400">{submission.errors_summary.error_procedure}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.procedure')}</p>
               </div>
@@ -540,7 +540,7 @@ const ChallengeResult: React.FC = () => {
                     {operation.errors && operation.errors.length > 0 && (
                       <div className="ml-13 space-y-2 mt-3">
                         {operation.errors.map((error, idx) => (
-                          <div key={idx} className="flex items-start gap-2 bg-white/5 rounded p-2">
+                          <div key={idx} className="flex items-start gap-2 bg-gray-50 dark:bg-white/5 rounded p-2">
                             <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                               error.error_type === 'METHODOLOGY' ? 'bg-red-500/20 text-red-400' :
                               error.error_type === 'KNOWLEDGE' ? 'bg-orange-500/20 text-orange-400' :
@@ -603,7 +603,7 @@ const ChallengeResult: React.FC = () => {
                 <p className="text-orange-400 text-sm">
                   <strong>{t('challengeResult.totalErrorsRegistered', { count: submission.errors_summary.total_individual_errors })}:</strong>
                 </p>
-                <ul className="mt-2 space-y-1 text-gray-300 text-sm">
+                <ul className="mt-2 space-y-1 text-gray-600 dark:text-gray-300 text-sm">
                   {submission.errors_summary.error_methodology > 0 && (
                     <li>• {submission.errors_summary.error_methodology} {t('challengeResult.errorsOf')} {t('challengeResult.methodology')}</li>
                   )}
@@ -627,7 +627,7 @@ const ChallengeResult: React.FC = () => {
 
         {/* Feedback */}
         {submission.feedback && (
-          <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-6 mb-8">
+          <div className="bg-white dark:bg-white/5 backdrop-blur-lg rounded-xl border border-gray-200 dark:border-white/10 p-6 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('challengeResult.feedback')}</h2>
             <p className="text-gray-500 dark:text-gray-300">{submission.feedback}</p>
           </div>
@@ -635,8 +635,8 @@ const ChallengeResult: React.FC = () => {
 
         {/* Botões de Aprovação (para formador em PENDING_REVIEW) */}
         {isTrainerOrAdmin && submission.status === 'PENDING_REVIEW' && (
-          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-6 mb-8">
-            <h2 className="text-xl font-bold text-yellow-400 mb-4 flex items-center gap-2">
+          <div className="bg-yellow-100 dark:bg-yellow-500/10 border border-yellow-300 dark:border-yellow-500/20 rounded-xl p-6 mb-8">
+            <h2 className="text-xl font-bold text-yellow-600 dark:text-yellow-400 mb-4 flex items-center gap-2">
               <Clock className="w-5 h-5" />
               {t('challengeResult.awaitingDecision')}
             </h2>
@@ -666,19 +666,19 @@ const ChallengeResult: React.FC = () => {
 
         {/* Botão de Classificação (para formando com desafio aprovado e plano finalizado) */}
         {!isTrainerOrAdmin && submission.is_approved === true && planId && isPlanFinalized && (
-          <div className="bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/20 rounded-xl p-6 mb-8">
+          <div className="bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-500/10 dark:to-yellow-500/10 border border-amber-300 dark:border-amber-500/20 rounded-xl p-6 mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-amber-400 mb-2 flex items-center gap-2">
+                <h2 className="text-xl font-bold text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-2">
                   <Star className="w-5 h-5" />
                   {t('challengeResult.rateChallenge')}
                 </h2>
-                <p className="text-gray-400">
+                <p className="text-gray-500 dark:text-gray-400">
                   {hasRated ? t('challengeResult.thankYouRating') : t('challengeResult.ratingImportant')}
                 </p>
               </div>
               {hasRated ? (
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-gray-400 rounded-lg">
+                <div className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg">
                   <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
                   {t('challengeResult.challengeRated')}
                 </div>
