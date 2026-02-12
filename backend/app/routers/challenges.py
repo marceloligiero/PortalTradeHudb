@@ -759,7 +759,19 @@ async def start_challenge_complete(
 
     assignment_found = False
     for plan in plans_with_course:
-        # Usar student_id diretamente do plano (1 aluno por plano)
+        # Check via TrainingPlanAssignment (new N:N model)
+        assignment = db.query(models.TrainingPlanAssignment).filter(
+            models.TrainingPlanAssignment.training_plan_id == plan.id,
+            models.TrainingPlanAssignment.user_id == user_id
+        ).first()
+        
+        if assignment:
+            if current_user.role == 'TRAINER' and plan.trainer_id != current_user.id:
+                continue
+            assignment_found = True
+            break
+        
+        # Fallback: student_id legacy
         if plan.student_id == user_id:
             if current_user.role == 'TRAINER' and plan.trainer_id != current_user.id:
                 continue

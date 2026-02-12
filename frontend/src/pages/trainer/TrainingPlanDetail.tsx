@@ -1730,7 +1730,7 @@ export default function TrainingPlanDetail() {
                                     {isTrainer && !submission && challengeReleases[challenge.id] && (
                                       challenge.challenge_type?.toUpperCase() === 'SUMMARY' ? (
                                         <button
-                                          onClick={() => navigate(`/challenges/${challenge.id}/execute/summary?planId=${id}`)}
+                                          onClick={() => navigate(`/challenges/${challenge.id}/execute/summary?planId=${id}${selectedStudentId ? `&studentId=${selectedStudentId}` : ''}`)}
                                           className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md"
                                         >
                                           <Play className="w-4 h-4" />

@@ -36,6 +36,7 @@ const ChallengeExecutionSummary: React.FC = () => {
   const { challengeId } = useParams<{ challengeId: string }>();
   const [searchParams] = useSearchParams();
   const planId = searchParams.get('planId');
+  const studentIdParam = searchParams.get('studentId');
   
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -75,6 +76,17 @@ const ChallengeExecutionSummary: React.FC = () => {
       
       // New enrollment system: enrolled_students array
       const enrolled = plan.enrolled_students || [];
+      
+      // If studentId passed via URL, pre-select that student
+      if (studentIdParam && enrolled.length > 0) {
+        const target = enrolled.find((s: any) => s.id === parseInt(studentIdParam));
+        if (target) {
+          setPlanStudent({ id: target.id, full_name: target.full_name, email: target.email });
+          setSelectedStudentId(target.id);
+          return;
+        }
+      }
+      
       if (enrolled.length === 1) {
         // Single student - auto-select
         const s = enrolled[0];
