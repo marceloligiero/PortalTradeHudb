@@ -42,16 +42,16 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
     switch (status) {
       case 'IN_PROGRESS':
       case 'ONGOING':
-        return { label: 'Em Progresso', bg: 'bg-emerald-500', icon: Timer, iconColor: 'text-emerald-500' };
+        return { label: t('planStatus.inProgress'), bg: 'bg-emerald-500', icon: Timer, iconColor: 'text-emerald-500' };
       case 'PENDING':
       case 'UPCOMING':
-        return { label: 'Pendente', bg: 'bg-amber-500', icon: Clock, iconColor: 'text-amber-500' };
+        return { label: t('planStatus.pending'), bg: 'bg-amber-500', icon: Clock, iconColor: 'text-amber-500' };
       case 'DELAYED':
-        return { label: 'Atrasado', bg: 'bg-red-500', icon: AlertCircle, iconColor: 'text-red-500' };
+        return { label: t('planStatus.delayed'), bg: 'bg-red-500', icon: AlertCircle, iconColor: 'text-red-500' };
       case 'COMPLETED':
-        return { label: 'Completo', bg: 'bg-blue-500', icon: CheckCircle2, iconColor: 'text-blue-500' };
+        return { label: t('planStatus.completed'), bg: 'bg-blue-500', icon: CheckCircle2, iconColor: 'text-blue-500' };
       default:
-        return { label: 'Ativo', bg: 'bg-emerald-500', icon: Timer, iconColor: 'text-emerald-500' };
+        return { label: t('planCard.active'), bg: 'bg-emerald-500', icon: Timer, iconColor: 'text-emerald-500' };
     }
   };
 
@@ -83,15 +83,15 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
           {/* Title & Description */}
           <div className="pr-24">
             <div className="flex items-center gap-2 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#ec0000] to-[#cc0000] flex items-center justify-center shadow-lg shadow-red-500/20">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-lg shadow-indigo-500/20">
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
             </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 group-hover:text-[#ec0000] transition-colors duration-300 line-clamp-1">
-              {plan?.title ?? 'Plano de Formação'}
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 group-hover:text-indigo-600 transition-colors duration-300 line-clamp-1">
+              {plan?.title ?? t('navigation.trainingPlans')}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
-              {plan?.description ?? 'Sem descrição'}
+              {plan?.description ?? t('planCard.noDescription')}
             </p>
           </div>
         </div>
@@ -100,7 +100,7 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
         {progress > 0 && (
           <div className="px-6 pb-4">
             <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="font-medium text-gray-500 dark:text-gray-400">Progresso</span>
+              <span className="font-medium text-gray-500 dark:text-gray-400">{t('planCard.progress')}</span>
               <span className="font-bold text-emerald-600">{progress}%</span>
             </div>
             <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -127,14 +127,14 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-0.5">Formando</p>
+              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-0.5">{t('planCard.student')}</p>
               {plan?.student ? (
                 <>
                   <p className="font-bold text-gray-900 dark:text-white truncate">{plan.student.full_name}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{plan.student.email}</p>
                 </>
               ) : (
-                <p className="text-sm text-gray-400 italic">Nenhum formando atribuído</p>
+                <p className="text-sm text-gray-400 italic">{t('planCard.noStudentAssigned')}</p>
               )}
             </div>
           </div>
@@ -144,21 +144,21 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
         <div className="px-6 pb-4">
           <div className="grid grid-cols-3 gap-2">
             <div className="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-              <BookOpen className="w-4 h-4 text-[#ec0000] mx-auto mb-1" />
+              <BookOpen className="w-4 h-4 text-indigo-500 mx-auto mb-1" />
               <p className="text-lg font-bold text-gray-900 dark:text-white">{plan?.total_courses ?? 0}</p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">Cursos</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">{t('planCard.courses')}</p>
             </div>
             <div className="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
               <Clock className="w-4 h-4 text-amber-500 mx-auto mb-1" />
               <p className="text-lg font-bold text-gray-900 dark:text-white">{plan?.total_duration_hours ?? 0}h</p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">Duração</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">{t('planCard.duration')}</p>
             </div>
             <div className="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
               <Calendar className="w-4 h-4 text-purple-500 mx-auto mb-1" />
               <p className="text-sm font-bold text-gray-900 dark:text-white">
                 {start ? start.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }) : '-'}
               </p>
-              <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">Início</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">{t('planCard.startDate')}</p>
             </div>
           </div>
         </div>
@@ -169,7 +169,7 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
             <div className="flex items-center justify-between p-3 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl border border-amber-100 dark:border-amber-800/50">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                <span className="text-sm font-medium text-amber-700 dark:text-amber-300">Dias Restantes</span>
+                <span className="text-sm font-medium text-amber-700 dark:text-amber-300">{t('planCard.daysRemaining')}</span>
               </div>
               <span className="text-sm font-bold text-amber-900 dark:text-amber-200 bg-amber-100 dark:bg-amber-800/50 px-2 py-0.5 rounded-lg">{daysRemaining}</span>
             </div>
@@ -180,7 +180,7 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
               <div className="flex items-center gap-2">
                 <Target className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                 <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                  {plan.trainers && plan.trainers.length > 1 ? 'Formadores' : 'Formador'}
+                  {plan.trainers && plan.trainers.length > 1 ? t('planCard.trainers') : t('planCard.trainer')}
                 </span>
               </div>
               <div className="flex items-center gap-1 max-w-[160px]">
@@ -205,14 +205,14 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
 
         {/* Action Button */}
         <div className="px-6 pb-6">
-          <button className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-[#ec0000] to-[#cc0000] text-white rounded-xl font-bold shadow-lg shadow-red-500/20 hover:shadow-xl hover:shadow-red-500/30 group-hover:from-[#d00000] group-hover:to-[#b00000] transition-all duration-300">
-            <span>Ver Detalhes</span>
+          <button className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/30 group-hover:from-indigo-700 group-hover:to-indigo-800 transition-all duration-300">
+            <span>{t('planCard.viewDetails')}</span>
             <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </button>
         </div>
 
         {/* Decorative Elements */}
-        <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-gradient-to-br from-[#ec0000]/5 to-purple-500/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+        <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
       </div>
     </motion.div>
   );

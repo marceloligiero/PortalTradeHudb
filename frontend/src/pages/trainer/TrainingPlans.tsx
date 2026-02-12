@@ -13,12 +13,21 @@ interface TrainingPlan {
   id: number;
   title: string;
   description: string;
-  trainer_name: string;
+  trainer_id: number;
+  trainer: { id: number; full_name: string } | null;
+  trainers: { id: number; full_name: string; email: string; is_primary: boolean }[];
+  student: { id: number; full_name: string; email: string } | null;
   total_courses: number;
-  total_students: number;
   total_duration_hours: number;
+  start_date: string | null;
+  end_date: string | null;
   created_at: string;
   is_active?: boolean;
+  status: string;
+  progress_percentage: number;
+  days_remaining: number | null;
+  days_delayed: number | null;
+  is_delayed: boolean;
 }
 
 // Animation variants
@@ -60,7 +69,7 @@ export default function TrainingPlans() {
       setPlans(response.data);
     } catch (error) {
       console.error('Error fetching training plans:', error);
-      setError('Failed to load training plans');
+      setError(t('common.loadError') || 'Failed to load training plans');
     } finally {
       setLoading(false);
     }
@@ -69,7 +78,7 @@ export default function TrainingPlans() {
   // Calculate stats
   const totalPlans = plans.length;
   const activePlans = plans.filter(p => p.is_active !== false).length;
-  const totalStudents = plans.reduce((acc, p) => acc + (p.total_students || 0), 0);
+  const totalStudents = new Set(plans.filter(p => p.student?.id).map(p => p.student!.id)).size;
   const totalCourses = plans.reduce((acc, p) => acc + (p.total_courses || 0), 0);
   const totalHours = plans.reduce((acc, p) => acc + (p.total_duration_hours || 0), 0);
 
@@ -80,7 +89,7 @@ export default function TrainingPlans() {
         icon={GraduationCap}
         title={t('navigation.trainingPlans')}
         subtitle={t('trainingPlan.managePlansDescription')}
-        badge="Gestão de Formação"
+        badge={t('trainingPlan.management')}
         iconColor="from-indigo-500 to-indigo-700"
         actions={
           <motion.button
@@ -140,7 +149,7 @@ export default function TrainingPlans() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400"
+          className="p-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 rounded-xl text-red-600 dark:text-red-400"
         >
           {error}
         </motion.div>

@@ -408,6 +408,20 @@
     "daysDelayed": "days delayed",
     "canFinalize": "Ready to finalize"
   },
+  "planCard": {
+    "active": "Active",
+    "progress": "Progress",
+    "student": "Student",
+    "noStudentAssigned": "No student assigned",
+    "noDescription": "No description",
+    "courses": "Courses",
+    "duration": "Duration",
+    "startDate": "Start",
+    "daysRemaining": "Days Remaining",
+    "trainer": "Trainer",
+    "trainers": "Trainers",
+    "viewDetails": "View Details"
+  },
   "certificates": {
     "title": "Certificates",
     "certificateNumber": "Certificate Number",

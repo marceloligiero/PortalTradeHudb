@@ -410,6 +410,20 @@
     "daysDelayed": "días de atraso",
     "canFinalize": "Listo para finalizar"
   },
+  "planCard": {
+    "active": "Activo",
+    "progress": "Progreso",
+    "student": "Estudiante",
+    "noStudentAssigned": "Ningún estudiante asignado",
+    "noDescription": "Sin descripción",
+    "courses": "Cursos",
+    "duration": "Duración",
+    "startDate": "Inicio",
+    "daysRemaining": "Días Restantes",
+    "trainer": "Formador",
+    "trainers": "Formadores",
+    "viewDetails": "Ver Detalles"
+  },
   "certificates": {
     "title": "Certificados",
     "certificateNumber": "Número de Certificado",
