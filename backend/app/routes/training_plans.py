@@ -40,10 +40,12 @@ def calculate_plan_status(db: Session, plan: models.TrainingPlan, student_id: in
             lesson_ids = [l.id for l in lessons]
             if lesson_ids:
                 # Filter by training_plan_id to avoid cross-plan counting
+                # Only count lessons that are COMPLETED AND confirmed by student
                 completed = db.query(sa_func.count(sa_func.distinct(models.LessonProgress.lesson_id))).filter(
                     models.LessonProgress.lesson_id.in_(lesson_ids),
                     models.LessonProgress.user_id == target_student,
                     models.LessonProgress.status == "COMPLETED",
+                    models.LessonProgress.student_confirmed == True,
                     models.LessonProgress.training_plan_id == plan.id
                 ).scalar() or 0
                 
@@ -60,7 +62,8 @@ def calculate_plan_status(db: Session, plan: models.TrainingPlan, student_id: in
                         completed = db.query(sa_func.count(sa_func.distinct(models.LessonProgress.lesson_id))).filter(
                             models.LessonProgress.lesson_id.in_(lesson_ids),
                             models.LessonProgress.user_id == target_student,
-                            models.LessonProgress.status == "COMPLETED"
+                            models.LessonProgress.status == "COMPLETED",
+                            models.LessonProgress.student_confirmed == True
                         ).scalar() or 0
                 
                 completed_lessons += completed
