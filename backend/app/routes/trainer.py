@@ -741,37 +741,36 @@ async def list_trainer_students(
                 seen_plan_ids.add(p["plan_id"])
                 plans_info.append(p)
         
-        # Calculate overall progress across all plans (deduplicate courses)
-        seen_courses = set()
-        total_progress = 0
-        total_courses = 0
+        # Calculate progress per plan
+        plan_progresses = []
         for plan_info in plans_info:
             plan_courses = db.query(models.TrainingPlanCourse).filter(
                 models.TrainingPlanCourse.training_plan_id == plan_info["plan_id"]
             ).all()
+            plan_total_lessons = 0
+            plan_completed_lessons = 0
             for pc in plan_courses:
-                if pc.course_id in seen_courses:
-                    continue
-                seen_courses.add(pc.course_id)
+                total_lessons = db.query(models.Lesson).filter(
+                    models.Lesson.course_id == pc.course_id
+                ).count()
+                plan_total_lessons += total_lessons
                 enrollment = db.query(models.Enrollment).filter(
                     models.Enrollment.user_id == user.id,
                     models.Enrollment.course_id == pc.course_id
                 ).first()
                 if enrollment:
-                    # Count completed lessons vs total
-                    total_lessons = db.query(models.Lesson).filter(
-                        models.Lesson.course_id == pc.course_id
-                    ).count()
                     completed_lessons = db.query(models.LessonProgress).filter(
                         models.LessonProgress.enrollment_id == enrollment.id,
                         models.LessonProgress.status == "COMPLETED",
                         models.LessonProgress.student_confirmed == True
                     ).count()
-                    if total_lessons > 0:
-                        total_progress += (completed_lessons / total_lessons * 100)
-                        total_courses += 1
+                    plan_completed_lessons += completed_lessons
+            
+            plan_progress = round(plan_completed_lessons / plan_total_lessons * 100, 1) if plan_total_lessons > 0 else 0
+            plan_info["progress"] = plan_progress
+            plan_progresses.append(plan_progress)
         
-        avg_progress = round(total_progress / total_courses, 1) if total_courses > 0 else 0
+        avg_progress = round(sum(plan_progresses) / len(plan_progresses), 1) if plan_progresses else 0
         
         result.append({
             "id": user.id,

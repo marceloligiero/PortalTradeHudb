@@ -21,6 +21,7 @@ interface StudentPlan {
   plan_id: number;
   plan_title: string;
   assigned_at: string | null;
+  progress: number;
 }
 
 interface Student {
@@ -248,25 +249,9 @@ export default function TrainerStudentsPage() {
                     <p className="text-lg font-bold text-gray-900 dark:text-white">{student.plans_count}</p>
                   </div>
 
-                  <div className="text-center min-w-[120px]">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{t('trainerStudents.progress')}</p>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full transition-all ${
-                            student.avg_progress >= 75
-                              ? 'bg-gradient-to-r from-green-400 to-green-500'
-                              : student.avg_progress >= 40
-                              ? 'bg-gradient-to-r from-yellow-400 to-yellow-500'
-                              : 'bg-gradient-to-r from-indigo-400 to-indigo-500'
-                          }`}
-                          style={{ width: `${Math.min(student.avg_progress, 100)}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium text-gray-700 dark:text-white min-w-[3rem] text-right">
-                        {student.avg_progress}%
-                      </span>
-                    </div>
+                  <div className="text-center min-w-[80px]">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{t('trainerStudents.avgProgress')}</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{student.avg_progress}%</p>
                   </div>
                 </div>
               </div>
@@ -277,17 +262,35 @@ export default function TrainerStudentsPage() {
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider font-medium">
                     {t('trainerStudents.assignedPlans')}
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="space-y-2">
                     {student.plans.map((plan) => (
-                      <button
-                        key={plan.plan_id}
-                        onClick={() => navigate(`/training-plan/${plan.plan_id}`)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 rounded-lg text-sm hover:bg-indigo-100 dark:hover:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-500/20 transition-all group"
-                      >
-                        <BookOpen className="w-3.5 h-3.5" />
-                        <span className="truncate max-w-[200px]">{plan.plan_title}</span>
-                        <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </button>
+                      <div key={plan.plan_id} className="flex items-center gap-3">
+                        <button
+                          onClick={() => navigate(`/training-plan/${plan.plan_id}`)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 rounded-lg text-sm hover:bg-indigo-100 dark:hover:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-500/20 transition-all group min-w-[180px]"
+                        >
+                          <BookOpen className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span className="truncate max-w-[200px]">{plan.plan_title}</span>
+                          <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
+                        <div className="flex items-center gap-2 flex-1 max-w-[200px]">
+                          <div className="flex-1 bg-gray-200 dark:bg-white/10 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all ${
+                                plan.progress >= 75
+                                  ? 'bg-gradient-to-r from-green-400 to-green-500'
+                                  : plan.progress >= 40
+                                  ? 'bg-gradient-to-r from-yellow-400 to-yellow-500'
+                                  : 'bg-gradient-to-r from-indigo-400 to-indigo-500'
+                              }`}
+                              style={{ width: `${Math.min(plan.progress, 100)}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-medium text-gray-600 dark:text-gray-300 min-w-[2.5rem] text-right">
+                            {plan.progress}%
+                          </span>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
