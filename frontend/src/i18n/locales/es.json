@@ -1698,7 +1698,22 @@
     "progress": "Progreso",
     "removeStudent": "Eliminar estudiante",
     "confirmRemoveStudent": "¿Está seguro de que desea eliminar este estudiante del plan?",
-    "selectStudentFirst": "Seleccione primero un estudiante de la lista de inscritos"
+    "selectStudentFirst": "Seleccione primero un estudiante de la lista de inscritos",
+    "addTrainer": "Añadir Formador",
+    "selectTrainerToAdd": "Seleccionar formador para añadir",
+    "allTrainersAdded": "Todos los formadores ya están añadidos",
+    "filterTrainers": "Filtrar formadores...",
+    "filterStudents": "Filtrar formandos...",
+    "confirmRemoveTrainer": "¿Está seguro de que desea eliminar este formador?",
+    "removeTrainer": "Eliminar formador",
+    "rated": "Clasificado",
+    "rateTrainer": "Clasificar",
+    "planRated": "Plan Clasificado",
+    "ratePlan": "Clasificar Plan",
+    "pendingRatings": "Evaluaciones Pendientes",
+    "pendingRatingsDesc": "¡Felicitaciones por la conclusión! Evalúe el plan, formadores y cursos para ayudarnos a mejorar.",
+    "courseRated": "Curso Clasificado",
+    "rateCourse": "Clasificar Curso"
   },
   "adminDashboard": {
     "controlPanel": "Panel de Control",

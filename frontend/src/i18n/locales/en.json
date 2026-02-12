@@ -1612,7 +1612,22 @@
     "progress": "Progress",
     "removeStudent": "Remove student",
     "confirmRemoveStudent": "Are you sure you want to remove this student from the plan?",
-    "selectStudentFirst": "Please select a student from the enrolled list first"
+    "selectStudentFirst": "Please select a student from the enrolled list first",
+    "addTrainer": "Add Trainer",
+    "selectTrainerToAdd": "Select trainer to add",
+    "allTrainersAdded": "All trainers have already been added",
+    "filterTrainers": "Filter trainers...",
+    "filterStudents": "Filter students...",
+    "confirmRemoveTrainer": "Are you sure you want to remove this trainer?",
+    "removeTrainer": "Remove trainer",
+    "rated": "Rated",
+    "rateTrainer": "Rate",
+    "planRated": "Plan Rated",
+    "ratePlan": "Rate Plan",
+    "pendingRatings": "Pending Ratings",
+    "pendingRatingsDesc": "Congratulations on completion! Rate the plan, trainers and courses to help us improve.",
+    "courseRated": "Course Rated",
+    "rateCourse": "Rate Course"
   },
   "adminDashboard": {
     "controlPanel": "Control Panel",
