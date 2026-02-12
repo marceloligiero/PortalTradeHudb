@@ -486,12 +486,12 @@ export default function TrainingPlanDetail() {
       } else if (action === 'start' && !isStudent) {
         // Formador inicia a aula (quando started_by = TRAINER)
         await api.post(`/api/lessons/${lessonId}/start`, null, {
-          params: { training_plan_id: id }
+          params: { training_plan_id: id, user_id: targetUserId }
         });
       } else if ((action === 'pause' || action === 'resume' || action === 'finish') && !isStudent) {
         // Formador controla aula que ele iniciou (pause/resume/finish)
         await api.post(`/api/lessons/${lessonId}/${action}`, null, {
-          params: { training_plan_id: id }
+          params: { training_plan_id: id, user_id: targetUserId }
         });
       } else if (isStudent) {
         // Formando controla sua própria aula (start/pause/resume/finish)

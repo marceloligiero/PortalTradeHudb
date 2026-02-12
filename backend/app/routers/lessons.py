@@ -304,6 +304,7 @@ async def release_lesson(
 async def start_lesson(
     lesson_id: int,
     training_plan_id: Optional[int] = None,
+    user_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -336,17 +337,20 @@ async def start_lesson(
                 status_code=400, 
                 detail="Esta aula deve ser iniciada pelo formando. Use /release para liberar."
             )
-        # Formador inicia para o aluno do plano
-        if not training_plan_id:
+        # Usar user_id fornecido ou buscar do plano
+        if user_id:
+            target_user_id = user_id
+        elif training_plan_id:
+            plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == training_plan_id).first()
+            if not plan or not plan.student_id:
+                raise HTTPException(status_code=400, detail="Plano não encontrado ou sem aluno atribuído")
+            target_user_id = plan.student_id
+        else:
             raise HTTPException(
                 status_code=400,
-                detail="training_plan_id é necessário para o formador iniciar a aula"
+                detail="training_plan_id ou user_id é necessário para o formador iniciar a aula"
             )
-        # Buscar o aluno do plano
-        plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == training_plan_id).first()
-        if not plan or not plan.student_id:
-            raise HTTPException(status_code=400, detail="Plano não encontrado ou sem aluno atribuído")
-        user_id = plan.student_id
+        user_id = target_user_id
     else:
         raise HTTPException(status_code=403, detail="Sem permissão para iniciar aulas")
     
@@ -403,6 +407,7 @@ async def pause_lesson(
     lesson_id: int,
     training_plan_id: Optional[int] = None,
     pause_reason: Optional[str] = None,
+    user_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -429,13 +434,17 @@ async def pause_lesson(
                 status_code=403, 
                 detail="Esta aula é controlada pelo formando. Apenas ele pode pausar."
             )
-        # Buscar o aluno do plano
-        if not training_plan_id:
-            raise HTTPException(status_code=400, detail="training_plan_id é necessário")
-        plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == training_plan_id).first()
-        if not plan or not plan.student_id:
-            raise HTTPException(status_code=400, detail="Plano não encontrado ou sem aluno")
-        user_id = plan.student_id
+        # Usar user_id fornecido ou buscar do plano
+        if user_id:
+            target_user_id = user_id
+        elif training_plan_id:
+            plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == training_plan_id).first()
+            if not plan or not plan.student_id:
+                raise HTTPException(status_code=400, detail="Plano não encontrado ou sem aluno")
+            target_user_id = plan.student_id
+        else:
+            raise HTTPException(status_code=400, detail="training_plan_id ou user_id é necessário")
+        user_id = target_user_id
     else:
         raise HTTPException(status_code=403, detail="Sem permissão")
     
@@ -506,6 +515,7 @@ async def pause_lesson(
 async def resume_lesson(
     lesson_id: int,
     training_plan_id: Optional[int] = None,
+    user_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
 ):
@@ -532,13 +542,17 @@ async def resume_lesson(
                 status_code=403, 
                 detail="Esta aula é controlada pelo formando. Apenas ele pode retomar."
             )
-        # Buscar o aluno do plano
-        if not training_plan_id:
-            raise HTTPException(status_code=400, detail="training_plan_id é necessário")
-        plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == training_plan_id).first()
-        if not plan or not plan.student_id:
-            raise HTTPException(status_code=400, detail="Plano não encontrado ou sem aluno")
-        user_id = plan.student_id
+        # Usar user_id fornecido ou buscar do plano
+        if user_id:
+            target_user_id = user_id
+        elif training_plan_id:
+            plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == training_plan_id).first()
+            if not plan or not plan.student_id:
+                raise HTTPException(status_code=400, detail="Plano não encontrado ou sem aluno")
+            target_user_id = plan.student_id
+        else:
+            raise HTTPException(status_code=400, detail="training_plan_id ou user_id é necessário")
+        user_id = target_user_id
     else:
         raise HTTPException(status_code=403, detail="Sem permissão")
     
@@ -616,6 +630,7 @@ async def resume_lesson_student(
 async def finish_lesson(
     lesson_id: int,
     training_plan_id: Optional[int] = None,
+    user_id: Optional[int] = None,
     request: schemas.FinalizeLessonRequest = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
@@ -644,13 +659,17 @@ async def finish_lesson(
                 status_code=403, 
                 detail="Esta aula é controlada pelo formando. Apenas ele pode finalizar."
             )
-        # Buscar o aluno do plano
-        if not training_plan_id:
-            raise HTTPException(status_code=400, detail="training_plan_id é necessário")
-        plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == training_plan_id).first()
-        if not plan or not plan.student_id:
-            raise HTTPException(status_code=400, detail="Plano não encontrado ou sem aluno")
-        user_id = plan.student_id
+        # Usar user_id fornecido ou buscar do plano
+        if user_id:
+            target_user_id = user_id
+        elif training_plan_id:
+            plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == training_plan_id).first()
+            if not plan or not plan.student_id:
+                raise HTTPException(status_code=400, detail="Plano não encontrado ou sem aluno")
+            target_user_id = plan.student_id
+        else:
+            raise HTTPException(status_code=400, detail="training_plan_id ou user_id é necessário")
+        user_id = target_user_id
     else:
         raise HTTPException(status_code=403, detail="Sem permissão")
     
