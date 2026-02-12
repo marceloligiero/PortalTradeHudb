@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, TrendingUp, Target, Clock, Award, Check, X, AlertTriangle, Star } from 'lucide-react';
 import api from '../lib/axios';
 import { useAuthStore } from '../stores/authStore';
@@ -89,6 +90,7 @@ interface ChallengeSubmissionDetail {
 }
 
 const ChallengeResult: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { submissionId } = useParams<{ submissionId: string }>();
   const searchParams = new URLSearchParams(window.location.search);
@@ -165,7 +167,7 @@ const ChallengeResult: React.FC = () => {
       await loadSubmission(); // Recarregar dados
     } catch (err: any) {
       console.error('Erro ao aprovar/reprovar:', err);
-      alert(err.response?.data?.detail || 'Erro ao processar aprovação');
+      alert(err.response?.data?.detail || t('challengeResult.approvalError'));
     } finally {
       setApproving(false);
     }
@@ -182,7 +184,7 @@ const ChallengeResult: React.FC = () => {
   if (!submission) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-100 via-red-50/20 to-gray-100 dark:from-gray-900 dark:via-red-900/20 dark:to-gray-900 flex items-center justify-center">
-        <div className="text-gray-900 dark:text-white">Resultado não encontrado</div>
+        <div className="text-gray-900 dark:text-white">{t('challengeResult.notFound')}</div>
       </div>
     );
   }
@@ -207,40 +209,40 @@ const ChallengeResult: React.FC = () => {
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors mb-4"
           >
             <ArrowLeft className="w-5 h-5" />
-            Voltar
+            {t('common.back')}
           </button>
           
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-4xl font-bold bg-gradient-to-r from-red-500 to-yellow-500 bg-clip-text text-transparent">
-                Resultado do Desafio
+                {t('challengeResult.title')}
               </h1>
               <p className="text-gray-400 mt-2">{submission.challenge.title}</p>
               <p className="text-sm text-gray-500 mt-1">
-                Estudante: {submission.user.full_name}
+                {t('challengeResult.student')}: {submission.user.full_name}
               </p>
               {/* KPI e Tipo de Desafio */}
               <div className="flex flex-wrap items-center gap-2 mt-3">
                 {submission.challenge.challenge_type && (
                   <span className="px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full text-sm text-blue-400">
-                    {submission.challenge.challenge_type === 'SUMMARY' ? 'Resumido' : 'Completo'}
+                    {submission.challenge.challenge_type === 'SUMMARY' ? t('challengeResult.typeSummary') : t('challengeResult.typeComplete')}
                   </span>
                 )}
                 {/* KPIs avaliados */}
-                <span className="text-gray-500 text-sm">KPIs avaliados:</span>
+                <span className="text-gray-500 text-sm">{t('challengeResult.kpisEvaluated')}:</span>
                 {submission.challenge.use_volume_kpi && (
-                  <span className="px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-lg text-xs text-green-400" title="Quantidade total de operações realizadas">
-                    📊 Volume (Nº de Operações)
+                  <span className="px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-lg text-xs text-green-400" title={t('challengeResult.volumeTooltip')}>
+                    📊 {t('challengeResult.volumeKpi')}
                   </span>
                 )}
                 {submission.challenge.use_mpu_kpi && (
-                  <span className="px-3 py-1 bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-xs text-yellow-400" title="Tempo médio por operação em minutos">
-                    ⏱️ MPU (Tempo por Operação)
+                  <span className="px-3 py-1 bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-xs text-yellow-400" title={t('challengeResult.mpuTooltip')}>
+                    ⏱️ {t('challengeResult.mpuKpi')}
                   </span>
                 )}
                 {submission.challenge.use_errors_kpi && (
-                  <span className="px-3 py-1 bg-red-500/20 border border-red-500/30 rounded-lg text-xs text-red-400" title="Número de operações com erros identificados">
-                    ⚠️ Erros (Operações c/ Falhas)
+                  <span className="px-3 py-1 bg-red-500/20 border border-red-500/30 rounded-lg text-xs text-red-400" title={t('challengeResult.errorsTooltip')}>
+                    ⚠️ {t('challengeResult.errorsKpi')}
                   </span>
                 )}
               </div>
@@ -250,22 +252,22 @@ const ChallengeResult: React.FC = () => {
             {submission.status === 'APPROVED' ? (
               <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-green-500/10 border-2 border-green-500/30">
                 <Check className="w-6 h-6 text-green-500" />
-                <span className="text-green-500 font-bold text-lg">APROVADO</span>
+                <span className="text-green-500 font-bold text-lg">{t('challengeResult.approved')}</span>
               </div>
             ) : submission.status === 'REJECTED' ? (
               <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-red-500/10 border-2 border-red-500/30">
                 <X className="w-6 h-6 text-red-500" />
-                <span className="text-red-500 font-bold text-lg">REPROVADO</span>
+                <span className="text-red-500 font-bold text-lg">{t('challengeResult.rejected')}</span>
               </div>
             ) : submission.status === 'PENDING_REVIEW' ? (
               <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-yellow-500/10 border-2 border-yellow-500/30">
                 <Clock className="w-6 h-6 text-yellow-500" />
-                <span className="text-yellow-500 font-bold text-lg">AGUARDA REVISÃO</span>
+                <span className="text-yellow-500 font-bold text-lg">{t('challengeResult.pendingReview')}</span>
               </div>
             ) : (
               <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-blue-500/10 border-2 border-blue-500/30">
                 <Clock className="w-6 h-6 text-blue-500" />
-                <span className="text-blue-500 font-bold text-lg">EM PROGRESSO</span>
+                <span className="text-blue-500 font-bold text-lg">{t('challengeResult.inProgress')}</span>
               </div>
             )}
           </div>
@@ -281,8 +283,8 @@ const ChallengeResult: React.FC = () => {
                   <Target className="w-6 h-6 text-green-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Volume de Operações</h3>
-                  <p className="text-xs text-gray-400">Quantidade total de operações realizadas</p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('challengeResult.operationsVolume')}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.operationsVolumeDesc')}</p>
                 </div>
               </div>
               <div className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -290,13 +292,13 @@ const ChallengeResult: React.FC = () => {
                   ? 'bg-green-500/20 text-green-400'
                   : 'bg-red-500/20 text-red-400'
               }`}>
-                {submission.total_operations >= submission.challenge.operations_required ? '✓ Meta atingida' : '✗ Abaixo da meta'}
+                {submission.total_operations >= submission.challenge.operations_required ? t('challengeResult.targetReached') : t('challengeResult.belowTarget')}
               </div>
             </div>
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-5xl font-bold text-white">{submission.total_operations}</p>
-                <p className="text-sm text-gray-400 mt-1">de {submission.challenge.operations_required} operações necessárias</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('challengeResult.ofRequired', { count: submission.challenge.operations_required })}</p>
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold text-green-400">
@@ -320,8 +322,8 @@ const ChallengeResult: React.FC = () => {
                   <AlertTriangle className="w-6 h-6 text-red-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Operações com Erros</h3>
-                  <p className="text-xs text-gray-400">Número de falhas identificadas pelo formador</p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('challengeResult.operationsWithErrors')}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.operationsWithErrorsDesc')}</p>
                 </div>
               </div>
               {(() => {
@@ -330,7 +332,7 @@ const ChallengeResult: React.FC = () => {
                 const isOk = errors <= maxErrors;
                 return (
                   <div className={`px-3 py-1 rounded-full text-xs font-bold ${isOk ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                    {isOk ? '✓ Dentro do limite' : '✗ Acima do limite'}
+                    {isOk ? t('challengeResult.withinLimit') : t('challengeResult.aboveLimit')}
                   </div>
                 );
               })()}
@@ -340,8 +342,8 @@ const ChallengeResult: React.FC = () => {
                 <p className="text-5xl font-bold text-white">
                   {submission.errors_summary?.operations_with_errors ?? submission.errors_count ?? 0}
                 </p>
-                <p className="text-sm text-gray-400 mt-1">
-                  máximo permitido: {submission.errors_summary?.max_errors_allowed ?? submission.challenge.max_errors ?? 0}
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {t('challengeResult.maxAllowed')}: {submission.errors_summary?.max_errors_allowed ?? submission.challenge.max_errors ?? 0}
                 </p>
               </div>
             </div>
@@ -369,8 +371,8 @@ const ChallengeResult: React.FC = () => {
                   <Clock className="w-6 h-6 text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Tempo Total</h3>
-                  <p className="text-xs text-gray-400">Duração total para completar o desafio</p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('challengeResult.totalTime')}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.totalTimeDesc')}</p>
                 </div>
               </div>
               <div className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -378,13 +380,13 @@ const ChallengeResult: React.FC = () => {
                   ? 'bg-green-500/20 text-green-400'
                   : 'bg-red-500/20 text-red-400'
               }`}>
-                {submission.total_time_minutes <= submission.challenge.time_limit_minutes ? '✓ No tempo' : '✗ Tempo excedido'}
+                {submission.total_time_minutes <= submission.challenge.time_limit_minutes ? t('challengeResult.onTime') : t('challengeResult.timeExceeded')}
               </div>
             </div>
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-5xl font-bold text-white">{submission.total_time_minutes}<span className="text-xl text-gray-400 ml-1">min</span></p>
-                <p className="text-sm text-gray-400 mt-1">limite: {submission.challenge.time_limit_minutes} minutos</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('challengeResult.timeLimit')}: {submission.challenge.time_limit_minutes} {t('challengeResult.minutes')}</p>
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold text-blue-400">
@@ -412,8 +414,8 @@ const ChallengeResult: React.FC = () => {
                   <TrendingUp className="w-6 h-6 text-yellow-400" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">MPU - Minutos Por Operação</h3>
-                  <p className="text-xs text-gray-400">Tempo médio gasto em cada operação</p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('challengeResult.mpuTitle')}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.mpuDesc')}</p>
                 </div>
               </div>
               <div className={`px-3 py-1 rounded-full text-xs font-bold ${
@@ -421,13 +423,13 @@ const ChallengeResult: React.FC = () => {
                   ? 'bg-green-500/20 text-green-400'
                   : 'bg-red-500/20 text-red-400'
               }`}>
-                {(submission.calculated_mpu ?? 0) <= (submission.challenge?.target_mpu ?? 0) ? '✓ Eficiente' : '✗ Acima do esperado'}
+                {(submission.calculated_mpu ?? 0) <= (submission.challenge?.target_mpu ?? 0) ? t('challengeResult.efficient') : t('challengeResult.aboveExpected')}
               </div>
             </div>
             <div className="flex items-end justify-between">
               <div>
                 <p className="text-5xl font-bold text-yellow-400">{(submission.calculated_mpu ?? 0).toFixed(2)}<span className="text-xl text-gray-400 ml-1">min/op</span></p>
-                <p className="text-sm text-gray-400 mt-1">meta: ≤ {(submission.challenge?.target_mpu ?? 0).toFixed(2)} min/op (quanto menor, melhor)</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('challengeResult.mpuTarget')}: ≤ {(submission.challenge?.target_mpu ?? 0).toFixed(2)} min/op ({t('challengeResult.lowerIsBetter')})</p>
               </div>
             </div>
             <div className="mt-4 h-3 bg-white/10 rounded-full overflow-hidden">
@@ -446,7 +448,7 @@ const ChallengeResult: React.FC = () => {
         {/* Detalhes por Tipo */}
         {submission.submission_type === 'COMPLETE' && submission.parts.length > 0 && (
           <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-6 mb-8">
-            <h2 className="text-2xl font-bold text-white mb-4">Detalhamento por Partes</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('challengeResult.partsBreakdown')}</h2>
             <div className="space-y-3">
               {submission.parts.map((part) => (
                 <div key={part.id} className="bg-white/5 rounded-lg p-4 flex items-center justify-between">
@@ -455,9 +457,9 @@ const ChallengeResult: React.FC = () => {
                       <span className="text-red-500 font-bold">#{part.part_number}</span>
                     </div>
                     <div>
-                      <p className="text-white font-medium">Parte {part.part_number}</p>
-                      <p className="text-sm text-gray-400">
-                        {part.operations_count} operações em {(part.duration_minutes ?? 0).toFixed(1)} min
+                      <p className="text-gray-900 dark:text-white font-medium">{t('challengeResult.part')} {part.part_number}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {part.operations_count} {t('challengeResult.operationsIn')} {(part.duration_minutes ?? 0).toFixed(1)} min
                       </p>
                       <p className="text-xs text-gray-500">
                         {formatDate(part.started_at)} - {formatDate(part.completed_at)}
@@ -476,14 +478,14 @@ const ChallengeResult: React.FC = () => {
 
         {submission.submission_type === 'SUMMARY' && (
           <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-6 mb-8">
-            <h2 className="text-2xl font-bold text-white mb-4">Resumo</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('challengeResult.summary')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <p className="text-sm text-gray-400 mb-1">Iniciado</p>
-                <p className="text-white">{formatDate(submission.started_at)}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t('challengeResult.started')}</p>
+                <p className="text-gray-900 dark:text-white">{formatDate(submission.started_at)}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-400 mb-1">Concluído</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t('challengeResult.completed')}</p>
                 <p className="text-white">{formatDate(submission.completed_at)}</p>
               </div>
             </div>
@@ -495,33 +497,33 @@ const ChallengeResult: React.FC = () => {
           <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-6 mb-8">
             <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
               <AlertTriangle className="w-6 h-6 text-red-500" />
-              Detalhamento de Erros
+              {t('challengeResult.errorsBreakdown')}
             </h2>
             
             {/* Resumo por Tipo de Erro */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <div className="bg-white/5 rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-red-400">{submission.errors_summary.error_methodology}</p>
-                <p className="text-xs text-gray-400">Metodologia</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.methodology')}</p>
               </div>
               <div className="bg-white/5 rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-orange-400">{submission.errors_summary.error_knowledge}</p>
-                <p className="text-xs text-gray-400">Conhecimento</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.knowledge')}</p>
               </div>
               <div className="bg-white/5 rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-yellow-400">{submission.errors_summary.error_detail}</p>
-                <p className="text-xs text-gray-400">Detalhe</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.detail')}</p>
               </div>
               <div className="bg-white/5 rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-blue-400">{submission.errors_summary.error_procedure}</p>
-                <p className="text-xs text-gray-400">Procedimento</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.procedure')}</p>
               </div>
             </div>
             
             {/* Lista de Operações com Erro (COMPLETE) */}
             {submission.operations && submission.operations.filter(op => op.has_error).length > 0 && (
               <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-white mb-3">Operações com Erro</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{t('challengeResult.operationsWithErrorsList')}</h3>
                 {submission.operations.filter(op => op.has_error).map((operation) => (
                   <div key={operation.id} className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
                     <div className="flex items-center gap-3 mb-2">
@@ -529,7 +531,7 @@ const ChallengeResult: React.FC = () => {
                         <span className="text-red-400 font-bold text-sm">#{operation.operation_number}</span>
                       </div>
                       <div>
-                        <p className="text-white font-medium">Operação {operation.operation_number}</p>
+                        <p className="text-gray-900 dark:text-white font-medium">{t('challengeResult.operation')} {operation.operation_number}</p>
                         {operation.operation_reference && (
                           <p className="text-sm text-gray-400">Ref: {operation.operation_reference}</p>
                         )}
@@ -545,12 +547,12 @@ const ChallengeResult: React.FC = () => {
                               error.error_type === 'DETAIL' ? 'bg-yellow-500/20 text-yellow-400' :
                               'bg-blue-500/20 text-blue-400'
                             }`}>
-                              {error.error_type === 'METHODOLOGY' ? 'Metodologia' :
-                               error.error_type === 'KNOWLEDGE' ? 'Conhecimento' :
-                               error.error_type === 'DETAIL' ? 'Detalhe' :
-                               error.error_type === 'PROCEDURE' ? 'Procedimento' : error.error_type}
+                              {error.error_type === 'METHODOLOGY' ? t('challengeResult.methodology') :
+                               error.error_type === 'KNOWLEDGE' ? t('challengeResult.knowledge') :
+                               error.error_type === 'DETAIL' ? t('challengeResult.detail') :
+                               error.error_type === 'PROCEDURE' ? t('challengeResult.procedure') : error.error_type}
                             </span>
-                            <p className="text-gray-300 text-sm">{error.description}</p>
+                            <p className="text-gray-500 dark:text-gray-300 text-sm">{error.description}</p>
                           </div>
                         ))}
                       </div>
@@ -563,7 +565,7 @@ const ChallengeResult: React.FC = () => {
             {/* Lista de Erros Detalhados (SUMMARY) */}
             {submission.submission_errors && submission.submission_errors.length > 0 ? (
               <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-white mb-3">Erros Registados</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{t('challengeResult.registeredErrors')}</h3>
                 {submission.submission_errors.map((error, idx) => (
                   <div key={error.id} className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
                     <div className="flex items-start gap-3">
@@ -578,18 +580,18 @@ const ChallengeResult: React.FC = () => {
                             error.error_type === 'DETAIL' ? 'bg-yellow-500/20 text-yellow-400' :
                             'bg-blue-500/20 text-blue-400'
                           }`}>
-                            {error.error_type === 'METHODOLOGY' ? 'Metodologia' :
-                             error.error_type === 'KNOWLEDGE' ? 'Conhecimento' :
-                             error.error_type === 'DETAIL' ? 'Detalhe' :
-                             error.error_type === 'PROCEDURE' ? 'Procedimento' : error.error_type}
+                            {error.error_type === 'METHODOLOGY' ? t('challengeResult.methodology') :
+                             error.error_type === 'KNOWLEDGE' ? t('challengeResult.knowledge') :
+                             error.error_type === 'DETAIL' ? t('challengeResult.detail') :
+                             error.error_type === 'PROCEDURE' ? t('challengeResult.procedure') : error.error_type}
                           </span>
                           {error.operation_reference && (
                             <span className="text-xs text-gray-400">
-                              Ref: {error.operation_reference}
+                              {t('challengeResult.ref')}: {error.operation_reference}
                             </span>
                           )}
                         </div>
-                        <p className="text-gray-300">{error.description}</p>
+                        <p className="text-gray-500 dark:text-gray-300">{error.description}</p>
                       </div>
                     </div>
                   </div>
@@ -599,24 +601,24 @@ const ChallengeResult: React.FC = () => {
               /* Mostrar resumo quando não há detalhes individuais mas há erros */
               <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-4">
                 <p className="text-orange-400 text-sm">
-                  <strong>Total de {submission.errors_summary.total_individual_errors} erro(s) registado(s):</strong>
+                  <strong>{t('challengeResult.totalErrorsRegistered', { count: submission.errors_summary.total_individual_errors })}:</strong>
                 </p>
                 <ul className="mt-2 space-y-1 text-gray-300 text-sm">
                   {submission.errors_summary.error_methodology > 0 && (
-                    <li>• {submission.errors_summary.error_methodology} erro(s) de Metodologia</li>
+                    <li>• {submission.errors_summary.error_methodology} {t('challengeResult.errorsOf')} {t('challengeResult.methodology')}</li>
                   )}
                   {submission.errors_summary.error_knowledge > 0 && (
-                    <li>• {submission.errors_summary.error_knowledge} erro(s) de Conhecimento</li>
+                    <li>• {submission.errors_summary.error_knowledge} {t('challengeResult.errorsOf')} {t('challengeResult.knowledge')}</li>
                   )}
                   {submission.errors_summary.error_detail > 0 && (
-                    <li>• {submission.errors_summary.error_detail} erro(s) de Detalhe</li>
+                    <li>• {submission.errors_summary.error_detail} {t('challengeResult.errorsOf')} {t('challengeResult.detail')}</li>
                   )}
                   {submission.errors_summary.error_procedure > 0 && (
-                    <li>• {submission.errors_summary.error_procedure} erro(s) de Procedimento</li>
+                    <li>• {submission.errors_summary.error_procedure} {t('challengeResult.errorsOf')} {t('challengeResult.procedure')}</li>
                   )}
                 </ul>
                 <p className="text-gray-500 text-xs mt-3">
-                  Os detalhes específicos de cada erro não estão disponíveis para esta submissão.
+                  {t('challengeResult.noDetailsAvailable')}
                 </p>
               </div>
             ) : null}
@@ -626,8 +628,8 @@ const ChallengeResult: React.FC = () => {
         {/* Feedback */}
         {submission.feedback && (
           <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-6 mb-8">
-            <h2 className="text-2xl font-bold text-white mb-4">Feedback</h2>
-            <p className="text-gray-300">{submission.feedback}</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('challengeResult.feedback')}</h2>
+            <p className="text-gray-500 dark:text-gray-300">{submission.feedback}</p>
           </div>
         )}
 
@@ -636,10 +638,10 @@ const ChallengeResult: React.FC = () => {
           <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-6 mb-8">
             <h2 className="text-xl font-bold text-yellow-400 mb-4 flex items-center gap-2">
               <Clock className="w-5 h-5" />
-              Aguarda a sua decisão
+              {t('challengeResult.awaitingDecision')}
             </h2>
-            <p className="text-gray-300 mb-6">
-              Este desafio está configurado para avaliação manual. Analise os resultados acima e decida se o formando deve ser aprovado ou reprovado.
+            <p className="text-gray-500 dark:text-gray-300 mb-6">
+              {t('challengeResult.manualEvalDescription')}
             </p>
             <div className="flex gap-4 justify-center">
               <button
@@ -648,7 +650,7 @@ const ChallengeResult: React.FC = () => {
                 className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50"
               >
                 <Check className="w-5 h-5" />
-                {approving ? 'A processar...' : 'Aprovar'}
+                {approving ? t('challengeResult.processing') : t('challengeResult.approve')}
               </button>
               <button
                 onClick={() => handleApproval(false)}
@@ -656,7 +658,7 @@ const ChallengeResult: React.FC = () => {
                 className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all disabled:opacity-50"
               >
                 <X className="w-5 h-5" />
-                {approving ? 'A processar...' : 'Reprovar'}
+                {approving ? t('challengeResult.processing') : t('challengeResult.reject')}
               </button>
             </div>
           </div>
@@ -669,16 +671,16 @@ const ChallengeResult: React.FC = () => {
               <div>
                 <h2 className="text-xl font-bold text-amber-400 mb-2 flex items-center gap-2">
                   <Star className="w-5 h-5" />
-                  Avalie este Desafio
+                  {t('challengeResult.rateChallenge')}
                 </h2>
                 <p className="text-gray-400">
-                  {hasRated ? 'Obrigado pela sua avaliação!' : 'A sua opinião é importante para melhorarmos.'}
+                  {hasRated ? t('challengeResult.thankYouRating') : t('challengeResult.ratingImportant')}
                 </p>
               </div>
               {hasRated ? (
                 <div className="flex items-center gap-2 px-4 py-2 bg-gray-700 text-gray-400 rounded-lg">
                   <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
-                  Desafio Classificado ✓
+                  {t('challengeResult.challengeRated')}
                 </div>
               ) : (
                 <button
@@ -686,7 +688,7 @@ const ChallengeResult: React.FC = () => {
                   className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg font-medium hover:from-amber-600 hover:to-yellow-600 transition-all shadow-md"
                 >
                   <Star className="w-5 h-5" />
-                  Classificar Desafio
+                  {t('challengeResult.rateButton')}
                 </button>
               )}
             </div>
@@ -699,7 +701,7 @@ const ChallengeResult: React.FC = () => {
             onClick={() => planId ? navigate(`/training-plans/${planId}`) : navigate(-1)}
             className="px-8 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all"
           >
-            Voltar
+            {t('common.back')}
           </button>
         </div>
       </div>
