@@ -415,7 +415,9 @@
     "daysRemaining": "Dias Restantes",
     "trainer": "Formador",
     "trainers": "Formadores",
-    "viewDetails": "Ver Detalhes"
+    "viewDetails": "Ver Detalhes",
+    "plan": "plano",
+    "plans": "planos"
   },
   "certificates": {
     "title": "Certificados",

@@ -420,7 +420,9 @@
     "daysRemaining": "Days Remaining",
     "trainer": "Trainer",
     "trainers": "Trainers",
-    "viewDetails": "View Details"
+    "viewDetails": "View Details",
+    "plan": "plan",
+    "plans": "plans"
   },
   "certificates": {
     "title": "Certificates",
