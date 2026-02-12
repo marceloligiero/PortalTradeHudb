@@ -127,11 +127,41 @@ async def list_all_courses(
             models.Enrollment.course_id == course.id
         ).count()
         
+        # Get associated banks (many-to-many)
+        bank_associations = db.query(models.CourseBank).filter(
+            models.CourseBank.course_id == course.id
+        ).all()
+        banks = []
+        for ba in bank_associations:
+            bank = db.query(models.Bank).filter(models.Bank.id == ba.bank_id).first()
+            if bank:
+                banks.append({"id": bank.id, "code": bank.code, "name": bank.name})
+        if not banks and course.bank:
+            banks.append({"id": course.bank.id, "code": course.bank.code, "name": course.bank.name})
+        
+        # Get associated products (many-to-many)
+        product_associations = db.query(models.CourseProduct).filter(
+            models.CourseProduct.course_id == course.id
+        ).all()
+        products = []
+        for pa in product_associations:
+            product = db.query(models.Product).filter(models.Product.id == pa.product_id).first()
+            if product:
+                products.append({"id": product.id, "code": product.code, "name": product.name})
+        if not products and course.product:
+            products.append({"id": course.product.id, "code": course.product.code, "name": course.product.name})
+        
         courses_list.append({
             "id": course.id,
             "title": course.title,
             "description": course.description,
-            "bank_code": course.bank_id,
+            "bank_id": course.bank_id,
+            "product_id": course.product_id,
+            "bank_ids": [b["id"] for b in banks],
+            "product_ids": [p["id"] for p in products],
+            "banks": banks,
+            "products": products,
+            "bank_code": banks[0]["code"] if banks else "N/A",
             "trainer_id": course.created_by,
             "trainer_name": trainer.full_name if trainer else "N/A",
             "total_students": total_students,
