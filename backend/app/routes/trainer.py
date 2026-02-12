@@ -187,11 +187,33 @@ async def get_course_details(
     # Get creator/trainer info
     trainer = db.query(models.User).filter(models.User.id == course.created_by).first() if course.created_by else None
     
-    # Get bank info
-    bank = db.query(models.Bank).filter(models.Bank.id == course.bank_id).first() if course.bank_id else None
+    # Get associated banks (from N:N table)
+    bank_associations = db.query(models.CourseBank).filter(
+        models.CourseBank.course_id == course.id
+    ).all()
+    banks = []
+    for ba in bank_associations:
+        bank = db.query(models.Bank).filter(models.Bank.id == ba.bank_id).first()
+        if bank:
+            banks.append({"id": bank.id, "code": bank.code, "name": bank.name})
     
-    # Get product info  
-    product = db.query(models.Product).filter(models.Product.id == course.product_id).first() if course.product_id else None
+    # Fallback to legacy single bank if no associations
+    if not banks and course.bank:
+        banks.append({"id": course.bank.id, "code": course.bank.code, "name": course.bank.name})
+    
+    # Get associated products (from N:N table)
+    product_associations = db.query(models.CourseProduct).filter(
+        models.CourseProduct.course_id == course.id
+    ).all()
+    products = []
+    for pa in product_associations:
+        product = db.query(models.Product).filter(models.Product.id == pa.product_id).first()
+        if product:
+            products.append({"id": product.id, "code": product.code, "name": product.name})
+    
+    # Fallback to legacy single product if no associations
+    if not products and course.product:
+        products.append({"id": course.product.id, "code": course.product.code, "name": course.product.name})
     
     # Get lessons
     lessons = db.query(models.Lesson).filter(models.Lesson.course_id == course_id).order_by(models.Lesson.order_index).all()
@@ -207,11 +229,15 @@ async def get_course_details(
         "title": course.title,
         "description": course.description,
         "bank_id": course.bank_id,
-        "bank_code": bank.code if bank else None,
-        "bank_name": bank.name if bank else None,
         "product_id": course.product_id,
-        "product_code": product.code if product else None,
-        "product_name": product.name if product else None,
+        "bank_ids": [b["id"] for b in banks],
+        "product_ids": [p["id"] for p in products],
+        "banks": banks,
+        "products": products,
+        "bank_code": banks[0]["code"] if banks else None,
+        "bank_name": banks[0]["name"] if banks else None,
+        "product_code": products[0]["code"] if products else None,
+        "product_name": products[0]["name"] if products else None,
         "trainer_id": course.created_by,
         "trainer_name": trainer.full_name if trainer else None,
         "total_students": total_students,
