@@ -265,6 +265,7 @@ async def validate_trainer(
         raise HTTPException(status_code=400, detail="Trainer is already validated")
     
     trainer.is_pending = False
+    trainer.validated_at = datetime.utcnow()
     db.commit()
     db.refresh(trainer)
     
@@ -1005,6 +1006,15 @@ async def get_admin_stats(
         models.User.is_pending == True
     ).count()
     
+    # Trainers approved this month
+    now = datetime.utcnow()
+    first_day_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    approved_this_month = db.query(models.User).filter(
+        models.User.role == "TRAINER",
+        models.User.is_pending == False,
+        models.User.validated_at >= first_day_of_month
+    ).count()
+    
     # Count courses and training plans
     total_courses = db.query(models.Course).count()
     active_courses = db.query(models.Course).filter(models.Course.is_active == True).count()
@@ -1079,6 +1089,7 @@ async def get_admin_stats(
         "total_students": total_students,
         "total_trainers": total_trainers,
         "pending_trainers": pending_trainers,
+        "approved_this_month": approved_this_month,
         "total_courses": total_courses,
         "active_courses": active_courses,
         "total_training_plans": total_training_plans,

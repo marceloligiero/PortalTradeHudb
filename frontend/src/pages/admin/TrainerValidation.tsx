@@ -32,10 +32,23 @@ const TrainerValidation = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const [approvedThisMonth, setApprovedThisMonth] = useState<number>(0);
+  const [totalActiveTrainers, setTotalActiveTrainers] = useState<number>(0);
 
   useEffect(() => {
     fetchPendingTrainers();
+    fetchTrainerStats();
   }, []);
+
+  const fetchTrainerStats = async () => {
+    try {
+      const response = await api.get('/api/admin/reports/stats');
+      setApprovedThisMonth(response.data.approved_this_month ?? 0);
+      setTotalActiveTrainers(response.data.total_trainers ?? 0);
+    } catch {
+      // Stats are non-critical, silently fail
+    }
+  };
 
   const fetchPendingTrainers = async () => {
     try {
@@ -65,6 +78,9 @@ const TrainerValidation = () => {
       setTimeout(() => {
         setPendingTrainers(prev => prev.filter(t => t.id !== trainerId));
       }, 300);
+      
+      // Refresh stats
+      fetchTrainerStats();
       
       // Clear message after 3 seconds
       setTimeout(() => setSuccessMessage(''), 3000);
@@ -248,7 +264,7 @@ const TrainerValidation = () => {
                   <UserCheck className="w-5 h-5 text-green-500 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">—</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">{approvedThisMonth}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">{t('admin.approvedThisMonth') || 'Aprovados este mês'}</p>
                 </div>
               </div>
@@ -263,7 +279,7 @@ const TrainerValidation = () => {
                   <Users className="w-5 h-5 text-blue-500 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">—</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white">{totalActiveTrainers}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">{t('admin.totalActiveTrainers') || 'Formadores Ativos'}</p>
                 </div>
               </div>
