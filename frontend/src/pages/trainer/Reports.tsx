@@ -415,7 +415,7 @@ export default function TrainerReportsPage() {
               <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-6 border border-gray-200 dark:border-white/10 text-center">
                 <BookOpen className="w-10 h-10 text-indigo-400 mx-auto mb-3 opacity-70" />
                 <p className="text-3xl font-bold text-gray-900 dark:text-white">{lessonReport.total_lessons}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('trainerReports.lessonName')}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('trainerReports.totalLessons', 'Total de Módulos')}</p>
               </div>
               <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-6 border border-gray-200 dark:border-white/10 text-center">
                 <Clock className="w-10 h-10 text-purple-400 mx-auto mb-3 opacity-70" />
@@ -423,13 +423,13 @@ export default function TrainerReportsPage() {
                   {Math.round(lessonReport.total_duration_minutes / 60)}h
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {lessonReport.total_duration_minutes} min
+                  {t('trainerReports.totalDuration', 'Duração Total')} ({lessonReport.total_duration_minutes} min)
                 </p>
               </div>
               <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-6 border border-gray-200 dark:border-white/10 text-center">
                 <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-3 opacity-70" />
                 <p className="text-3xl font-bold text-gray-900 dark:text-white">{lessonReport.lessons_per_course}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('trainerReports.avgProgress')}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('trainerReports.lessonsPerCourse', 'Módulos por Curso')}</p>
               </div>
             </div>
           ) : (
