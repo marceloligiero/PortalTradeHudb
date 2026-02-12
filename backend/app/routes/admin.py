@@ -1218,3 +1218,288 @@ async def get_admin_training_plans_report(
         })
     
     return plans_report
+
+@router.get("/reports/insights")
+async def get_admin_insights(
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Comprehensive insights dashboard for admin.
+    Returns deep analytics across all platform dimensions.
+    """
+    now = datetime.utcnow()
+    first_day_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    
+    # ═══════════════ 1. OVERVIEW KPIs ═══════════════
+    total_students = db.query(models.User).filter(models.User.role == "TRAINEE", models.User.is_active == True).count()
+    total_trainers = db.query(models.User).filter(models.User.role == "TRAINER", models.User.is_pending == False, models.User.is_active == True).count()
+    pending_trainers = db.query(models.User).filter(models.User.role == "TRAINER", models.User.is_pending == True).count()
+    total_courses = db.query(models.Course).filter(models.Course.is_active == True).count()
+    total_lessons = db.query(models.Lesson).count()
+    total_plans = db.query(models.TrainingPlan).count()
+    active_plans = db.query(models.TrainingPlan).filter(models.TrainingPlan.is_active == True).count()
+    total_enrollments = db.query(models.Enrollment).count()
+    total_certificates = db.query(models.Certificate).filter(models.Certificate.is_valid == True).count()
+    total_challenges = db.query(models.Challenge).filter(models.Challenge.is_active == True).count()
+    total_banks = db.query(models.Bank).filter(models.Bank.is_active == True).count()
+    total_products = db.query(models.Product).filter(models.Product.is_active == True).count()
+    
+    # Study hours
+    total_minutes = db.query(func.sum(models.LessonProgress.actual_time_minutes)).filter(
+        models.LessonProgress.actual_time_minutes.isnot(None)
+    ).scalar() or 0
+    total_study_hours = round(float(total_minutes) / 60.0, 1)
+    
+    # Completion rate
+    completed_enrollments = db.query(models.Enrollment).filter(models.Enrollment.completed_at.isnot(None)).count()
+    completion_rate = round((completed_enrollments / total_enrollments * 100), 1) if total_enrollments > 0 else 0
+    
+    # ═══════════════ 2. CHALLENGE / SUBMISSION ANALYTICS ═══════════════
+    total_submissions = db.query(models.ChallengeSubmission).count()
+    approved_submissions = db.query(models.ChallengeSubmission).filter(models.ChallengeSubmission.is_approved == True).count()
+    rejected_submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.is_approved == False,
+        models.ChallengeSubmission.status.in_(["REVIEWED", "REJECTED"])
+    ).count()
+    pending_review = db.query(models.ChallengeSubmission).filter(models.ChallengeSubmission.status == "PENDING_REVIEW").count()
+    in_progress = db.query(models.ChallengeSubmission).filter(models.ChallengeSubmission.status == "IN_PROGRESS").count()
+    approval_rate = round((approved_submissions / total_submissions * 100), 1) if total_submissions > 0 else 0
+    
+    avg_mpu = db.query(func.avg(models.ChallengeSubmission.calculated_mpu)).filter(
+        models.ChallengeSubmission.calculated_mpu.isnot(None),
+        models.ChallengeSubmission.calculated_mpu > 0
+    ).scalar()
+    avg_mpu = round(float(avg_mpu), 2) if avg_mpu else 0
+    
+    avg_score = db.query(func.avg(models.ChallengeSubmission.score)).filter(
+        models.ChallengeSubmission.score.isnot(None)
+    ).scalar()
+    avg_score = round(float(avg_score), 1) if avg_score else 0
+    
+    # Error breakdown
+    total_errors_methodology = db.query(func.sum(models.ChallengeSubmission.error_methodology)).scalar() or 0
+    total_errors_knowledge = db.query(func.sum(models.ChallengeSubmission.error_knowledge)).scalar() or 0
+    total_errors_detail = db.query(func.sum(models.ChallengeSubmission.error_detail)).scalar() or 0
+    total_errors_procedure = db.query(func.sum(models.ChallengeSubmission.error_procedure)).scalar() or 0
+    total_errors_all = int(total_errors_methodology) + int(total_errors_knowledge) + int(total_errors_detail) + int(total_errors_procedure)
+    
+    error_breakdown = [
+        {"type": "methodology", "count": int(total_errors_methodology), "percentage": round(int(total_errors_methodology) / total_errors_all * 100, 1) if total_errors_all > 0 else 0},
+        {"type": "knowledge", "count": int(total_errors_knowledge), "percentage": round(int(total_errors_knowledge) / total_errors_all * 100, 1) if total_errors_all > 0 else 0},
+        {"type": "detail", "count": int(total_errors_detail), "percentage": round(int(total_errors_detail) / total_errors_all * 100, 1) if total_errors_all > 0 else 0},
+        {"type": "procedure", "count": int(total_errors_procedure), "percentage": round(int(total_errors_procedure) / total_errors_all * 100, 1) if total_errors_all > 0 else 0},
+    ]
+    
+    # ═══════════════ 3. PER-PRODUCT (SERVICE) ANALYTICS ═══════════════
+    products = db.query(models.Product).filter(models.Product.is_active == True).all()
+    products_analytics = []
+    for product in products:
+        p_courses = db.query(models.CourseProduct).filter(models.CourseProduct.product_id == product.id).count()
+        p_plans = db.query(models.TrainingPlanProduct).filter(models.TrainingPlanProduct.product_id == product.id).count()
+        # Legacy counts
+        p_courses += db.query(models.Course).filter(models.Course.product_id == product.id).count()
+        p_plans += db.query(models.TrainingPlan).filter(models.TrainingPlan.product_id == product.id).count()
+        products_analytics.append({
+            "id": product.id,
+            "code": product.code,
+            "name": product.name,
+            "total_courses": p_courses,
+            "total_plans": p_plans,
+        })
+    
+    # ═══════════════ 4. PER-BANK ANALYTICS ═══════════════
+    banks = db.query(models.Bank).filter(models.Bank.is_active == True).all()
+    banks_analytics = []
+    for bank in banks:
+        b_courses = db.query(models.CourseBank).filter(models.CourseBank.bank_id == bank.id).count()
+        b_plans = db.query(models.TrainingPlanBank).filter(models.TrainingPlanBank.bank_id == bank.id).count()
+        b_courses += db.query(models.Course).filter(models.Course.bank_id == bank.id).count()
+        b_plans += db.query(models.TrainingPlan).filter(models.TrainingPlan.bank_id == bank.id).count()
+        banks_analytics.append({
+            "id": bank.id,
+            "code": bank.code,
+            "name": bank.name,
+            "country": bank.country,
+            "total_courses": b_courses,
+            "total_plans": b_plans,
+        })
+    
+    # ═══════════════ 5. TRAINING PLAN STATUS DISTRIBUTION ═══════════════
+    plans_all = db.query(models.TrainingPlan).all()
+    plan_status_counts = {"PENDING": 0, "IN_PROGRESS": 0, "COMPLETED": 0, "DELAYED": 0}
+    for plan in plans_all:
+        s = plan.status or "PENDING"
+        if plan.completed_at:
+            s = "COMPLETED"
+        elif plan.end_date and now > plan.end_date and not plan.completed_at:
+            s = "DELAYED"
+        if s in plan_status_counts:
+            plan_status_counts[s] += 1
+        else:
+            plan_status_counts[s] = 1
+    
+    # ═══════════════ 6. LESSON PROGRESS ANALYTICS ═══════════════
+    lesson_progress_all = db.query(models.LessonProgress).all()
+    lp_status_counts = {"NOT_STARTED": 0, "RELEASED": 0, "IN_PROGRESS": 0, "PAUSED": 0, "COMPLETED": 0}
+    total_lp_mpu = []
+    for lp in lesson_progress_all:
+        s = lp.status or "NOT_STARTED"
+        if s in lp_status_counts:
+            lp_status_counts[s] += 1
+        if lp.mpu and lp.mpu > 0:
+            total_lp_mpu.append(lp.mpu)
+    
+    avg_lesson_mpu = round(sum(total_lp_mpu) / len(total_lp_mpu), 2) if total_lp_mpu else 0
+    
+    # ═══════════════ 7. TOP PERFORMERS ═══════════════
+    # Top students by completed lessons
+    top_students_query = db.query(
+        models.User.id,
+        models.User.full_name,
+        models.User.email,
+        func.count(models.LessonProgress.id).label("completed_lessons")
+    ).join(
+        models.LessonProgress, models.LessonProgress.user_id == models.User.id
+    ).filter(
+        models.LessonProgress.status == "COMPLETED",
+        models.User.role == "TRAINEE"
+    ).group_by(models.User.id, models.User.full_name, models.User.email
+    ).order_by(func.count(models.LessonProgress.id).desc()
+    ).limit(5).all()
+    
+    top_students = [
+        {"id": s.id, "name": s.full_name, "email": s.email, "completed_lessons": s.completed_lessons}
+        for s in top_students_query
+    ]
+    
+    # Top trainers by courses created
+    top_trainers_query = db.query(
+        models.User.id,
+        models.User.full_name,
+        models.User.email,
+        func.count(models.Course.id).label("courses_created")
+    ).join(
+        models.Course, models.Course.created_by == models.User.id
+    ).filter(
+        models.User.role == "TRAINER"
+    ).group_by(models.User.id, models.User.full_name, models.User.email
+    ).order_by(func.count(models.Course.id).desc()
+    ).limit(5).all()
+    
+    top_trainers = [
+        {"id": t.id, "name": t.full_name, "email": t.email, "courses_created": t.courses_created}
+        for t in top_trainers_query
+    ]
+    
+    # ═══════════════ 8. MONTHLY TRENDS (last 6 months) ═══════════════
+    monthly_trends = []
+    for i in range(5, -1, -1):
+        month_start = (now.replace(day=1) - timedelta(days=i * 30)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        if month_start.month == 12:
+            month_end = month_start.replace(year=month_start.year + 1, month=1)
+        else:
+            month_end = month_start.replace(month=month_start.month + 1)
+        
+        m_enrollments = db.query(models.Enrollment).filter(
+            models.Enrollment.enrolled_at >= month_start,
+            models.Enrollment.enrolled_at < month_end
+        ).count()
+        m_submissions = db.query(models.ChallengeSubmission).filter(
+            models.ChallengeSubmission.created_at >= month_start,
+            models.ChallengeSubmission.created_at < month_end
+        ).count()
+        m_completions = db.query(models.LessonProgress).filter(
+            models.LessonProgress.completed_at >= month_start,
+            models.LessonProgress.completed_at < month_end,
+            models.LessonProgress.status == "COMPLETED"
+        ).count()
+        m_new_students = db.query(models.User).filter(
+            models.User.role == "TRAINEE",
+            models.User.created_at >= month_start,
+            models.User.created_at < month_end
+        ).count()
+        m_certificates = db.query(models.Certificate).filter(
+            models.Certificate.issued_at >= month_start,
+            models.Certificate.issued_at < month_end
+        ).count()
+        
+        monthly_trends.append({
+            "month": month_start.strftime("%Y-%m"),
+            "month_label": month_start.strftime("%b %Y"),
+            "enrollments": m_enrollments,
+            "submissions": m_submissions,
+            "completions": m_completions,
+            "new_students": m_new_students,
+            "certificates": m_certificates,
+        })
+    
+    # ═══════════════ 9. RATINGS SUMMARY ═══════════════
+    avg_rating = db.query(func.avg(models.Rating.stars)).scalar()
+    avg_rating = round(float(avg_rating), 1) if avg_rating else 0
+    total_ratings = db.query(models.Rating).count()
+    
+    ratings_by_type = {}
+    for rt in ["COURSE", "LESSON", "CHALLENGE", "TRAINER", "TRAINING_PLAN"]:
+        rt_avg = db.query(func.avg(models.Rating.stars)).filter(models.Rating.rating_type == rt).scalar()
+        rt_count = db.query(models.Rating).filter(models.Rating.rating_type == rt).count()
+        ratings_by_type[rt.lower()] = {
+            "average": round(float(rt_avg), 1) if rt_avg else 0,
+            "count": rt_count
+        }
+    
+    # ═══════════════ 10. CHALLENGE DIFFICULTY DISTRIBUTION ═══════════════
+    difficulty_dist = {}
+    for diff in ["easy", "medium", "hard"]:
+        difficulty_dist[diff] = db.query(models.Challenge).filter(
+            models.Challenge.difficulty == diff,
+            models.Challenge.is_active == True
+        ).count()
+    
+    # ═══════════════ FINAL RESPONSE ═══════════════
+    return {
+        "generated_at": now.isoformat(),
+        "overview": {
+            "total_students": total_students,
+            "total_trainers": total_trainers,
+            "pending_trainers": pending_trainers,
+            "total_courses": total_courses,
+            "total_lessons": total_lessons,
+            "total_plans": total_plans,
+            "active_plans": active_plans,
+            "total_enrollments": total_enrollments,
+            "total_certificates": total_certificates,
+            "total_challenges": total_challenges,
+            "total_banks": total_banks,
+            "total_products": total_products,
+            "total_study_hours": total_study_hours,
+            "completion_rate": completion_rate,
+        },
+        "challenges": {
+            "total_submissions": total_submissions,
+            "approved": approved_submissions,
+            "rejected": rejected_submissions,
+            "pending_review": pending_review,
+            "in_progress": in_progress,
+            "approval_rate": approval_rate,
+            "avg_mpu": avg_mpu,
+            "avg_score": avg_score,
+            "error_breakdown": error_breakdown,
+            "difficulty_distribution": difficulty_dist,
+        },
+        "products": products_analytics,
+        "banks": banks_analytics,
+        "plan_status": plan_status_counts,
+        "lesson_progress": {
+            "status_distribution": lp_status_counts,
+            "avg_mpu": avg_lesson_mpu,
+        },
+        "top_students": top_students,
+        "top_trainers": top_trainers,
+        "monthly_trends": monthly_trends,
+        "ratings": {
+            "average": avg_rating,
+            "total": total_ratings,
+            "by_type": ratings_by_type,
+        },
+    }
