@@ -53,6 +53,8 @@ export default function TrainerCoursesPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [allBanks, setAllBanks] = useState<Bank[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -67,8 +69,14 @@ export default function TrainerCoursesPage() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/trainer/courses/all');
-      setCourses(response.data);
+      const [coursesRes, productsRes, banksRes] = await Promise.all([
+        api.get('/api/trainer/courses/all'),
+        api.get('/api/admin/products'),
+        api.get('/api/admin/banks'),
+      ]);
+      setCourses(coursesRes.data);
+      setAllProducts(productsRes.data);
+      setAllBanks(banksRes.data);
     } catch (error) {
       console.error('Error fetching courses:', error);
     } finally {
@@ -76,18 +84,14 @@ export default function TrainerCoursesPage() {
     }
   };
 
-  // Extract unique products and banks from courses data
+  // Use products and banks from API (always available even with 0 courses)
   const uniqueProducts = useMemo(() => {
-    const map = new Map<number, Product>();
-    courses.forEach(c => c.products?.forEach(p => map.set(p.id, p)));
-    return Array.from(map.values());
-  }, [courses]);
+    return allProducts;
+  }, [allProducts]);
 
   const uniqueBanks = useMemo(() => {
-    const map = new Map<number, Bank>();
-    courses.forEach(c => c.banks?.forEach(b => map.set(b.id, b)));
-    return Array.from(map.values());
-  }, [courses]);
+    return allBanks;
+  }, [allBanks]);
 
   // Filter courses
   const filteredCourses = useMemo(() => {
