@@ -212,7 +212,7 @@ export default function TrainingPlanDetail() {
 
   // Polling para formador ver alterações do formando (ex: quando formando finaliza)
   useEffect(() => {
-    if (!plan || !isTrainer) return;
+    if (!plan || !isTrainer || !selectedStudentId) return;
     
     const pollInterval = setInterval(async () => {
       try {
@@ -223,7 +223,7 @@ export default function TrainingPlanDetail() {
     }, 5000); // Atualiza a cada 5 segundos
     
     return () => clearInterval(pollInterval);
-  }, [plan, isTrainer]);
+  }, [plan, isTrainer, selectedStudentId]);
 
   // Refetch progress when selected student changes
   useEffect(() => {
@@ -309,6 +309,7 @@ export default function TrainingPlanDetail() {
       setPlan(resp.data);
       
       // Set selected student for progress viewing
+      // Note: setSelectedStudentId triggers useEffect that fetches progress data
       if (isStudent) {
         setSelectedStudentId(user?.id || null);
       } else if (resp.data.enrolled_students?.length > 0) {
@@ -320,7 +321,9 @@ export default function TrainingPlanDetail() {
         setSelectedStudentId(resp.data.student_id);
       }
       
-      if (resp.data.courses) {
+      // Only fetch progress here if selectedStudentId is already set (won't change)
+      // Otherwise the useEffect[selectedStudentId] will handle it
+      if (resp.data.courses && selectedStudentId) {
         await fetchProgressData(resp.data);
       }
       // Buscar status de conclusão do plano
