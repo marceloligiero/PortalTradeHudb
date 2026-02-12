@@ -1417,7 +1417,11 @@
     "manualEvaluation": "Avaliação Manual",
     "manualEvaluationDesc": "Este desafio requer avaliação manual do formador. Analise o desempenho e decida se aprova.",
     "rejectManually": "Reprovar Manualmente",
-    "approveManually": "Aprovar Manualmente"
+    "approveManually": "Aprovar Manualmente",
+    "timeUsed": "Tempo Utilizado",
+    "operationDetails": "Detalhes da Operação",
+    "errorBreakdown": "Distribuição de Erros",
+    "submittedBy": "Submetido por"
   },
   "myChallenges": {
     "title": "Meus Desafios",

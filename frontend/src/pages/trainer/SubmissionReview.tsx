@@ -66,19 +66,45 @@ interface Submission {
   challenge_id: number;
   challenge_title?: string;
   status: string;
+  submission_type?: string;
   started_at: string;
   completed_at?: string;
   total_operations: number;
   total_time_minutes?: number;
   calculated_mpu?: number;
+  mpu_vs_target?: number;
   correct_operations: number;
   errors_count: number;
+  error_methodology?: number;
+  error_knowledge?: number;
+  error_detail?: number;
+  error_procedure?: number;
+  operation_reference?: string;
   challenge?: Challenge;
   user?: UserBasic;
+  submitter?: UserBasic;
   is_approved?: boolean;
   is_retry_allowed?: boolean;
   retry_count?: number;
   trainer_notes?: string;
+  submission_errors?: SubmissionError[];
+  errors_summary?: {
+    operations_with_errors: number;
+    max_errors_allowed: number;
+    error_methodology: number;
+    error_knowledge: number;
+    error_detail: number;
+    error_procedure: number;
+    total_individual_errors: number;
+  };
+}
+
+interface SubmissionError {
+  id: number;
+  error_type: string;
+  description: string;
+  operation_reference?: string;
+  created_at?: string;
 }
 
 export default function SubmissionReview() {
@@ -114,9 +140,14 @@ export default function SubmissionReview() {
       const subResp = await api.get(`/api/challenges/submissions/${submissionId}`);
       setSubmission(subResp.data);
       
-      // Buscar operações
-      const opsResp = await api.get(`/api/challenges/submissions/${submissionId}/operations`);
-      setOperations(opsResp.data || []);
+      // Para COMPLETE: buscar operações separadamente
+      // Para SUMMARY: operações não existem, dados estão na própria submission
+      if (subResp.data.submission_type !== 'SUMMARY') {
+        const opsResp = await api.get(`/api/challenges/submissions/${submissionId}/operations`);
+        setOperations(opsResp.data || []);
+      } else {
+        setOperations([]);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -222,17 +253,21 @@ export default function SubmissionReview() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
+  const isSummary = submission?.submission_type === 'SUMMARY';
+
   // Número de operações requeridas pelo desafio
   const requiredOperations = submission?.challenge?.operations_required || 0;
   
   // Operações concluídas pelo formando
-  const completedOperationsCount = operations.filter(op => op.completed_at).length;
+  const completedOperationsCount = isSummary 
+    ? (submission?.total_operations || 0) 
+    : operations.filter(op => op.completed_at).length;
   
   // Verificar se todas as operações requeridas foram executadas
-  const allOperationsExecuted = completedOperationsCount >= requiredOperations;
+  const allOperationsExecuted = isSummary ? true : completedOperationsCount >= requiredOperations;
   
   // Verificar se todas as operações executadas foram classificadas
-  const allOperationsReviewed = operations
+  const allOperationsReviewed = isSummary ? true : operations
     .filter(op => op.completed_at)
     .every(op => op.is_approved != null);
   
@@ -416,7 +451,7 @@ export default function SubmissionReview() {
         </div>
       )}
 
-      {/* Resumo */}
+      {/* Resumo - adaptado para SUMMARY vs COMPLETE */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
           <div className="flex items-center gap-3">
@@ -424,8 +459,24 @@ export default function SubmissionReview() {
               <Hash className="w-5 h-5 text-blue-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{operations.length}</p>
+              <p className="text-2xl font-bold text-white">
+                {isSummary ? (submission?.total_operations || 0) : operations.length}
+              </p>
               <p className="text-xs text-gray-400">{t('submissionReview.totalOperations')}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-500/20 rounded-lg">
+              <TrendingUp className="w-5 h-5 text-green-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-white">
+                {submission?.calculated_mpu?.toFixed(2) || '0.00'}
+              </p>
+              <p className="text-xs text-gray-400">MPU</p>
             </div>
           </div>
         </div>
@@ -436,22 +487,12 @@ export default function SubmissionReview() {
               <Clock className="w-5 h-5 text-yellow-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{pendingReview.length}</p>
-              <p className="text-xs text-gray-400">{t('submissionReview.pendingReview')}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-500/20 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-green-400" />
-            </div>
-            <div>
               <p className="text-2xl font-bold text-white">
-                {operations.filter(op => op.is_approved === true && !op.has_error).length}
+                {isSummary ? `${submission?.total_time_minutes || 0} min` : pendingReview.length}
               </p>
-              <p className="text-xs text-gray-400">{t('submissionReview.correct')}</p>
+              <p className="text-xs text-gray-400">
+                {isSummary ? t('submissionReview.timeUsed') : t('submissionReview.pendingReview')}
+              </p>
             </div>
           </div>
         </div>
@@ -462,14 +503,173 @@ export default function SubmissionReview() {
               <AlertTriangle className="w-5 h-5 text-red-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{errorOperations.length}</p>
+              <p className="text-2xl font-bold text-white">
+                {isSummary ? (submission?.errors_count || 0) : errorOperations.length}
+              </p>
               <p className="text-xs text-gray-400">{t('submissionReview.withErrors')}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Lista de operações para classificar */}
+      {/* ===== SUMMARY VIEW ===== */}
+      {isSummary && submission && (
+        <div className="space-y-6">
+          {/* MPU Result */}
+          <div className={`rounded-2xl p-6 border-2 ${
+            submission.is_approved === true
+              ? 'bg-green-500/10 border-green-500/30'
+              : submission.is_approved === false
+              ? 'bg-red-500/10 border-red-500/30'
+              : 'bg-yellow-500/10 border-yellow-500/30'
+          }`}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className={`w-5 h-5 ${
+                    submission.is_approved === true ? 'text-green-400' 
+                    : submission.is_approved === false ? 'text-red-400' 
+                    : 'text-yellow-400'
+                  }`} />
+                  <span className="text-sm font-medium text-gray-300">MPU</span>
+                </div>
+                <p className="text-4xl font-bold text-white">
+                  {submission.calculated_mpu?.toFixed(2) || '0.00'} <span className="text-lg text-gray-400">min/op</span>
+                </p>
+              </div>
+              <div className="text-right">
+                <p className={`text-sm font-medium ${
+                  submission.is_approved === true ? 'text-green-400' 
+                  : submission.is_approved === false ? 'text-red-400' 
+                  : 'text-yellow-400'
+                }`}>
+                  {submission.is_approved === true ? `✅ ${t('submissionReview.approved')}` 
+                   : submission.is_approved === false ? `❌ ${t('submissionReview.rejected')}` 
+                   : `⏳ ${t('submissionReview.pendingReview')}`}
+                </p>
+                {submission.mpu_vs_target != null && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    {submission.mpu_vs_target >= 100 
+                      ? `${t('submissionReview.targetMPU')} ✓` 
+                      : `${Math.min(submission.mpu_vs_target, 100).toFixed(1)}%`}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="bg-white/5 rounded-lg p-3">
+              <p className="text-sm text-gray-400">
+                {submission.total_time_minutes} min ÷ {submission.total_operations} ops = {submission.calculated_mpu?.toFixed(2)} min/op
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                {t('submissionReview.targetMPU')}: ≤ {submission.challenge?.target_mpu?.toFixed(2)} min/op
+              </p>
+            </div>
+          </div>
+
+          {/* Summary Details Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+              <h3 className="text-sm font-bold text-gray-300 mb-4 flex items-center gap-2">
+                <Hash className="w-4 h-4 text-blue-400" />
+                {t('submissionReview.operationDetails')}
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400">{t('submissionReview.totalOperations')}</span>
+                  <span className="text-white font-bold">{submission.total_operations}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400">{t('submissionReview.timeUsed')}</span>
+                  <span className="text-white font-bold">{submission.total_time_minutes} min</span>
+                </div>
+                {submission.operation_reference && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">{t('submissionReview.reference')}</span>
+                    <span className="text-white font-bold text-sm">{submission.operation_reference}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-400">{t('submissionReview.withErrors')}</span>
+                  <span className={`font-bold ${(submission.errors_count || 0) > (submission.challenge?.max_errors || 0) ? 'text-red-400' : 'text-green-400'}`}>
+                    {submission.errors_count || 0} / {submission.challenge?.max_errors ?? 0} max
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Error Breakdown */}
+            <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+              <h3 className="text-sm font-bold text-gray-300 mb-4 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-red-400" />
+                {t('submissionReview.errorBreakdown')}
+              </h3>
+              <div className="space-y-3">
+                {[
+                  { label: t('submissionReview.methodology'), count: submission.errors_summary?.error_methodology || submission.error_methodology || 0, color: 'text-orange-400' },
+                  { label: t('submissionReview.knowledge'), count: submission.errors_summary?.error_knowledge || submission.error_knowledge || 0, color: 'text-blue-400' },
+                  { label: t('submissionReview.detail'), count: submission.errors_summary?.error_detail || submission.error_detail || 0, color: 'text-yellow-400' },
+                  { label: t('submissionReview.procedure'), count: submission.errors_summary?.error_procedure || submission.error_procedure || 0, color: 'text-purple-400' },
+                ].map(({ label, count, color }) => (
+                  <div key={label} className="flex items-center justify-between">
+                    <span className="text-gray-400">{label}</span>
+                    <span className={`font-bold ${count > 0 ? color : 'text-gray-500'}`}>{count}</span>
+                  </div>
+                ))}
+                <div className="pt-2 border-t border-white/10 flex items-center justify-between">
+                  <span className="text-gray-300 font-medium">Total</span>
+                  <span className="text-white font-bold">
+                    {submission.errors_summary?.total_individual_errors || 
+                     ((submission.error_methodology || 0) + (submission.error_knowledge || 0) + (submission.error_detail || 0) + (submission.error_procedure || 0))}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Detailed Errors List */}
+          {submission.submission_errors && submission.submission_errors.length > 0 && (
+            <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6">
+              <h3 className="text-sm font-bold text-gray-300 mb-4 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-400" />
+                {t('submissionReview.errorsIdentified')} ({submission.submission_errors.length})
+              </h3>
+              <div className="space-y-3">
+                {submission.submission_errors.map((err, index) => (
+                  <div key={err.id || index} className="bg-white/5 rounded-xl p-4 border border-white/10">
+                    <div className="flex items-start gap-3">
+                      <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs font-bold whitespace-nowrap">
+                        {err.error_type}
+                      </span>
+                      <div className="flex-1">
+                        <p className="text-gray-300 text-sm">{err.description || '-'}</p>
+                        {err.operation_reference && (
+                          <p className="text-gray-500 text-xs mt-1">Ref: {err.operation_reference}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Submitter info */}
+          {submission.submitter && (
+            <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
+              <div className="flex items-center gap-3">
+                <User className="w-5 h-5 text-gray-400" />
+                <div>
+                  <p className="text-sm text-gray-400">{t('submissionReview.submittedBy')}</p>
+                  <p className="text-white font-medium">{submission.submitter.full_name}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ===== COMPLETE: Lista de operações para classificar ===== */}
+      {!isSummary && (
       <div className="space-y-4">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <Target className="w-5 h-5 text-orange-400" />
@@ -677,6 +877,7 @@ export default function SubmissionReview() {
           </div>
         )}
       </div>
+      )}
 
       {/* Botões Aprovar/Reprovar */}
       {completedOperationsCount > 0 && (
@@ -695,11 +896,18 @@ export default function SubmissionReview() {
                   t('submissionReview.pendingClassification', { pending: pendingReview.length, total: completedOperationsCount })
                 )}
               </p>
-              {canFinalize && (
+              {canFinalize && !isSummary && (
                 <div className="mt-2 text-sm">
                   <span className="text-green-400">{operations.filter(op => op.is_approved === true && !op.has_error).length} {t('submissionReview.correct').toLowerCase()}</span>
                   <span className="text-gray-500 mx-2">|</span>
                   <span className="text-red-400">{errorOperations.length} {t('submissionReview.withErrors').toLowerCase()}</span>
+                </div>
+              )}
+              {canFinalize && isSummary && (
+                <div className="mt-2 text-sm">
+                  <span className="text-blue-400">MPU: {submission?.calculated_mpu?.toFixed(2)}</span>
+                  <span className="text-gray-500 mx-2">|</span>
+                  <span className="text-red-400">{submission?.errors_count || 0} {t('submissionReview.withErrors').toLowerCase()}</span>
                 </div>
               )}
             </div>

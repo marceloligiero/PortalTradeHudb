@@ -1329,7 +1329,11 @@
     "manualEvaluation": "Manual Evaluation",
     "manualEvaluationDesc": "This challenge requires manual trainer evaluation. Analyze performance and decide whether to approve.",
     "rejectManually": "Reject Manually",
-    "approveManually": "Approve Manually"
+    "approveManually": "Approve Manually",
+    "timeUsed": "Time Used",
+    "operationDetails": "Operation Details",
+    "errorBreakdown": "Error Breakdown",
+    "submittedBy": "Submitted by"
   },
   "myChallenges": {
     "title": "My Challenges",
