@@ -788,10 +788,21 @@ async def get_trainer_overview(
         models.Enrollment.course_id.in_(course_ids) if course_ids else False
     ).distinct().count() if course_ids else 0
     
-    # Total training plans
-    total_plans = db.query(models.TrainingPlan).filter(
-        models.TrainingPlan.created_by == current_user.id
-    ).count() if current_user.role == "TRAINER" else db.query(models.TrainingPlan).count()
+    # Total training plans (created or assigned)
+    if current_user.role == "TRAINER":
+        created_count = db.query(models.TrainingPlan).filter(
+            models.TrainingPlan.created_by == current_user.id
+        ).count()
+        assigned_ids = [t.training_plan_id for t in db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).all()]
+        assigned_count = db.query(models.TrainingPlan).filter(
+            models.TrainingPlan.id.in_(assigned_ids),
+            models.TrainingPlan.created_by != current_user.id
+        ).count() if assigned_ids else 0
+        total_plans = created_count + assigned_count
+    else:
+        total_plans = db.query(models.TrainingPlan).count()
     
     # Active students (enrolled in last 30 days)
     month_ago = datetime.utcnow() - timedelta(days=30)
@@ -817,9 +828,23 @@ async def get_trainer_plans_report(
     """Get detailed report of training plans"""
     
     if current_user.role == "TRAINER":
-        plans = db.query(models.TrainingPlan).filter(
+        # Plans created by trainer OR where trainer is assigned
+        created_plans = db.query(models.TrainingPlan).filter(
             models.TrainingPlan.created_by == current_user.id
         ).all()
+        assigned_plan_ids = [t.training_plan_id for t in db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).all()]
+        assigned_plans = db.query(models.TrainingPlan).filter(
+            models.TrainingPlan.id.in_(assigned_plan_ids)
+        ).all() if assigned_plan_ids else []
+        # Merge without duplicates
+        plan_ids_seen = set()
+        plans = []
+        for p in created_plans + assigned_plans:
+            if p.id not in plan_ids_seen:
+                plan_ids_seen.add(p.id)
+                plans.append(p)
     else:
         plans = db.query(models.TrainingPlan).all()
     
@@ -830,15 +855,38 @@ async def get_trainer_plans_report(
             models.TrainingPlanAssignment.training_plan_id == plan.id
         ).count()
         
+        # Get bank name via association table
+        bank_name = None
+        plan_bank = db.query(models.TrainingPlanBank).filter(
+            models.TrainingPlanBank.training_plan_id == plan.id
+        ).first()
+        if plan_bank:
+            bank = db.query(models.Bank).filter(models.Bank.id == plan_bank.bank_id).first()
+            if bank:
+                bank_name = bank.code or bank.name
+        elif plan.bank_id:
+            bank = db.query(models.Bank).filter(models.Bank.id == plan.bank_id).first()
+            if bank:
+                bank_name = bank.code or bank.name
+        
+        # Determine status based on dates
+        now = datetime.utcnow()
+        if plan.end_date and now > plan.end_date:
+            status = "completed"
+        elif plan.start_date and now >= plan.start_date:
+            status = "active"
+        else:
+            status = "upcoming"
+        
         plans_report.append({
             "id": plan.id,
             "title": plan.title,
-            "description": plan.description,
-            "bank_code": plan.bank_code,
+            "description": plan.description or "",
+            "bank_code": bank_name or "",
             "students_assigned": assignments,
             "start_date": plan.start_date.isoformat() if plan.start_date else None,
             "end_date": plan.end_date.isoformat() if plan.end_date else None,
-            "status": "active" if plan.end_date and plan.end_date > datetime.utcnow() else "completed"
+            "status": status
         })
     
     return plans_report
@@ -851,26 +899,31 @@ async def get_trainer_students_report(
 ) -> List[Dict[str, Any]]:
     """Get detailed report of students"""
     
-    # Get courses
+    # Get training plans for this trainer
     if current_user.role == "TRAINER":
-        course_ids = [c.id for c in db.query(models.Course.id).filter(
-            models.Course.created_by == current_user.id
+        # Plans created by or assigned to trainer
+        plan_ids_created = [p.id for p in db.query(models.TrainingPlan.id).filter(
+            models.TrainingPlan.created_by == current_user.id
         ).all()]
+        plan_ids_assigned = [t.training_plan_id for t in db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).all()]
+        plan_ids = list(set(plan_ids_created + plan_ids_assigned))
     else:
-        course_ids = [c.id for c in db.query(models.Course.id).all()]
+        plan_ids = [p.id for p in db.query(models.TrainingPlan.id).all()]
     
-    if not course_ids:
+    if not plan_ids:
         return []
     
-    # Get enrollments
-    enrollments = db.query(models.Enrollment).filter(
-        models.Enrollment.course_id.in_(course_ids)
+    # Get student assignments from plans
+    assignments = db.query(models.TrainingPlanAssignment).filter(
+        models.TrainingPlanAssignment.training_plan_id.in_(plan_ids)
     ).all()
     
     # Group by student
-    students_dict = {}
-    for enrollment in enrollments:
-        user_id = enrollment.user_id
+    students_dict: Dict[int, Dict[str, Any]] = {}
+    for assignment in assignments:
+        user_id = assignment.user_id
         if user_id not in students_dict:
             user = db.query(models.User).filter(models.User.id == user_id).first()
             students_dict[user_id] = {
@@ -878,20 +931,44 @@ async def get_trainer_students_report(
                 "name": user.full_name if user else "Unknown",
                 "email": user.email if user else "",
                 "courses_enrolled": 0,
-                "total_progress": 0
+                "total_plans": 0,
+                "completed_lessons": 0,
+                "total_lessons": 0
             }
         
-        students_dict[user_id]["courses_enrolled"] += 1
-        students_dict[user_id]["total_progress"] += enrollment.progress
+        students_dict[user_id]["total_plans"] += 1
+        
+        # Count lessons in plan
+        plan_courses = db.query(models.TrainingPlanCourse).filter(
+            models.TrainingPlanCourse.training_plan_id == assignment.training_plan_id
+        ).all()
+        for pc in plan_courses:
+            lesson_count = db.query(models.Lesson).filter(
+                models.Lesson.course_id == pc.course_id
+            ).count()
+            students_dict[user_id]["total_lessons"] += lesson_count
+            
+            # Completed lessons (confirmed by student)
+            completed = db.query(models.LessonProgress).filter(
+                models.LessonProgress.user_id == user_id,
+                models.LessonProgress.training_plan_id == assignment.training_plan_id,
+                models.LessonProgress.status == "COMPLETED",
+                models.LessonProgress.student_confirmed == True
+            ).count()
+            students_dict[user_id]["completed_lessons"] += completed
+        
+        students_dict[user_id]["courses_enrolled"] += len(plan_courses)
     
     # Calculate average progress
     students_list = []
     for student in students_dict.values():
-        if student["courses_enrolled"] > 0:
-            student["average_progress"] = round(student["total_progress"] / student["courses_enrolled"], 1)
+        if student["total_lessons"] > 0:
+            student["average_progress"] = round((student["completed_lessons"] / student["total_lessons"]) * 100, 1)
         else:
             student["average_progress"] = 0
-        del student["total_progress"]
+        del student["total_lessons"]
+        del student["completed_lessons"]
+        del student["total_plans"]
         students_list.append(student)
     
     return students_list
