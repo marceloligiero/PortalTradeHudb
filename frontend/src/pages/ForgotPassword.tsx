@@ -38,7 +38,7 @@ export default function ForgotPassword() {
       await api.post('/api/auth/verify-email', { email });
       setStep('password');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Email não encontrado no sistema');
+      setError(err.response?.data?.detail || t('auth.emailNotFound'));
     } finally {
       setLoading(false);
     }
@@ -49,12 +49,12 @@ export default function ForgotPassword() {
     setError('');
 
     if (newPassword.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
+      setError(t('auth.passwordMinLength'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError('As senhas não coincidem');
+      setError(t('auth.passwordsDoNotMatch'));
       return;
     }
 
@@ -67,7 +67,7 @@ export default function ForgotPassword() {
       });
       setStep('success');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Erro ao redefinir senha');
+      setError(err.response?.data?.detail || t('auth.resetError'));
     } finally {
       setLoading(false);
     }
@@ -217,17 +217,17 @@ export default function ForgotPassword() {
                   <h1 className={`text-3xl font-black tracking-tight mb-3 ${
                     isDark ? 'text-white' : 'text-gray-900'
                   }`}>
-                    Senha Redefinida!
+                    {t('auth.passwordResetSuccess')}
                   </h1>
                   <p className={`font-medium mb-8 ${
                     isDark ? 'text-gray-400' : 'text-gray-600'
                   }`}>
-                    Sua senha foi alterada com sucesso. Você já pode fazer login com sua nova senha.
+                    {t('auth.passwordResetSuccessMsg')}
                   </p>
                   <Link to="/login">
                     <Button variant="primary" size="lg" className="w-full">
                       <ArrowRight className="w-4 h-4 mr-2" />
-                      Ir para o Login
+                      {t('auth.goToLogin')}
                     </Button>
                   </Link>
                 </motion.div>
@@ -251,12 +251,12 @@ export default function ForgotPassword() {
                     <h1 className={`text-3xl font-black tracking-tight mb-3 ${
                       isDark ? 'text-white' : 'text-gray-900'
                     }`}>
-                      Nova Senha
+                      {t('auth.newPassword')}
                     </h1>
                     <p className={`font-medium ${
                       isDark ? 'text-gray-400' : 'text-gray-600'
                     }`}>
-                      Digite sua nova senha para <strong className="text-red-500">{email}</strong>
+                      {t('auth.newPasswordFor')} <strong className="text-red-500">{email}</strong>
                     </p>
                   </div>
 
@@ -268,7 +268,7 @@ export default function ForgotPassword() {
                     <div className="relative">
                       <Input
                         type={showPassword ? 'text' : 'password'}
-                        label="Nova Senha"
+                        label={t('auth.newPassword')}
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="••••••••"
@@ -290,7 +290,7 @@ export default function ForgotPassword() {
                     <div className="relative">
                       <Input
                         type={showConfirmPassword ? 'text' : 'password'}
-                        label="Confirmar Senha"
+                        label={t('auth.confirmNewPassword')}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="••••••••"
@@ -317,7 +317,7 @@ export default function ForgotPassword() {
                       loading={loading}
                       icon={<ArrowRight className="w-5 h-5" />}
                     >
-                      Redefinir Senha
+                      {t('auth.resetPassword')}
                     </Button>
                   </form>
 
@@ -333,7 +333,7 @@ export default function ForgotPassword() {
                         isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
                       }`}
                     >
-                      ← Voltar para email
+                      {t('auth.backToEmail')}
                     </button>
                   </div>
                 </motion.div>
@@ -357,12 +357,12 @@ export default function ForgotPassword() {
                     <h1 className={`text-3xl font-black tracking-tight mb-3 ${
                       isDark ? 'text-white' : 'text-gray-900'
                     }`}>
-                      Esqueceu a senha?
+                      {t('auth.forgotPasswordTitle')}
                     </h1>
                     <p className={`font-medium ${
                       isDark ? 'text-gray-400' : 'text-gray-600'
                     }`}>
-                      Digite seu email cadastrado para redefinir sua senha.
+                      {t('auth.forgotPasswordSubtitle')}
                     </p>
                   </div>
 
@@ -373,7 +373,7 @@ export default function ForgotPassword() {
 
                     <Input
                       type="email"
-                      label="Email"
+                      label={t('auth.email')}
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="seu@email.com"
@@ -390,7 +390,7 @@ export default function ForgotPassword() {
                       loading={loading}
                       icon={<ArrowRight className="w-5 h-5" />}
                     >
-                      Continuar
+                      {t('auth.continue')}
                     </Button>
                   </form>
 
@@ -398,12 +398,12 @@ export default function ForgotPassword() {
                     <p className={`font-medium ${
                       isDark ? 'text-gray-400' : 'text-gray-600'
                     }`}>
-                      Lembrou a senha?{' '}
+                      {t('auth.rememberPassword')}{' '}
                       <Link
                         to="/login"
                         className="text-red-500 hover:text-red-400 font-bold transition-colors"
                       >
-                        Fazer Login
+                        {t('auth.doLogin')}
                       </Link>
                     </p>
                   </div>
