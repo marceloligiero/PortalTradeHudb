@@ -376,7 +376,7 @@ export default function TrainingPlanDetail() {
       await fetchPlan();
     } catch (err: any) {
       console.error('Error finalizing plan:', err);
-      alert(err?.response?.data?.detail || t('trainingPlanDetail.errorFinalizingPlan'));
+      if (!err._isAuthError) alert(err?.response?.data?.detail || t('trainingPlanDetail.errorFinalizingPlan'));
     } finally {
       setFinalizingPlan(false);
     }
@@ -458,7 +458,7 @@ export default function TrainingPlanDetail() {
       setChallengeReleases(prev => ({ ...prev, [challengeId]: true }));
     } catch (err: any) {
       console.error('Erro ao liberar desafio:', err);
-      alert(err?.response?.data?.detail || t('trainingPlanDetail.errorReleasingChallenge'));
+      if (!err._isAuthError) alert(err?.response?.data?.detail || t('trainingPlanDetail.errorReleasingChallenge'));
     } finally {
       setActionLoading(null);
     }
@@ -522,7 +522,7 @@ export default function TrainingPlanDetail() {
       setProgressFetchTime(prev => ({ ...prev, [lessonId]: fetchTime }));
     } catch (err: any) {
       console.error('Error:', err);
-      alert(err?.response?.data?.detail || t('trainingPlanDetail.errorExecutingAction'));
+      if (!err._isAuthError) alert(err?.response?.data?.detail || t('trainingPlanDetail.errorExecutingAction'));
     } finally {
       setActionLoading(null);
     }
@@ -886,7 +886,7 @@ export default function TrainingPlanDetail() {
                           await fetchPlan();
                           setShowTrainerPanel(false);
                         } catch (err: any) {
-                          alert(err?.response?.data?.detail || 'Error adding trainer');
+                          if (!err._isAuthError) alert(err?.response?.data?.detail || 'Error adding trainer');
                         } finally {
                           setAddingTrainer(false);
                         }
@@ -1008,7 +1008,7 @@ export default function TrainingPlanDetail() {
                         await api.delete(`/api/training-plans/${id}/remove-trainer/${trainer.id}`);
                         await fetchPlan();
                       } catch (err: any) {
-                        alert(err?.response?.data?.detail || 'Error removing trainer');
+                        if (!err._isAuthError) alert(err?.response?.data?.detail || 'Error removing trainer');
                       }
                     }}
                     className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
@@ -1085,7 +1085,7 @@ export default function TrainingPlanDetail() {
                           await fetchPlan();
                           setShowEnrollmentPanel(false);
                         } catch (err: any) {
-                          alert(err?.response?.data?.detail || 'Error enrolling student');
+                          if (!err._isAuthError) alert(err?.response?.data?.detail || 'Error enrolling student');
                         } finally {
                           setEnrollingStudents(false);
                         }
@@ -1230,7 +1230,7 @@ export default function TrainingPlanDetail() {
                           await api.delete(`/api/training-plans/${id}/unassign/${student.id}`);
                           await fetchPlan();
                         } catch (err: any) {
-                          alert(err?.response?.data?.detail || 'Error removing student');
+                          if (!err._isAuthError) alert(err?.response?.data?.detail || 'Error removing student');
                         }
                       }}
                       className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"

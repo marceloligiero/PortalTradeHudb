@@ -86,6 +86,8 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       useAuthStore.getState().logout();
+      // Mark as auth error so components can skip showing alert
+      error._isAuthError = true;
     }
     if (import.meta.env.DEV) {
       try {
