@@ -992,8 +992,7 @@ export default function TrainingPlanDetail() {
                   key={student.id}
                   onClick={() => {
                     setSelectedStudentId(student.id);
-                    if (plan) fetchProgressData(plan);
-                    fetchCompletionStatus();
+                    // useEffect[selectedStudentId] handles fetchProgressData + fetchCompletionStatus
                   }}
                   className={`flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all ${
                     selectedStudentId === student.id
