@@ -255,10 +255,10 @@ async def release_lesson(
     Só o formador/admin pode liberar
     O formando poderá então iniciar a aula quando estiver pronto
     """
-    # Validar que o aluno existe
+    # Validar que o aluno existe (TRAINEE, STUDENT ou TRAINER que está inscrito num plano)
     student = db.query(models.User).filter(
         models.User.id == user_id,
-        models.User.role.in_(["TRAINEE", "STUDENT"])
+        models.User.role.in_(["TRAINEE", "STUDENT", "TRAINER"])
     ).first()
     
     if not student:

@@ -1595,7 +1595,8 @@
     "viewing": "A ver",
     "progress": "Progresso",
     "removeStudent": "Remover formando",
-    "confirmRemoveStudent": "Tem certeza que deseja remover este formando do plano?"
+    "confirmRemoveStudent": "Tem certeza que deseja remover este formando do plano?",
+    "selectStudentFirst": "Selecione primeiro um formando na lista de inscritos"
   },
   "adminDashboard": {
     "controlPanel": "Painel de Controlo",

@@ -1507,7 +1507,8 @@
     "viewing": "Viewing",
     "progress": "Progress",
     "removeStudent": "Remove student",
-    "confirmRemoveStudent": "Are you sure you want to remove this student from the plan?"
+    "confirmRemoveStudent": "Are you sure you want to remove this student from the plan?",
+    "selectStudentFirst": "Please select a student from the enrolled list first"
   },
   "adminDashboard": {
     "controlPanel": "Control Panel",

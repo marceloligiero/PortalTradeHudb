@@ -420,10 +420,10 @@ async def release_challenge_for_student(
     if not challenge:
         raise HTTPException(status_code=404, detail="Desafio não encontrado")
     
-    # Validar estudante existe
+    # Validar estudante existe (TRAINEE ou TRAINER inscrito como formando)
     student = db.query(models.User).filter(
         models.User.id == student_id,
-        models.User.role == "TRAINEE"
+        models.User.role.in_(["TRAINEE", "STUDENT", "TRAINER"])
     ).first()
     
     if not student:

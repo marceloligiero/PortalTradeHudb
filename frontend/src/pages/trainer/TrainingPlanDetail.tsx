@@ -427,14 +427,16 @@ export default function TrainingPlanDetail() {
 
   const handleReleaseChallenge = async (challengeId: number) => {
     if (actionLoading) return;
+    
+    const targetUserId = selectedStudentId || plan?.student_id;
+    if (!targetUserId) {
+      alert(t('trainingPlanDetail.selectStudentFirst'));
+      return;
+    }
+    
     setActionLoading(challengeId);
     
     try {
-      const targetUserId = selectedStudentId || plan?.student_id;
-      if (!targetUserId) {
-        alert(t('trainingPlanDetail.studentNotFound'));
-        return;
-      }
       
       await api.post(`/api/challenges/${challengeId}/release/${targetUserId}`, null, {
         params: { training_plan_id: id }
@@ -452,10 +454,16 @@ export default function TrainingPlanDetail() {
 
   const handleLessonAction = async (lessonId: number, action: 'release' | 'start' | 'pause' | 'resume' | 'finish' | 'confirm' | 'approve') => {
     if (actionLoading) return;
+    
+    const targetUserId = isStudent ? user?.id : (selectedStudentId || plan?.student_id);
+    if (!targetUserId && !isStudent) {
+      alert(t('trainingPlanDetail.selectStudentFirst'));
+      return;
+    }
+    
     setActionLoading(lessonId);
 
     try {
-      const targetUserId = isStudent ? user?.id : (selectedStudentId || plan?.student_id);
       
       if (action === 'confirm') {
         // Formando confirma que fez a aula

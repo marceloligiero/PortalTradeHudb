@@ -1593,7 +1593,8 @@
     "viewing": "Viendo",
     "progress": "Progreso",
     "removeStudent": "Eliminar estudiante",
-    "confirmRemoveStudent": "¿Está seguro de que desea eliminar este estudiante del plan?"
+    "confirmRemoveStudent": "¿Está seguro de que desea eliminar este estudiante del plan?",
+    "selectStudentFirst": "Seleccione primero un estudiante de la lista de inscritos"
   },
   "adminDashboard": {
     "controlPanel": "Panel de Control",
