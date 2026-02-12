@@ -132,7 +132,7 @@ export default function ProductsPage() {
         icon={Package}
         title={t('admin.products')}
         subtitle={t('admin.manageProducts')}
-        badge="Gestão de Produtos"
+        badge={t('admin.productManagement')}
         iconColor="from-orange-500 to-orange-700"
         actions={
           <motion.button
