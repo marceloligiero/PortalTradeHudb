@@ -125,12 +125,12 @@ def calculate_plan_status(db: Session, plan: models.TrainingPlan, student_id: in
     days_delayed = 0
     
     if effective_start and effective_end:
-        days_total = (effective_end - effective_start).days
-        if now < effective_end:
-            days_remaining = (effective_end - now).days
+        days_total = (effective_end.date() - effective_start.date()).days + 1
+        if now.date() <= effective_end.date():
+            days_remaining = (effective_end.date() - now.date()).days
         else:
             days_remaining = 0
-            days_delayed = (now - effective_end).days
+            days_delayed = (now.date() - effective_end.date()).days
     
     # Progresso percentual
     progress = 0
@@ -1391,7 +1391,7 @@ async def list_plan_students(
         is_delayed = False
         effective_end = assignment.end_date or plan.end_date
         if effective_end:
-            delta = (effective_end - now).days
+            delta = (effective_end.date() - now.date()).days
             days_remaining = max(delta, 0)
             is_delayed = delta < 0
         
