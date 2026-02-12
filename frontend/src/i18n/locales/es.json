@@ -1619,6 +1619,15 @@
     "mpuDetails": "Detalles MPU por Banco",
     "category": "Categoría",
     "performance": "Desempeño"
+  },
+  "productNames": {
+    "CI": "Créditos Importación",
+    "RI": "Remessas Importación",
+    "RE": "Remessas Exportación",
+    "GE": "Garantías Emitidas",
+    "GR": "Garantías Recibidas",
+    "OP": "Órdenes de Pago Financiadas",
+    "EU": "Eurocobros"
   }
 }
 

@@ -20,6 +20,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import api from '../../lib/axios';
+import { getTranslatedProductName } from '../../utils/productTranslation';
 
 interface Course {
   id: number;
@@ -45,6 +46,7 @@ interface Bank {
 
 interface Product {
   id: number;
+  code: string;
   name: string;
 }
 
@@ -116,7 +118,7 @@ export default function CoursesPage() {
       // Se o curso tem produtos, adiciona a cada grupo de produto
       if (course.products && course.products.length > 0) {
         course.products.forEach(product => {
-          const key = product.name;
+          const key = getTranslatedProductName(t, product.code, product.name);
           if (!groups[key]) groups[key] = [];
           groups[key].push(course);
         });
@@ -313,7 +315,7 @@ export default function CoursesPage() {
               >
                 <option value="">{t('admin.allProducts') || 'Todos Produtos'}</option>
                 {uniqueProducts.map(product => (
-                  <option key={product.id} value={product.id}>{product.name}</option>
+                  <option key={product.id} value={product.id}>{getTranslatedProductName(t, product.code, product.name)}</option>
                 ))}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -529,7 +531,7 @@ export default function CoursesPage() {
                           {course.products?.slice(0, 2).map(product => (
                             <span key={product.id} className="px-2 py-0.5 bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 rounded text-xs font-medium flex items-center gap-1">
                               <Package className="w-3 h-3" />
-                              {product.name}
+                              {getTranslatedProductName(t, product.code, product.name)}
                             </span>
                           ))}
                           {course.products?.length > 2 && (
@@ -620,7 +622,7 @@ export default function CoursesPage() {
                             {course.products?.slice(0, 3).map(product => (
                               <span key={product.id} className="px-2 py-0.5 bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 rounded text-xs font-medium flex items-center gap-1">
                                 <Package className="w-3 h-3" />
-                                {product.name}
+                                {getTranslatedProductName(t, product.code, product.name)}
                               </span>
                             ))}
                             {course.products?.length > 3 && (

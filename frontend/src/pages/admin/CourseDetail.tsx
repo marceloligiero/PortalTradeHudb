@@ -26,6 +26,7 @@ import {
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 import RatingModal from '../../components/RatingModal';
+import { getTranslatedProductName } from '../../utils/productTranslation';
 
 interface Lesson {
   id: number;
@@ -260,12 +261,12 @@ export default function CourseDetail() {
                   {course.products && course.products.length > 0 ? (
                     course.products.map(product => (
                       <span key={product.id} className="px-3 py-1 bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-full text-sm font-medium">
-                        {product.name}
+                        {getTranslatedProductName(t, product.code, product.name)}
                       </span>
                     ))
                   ) : (
                     <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-sm">
-                      {course.product_name || course.product_code}
+                      {getTranslatedProductName(t, course.product_code, course.product_name)}
                     </span>
                   )}
                 </div>
@@ -426,11 +427,11 @@ export default function CourseDetail() {
                       {course.products && course.products.length > 0 ? (
                         course.products.map(product => (
                           <span key={product.id} className="px-3 py-1 bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 rounded-lg text-sm font-medium">
-                            {product.name}
+                            {getTranslatedProductName(t, product.code, product.name)}
                           </span>
                         ))
                       ) : (
-                        <span className="font-medium text-gray-900 dark:text-white">{course.product_name || course.product_code || '-'}</span>
+                        <span className="font-medium text-gray-900 dark:text-white">{getTranslatedProductName(t, course.product_code, course.product_name) || '-'}</span>
                       )}
                     </div>
                   </div>

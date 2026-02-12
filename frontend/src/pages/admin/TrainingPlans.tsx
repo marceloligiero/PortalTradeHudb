@@ -23,6 +23,7 @@ import { useAuthStore } from '../../stores/authStore';
 import TrainingPlanCard from '../../components/plans/TrainingPlanCard';
 import { PremiumHeader, AnimatedStatCard, FloatingOrbs } from '../../components/premium';
 import { useTheme } from '../../contexts/ThemeContext';
+import { getTranslatedProductName } from '../../utils/productTranslation';
 
 interface TrainingPlan {
   id: number;
@@ -68,6 +69,7 @@ interface Bank {
 
 interface Product {
   id: number;
+  code: string;
   name: string;
 }
 
@@ -169,7 +171,7 @@ export default function TrainingPlans() {
     
     const groups: Record<string, TrainingPlan[]> = {};
     filteredPlans.forEach(plan => {
-      const key = plan.product_name || 'Sem Produto';
+      const key = plan.product_name || t('common.noProduct', 'Sem Produto');
       if (!groups[key]) groups[key] = [];
       groups[key].push(plan);
     });
@@ -281,7 +283,7 @@ export default function TrainingPlans() {
               >
                 <option value="">{t('admin.allProducts') || 'Todos Produtos'}</option>
                 {uniqueProducts.map(product => (
-                  <option key={product.id} value={product.id}>{product.name}</option>
+                  <option key={product.id} value={product.id}>{getTranslatedProductName(t, product.code, product.name)}</option>
                 ))}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />

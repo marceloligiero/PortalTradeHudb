@@ -156,6 +156,7 @@ async def get_my_courses(
             "description": course.description,
             "bank_code": course.bank.code if hasattr(course, 'bank') and course.bank else None,
             "product_name": course.product.name if hasattr(course, 'product') and course.product else None,
+            "product_code": course.product.code if hasattr(course, 'product') and course.product else None,
             "is_enrolled": True,
             "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
         }

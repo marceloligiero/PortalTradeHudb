@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Target, Calendar, CheckCircle2, AlertCircle, Users, Building2, Package, Check } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
+import { getTranslatedProductName } from '../../utils/productTranslation';
 
 interface Trainer {
   id: number;
@@ -17,6 +18,7 @@ interface Course {
   description: string;
   bank_name?: string;
   product_name?: string;
+  product_code?: string;
 }
 
 interface Bank {
@@ -461,7 +463,7 @@ export default function AdminTrainingPlanForm() {
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="font-medium text-white">{product.name}</p>
+                            <p className="font-medium text-white">{getTranslatedProductName(t, product.code, product.name)}</p>
                             <p className="text-xs text-gray-500">{product.code}</p>
                           </div>
                           {formData.product_ids.includes(product.id) && (
@@ -641,7 +643,7 @@ export default function AdminTrainingPlanForm() {
                               )}
                               {course.product_name && (
                                 <span className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded">
-                                  {course.product_name}
+                                  {getTranslatedProductName(t, course.product_code, course.product_name)}
                                 </span>
                               )}
                             </div>
@@ -789,7 +791,7 @@ export default function AdminTrainingPlanForm() {
                           const product = products.find(p => p.id === pid);
                           return product ? (
                             <span key={pid} className="bg-green-500/20 text-green-300 px-2 py-1 rounded text-xs">
-                              {product.name}
+                              {getTranslatedProductName(t, product.code, product.name)}
                             </span>
                           ) : null;
                         }) : <span className="text-gray-500">Nenhum selecionado</span>}

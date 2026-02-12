@@ -5,6 +5,7 @@ import { GraduationCap, BookOpen, Users, Check, Building2, Package } from 'lucid
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
+import { getTranslatedProductName } from '../../utils/productTranslation';
 
 interface Course {
   id: number;
@@ -12,6 +13,7 @@ interface Course {
   description: string;
   bank_name?: string;
   product_name?: string;
+  product_code?: string;
 }
 
 interface Bank {
@@ -290,7 +292,7 @@ export default function TrainingPlanForm() {
                             : 'bg-white/5 border border-white/10 hover:border-blue-500/50'
                         }`}
                       >
-                        <span className="text-white">{product.name}</span>
+                        <span className="text-white">{getTranslatedProductName(t, product.code, product.name)}</span>
                         {formData.product_ids.includes(product.id) && <Check className="w-4 h-4 text-blue-500" />}
                       </button>
                     ))}
@@ -368,7 +370,7 @@ export default function TrainingPlanForm() {
                           )}
                           {course.product_name && (
                             <span className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded">
-                              {course.product_name}
+                              {getTranslatedProductName(t, course.product_code, course.product_name)}
                             </span>
                           )}
                         </div>

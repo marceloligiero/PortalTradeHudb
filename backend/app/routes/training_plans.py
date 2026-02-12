@@ -269,6 +269,7 @@ async def list_training_plans(
                 "bank_name": banks_list[0]["name"] if banks_list else None,
                 "product_id": plan.product_id,
                 "product_name": products_list[0]["name"] if products_list else None,
+                "product_code": products_list[0]["code"] if products_list else None,
                 # Multiple banks and products
                 "bank_ids": [b["id"] for b in banks_list],
                 "product_ids": [p["id"] for p in products_list],

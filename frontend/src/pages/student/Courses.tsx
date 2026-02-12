@@ -6,6 +6,7 @@ import { BookOpen, Search, CheckCircle, Clock, Target, ChevronRight, GraduationC
 import api from '../../lib/axios';
 import { useTheme } from '../../contexts/ThemeContext';
 import { PremiumHeader } from '../../components/premium';
+import { getTranslatedProductName } from '../../utils/productTranslation';
 
 interface Course {
   id: number;
@@ -13,6 +14,7 @@ interface Course {
   description: string;
   bank_code: string;
   product_name?: string;
+  product_code?: string;
   is_enrolled?: boolean;
   lessons_count?: number;
   challenges_count?: number;
@@ -248,7 +250,7 @@ export default function StudentCoursesPage() {
                 {/* Product Badge */}
                 {course.product_name && (
                   <div className={`inline-block px-3 py-1 rounded-lg text-xs font-medium mb-4 ${isDark ? 'bg-white/5 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
-                    {course.product_name}
+                    {getTranslatedProductName(t, course.product_code, course.product_name)}
                   </div>
                 )}
 

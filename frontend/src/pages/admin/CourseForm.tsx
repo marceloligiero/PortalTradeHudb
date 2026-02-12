@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, Save, X, Users, Building2, Package, CheckCircle2, AlertCircle, Check } from 'lucide-react';
 import api from '../../lib/axios';
+import { getTranslatedProductName } from '../../utils/productTranslation';
 
 interface Trainer {
   id: number;
@@ -302,7 +303,7 @@ export default function CourseForm() {
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="font-medium text-gray-900 dark:text-white">{product.name}</p>
+                              <p className="font-medium text-gray-900 dark:text-white">{getTranslatedProductName(t, product.code, product.name)}</p>
                               <p className="text-xs text-gray-500">{product.code}</p>
                             </div>
                             {formData.product_ids.includes(product.id) && (

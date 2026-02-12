@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Plus, CheckCircle2, XCircle, X, Sparkles, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import api from '../../lib/axios';
 import { PremiumHeader, AnimatedStatCard, FloatingOrbs, GridBackground } from '../../components/premium';
+import { getTranslatedProductName } from '../../utils/productTranslation';
 
 interface Product {
   id: number;
@@ -223,7 +224,7 @@ export default function ProductsPage() {
                       <span className="font-mono text-orange-600 dark:text-orange-400 font-medium">{product.code}</span>
                     </td>
                     <td className="px-6 py-4 text-gray-900 dark:text-white font-medium">
-                      {product.name}
+                      {getTranslatedProductName(t, product.code, product.name)}
                     </td>
                     <td className="px-6 py-4 text-gray-600 dark:text-gray-400 max-w-xs truncate">
                       {product.description || '-'}
@@ -478,7 +479,7 @@ export default function ProductsPage() {
                   {t('admin.deleteProductConfirm')}
                 </p>
                 <p className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                  {deletingProduct.code} - {deletingProduct.name}
+                  {deletingProduct.code} - {getTranslatedProductName(t, deletingProduct.code, deletingProduct.name)}
                 </p>
                 
                 {deleteError && (
