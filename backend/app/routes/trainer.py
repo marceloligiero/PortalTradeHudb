@@ -667,10 +667,20 @@ async def list_trainer_students(
     """List all students assigned to trainer's training plans"""
     
     if current_user.role == "TRAINER":
-        # Get plans where trainer is responsible
-        plan_ids = [p.id for p in db.query(models.TrainingPlan.id).filter(
+        # Get plans where trainer is responsible (created_by, trainer_id, or assigned via TrainingPlanTrainer)
+        created_plan_ids = {p.id for p in db.query(models.TrainingPlan.id).filter(
             models.TrainingPlan.created_by == current_user.id
-        ).all()]
+        ).all()}
+        
+        trainer_plan_ids = {p.id for p in db.query(models.TrainingPlan.id).filter(
+            models.TrainingPlan.trainer_id == current_user.id
+        ).all()}
+        
+        assigned_plan_ids = {t.training_plan_id for t in db.query(models.TrainingPlanTrainer.training_plan_id).filter(
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).all()}
+        
+        plan_ids = list(created_plan_ids | trainer_plan_ids | assigned_plan_ids)
     else:
         plan_ids = [p.id for p in db.query(models.TrainingPlan.id).all()]
     
