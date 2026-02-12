@@ -129,15 +129,32 @@ const ChallengeExecutionComplete: React.FC = () => {
     try {
       const response = await api.get(`/api/training-plans/${planId}`);
       const plan = response.data;
+      
+      // New enrollment system: enrolled_students array
+      const enrolled = plan.enrolled_students || [];
+      if (enrolled.length === 1) {
+        // Single student - auto-select
+        const s = enrolled[0];
+        setPlanStudent({ id: s.id, full_name: s.full_name, email: s.email });
+        setSelectedStudentId(s.id);
+        return;
+      } else if (enrolled.length > 1) {
+        // Multiple students - show dropdown
+        setStudents(enrolled.map((s: any) => ({ id: s.id, full_name: s.full_name, email: s.email })));
+        return;
+      }
+      
+      // Legacy fallback: single student field
       if (plan.student) {
         setPlanStudent(plan.student);
         setSelectedStudentId(plan.student.id);
       } else if (plan.student_id) {
-        // Fallback: buscar dados do student
         const userResp = await api.get(`/api/admin/users/${plan.student_id}`);
         const user = userResp.data;
         setPlanStudent({ id: user.id, full_name: user.full_name, email: user.email });
         setSelectedStudentId(user.id);
+      } else {
+        loadStudents(); // fallback
       }
     } catch (err) {
       console.error('Erro ao carregar student do plano:', err);
