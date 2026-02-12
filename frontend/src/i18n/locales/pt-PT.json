@@ -1563,7 +1563,13 @@
     "noRatingsFound": "Nenhuma avaliação encontrada",
     "noItemsRated": "Nenhum item com avaliações encontrado",
     "loadError": "Erro ao carregar avaliações",
-    "loading": "A carregar..."
+    "loading": "A carregar...",
+    "unknownCourse": "Curso desconhecido",
+    "unknownLesson": "Aula desconhecida",
+    "unknownChallenge": "Desafio desconhecido",
+    "unknownTrainer": "Formador desconhecido",
+    "unknownPlan": "Plano desconhecido",
+    "unknownItem": "Item desconhecido"
   },
   "insights": {
     "title": "Relatórios & Insights",

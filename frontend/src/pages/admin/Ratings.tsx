@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Card from '../../components/Card';
-import Button from '../../components/Button';
 import StarRating from '../../components/StarRating';
 import api from '../../lib/axios';
 import { useTranslation } from 'react-i18next';
@@ -127,12 +126,12 @@ export const Ratings: React.FC = () => {
 
   const getItemTitle = (rating: Rating): string => {
     switch (rating.rating_type) {
-      case 'COURSE': return rating.course_title || 'Curso desconhecido';
-      case 'LESSON': return rating.lesson_title || 'Aula desconhecida';
-      case 'CHALLENGE': return rating.challenge_title || 'Desafio desconhecido';
-      case 'TRAINER': return rating.trainer_name || 'Formador desconhecido';
-      case 'TRAINING_PLAN': return rating.training_plan_title || 'Plano desconhecido';
-      default: return 'Item desconhecido';
+      case 'COURSE': return rating.course_title || t('ratings.unknownCourse', 'Unknown course');
+      case 'LESSON': return rating.lesson_title || t('ratings.unknownLesson', 'Unknown lesson');
+      case 'CHALLENGE': return rating.challenge_title || t('ratings.unknownChallenge', 'Unknown challenge');
+      case 'TRAINER': return rating.trainer_name || t('ratings.unknownTrainer', 'Unknown trainer');
+      case 'TRAINING_PLAN': return rating.training_plan_title || t('ratings.unknownPlan', 'Unknown plan');
+      default: return t('ratings.unknownItem', 'Unknown item');
     }
   };
 
@@ -296,7 +295,7 @@ export const Ratings: React.FC = () => {
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                className="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
               >
                 <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.allTypes')}</option>
                 <option value="COURSE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.courses')}</option>
@@ -375,7 +374,7 @@ export const Ratings: React.FC = () => {
               <select
                 value={summaryFilterType}
                 onChange={(e) => setSummaryFilterType(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                className="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
               >
                 <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.allTypes')}</option>
                 <option value="COURSE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.courses')}</option>
@@ -401,7 +400,7 @@ export const Ratings: React.FC = () => {
                 </span>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-yellow-500">{summary.avg_stars.toFixed(1)}</div>
-                  <div className="text-xs text-gray-500">{summary.total_ratings} avaliações</div>
+                  <div className="text-xs text-gray-500">{summary.total_ratings} {t('ratings.ratingsFound')}</div>
                 </div>
               </div>
               <h4 className="font-semibold text-lg mb-3">{summary.item_title}</h4>
@@ -452,7 +451,7 @@ export const Ratings: React.FC = () => {
           onClick={() => setActiveTab('dashboard')}
           className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
             activeTab === 'dashboard'
-              ? 'bg-red-600 text-white shadow-lg'
+              ? 'bg-indigo-600 text-white shadow-lg'
               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
           }`}
         >
@@ -462,7 +461,7 @@ export const Ratings: React.FC = () => {
           onClick={() => setActiveTab('all')}
           className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
             activeTab === 'all'
-              ? 'bg-red-600 text-white shadow-lg'
+              ? 'bg-indigo-600 text-white shadow-lg'
               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
           }`}
         >
@@ -472,7 +471,7 @@ export const Ratings: React.FC = () => {
           onClick={() => setActiveTab('summary')}
           className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
             activeTab === 'summary'
-              ? 'bg-red-600 text-white shadow-lg'
+              ? 'bg-indigo-600 text-white shadow-lg'
               : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
           }`}
         >

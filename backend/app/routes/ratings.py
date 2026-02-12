@@ -1,10 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
-import json
 
 from app import models, auth
 from app.database import get_db
@@ -68,22 +67,6 @@ class RatingsSummaryResponse(BaseModel):
 
 
 # ============ Endpoints para Formandos ============
-
-@router.post("/submit-debug")
-async def submit_rating_debug(
-    request: Request,
-    current_user: models.User = Depends(auth.require_role(["TRAINEE"])),
-):
-    """Debug endpoint to see raw body"""
-    body = await request.body()
-    print(f"Raw body: {body}")
-    try:
-        data = json.loads(body)
-        print(f"Parsed JSON: {data}")
-        return {"received": data}
-    except Exception as e:
-        print(f"JSON parse error: {e}")
-        return {"error": str(e), "raw": body.decode('utf-8')}
 
 @router.post("/submit", response_model=RatingResponse)
 async def submit_rating(

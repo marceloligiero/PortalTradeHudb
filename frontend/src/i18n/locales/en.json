@@ -1475,7 +1475,13 @@
     "noRatingsFound": "No ratings found",
     "noItemsRated": "No items with ratings found",
     "loadError": "Error loading ratings",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "unknownCourse": "Unknown course",
+    "unknownLesson": "Unknown lesson",
+    "unknownChallenge": "Unknown challenge",
+    "unknownTrainer": "Unknown trainer",
+    "unknownPlan": "Unknown plan",
+    "unknownItem": "Unknown item"
   },
   "insights": {
     "title": "Reports & Insights",

@@ -1563,7 +1563,13 @@
     "noRatingsFound": "Ninguna evaluación encontrada",
     "noItemsRated": "Ningún ítem con evaluaciones encontrado",
     "loadError": "Error al cargar evaluaciones",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "unknownCourse": "Curso desconocido",
+    "unknownLesson": "Lección desconocida",
+    "unknownChallenge": "Desafío desconocido",
+    "unknownTrainer": "Formador desconocido",
+    "unknownPlan": "Plan desconocido",
+    "unknownItem": "Ítem desconocido"
   },
   "insights": {
     "title": "Informes & Insights",
