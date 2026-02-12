@@ -769,16 +769,26 @@ async def get_trainer_overview(
 ) -> Dict[str, Any]:
     """Get trainer overview statistics"""
     
-    # Total courses created
+    # Total courses (created + from assigned plans)
     if current_user.role == "TRAINER":
-        total_courses = db.query(models.Course).filter(
-            models.Course.created_by == current_user.id
-        ).count()
-        
-        # Get course IDs
-        course_ids = [c.id for c in db.query(models.Course.id).filter(
+        created_course_ids = [c.id for c in db.query(models.Course.id).filter(
             models.Course.created_by == current_user.id
         ).all()]
+        
+        # Courses from assigned plans
+        plan_ids_for_courses = [p.id for p in db.query(models.TrainingPlan.id).filter(
+            models.TrainingPlan.created_by == current_user.id
+        ).all()]
+        assigned_plan_ids_for_courses = [t.training_plan_id for t in db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).all()]
+        all_plan_ids = list(set(plan_ids_for_courses + assigned_plan_ids_for_courses))
+        plan_course_ids = [pc.course_id for pc in db.query(models.TrainingPlanCourse).filter(
+            models.TrainingPlanCourse.training_plan_id.in_(all_plan_ids)
+        ).all()] if all_plan_ids else []
+        
+        course_ids = list(set(created_course_ids + plan_course_ids))
+        total_courses = len(course_ids)
     else:  # ADMIN
         total_courses = db.query(models.Course).count()
         course_ids = [c.id for c in db.query(models.Course.id).all()]
@@ -979,18 +989,34 @@ async def get_trainer_lessons_report(
     current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Get report of lessons created"""
+    """Get report of lessons from trainer's plans"""
     
-    # Get courses
+    # Get courses from trainer's plans (not just created_by)
     if current_user.role == "TRAINER":
-        course_ids = [c.id for c in db.query(models.Course.id).filter(
+        plan_ids_created = [p.id for p in db.query(models.TrainingPlan.id).filter(
+            models.TrainingPlan.created_by == current_user.id
+        ).all()]
+        plan_ids_assigned = [t.training_plan_id for t in db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).all()]
+        plan_ids = list(set(plan_ids_created + plan_ids_assigned))
+        
+        # Get course IDs from plans
+        plan_course_ids = [pc.course_id for pc in db.query(models.TrainingPlanCourse).filter(
+            models.TrainingPlanCourse.training_plan_id.in_(plan_ids)
+        ).all()] if plan_ids else []
+        
+        # Also include courses created by trainer
+        created_course_ids = [c.id for c in db.query(models.Course.id).filter(
             models.Course.created_by == current_user.id
         ).all()]
+        
+        course_ids = list(set(plan_course_ids + created_course_ids))
     else:
         course_ids = [c.id for c in db.query(models.Course.id).all()]
     
     if not course_ids:
-        return {"total_lessons": 0, "total_duration": 0, "lessons_per_course": 0}
+        return {"total_lessons": 0, "total_duration_minutes": 0, "lessons_per_course": 0}
     
     # Count lessons
     total_lessons = db.query(models.Lesson).filter(
