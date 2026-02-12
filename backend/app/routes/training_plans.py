@@ -1574,9 +1574,34 @@ async def get_plan_completion_status(
         raise HTTPException(status_code=403, detail="Sem permissão")
     
     completion_status = check_plan_completion(db, plan, student_id=target_student)
-    completion_status["is_finalized"] = plan.completed_at is not None
     
-    if plan.completed_at:
+    # Check per-student finalization (enrollment), falling back to plan-level
+    student_finalized = False
+    if target_student:
+        enrollment = db.query(models.TrainingPlanAssignment).filter(
+            models.TrainingPlanAssignment.training_plan_id == plan_id,
+            models.TrainingPlanAssignment.user_id == target_student
+        ).first()
+        if enrollment and enrollment.completed_at:
+            student_finalized = True
+    
+    completion_status["is_finalized"] = student_finalized or (plan.completed_at is not None)
+    
+    # If student already finalized, can_finalize should be False
+    if student_finalized:
+        completion_status["can_finalize"] = False
+    
+    if student_finalized and enrollment:
+        completion_status["finalized_at"] = enrollment.completed_at.isoformat()
+        # Check for certificate for this specific student
+        certificate = db.query(models.Certificate).filter(
+            models.Certificate.training_plan_id == plan_id,
+            models.Certificate.user_id == target_student
+        ).first()
+        if certificate:
+            completion_status["certificate_id"] = certificate.id
+            completion_status["certificate_number"] = certificate.certificate_number
+    elif plan.completed_at:
         completion_status["finalized_at"] = plan.completed_at.isoformat()
         
         # Verificar se já tem certificado
