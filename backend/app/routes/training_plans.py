@@ -23,23 +23,23 @@ def calculate_plan_status(db: Session, plan: models.TrainingPlan, student_id: in
     ).all()
     
     total_courses = len(plan_courses)
-    completed_courses = len([pc for pc in plan_courses if pc.status == "COMPLETED"])
     
     # Calcular progresso de lições se houver aluno
     total_lessons = 0
     completed_lessons = 0
+    completed_courses = 0
     
     if target_student:
         for pc in plan_courses:
             lessons = db.query(models.Lesson).filter(
                 models.Lesson.course_id == pc.course_id
             ).all()
-            total_lessons += len(lessons)
+            course_total = len(lessons)
+            total_lessons += course_total
             
             lesson_ids = [l.id for l in lessons]
             if lesson_ids:
                 # Filter by training_plan_id to avoid cross-plan counting
-                # Also use distinct lesson_id as safety measure
                 completed = db.query(sa_func.count(sa_func.distinct(models.LessonProgress.lesson_id))).filter(
                     models.LessonProgress.lesson_id.in_(lesson_ids),
                     models.LessonProgress.user_id == target_student,
@@ -47,15 +47,30 @@ def calculate_plan_status(db: Session, plan: models.TrainingPlan, student_id: in
                     models.LessonProgress.training_plan_id == plan.id
                 ).scalar() or 0
                 
-                # Fallback: if no records with training_plan_id, try without it (legacy data)
+                # Fallback: only if NO records exist at all for this plan (truly legacy data)
                 if completed == 0:
-                    completed = db.query(sa_func.count(sa_func.distinct(models.LessonProgress.lesson_id))).filter(
+                    has_any_records_for_plan = db.query(models.LessonProgress).filter(
                         models.LessonProgress.lesson_id.in_(lesson_ids),
                         models.LessonProgress.user_id == target_student,
-                        models.LessonProgress.status == "COMPLETED"
-                    ).scalar() or 0
+                        models.LessonProgress.training_plan_id == plan.id
+                    ).first()
+                    
+                    if not has_any_records_for_plan:
+                        # Truly legacy: no records with this training_plan_id at all
+                        completed = db.query(sa_func.count(sa_func.distinct(models.LessonProgress.lesson_id))).filter(
+                            models.LessonProgress.lesson_id.in_(lesson_ids),
+                            models.LessonProgress.user_id == target_student,
+                            models.LessonProgress.status == "COMPLETED"
+                        ).scalar() or 0
                 
                 completed_lessons += completed
+                
+                # Course is completed for this student only if all lessons are done
+                if course_total > 0 and completed >= course_total:
+                    completed_courses += 1
+    else:
+        # No student: use plan_course status (legacy)
+        completed_courses = len([pc for pc in plan_courses if pc.status == "COMPLETED"])
     
     # Use enrollment dates if available, fall back to plan dates
     effective_start = plan.start_date
@@ -73,7 +88,19 @@ def calculate_plan_status(db: Session, plan: models.TrainingPlan, student_id: in
     # Determinar status
     plan_status = plan.status or "PENDING"
     
-    if plan.completed_at:
+    # For per-student status, check enrollment completed_at instead of plan-level
+    student_completed = False
+    if student_id:
+        enrollment = db.query(models.TrainingPlanAssignment).filter(
+            models.TrainingPlanAssignment.training_plan_id == plan.id,
+            models.TrainingPlanAssignment.user_id == student_id
+        ).first()
+        if enrollment and enrollment.completed_at:
+            student_completed = True
+    
+    if student_id and student_completed:
+        plan_status = "COMPLETED"
+    elif not student_id and plan.completed_at:
         plan_status = "COMPLETED"
     elif completed_lessons > 0 or completed_courses > 0:
         plan_status = "IN_PROGRESS"
@@ -714,6 +741,14 @@ async def get_training_plan(
                         status_str = "DELAYED"
                     else:
                         status_str = "ONGOING"
+                elif plan.completed_at is not None:
+                    # Check if ALL enrolled students have completed
+                    all_enrollments = db.query(models.TrainingPlanAssignment).filter(
+                        models.TrainingPlanAssignment.training_plan_id == plan.id
+                    ).all()
+                    if all_enrollments and any(e.completed_at is None for e in all_enrollments):
+                        # Not all students finished - plan is still in progress
+                        status_str = "IN_PROGRESS"
             except Exception:
                 days_total = None
                 days_remaining = None
@@ -1585,7 +1620,11 @@ async def get_plan_completion_status(
         if enrollment and enrollment.completed_at:
             student_finalized = True
     
-    completion_status["is_finalized"] = student_finalized or (plan.completed_at is not None)
+    completion_status["is_finalized"] = student_finalized
+    
+    # Only fall back to plan-level if no specific student was targeted
+    if not target_student and not student_finalized and plan.completed_at is not None:
+        completion_status["is_finalized"] = True
     
     # If student already finalized, can_finalize should be False
     if student_finalized:
