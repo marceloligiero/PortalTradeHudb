@@ -411,14 +411,12 @@ async def create_training_plan(
     if plan.trainer_id and plan.trainer_id not in trainer_ids:
         trainer_ids.insert(0, plan.trainer_id)  # trainer_id principal sempre primeiro
     
-    if not trainer_ids:
-        raise HTTPException(
-            status_code=400,
-            detail="At least one trainer is required"
-        )
+    # Formadores são opcionais na criação - podem ser adicionados depois
+    # if not trainer_ids:
+    #     raise HTTPException(status_code=400, detail="At least one trainer is required")
     
     # Validar se todos os formadores existem e têm role TRAINER
-    primary_trainer_id = trainer_ids[0]  # Primeiro é o principal
+    primary_trainer_id = trainer_ids[0] if trainer_ids else None  # Primeiro é o principal
     validated_trainers = []
     
     for tid in trainer_ids:

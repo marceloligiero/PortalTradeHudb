@@ -142,11 +142,8 @@ export default function AdminTrainingPlanForm() {
     }
 
     if (step === 2) {
-      // Validar formadores
-      if (!formData.trainer_ids || formData.trainer_ids.length === 0) {
-        newErrors.trainer_ids = 'Selecione pelo menos um formador';
-      }
-      // Validar que o formando não seja também formador
+      // Formadores são opcionais - podem ser adicionados depois
+      // Apenas validar conflito se ambos foram selecionados
       if (formData.student_id && formData.trainer_ids.includes(formData.student_id)) {
         newErrors.trainer_ids = 'O aluno selecionado não pode ser também formador';
       }
@@ -171,9 +168,8 @@ export default function AdminTrainingPlanForm() {
       // Revalidar todos os campos obrigatórios
       if (!formData.title.trim()) newErrors.title = 'Título é obrigatório';
       if (!formData.description.trim()) newErrors.description = 'Descrição é obrigatória';
-      if (!formData.trainer_ids || formData.trainer_ids.length === 0) newErrors.trainer_ids = 'Pelo menos um formador é obrigatório';
       if (formData.course_ids.length === 0) newErrors.course_ids = 'Pelo menos um curso é obrigatório';
-      // Validar conflito aluno/formador
+      // Validar conflito aluno/formador (apenas se ambos foram selecionados)
       if (formData.student_id && formData.trainer_ids.includes(formData.student_id)) {
         newErrors.student_id = 'O aluno não pode ser também formador do mesmo plano';
       }

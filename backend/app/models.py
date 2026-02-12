@@ -245,7 +245,7 @@ class TrainingPlan(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    trainer_id = Column(Integer, ForeignKey("users.id"), nullable=False)  # Formador responsável
+    trainer_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Formador responsável (opcional na criação)
     student_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Aluno (1 por plano)
     bank_id = Column(Integer, ForeignKey("banks.id"), nullable=True)  # Legacy - nullable for new multi-bank plans
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)  # Legacy - nullable for new multi-product plans
