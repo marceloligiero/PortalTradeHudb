@@ -262,6 +262,8 @@
   },
   "lessons": {
     "title": "Módulos",
+    "createError": "Erro ao criar módulo",
+    "fillSteps": "Preencha os passos para cadastrar o módulo",
     "lessonName": "Nome do Módulo",
     "content": "Conteúdo",
     "duration": "Duração",
@@ -584,11 +586,6 @@
     "remaining": "restantes"
   },
   
-  "lessons": {
-    "title": "Módulos",
-    "createError": "Erro ao criar módulo",
-    "fillSteps": "Preencha os passos para cadastrar o módulo"
-  },
   "errors": {
     "loadData": "Erro ao carregar dados",
     "selectTrainer": "Selecione um formador",
