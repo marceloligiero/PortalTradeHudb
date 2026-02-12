@@ -173,7 +173,7 @@ export default function LessonView() {
     
     // Se a aula foi iniciada pelo FORMADOR, verificar se está em progresso
     if (isTrainerStarted && lessonProgress?.status !== 'IN_PROGRESS') {
-      alert('O módulo precisa estar em andamento para ser finalizado.');
+      alert(t('lessonView.moduleNotStartedYet'));
       return;
     }
     
@@ -272,7 +272,7 @@ export default function LessonView() {
       }
     } catch (err: any) {
       console.error('Error fetching lesson:', err);
-      setError(err.response?.data?.detail || 'Erro ao carregar módulo');
+      setError(err.response?.data?.detail || t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -342,7 +342,7 @@ export default function LessonView() {
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">{t('common.loading')}</p>
+          <p className="text-gray-500 dark:text-gray-400">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -353,8 +353,8 @@ export default function LessonView() {
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('common.error')}</h2>
-          <p className="text-gray-500 mb-4">{error || 'Módulo não encontrado'}</p>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('common.error')}</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-4">{error || t('lessonView.moduleNotFound')}</p>
           <button
             onClick={handleGoBack}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
@@ -451,21 +451,21 @@ export default function LessonView() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl border border-gray-200 overflow-hidden"
+            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
           >
             {/* Header with Progress */}
-            <div className="p-4 border-b border-gray-100 bg-gray-50">
+            <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold text-gray-900">{t('admin.lessonContent')}</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('admin.lessonContent')}</h3>
                 {totalPages > 1 && (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500">
-                      Página {currentPage} de {totalPages}
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {t('lessonView.pageOf', { current: currentPage, total: totalPages })}
                     </span>
                     {allPagesVisited && (
-                      <span className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                      <span className="flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-medium">
                         <CheckCircle2 className="w-3 h-3" />
-                        Concluído
+                        {t('lessonView.allRead')}
                       </span>
                     )}
                   </div>
@@ -481,10 +481,10 @@ export default function LessonView() {
                       onClick={() => goToPage(page)}
                       className={`relative w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium transition-all ${
                         currentPage === page
-                          ? 'bg-red-600 text-white shadow-lg shadow-red-200'
+                          ? 'bg-red-600 text-white shadow-lg shadow-red-200 dark:shadow-red-900/30'
                           : visitedPages.has(page)
-                          ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
                       }`}
                     >
                       {visitedPages.has(page) && currentPage !== page ? (
@@ -508,7 +508,7 @@ export default function LessonView() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3 }}
-                    className="prose prose-slate max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-gray-700 prose-p:leading-relaxed prose-ul:list-disc prose-ol:list-decimal prose-li:text-gray-700 prose-blockquote:border-l-4 prose-blockquote:border-gray-300 prose-blockquote:pl-4 prose-blockquote:italic prose-a:text-red-600 prose-a:underline prose-code:bg-gray-100 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-900 prose-pre:text-gray-100 min-h-[300px]"
+                    className="prose prose-slate dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed prose-ul:list-disc prose-ol:list-decimal prose-li:text-gray-700 dark:prose-li:text-gray-300 prose-blockquote:border-l-4 prose-blockquote:border-gray-300 dark:prose-blockquote:border-gray-600 prose-blockquote:pl-4 prose-blockquote:italic prose-a:text-red-600 prose-a:underline prose-code:bg-gray-100 dark:prose-code:bg-gray-700 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-900 prose-pre:text-gray-100 min-h-[300px]"
                     dangerouslySetInnerHTML={{ __html: contentPages[currentPage - 1] || '' }}
                   />
                 </AnimatePresence>
@@ -519,32 +519,32 @@ export default function LessonView() {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="p-4 border-t border-gray-100 bg-gray-50">
+              <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                 <div className="flex items-center justify-between">
                   <button
                     onClick={() => goToPage(currentPage - 1)}
                     disabled={currentPage === 1}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
                       currentPage === 1
-                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                        : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                        : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 hover:border-gray-300'
                     }`}
                   >
                     <ChevronLeft className="w-4 h-4" />
-                    Anterior
+                    {t('lessonView.previous')}
                   </button>
 
                   {/* Progress Bar */}
                   <div className="flex-1 mx-4">
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${(visitedPages.size / totalPages) * 100}%` }}
                         className="h-full bg-gradient-to-r from-green-500 to-emerald-500"
                       />
                     </div>
-                    <p className="text-center text-xs text-gray-500 mt-1">
-                      {visitedPages.size} de {totalPages} páginas visitadas ({Math.round((visitedPages.size / totalPages) * 100)}%)
+                    <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {t('lessonView.pagesVisited', { visited: visitedPages.size, total: totalPages, percent: Math.round((visitedPages.size / totalPages) * 100) })}
                     </p>
                   </div>
 
@@ -555,8 +555,8 @@ export default function LessonView() {
                       disabled={finishLoading || isFinished}
                       className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all ${
                         isFinished
-                          ? 'bg-green-100 text-green-700 cursor-default'
-                          : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-200'
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 cursor-default'
+                          : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-200 dark:shadow-green-900/30'
                       }`}
                     >
                       {finishLoading ? (
@@ -566,12 +566,12 @@ export default function LessonView() {
                       ) : (
                         <Flag className="w-4 h-4" />
                       )}
-                      {isFinished ? 'Módulo Concluído' : 'Finalizar Módulo'}
+                      {isFinished ? t('lessonView.moduleCompleted') : t('lessonView.finishModule')}
                     </button>
                   ) : allPagesVisited && currentPage === totalPages && isFinished ? (
-                    <div className="flex items-center gap-2 px-5 py-2.5 bg-green-100 text-green-700 rounded-lg font-medium">
+                    <div className="flex items-center gap-2 px-5 py-2.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg font-medium">
                       <CheckCircle2 className="w-4 h-4" />
-                      Módulo Concluído
+                      {t('lessonView.moduleCompleted')}
                     </div>
                   ) : (
                     <button
@@ -579,11 +579,11 @@ export default function LessonView() {
                       disabled={currentPage === totalPages}
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
                         currentPage === totalPages
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-200'
+                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          : 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-200 dark:shadow-red-900/30'
                       }`}
                     >
-                      Próxima
+                      {t('lessonView.next')}
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   )}
@@ -593,19 +593,19 @@ export default function LessonView() {
             
             {/* Botão de finalizar para aulas com 1 página apenas */}
             {totalPages <= 1 && canFinish && !isFinished && (
-              <div className="p-4 border-t border-gray-100 bg-gray-50">
+              <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                 <div className="flex items-center justify-center">
                   <button
                     onClick={handleFinishLesson}
                     disabled={finishLoading}
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 disabled:opacity-50"
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 dark:shadow-green-900/30 disabled:opacity-50"
                   >
                     {finishLoading ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
                       <Flag className="w-5 h-5" />
                     )}
-                    Finalizar Módulo
+                    {t('lessonView.finishModule')}
                   </button>
                 </div>
               </div>
@@ -613,10 +613,10 @@ export default function LessonView() {
             
             {/* Indicador de aula concluída para aulas com 1 página */}
             {totalPages <= 1 && isFinished && (
-              <div className="p-4 border-t border-gray-100 bg-gray-50">
-                <div className="flex items-center justify-center gap-2 px-6 py-3 bg-green-100 text-green-700 rounded-lg font-medium">
+              <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                <div className="flex items-center justify-center gap-2 px-6 py-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg font-medium">
                   <CheckCircle2 className="w-5 h-5" />
-                  Módulo Concluído
+                  {t('lessonView.moduleCompleted')}
                 </div>
               </div>
             )}
@@ -629,7 +629,7 @@ export default function LessonView() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border border-purple-100 p-6"
+            className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl border border-purple-100 dark:border-purple-800/30 p-6"
           >
             <div className="flex items-center gap-3 mb-4">
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
@@ -644,21 +644,21 @@ export default function LessonView() {
                  <Clock className="w-5 h-5 text-white" />}
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">Status do Módulo</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white">{t('lessonView.moduleStatus')}</h3>
                 <p className={`text-sm font-medium ${
-                  lessonProgress?.status === 'COMPLETED' && lessonProgress?.is_approved ? 'text-green-600' :
-                  lessonProgress?.status === 'COMPLETED' && lessonProgress?.student_confirmed ? 'text-amber-600' :
-                  lessonProgress?.status === 'COMPLETED' ? 'text-blue-600' :
-                  lessonProgress?.status === 'IN_PROGRESS' ? 'text-blue-600' :
-                  lessonProgress?.status === 'PAUSED' ? 'text-yellow-600' :
-                  'text-gray-500'
+                  lessonProgress?.status === 'COMPLETED' && lessonProgress?.is_approved ? 'text-green-600 dark:text-green-400' :
+                  lessonProgress?.status === 'COMPLETED' && lessonProgress?.student_confirmed ? 'text-amber-600 dark:text-amber-400' :
+                  lessonProgress?.status === 'COMPLETED' ? 'text-blue-600 dark:text-blue-400' :
+                  lessonProgress?.status === 'IN_PROGRESS' ? 'text-blue-600 dark:text-blue-400' :
+                  lessonProgress?.status === 'PAUSED' ? 'text-yellow-600 dark:text-yellow-400' :
+                  'text-gray-500 dark:text-gray-400'
                 }`}>
-                  {lessonProgress?.status === 'COMPLETED' && lessonProgress?.is_approved ? 'Aprovado ✓' :
-                   lessonProgress?.status === 'COMPLETED' && lessonProgress?.student_confirmed ? 'Aguardando aprovação' :
-                   lessonProgress?.status === 'COMPLETED' ? 'Aguardando confirmação' :
-                   lessonProgress?.status === 'IN_PROGRESS' ? 'Em Andamento' :
-                   lessonProgress?.status === 'PAUSED' ? 'Pausado' :
-                   'Aguardando início'}
+                  {lessonProgress?.status === 'COMPLETED' && lessonProgress?.is_approved ? t('lessonView.approved') :
+                   lessonProgress?.status === 'COMPLETED' && lessonProgress?.student_confirmed ? t('lessonView.awaitingApproval') :
+                   lessonProgress?.status === 'COMPLETED' ? t('lessonView.awaitingConfirmation') :
+                   lessonProgress?.status === 'IN_PROGRESS' ? t('lessonView.inProgress') :
+                   lessonProgress?.status === 'PAUSED' ? t('lessonView.paused') :
+                   t('lessonView.awaitingStart')}
                 </p>
               </div>
             </div>
@@ -668,29 +668,29 @@ export default function LessonView() {
                 <button
                 onClick={handleFinishLesson}
                 disabled={finishLoading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 dark:shadow-green-900/30 disabled:opacity-50"
               >
                 {finishLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <Flag className="w-5 h-5" />
                 )}
-                Finalizar Módulo
+                {t('lessonView.finishModule')}
               </button>
             )}
             
             {/* Aula concluída e aprovada */}
             {isFinished && lessonProgress?.is_approved && (
               <div className="space-y-3">
-                <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-100 text-green-700 rounded-lg font-medium border border-green-200">
+                <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg font-medium border border-green-200 dark:border-green-800/30">
                   <CheckCircle2 className="w-5 h-5" />
-                  Módulo Aprovado ✓
+                  {t('lessonView.moduleApproved')}
                 </div>
                 {/* Rating only available when plan is finalized */}
                 {planId && isPlanFinalized && (hasRated ? (
-                  <div className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 text-gray-500 rounded-lg font-medium border border-gray-200">
+                  <div className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg font-medium border border-gray-200 dark:border-gray-600">
                     <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                    Lição Classificada ✓
+                    {t('lessonView.lessonRated')}
                   </div>
                 ) : (
                   <button
@@ -698,7 +698,7 @@ export default function LessonView() {
                     className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg font-medium hover:from-amber-600 hover:to-yellow-600 transition-all shadow-md"
                   >
                     <Star className="w-4 h-4" />
-                    Classificar Lição
+                    {t('lessonView.rateLesson')}
                   </button>
                 ))}
               </div>
@@ -706,26 +706,26 @@ export default function LessonView() {
             
             {/* Aula confirmada pelo formando, aguardando aprovação do formador */}
             {isFinished && lessonProgress?.student_confirmed && !lessonProgress?.is_approved && (
-                <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 text-amber-700 rounded-lg font-medium border border-amber-200">
+                <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg font-medium border border-amber-200 dark:border-amber-800/30">
                 <Clock className="w-5 h-5" />
-                Aguardando aprovação do formador
+                {t('lessonView.awaitingTrainerApproval')}
               </div>
             )}
             
             {/* Aula finalizada mas aguardando confirmação do formando - redirecionar para plano */}
             {isFinished && !lessonProgress?.student_confirmed && !lessonProgress?.is_approved && (
                 <div className="w-full flex flex-col gap-2">
-                <div className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 text-blue-700 rounded-lg font-medium border border-blue-200">
+                <div className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg font-medium border border-blue-200 dark:border-blue-800/30">
                   <CheckCircle2 className="w-5 h-5" />
-                  Módulo finalizado - Confirme no plano
+                  {t('lessonView.moduleFinishedConfirmPlan')}
                 </div>
               </div>
             )}
             
             {!canFinish && !isFinished && lessonProgress?.status !== 'IN_PROGRESS' && (
-                <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 text-amber-700 rounded-lg font-medium border border-amber-200 text-sm">
+                <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg font-medium border border-amber-200 dark:border-amber-800/30 text-sm">
                 <Clock className="w-5 h-5" />
-                {lessonProgress?.status === 'PAUSED' ? 'Módulo pausado pelo formador' : 'Aguardando formador iniciar'}
+                {lessonProgress?.status === 'PAUSED' ? t('lessonView.modulePausedByTrainer') : t('lessonView.awaitingTrainerStart')}
               </div>
             )}
           </motion.div>
@@ -735,15 +735,15 @@ export default function LessonView() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 p-6"
+              className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30 p-6"
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
                   <BookOpen className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900">Progresso de Leitura</h3>
-                  <p className="text-sm text-gray-500">{visitedPages.size} de {totalPages} páginas</p>
+                  <h3 className="font-semibold text-gray-900 dark:text-white">{t('lessonView.readingProgress')}</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">{t('lessonView.pagesCount', { visited: visitedPages.size, total: totalPages })}</p>
                 </div>
               </div>
               
@@ -752,7 +752,7 @@ export default function LessonView() {
                   <div
                     key={page}
                     className={`flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer ${
-                      currentPage === page ? 'bg-blue-100' : 'hover:bg-white/50'
+                      currentPage === page ? 'bg-blue-100 dark:bg-blue-900/30' : 'hover:bg-white/50 dark:hover:bg-white/5'
                     }`}
                     onClick={() => goToPage(page)}
                   >
@@ -763,12 +763,12 @@ export default function LessonView() {
                     }`}>
                       {visitedPages.has(page) ? <Check className="w-3 h-3" /> : page}
                     </div>
-                    <span className={`text-sm ${currentPage === page ? 'font-medium text-blue-700' : 'text-gray-600'}`}>
-                      Página {page}
+                    <span className={`text-sm ${currentPage === page ? 'font-medium text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                      {t('lessonView.page', { number: page })}
                     </span>
                     {currentPage === page && (
                       <span className="ml-auto text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
-                        Atual
+                        {t('lessonView.current')}
                       </span>
                     )}
                   </div>
@@ -777,10 +777,10 @@ export default function LessonView() {
 
               {allPagesVisited && (
                 <div className="mt-4">
-                  <div className="p-3 bg-green-100 rounded-lg border border-green-200">
-                    <div className="flex items-center gap-2 text-green-700">
+                  <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-800/30">
+                    <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
                       <CheckCircle2 className="w-5 h-5" />
-                      <span className="font-medium text-sm">Leitura completa!</span>
+                      <span className="font-medium text-sm">{t('lessonView.readingComplete')}</span>
                     </div>
                   </div>
                 </div>
@@ -793,33 +793,33 @@ export default function LessonView() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl border border-gray-200 p-6"
+            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6"
           >
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('admin.resources')}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('admin.resources')}</h3>
             <div className="space-y-3">
               {lesson.video_url ? (
                 <a
                   href={lesson.video_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 bg-red-50 hover:bg-red-100 rounded-lg transition-colors group"
+                  className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors group"
                 >
                   <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
                     <Video className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">{t('admin.videoLesson')}</p>
-                    <p className="text-sm text-gray-500">{t('admin.clickToWatch')}</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{t('admin.videoLesson')}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.clickToWatch')}</p>
                   </div>
                   <Play className="w-5 h-5 text-red-500" />
                 </a>
               ) : (
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg opacity-50">
-                  <div className="w-10 h-10 bg-gray-300 rounded-lg flex items-center justify-center">
-                    <Video className="w-5 h-5 text-gray-500" />
+                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg opacity-50">
+                  <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-lg flex items-center justify-center">
+                    <Video className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-600">{t('admin.noVideo')}</p>
+                    <p className="font-medium text-gray-600 dark:text-gray-400">{t('admin.noVideo')}</p>
                   </div>
                 </div>
               )}
@@ -829,23 +829,23 @@ export default function LessonView() {
                   href={lesson.materials_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors group"
+                  className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors group"
                 >
                   <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
                     <LinkIcon className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">{t('admin.materials')}</p>
-                    <p className="text-sm text-gray-500">{t('admin.clickToAccess')}</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{t('admin.materials')}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.clickToAccess')}</p>
                   </div>
                 </a>
               ) : (
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg opacity-50">
-                  <div className="w-10 h-10 bg-gray-300 rounded-lg flex items-center justify-center">
-                    <LinkIcon className="w-5 h-5 text-gray-500" />
+                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg opacity-50">
+                  <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-lg flex items-center justify-center">
+                    <LinkIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-600">{t('admin.noMaterials')}</p>
+                    <p className="font-medium text-gray-600 dark:text-gray-400">{t('admin.noMaterials')}</p>
                   </div>
                 </div>
               )}
@@ -858,33 +858,33 @@ export default function LessonView() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100 p-6"
+              className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-100 dark:border-green-800/30 p-6"
             >
               <div className="flex items-center gap-3 mb-4">
                 <Sparkles className="w-5 h-5 text-green-500" />
-                <h3 className="font-semibold text-gray-900">{t('admin.lessonStatus')}</h3>
+                <h3 className="font-semibold text-gray-900 dark:text-white">{t('admin.lessonStatus')}</h3>
               </div>
               <div className="space-y-3">
                 {lesson.content && (
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">{t('admin.content')}</span>
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                    <span className="text-gray-600 dark:text-gray-400">{t('admin.content')}</span>
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
                       <CheckCircle2 className="w-4 h-4 inline mr-1" />{t('admin.complete')}
                     </span>
                   </div>
                 )}
                 {lesson.video_url && (
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">{t('admin.video')}</span>
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                    <span className="text-gray-600 dark:text-gray-400">{t('admin.video')}</span>
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
                       <CheckCircle2 className="w-4 h-4 inline mr-1" />{t('admin.added')}
                     </span>
                   </div>
                 )}
                 {lesson.materials_url && (
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600">{t('admin.materials')}</span>
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                    <span className="text-gray-600 dark:text-gray-400">{t('admin.materials')}</span>
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
                       <CheckCircle2 className="w-4 h-4 inline mr-1" />{t('admin.added')}
                     </span>
                   </div>
