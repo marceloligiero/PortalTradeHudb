@@ -16,6 +16,8 @@ import {
   Zap,
 } from 'lucide-react';
 import api from '../../lib/axios';
+import { PremiumHeader } from '../../components/premium';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface DashboardData {
   summary: {
@@ -101,15 +103,16 @@ const ErrorTypeBar: React.FC<{
   value: number;
   total: number;
   color: string;
-}> = ({ label, value, total, color }) => {
+  isDark: boolean;
+}> = ({ label, value, total, color, isDark }) => {
   const percentage = total > 0 ? (value / total) * 100 : 0;
   return (
     <div className="mb-3">
       <div className="flex justify-between text-sm mb-1">
-        <span className="text-gray-600">{label}</span>
-        <span className="font-medium text-gray-800">{value}</span>
+        <span className={isDark ? 'text-gray-300' : 'text-gray-600'}>{label}</span>
+        <span className={`font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}>{value}</span>
       </div>
-      <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+      <div className={`h-3 ${isDark ? 'bg-white/10' : 'bg-gray-200'} rounded-full overflow-hidden`}>
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${percentage}%` }}
@@ -123,6 +126,7 @@ const ErrorTypeBar: React.FC<{
 
 const Reports: React.FC = () => {
   const { t } = useTranslation();
+  const { isDark } = useTheme();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -135,7 +139,7 @@ const Reports: React.FC = () => {
         setData(response.data);
       } catch (err: any) {
         console.error('Error fetching reports:', err);
-        setError(err.response?.data?.detail || 'Erro ao carregar relatórios');
+        setError(err.response?.data?.detail || t('myReports.loadError'));
       } finally {
         setLoading(false);
       }
@@ -154,9 +158,9 @@ const Reports: React.FC = () => {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-red-500">
-        <AlertTriangle className="w-16 h-16 mb-4" />
-        <p className="text-lg font-medium">{error}</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <AlertTriangle className="w-16 h-16 mb-4 text-red-500" />
+        <p className="text-lg font-medium text-red-600 dark:text-red-400">{error}</p>
       </div>
     );
   }
@@ -167,52 +171,46 @@ const Reports: React.FC = () => {
   const totalErrors = Object.values(errors_by_type).reduce((a, b) => a + b, 0);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-          <BarChart3 className="w-8 h-8 text-indigo-600" />
-          Meus Relatórios
-        </h1>
-        <p className="text-gray-500 mt-1">
-          Acompanhe sua evolução e desempenho nos desafios
-        </p>
-      </motion.div>
+    <div className="space-y-6">
+      {/* Premium Header */}
+      <PremiumHeader
+        icon={BarChart3}
+        title={t('myReports.title')}
+        subtitle={t('myReports.subtitle')}
+        badge={t('myReports.badge')}
+        iconColor="from-indigo-500 to-indigo-700"
+      />
 
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Total de Submissões"
+          title={t('myReports.totalSubmissions')}
           value={summary.total_submissions}
-          subtitle={`${summary.approved_submissions} aprovadas`}
+          subtitle={`${summary.approved_submissions} ${t('myReports.approved')}`}
           icon={<BarChart3 className="w-6 h-6 text-white" />}
           color="from-blue-500 to-blue-600"
           delay={0.1}
         />
         <StatCard
-          title="Taxa de Aprovação"
+          title={t('myReports.approvalRate')}
           value={`${(summary.approval_rate ?? 0).toFixed(1)}%`}
-          subtitle={`${summary.rejected_submissions} reprovações`}
+          subtitle={`${summary.rejected_submissions} ${t('myReports.rejections')}`}
           icon={<Trophy className="w-6 h-6 text-white" />}
           color="from-green-500 to-green-600"
           delay={0.2}
         />
         <StatCard
-          title="Tempo Médio (Lições)"
+          title={t('myReports.avgLessonTime')}
           value={`${Math.round(summary.avg_lesson_time || 0)} min`}
-          subtitle="por lição"
+          subtitle={t('myReports.perLesson')}
           icon={<Clock className="w-6 h-6 text-white" />}
           color="from-purple-500 to-purple-600"
           delay={0.3}
         />
         <StatCard
-          title="MPU Médio"
+          title={t('myReports.avgMPU')}
           value={(summary.avg_mpu ?? 0).toFixed(2)}
-          subtitle="minutos/unidade"
+          subtitle={t('myReports.minutesPerUnit')}
           icon={<Zap className="w-6 h-6 text-white" />}
           color="from-amber-500 to-amber-600"
           delay={0.4}
@@ -220,27 +218,27 @@ const Reports: React.FC = () => {
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
-          title="Operações Realizadas"
+          title={t('myReports.operationsCompleted')}
           value={summary.total_operations}
-          subtitle={`${summary.total_errors ?? 0} erros`}
+          subtitle={`${summary.total_errors ?? 0} ${t('myReports.errors')}`}
           icon={<Sparkles className="w-6 h-6 text-white" />}
           color="from-indigo-500 to-indigo-600"
           delay={0.5}
         />
         <StatCard
-          title="Planos Concluídos"
+          title={t('myReports.completedPlans')}
           value={`${summary.completed_plans}/${summary.total_plans}`}
-          subtitle="planos de formação"
+          subtitle={t('myReports.trainingPlans')}
           icon={<Flame className="w-6 h-6 text-white" />}
           color="from-orange-500 to-orange-600"
           delay={0.6}
         />
         <StatCard
-          title="Certificados"
+          title={t('myReports.certificates')}
           value={summary.certificates}
-          subtitle={`${summary.completed_lessons} lições concluídas`}
+          subtitle={`${summary.completed_lessons} ${t('myReports.lessonsCompleted')}`}
           icon={<GraduationCap className="w-6 h-6 text-white" />}
           color="from-teal-500 to-teal-600"
           delay={0.7}
@@ -248,33 +246,33 @@ const Reports: React.FC = () => {
       </div>
 
       {/* Best Performance & Error Analysis */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Best Performance */}
         {best_performance && (
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.5 }}
-            className="bg-gradient-to-br from-yellow-50 to-amber-50 border border-yellow-200 rounded-2xl p-6"
+            className={`${isDark ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-gradient-to-br from-yellow-50 to-amber-50 border-yellow-200'} border rounded-2xl p-6`}
           >
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-800'} mb-4 flex items-center gap-2`}>
               <Trophy className="w-6 h-6 text-yellow-500" />
-              🏆 Melhor Desempenho
+              🏆 {t('myReports.bestPerformance')}
             </h3>
             <div className="space-y-3">
-              <div className="bg-white rounded-xl p-4 shadow-sm">
-                <p className="text-sm text-gray-500">Desafio</p>
-                <p className="font-semibold text-gray-800">{best_performance.challenge_title}</p>
+              <div className={`${isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-gray-100'} rounded-xl p-4 shadow-sm`}>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.challenge')}</p>
+                <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>{best_performance.challenge_title}</p>
               </div>
               <div className="flex justify-center">
-                <div className="bg-white rounded-xl p-4 text-center shadow-sm">
-                  <p className="text-3xl font-bold text-green-600">{(best_performance.mpu ?? 0).toFixed(2)}</p>
-                  <p className="text-sm text-gray-500">MPU (Melhor)</p>
+                <div className={`${isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-gray-100'} rounded-xl p-4 text-center shadow-sm`}>
+                  <p className={`text-3xl font-bold ${isDark ? 'text-green-400' : 'text-green-600'}`}>{(best_performance.mpu ?? 0).toFixed(2)}</p>
+                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>MPU ({t('myReports.best')})</p>
                 </div>
               </div>
               {best_performance.date && (
-                <p className="text-xs text-gray-400 text-right mt-2">
-                  📅 {new Date(best_performance.date).toLocaleDateString('pt-BR')}
+                <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'} text-right mt-2`}>
+                  📅 {new Date(best_performance.date).toLocaleDateString('pt-PT')}
                 </p>
               )}
             </div>
@@ -286,46 +284,50 @@ const Reports: React.FC = () => {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.6 }}
-          className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm"
+          className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'} border rounded-2xl p-6 shadow-sm`}
         >
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-800'} mb-4 flex items-center gap-2`}>
             <AlertTriangle className="w-6 h-6 text-red-500" />
-            Análise de Erros
+            {t('myReports.errorAnalysis')}
           </h3>
           {totalErrors === 0 ? (
-            <div className="text-center py-8 text-gray-400">
+            <div className={`text-center py-8 ${isDark ? 'text-gray-400' : 'text-gray-400'}`}>
               <CheckCircle2 className="w-12 h-12 mx-auto mb-2 text-green-500" />
-              <p>Nenhum erro registrado! 🎉</p>
+              <p>{t('myReports.noErrors')} 🎉</p>
             </div>
           ) : (
             <div>
               <ErrorTypeBar
-                label="📐 Metodologia"
+                label={`📐 ${t('myReports.methodology')}`}
                 value={errors_by_type.methodology ?? 0}
                 total={totalErrors}
                 color="bg-purple-500"
+                isDark={isDark}
               />
               <ErrorTypeBar
-                label="💡 Conhecimento"
+                label={`💡 ${t('myReports.knowledge')}`}
                 value={errors_by_type.knowledge ?? 0}
                 total={totalErrors}
                 color="bg-blue-500"
+                isDark={isDark}
               />
               <ErrorTypeBar
-                label="🔍 Detalhe"
+                label={`🔍 ${t('myReports.detail')}`}
                 value={errors_by_type.detail ?? 0}
                 total={totalErrors}
                 color="bg-orange-500"
+                isDark={isDark}
               />
               <ErrorTypeBar
-                label="📋 Procedimento"
+                label={`📋 ${t('myReports.procedure')}`}
                 value={errors_by_type.procedure ?? 0}
                 total={totalErrors}
                 color="bg-red-500"
+                isDark={isDark}
               />
-              <div className="mt-4 pt-4 border-t text-center">
-                <p className="text-sm text-gray-500">
-                  Total: <span className="font-bold text-gray-800">{totalErrors}</span> erros
+              <div className={`mt-4 pt-4 border-t ${isDark ? 'border-white/10' : 'border-gray-200'} text-center`}>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Total: <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>{totalErrors}</span> {t('myReports.errors')}
                 </p>
               </div>
             </div>
@@ -338,27 +340,27 @@ const Reports: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
-        className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-8"
+        className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'} border rounded-2xl p-6 shadow-sm`}
       >
-        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-800'} mb-4 flex items-center gap-2`}>
           <Flame className="w-6 h-6 text-orange-500" />
-          Desempenho por Desafio
+          {t('myReports.challengePerformance')}
         </h3>
         {challenges.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
+          <div className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
             <BarChart3 className="w-12 h-12 mx-auto mb-2" />
-            <p>Nenhum desafio realizado ainda</p>
+            <p>{t('myReports.noChallenges')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-500">Desafio</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Tentativas</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Melhor MPU</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">MPU Médio</th>
-                  <th className="text-center py-3 px-4 text-sm font-medium text-gray-500">Resultado</th>
+                <tr className={`border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.challenge')}</th>
+                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.attempts')}</th>
+                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.bestMPU')}</th>
+                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.avgMPUShort')}</th>
+                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.result')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -368,38 +370,38 @@ const Reports: React.FC = () => {
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.8 + idx * 0.05 }}
-                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                    className={`border-b ${isDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50'} transition-colors`}
                   >
-                    <td className="py-3 px-4 font-medium text-gray-800">{challenge.title}</td>
-                    <td className="py-3 px-4 text-center text-gray-600">{challenge.attempts}</td>
+                    <td className={`py-3 px-4 font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}>{challenge.title}</td>
+                    <td className={`py-3 px-4 text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{challenge.attempts}</td>
                     <td className="py-3 px-4 text-center">
-                      <span className="font-mono text-green-600 font-medium">
+                      <span className={`font-mono ${isDark ? 'text-green-400' : 'text-green-600'} font-medium`}>
                         {(challenge.best_mpu ?? 0).toFixed(2)}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <span className="font-mono text-blue-600">{(challenge.avg_mpu ?? 0).toFixed(2)}</span>
+                      <span className={`font-mono ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{(challenge.avg_mpu ?? 0).toFixed(2)}</span>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span
                         className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
                           challenge.approvals > 0
-                            ? 'bg-green-100 text-green-700'
+                            ? isDark ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'
                             : challenge.attempts > 0
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-gray-100 text-gray-700'
+                            ? isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700'
+                            : isDark ? 'bg-white/10 text-gray-400' : 'bg-gray-100 text-gray-700'
                         }`}
                       >
                         {challenge.approvals > 0 ? (
                           <>
-                            <CheckCircle2 className="w-4 h-4" /> {challenge.approvals} Aprovações
+                            <CheckCircle2 className="w-4 h-4" /> {challenge.approvals} {t('myReports.approvals')}
                           </>
                         ) : challenge.attempts > 0 ? (
                           <>
-                            <Clock className="w-4 h-4" /> {challenge.attempts} Tentativas
+                            <Clock className="w-4 h-4" /> {challenge.attempts} {t('myReports.attempts')}
                           </>
                         ) : (
-                          'Sem tentativas'
+                          t('myReports.noAttempts')
                         )}
                       </span>
                     </td>
@@ -416,16 +418,16 @@ const Reports: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.9 }}
-        className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm mb-8"
+        className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'} border rounded-2xl p-6 shadow-sm`}
       >
-        <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-800'} mb-4 flex items-center gap-2`}>
           <Calendar className="w-6 h-6 text-indigo-500" />
-          Atividade Recente
+          {t('myReports.recentActivity')}
         </h3>
         {recent_activity.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
+          <div className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
             <Calendar className="w-12 h-12 mx-auto mb-2" />
-            <p>Nenhuma atividade recente</p>
+            <p>{t('myReports.noRecentActivity')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -437,10 +439,10 @@ const Reports: React.FC = () => {
                 transition={{ delay: 1 + idx * 0.05 }}
                 className={`flex items-center justify-between p-4 rounded-xl border ${
                   activity.is_approved === true
-                    ? 'bg-green-50 border-green-200'
+                    ? isDark ? 'bg-green-500/10 border-green-500/20' : 'bg-green-50 border-green-200'
                     : activity.is_approved === false
-                    ? 'bg-red-50 border-red-200'
-                    : 'bg-yellow-50 border-yellow-200'
+                    ? isDark ? 'bg-red-500/10 border-red-500/20' : 'bg-red-50 border-red-200'
+                    : isDark ? 'bg-yellow-500/10 border-yellow-500/20' : 'bg-yellow-50 border-yellow-200'
                 }`}
               >
                 <div className="flex items-center gap-4">
@@ -452,26 +454,26 @@ const Reports: React.FC = () => {
                     <Clock className="w-8 h-8 text-yellow-500" />
                   )}
                   <div>
-                    <p className="font-medium text-gray-800">{activity.challenge_title}</p>
-                    <p className="text-sm text-gray-500">
-                      {activity.completed_at ? new Date(activity.completed_at).toLocaleDateString('pt-BR', {
+                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}>{activity.challenge_title}</p>
+                    <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {activity.completed_at ? new Date(activity.completed_at).toLocaleDateString('pt-PT', {
                         day: '2-digit',
                         month: 'short',
                         year: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit',
-                      }) : 'Em análise'}
+                      }) : t('myReports.underReview')}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 text-sm">
                   <div className="text-center">
-                    <p className="font-bold text-gray-800">{(activity.calculated_mpu ?? 0).toFixed(2)}</p>
-                    <p className="text-xs text-gray-400">MPU</p>
+                    <p className={`font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>{(activity.calculated_mpu ?? 0).toFixed(2)}</p>
+                    <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>MPU</p>
                   </div>
                   <div className="text-center">
-                    <p className="font-bold text-gray-800">{activity.errors_count}</p>
-                    <p className="text-xs text-gray-400">Erros</p>
+                    <p className={`font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>{activity.errors_count}</p>
+                    <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('myReports.errors')}</p>
                   </div>
                 </div>
               </motion.div>
@@ -486,11 +488,11 @@ const Reports: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.1 }}
-          className="bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-200 rounded-2xl p-6"
+          className={`${isDark ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200'} border rounded-2xl p-6`}
         >
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-800'} mb-4 flex items-center gap-2`}>
             <TrendingUp className="w-6 h-6 text-indigo-500" />
-            Evolução Mensal
+            {t('myReports.monthlyEvolution')}
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {evolution.map((item, idx) => (
@@ -499,16 +501,16 @@ const Reports: React.FC = () => {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 1.2 + idx * 0.1 }}
-                className="bg-white rounded-xl p-4 text-center shadow-sm"
+                className={`${isDark ? 'bg-white/5 border border-white/10' : 'bg-white border border-gray-100'} rounded-xl p-4 text-center shadow-sm`}
               >
-                <p className="text-sm font-medium text-indigo-600 mb-2">{new Date(item.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}</p>
-                <p className="text-2xl font-bold text-gray-800">{item.submissions}</p>
-                <p className="text-xs text-gray-500">submissões</p>
-                <div className="mt-2 pt-2 border-t">
+                <p className={`text-sm font-medium ${isDark ? 'text-indigo-400' : 'text-indigo-600'} mb-2`}>{new Date(item.date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}</p>
+                <p className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>{item.submissions}</p>
+                <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.submissions')}</p>
+                <div className={`mt-2 pt-2 border-t ${isDark ? 'border-white/10' : 'border-gray-100'}`}>
                   <p className="text-xs">
-                    <span className="text-green-600 font-medium">{item.approved}</span> aprovadas
+                    <span className={`${isDark ? 'text-green-400' : 'text-green-600'} font-medium`}>{item.approved}</span> {t('myReports.approved')}
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                     MPU: {(item.avg_mpu ?? 0).toFixed(2)}
                   </p>
                 </div>
