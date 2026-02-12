@@ -44,6 +44,7 @@ interface TrainingPlan {
   bank_name?: string;
   product_id?: number;
   product_name?: string;
+  product_code?: string;
   student?: {
     id: number;
     full_name: string;
@@ -171,12 +172,14 @@ export default function TrainingPlans() {
     
     const groups: Record<string, TrainingPlan[]> = {};
     filteredPlans.forEach(plan => {
-      const key = plan.product_name || t('common.noProduct', 'Sem Produto');
+      const key = plan.product_code 
+        ? getTranslatedProductName(t, plan.product_code, plan.product_name || '') 
+        : (plan.product_name || t('common.noProduct', 'Sem Produto'));
       if (!groups[key]) groups[key] = [];
       groups[key].push(plan);
     });
     return groups;
-  }, [filteredPlans, groupByProduct]);
+  }, [filteredPlans, groupByProduct, t]);
 
   // Calculate stats
   const totalPlans = plans.length;
@@ -194,7 +197,7 @@ export default function TrainingPlans() {
         icon={GraduationCap}
         title={t('navigation.trainingPlans')}
         subtitle={t('trainingPlan.manageAllPlans')}
-        badge="Gestão de Formação"
+        badge={t('admin.trainingManagement')}
         iconColor="from-indigo-500 to-indigo-700"
         actions={
           <motion.button

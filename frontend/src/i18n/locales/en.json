@@ -504,6 +504,7 @@
     "createFirstProduct": "Create your first service by clicking the button above",
     "manageProducts": "Manage available services",
     "productManagement": "Service Management",
+    "trainingManagement": "Training Management",
     "courseCreatedSuccess": "Course created successfully!",
     "planCreatedSuccess": "Training plan created successfully!",
     "courseTitle": "Course Title",

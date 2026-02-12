@@ -275,6 +275,7 @@ async def list_training_plans(
                 "product_ids": [p["id"] for p in products_list],
                 "banks": banks_list,
                 "products": products_list,
+                "is_active": plan.is_active,
                 # Novos campos de status
                 "status": plan_status["status"],
                 "progress_percentage": plan_status["progress_percentage"],
