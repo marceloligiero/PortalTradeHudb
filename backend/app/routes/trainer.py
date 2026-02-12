@@ -732,9 +732,17 @@ async def list_trainer_students(
     
     result = []
     for user in users:
-        plans_info = student_plan_map.get(user.id, [])
+        plans_info_raw = student_plan_map.get(user.id, [])
+        # Deduplicate plans (same plan can come from assignments + direct student_id)
+        seen_plan_ids = set()
+        plans_info = []
+        for p in plans_info_raw:
+            if p["plan_id"] not in seen_plan_ids:
+                seen_plan_ids.add(p["plan_id"])
+                plans_info.append(p)
         
-        # Calculate overall progress across all plans
+        # Calculate overall progress across all plans (deduplicate courses)
+        seen_courses = set()
         total_progress = 0
         total_courses = 0
         for plan_info in plans_info:
@@ -742,6 +750,9 @@ async def list_trainer_students(
                 models.TrainingPlanCourse.training_plan_id == plan_info["plan_id"]
             ).all()
             for pc in plan_courses:
+                if pc.course_id in seen_courses:
+                    continue
+                seen_courses.add(pc.course_id)
                 enrollment = db.query(models.Enrollment).filter(
                     models.Enrollment.user_id == user.id,
                     models.Enrollment.course_id == pc.course_id
@@ -753,7 +764,8 @@ async def list_trainer_students(
                     ).count()
                     completed_lessons = db.query(models.LessonProgress).filter(
                         models.LessonProgress.enrollment_id == enrollment.id,
-                        models.LessonProgress.completed_at.isnot(None)
+                        models.LessonProgress.status == "COMPLETED",
+                        models.LessonProgress.student_confirmed == True
                     ).count()
                     if total_lessons > 0:
                         total_progress += (completed_lessons / total_lessons * 100)
