@@ -115,12 +115,27 @@
     "trainer": {
       "title": "Trainer Area",
       "subtitle": "Manage the trainings you create and follow every student",
+      "badge": "Trainer Panel",
       "createdCourses": "Courses Created",
       "activeStudents": "Active Students",
       "challenges": "Challenges",
       "createButton": "New Training",
       "emptyTitle": "No trainings created yet",
-      "emptyDescription": "Create your first training session to get started"
+      "emptyDescription": "Create your first training session to get started",
+      "trainingPlans": "Training Plans",
+      "createdLessons": "Created Lessons",
+      "activePlans": "Active Plans",
+      "submissions": "Submissions",
+      "approvalRate": "Approval Rate",
+      "avgMpu": "Avg MPU",
+      "certificates": "Certificates",
+      "myPlans": "My Training Plans",
+      "managePlans": "Manage plans and track progress",
+      "newPlan": "New Plan",
+      "createTraining": "Create training",
+      "viewAll": "View all",
+      "manageStudents": "Manage students",
+      "viewAnalytics": "View analytics"
     },
     "admin": {
       "title": "Administrator Area",

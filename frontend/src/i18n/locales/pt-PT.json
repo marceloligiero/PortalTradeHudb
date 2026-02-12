@@ -115,12 +115,27 @@
     "trainer": {
       "title": "Painel do Formador",
       "subtitle": "Gerencie as suas formações e acompanhe os formandos",
+      "badge": "Painel do Formador",
       "createdCourses": "Cursos Criados",
       "activeStudents": "Formandos Ativos",
       "challenges": "Desafios",
       "createButton": "Nova Formação",
       "emptyTitle": "Nenhuma formação criada ainda",
-      "emptyDescription": "Crie a sua primeira formação para começar"
+      "emptyDescription": "Crie a sua primeira formação para começar",
+      "trainingPlans": "Planos de Formação",
+      "createdLessons": "Módulos Criados",
+      "activePlans": "Planos Ativos",
+      "submissions": "Submissões",
+      "approvalRate": "Taxa Aprovação",
+      "avgMpu": "MPU Médio",
+      "certificates": "Certificados",
+      "myPlans": "Meus Planos de Formação",
+      "managePlans": "Gerir planos e acompanhar progresso",
+      "newPlan": "Novo Plano",
+      "createTraining": "Criar formação",
+      "viewAll": "Ver todos",
+      "manageStudents": "Gerir alunos",
+      "viewAnalytics": "Ver análises"
     },
     "admin": {
       "title": "Painel do Administrador",

@@ -73,7 +73,7 @@ export default function TrainingPlanForm() {
   const fetchData = async () => {
     try {
       const [coursesRes, banksRes, productsRes, studentsRes] = await Promise.all([
-        api.get('/api/trainer/courses'),
+        api.get('/api/trainer/courses/all'),
         api.get('/api/admin/banks'),
         api.get('/api/admin/products'),
         api.get('/api/trainer/students/list')

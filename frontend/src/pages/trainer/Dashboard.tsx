@@ -102,7 +102,7 @@ export default function TrainerDashboard() {
         icon={Users}
         title={t('dashboard.trainer.title')}
         subtitle={t('dashboard.trainer.subtitle')}
-        badge="Painel do Formador"
+        badge={t('dashboard.trainer.badge')}
         iconColor="from-red-500 to-red-700"
         actions={
           <motion.button
@@ -135,7 +135,7 @@ export default function TrainerDashboard() {
         />
         <AnimatedStatCard
           icon={GraduationCap}
-          label="Planos de Formação"
+          label={t('dashboard.trainer.trainingPlans')}
           value={stats?.total_training_plans || 0}
           color="from-purple-500 to-purple-700"
           delay={0.2}
@@ -159,7 +159,7 @@ export default function TrainerDashboard() {
         <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
             <Clock className="w-4 h-4 text-gray-400" />
-            <span className="text-xs text-gray-500 dark:text-gray-400">Módulos Criados</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.trainer.createdLessons')}</span>
           </div>
           <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats?.total_lessons || 0}</div>
         </motion.div>
@@ -167,7 +167,7 @@ export default function TrainerDashboard() {
         <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
             <Zap className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
-            <span className="text-xs text-gray-500 dark:text-gray-400">Planos Ativos</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.trainer.activePlans')}</span>
           </div>
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats?.active_training_plans || 0}</div>
         </motion.div>
@@ -175,7 +175,7 @@ export default function TrainerDashboard() {
         <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
             <Target className="w-4 h-4 text-blue-500 dark:text-blue-400" />
-            <span className="text-xs text-gray-500 dark:text-gray-400">Submissões</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.trainer.submissions')}</span>
           </div>
           <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats?.total_submissions || 0}</div>
         </motion.div>
@@ -183,7 +183,7 @@ export default function TrainerDashboard() {
         <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle2 className="w-4 h-4 text-green-500 dark:text-green-400" />
-            <span className="text-xs text-gray-500 dark:text-gray-400">Taxa Aprovação</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.trainer.approvalRate')}</span>
           </div>
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats?.approval_rate || 0}%</div>
         </motion.div>
@@ -191,7 +191,7 @@ export default function TrainerDashboard() {
         <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="w-4 h-4 text-purple-500 dark:text-purple-400" />
-            <span className="text-xs text-gray-500 dark:text-gray-400">MPU Médio</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.trainer.avgMpu')}</span>
           </div>
           <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats?.avg_mpu || 0}</div>
         </motion.div>
@@ -199,7 +199,7 @@ export default function TrainerDashboard() {
         <motion.div variants={cardVariants} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-lg dark:shadow-none">
           <div className="flex items-center gap-2 mb-2">
             <Award className="w-4 h-4 text-yellow-500 dark:text-yellow-400" />
-            <span className="text-xs text-gray-500 dark:text-gray-400">Certificados</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400">{t('dashboard.trainer.certificates')}</span>
           </div>
           <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats?.certificates_issued || 0}</div>
         </motion.div>
@@ -221,8 +221,8 @@ export default function TrainerDashboard() {
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Meus Planos de Formação</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Gerir planos e acompanhar progresso</p>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('dashboard.trainer.myPlans')}</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t('dashboard.trainer.managePlans')}</p>
               </div>
             </div>
             <motion.button
@@ -278,20 +278,20 @@ export default function TrainerDashboard() {
                         ? 'bg-green-500/10 text-green-600 dark:text-green-400'
                         : 'bg-gray-500/10 text-gray-500 dark:text-gray-400'
                     }`}>
-                      {plan.is_active !== false ? 'Ativo' : 'Inativo'}
+                      {plan.is_active !== false ? t('common.active') : t('common.inactive')}
                     </span>
                   </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-3">
-                    {plan.description || 'Sem descrição'}
+                    {plan.description || t('common.noDescription')}
                   </p>
                   <div className="flex items-center gap-4 text-xs text-gray-500">
                     <div className="flex items-center gap-1">
                       <Users className="w-3 h-3" />
-                      <span>{plan.total_students || 0} formandos</span>
+                      <span>{plan.total_students || 0} {t('navigation.students')}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <BookOpen className="w-3 h-3" />
-                      <span>{plan.total_courses || 0} cursos</span>
+                      <span>{plan.total_courses || 0} {t('navigation.courses')}</span>
                     </div>
                   </div>
                 </motion.div>
@@ -318,8 +318,8 @@ export default function TrainerDashboard() {
             <PlusCircle className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">Novo Plano</p>
-            <p className="text-xs text-gray-500">Criar formação</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">{t('dashboard.trainer.newPlan')}</p>
+            <p className="text-xs text-gray-500">{t('dashboard.trainer.createTraining')}</p>
           </div>
         </motion.button>
 
@@ -333,8 +333,8 @@ export default function TrainerDashboard() {
             <GraduationCap className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">Meus Planos</p>
-            <p className="text-xs text-gray-500">Ver todos</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">{t('dashboard.trainer.myPlans')}</p>
+            <p className="text-xs text-gray-500">{t('dashboard.trainer.viewAll')}</p>
           </div>
         </motion.button>
 
@@ -348,8 +348,8 @@ export default function TrainerDashboard() {
             <Users className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">Formandos</p>
-            <p className="text-xs text-gray-500">Gerir alunos</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">{t('navigation.students')}</p>
+            <p className="text-xs text-gray-500">{t('dashboard.trainer.manageStudents')}</p>
           </div>
         </motion.button>
 
@@ -363,8 +363,8 @@ export default function TrainerDashboard() {
             <TrendingUp className="w-5 h-5 text-white" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-green-500 dark:group-hover:text-green-400 transition-colors">Relatórios</p>
-            <p className="text-xs text-gray-500">Ver análises</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-green-500 dark:group-hover:text-green-400 transition-colors">{t('navigation.reports')}</p>
+            <p className="text-xs text-gray-500">{t('dashboard.trainer.viewAnalytics')}</p>
           </div>
         </motion.button>
       </motion.div>
