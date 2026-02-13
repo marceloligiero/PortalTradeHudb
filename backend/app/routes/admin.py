@@ -1025,11 +1025,21 @@ async def get_admin_stats(
     total_enrollments = db.query(models.Enrollment).count()
     total_certificates = db.query(models.Certificate).count()
     
-    # Calculate completion rate
-    completed_enrollments = db.query(models.Enrollment).filter(
-        models.Enrollment.completed_at.isnot(None)
-    ).count()
-    avg_completion_rate = (completed_enrollments / total_enrollments * 100) if total_enrollments > 0 else 0
+    # Calculate completion rate (based on lesson progress)
+    completed_enrollment_count = 0
+    if total_enrollments > 0:
+        all_enrs = db.query(models.Enrollment).all()
+        for enr in all_enrs:
+            course_lesson_count = db.query(models.Lesson).filter(models.Lesson.course_id == enr.course_id).count()
+            if course_lesson_count == 0:
+                continue
+            done_count = db.query(models.LessonProgress).filter(
+                models.LessonProgress.enrollment_id == enr.id,
+                models.LessonProgress.status == "COMPLETED"
+            ).count()
+            if done_count >= course_lesson_count:
+                completed_enrollment_count += 1
+    avg_completion_rate = (completed_enrollment_count / total_enrollments * 100) if total_enrollments > 0 else 0
     
     # Calculate total study hours (from accumulated_seconds in lesson_progress + challenge submissions)
     total_study_seconds = db.query(func.sum(models.LessonProgress.accumulated_seconds)).scalar() or 0
@@ -1250,15 +1260,29 @@ async def get_admin_insights(
     total_banks = db.query(models.Bank).filter(models.Bank.is_active == True).count()
     total_products = db.query(models.Product).filter(models.Product.is_active == True).count()
     
-    # Study hours
-    total_minutes = db.query(func.sum(models.LessonProgress.actual_time_minutes)).filter(
-        models.LessonProgress.actual_time_minutes.isnot(None)
+    # Study hours (from accumulated_seconds + challenge submission time)
+    total_study_seconds = db.query(func.sum(models.LessonProgress.accumulated_seconds)).scalar() or 0
+    challenge_time_min = db.query(func.sum(models.ChallengeSubmission.total_time_minutes)).filter(
+        models.ChallengeSubmission.total_time_minutes.isnot(None),
+        models.ChallengeSubmission.total_time_minutes > 0
     ).scalar() or 0
-    total_study_hours = round(float(total_minutes) / 60.0, 1)
+    total_study_hours = round((float(total_study_seconds) / 3600.0) + (float(challenge_time_min) / 60.0), 1)
     
-    # Completion rate
-    completed_enrollments = db.query(models.Enrollment).filter(models.Enrollment.completed_at.isnot(None)).count()
-    completion_rate = round((completed_enrollments / total_enrollments * 100), 1) if total_enrollments > 0 else 0
+    # Completion rate (based on lesson progress, not enrollment.completed_at)
+    completed_enrollments_count = 0
+    if total_enrollments > 0:
+        all_enrollments = db.query(models.Enrollment).all()
+        for enr in all_enrollments:
+            course_lessons_count = db.query(models.Lesson).filter(models.Lesson.course_id == enr.course_id).count()
+            if course_lessons_count == 0:
+                continue
+            completed_count = db.query(models.LessonProgress).filter(
+                models.LessonProgress.enrollment_id == enr.id,
+                models.LessonProgress.status == "COMPLETED"
+            ).count()
+            if completed_count >= course_lessons_count:
+                completed_enrollments_count += 1
+    completion_rate = round((completed_enrollments_count / total_enrollments * 100), 1) if total_enrollments > 0 else 0
     
     # ═══════════════ 2. CHALLENGE / SUBMISSION ANALYTICS ═══════════════
     total_submissions = db.query(models.ChallengeSubmission).count()
