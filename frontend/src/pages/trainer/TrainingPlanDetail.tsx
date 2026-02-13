@@ -1687,16 +1687,16 @@ export default function TrainingPlanDetail() {
                                           </>
                                         )}
 
-                                        {/* Aula concluída mas aguardando confirmação do formando */}
-                                        {progress?.status === 'COMPLETED' && !progress.student_confirmed && !progress.is_approved && (
+                                        {/* Aula concluída mas aguardando confirmação do formando (apenas para aulas iniciadas pelo formando) */}
+                                        {progress?.status === 'COMPLETED' && !progress.student_confirmed && !progress.is_approved && lesson.started_by !== 'TRAINER' && (
                                           <div className="flex items-center gap-2 px-3 py-2 bg-blue-500/20 border border-blue-500/30 rounded-lg">
                                             <Clock className="w-4 h-4 text-blue-400" />
                                             <span className="text-sm text-blue-400 font-medium">{t('trainingPlanDetail.awaitingStudentConfirmation')}</span>
                                           </div>
                                         )}
 
-                                        {/* Aula confirmada pelo formando - mostrar destaque e Aprovar */}
-                                        {progress?.status === 'COMPLETED' && progress.student_confirmed && !progress.is_approved && (
+                                        {/* Aula confirmada pelo formando ou aula iniciada pelo formador - mostrar Aprovar */}
+                                        {progress?.status === 'COMPLETED' && !progress.is_approved && (progress.student_confirmed || lesson.started_by === 'TRAINER') && (
                                           <>
                                             <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/20 border border-amber-500/30 rounded-lg">
                                               <AlertCircle className="w-4 h-4 text-amber-400" />
