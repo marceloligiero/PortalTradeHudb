@@ -1778,7 +1778,8 @@
     "lessonRated": "Aula Classificada",
     "rateLesson": "Classificar Aula",
     "challengeRated": "Desafio Classificado",
-    "rateChallenge": "Classificar Desafio"
+    "rateChallenge": "Classificar Desafio",
+    "appliedBy": "Aplicado por"
   },
   "adminDashboard": {
     "controlPanel": "Painel de Controlo",

@@ -139,6 +139,12 @@ async def get_student_dashboard(
             plan = db.query(models.TrainingPlan.title).filter(models.TrainingPlan.id == sub.training_plan_id).first()
             plan_title = plan.title if plan else None
         
+        # Buscar nome do formador que aplicou/corrigiu
+        submitted_by_name = None
+        if sub.submitted_by:
+            trainer = db.query(models.User).filter(models.User.id == sub.submitted_by).first()
+            submitted_by_name = (trainer.full_name or trainer.username) if trainer else None
+        
         challenges.append({
             'id': sub.id,
             'challenge_id': sub.challenge_id,
@@ -153,6 +159,7 @@ async def get_student_dashboard(
             'status': sub.status,
             'course_title': course_title,
             'plan_title': plan_title,
+            'submitted_by_name': submitted_by_name,
             'completed_at': sub.completed_at.isoformat() if sub.completed_at else None,
         })
     

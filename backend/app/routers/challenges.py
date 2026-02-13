@@ -1066,7 +1066,7 @@ async def finish_challenge_complete(
     return resp
 
 # ===== LISTAR Submissions de um Desafio =====
-@router.get("/{challenge_id}/submissions", response_model=List[schemas.ChallengeSubmission])
+@router.get("/{challenge_id}/submissions")
 async def list_challenge_submissions(
     challenge_id: int,
     user_id: Optional[int] = None,
@@ -1100,7 +1100,18 @@ async def list_challenge_submissions(
     
     submissions = query.order_by(models.ChallengeSubmission.created_at.desc()).all()
     
-    return submissions
+    # Adicionar nome do formador que aplicou/corrigiu
+    result = []
+    for sub in submissions:
+        sub_dict = schemas.ChallengeSubmission.model_validate(sub).model_dump()
+        if sub.submitted_by:
+            trainer = db.query(models.User).filter(models.User.id == sub.submitted_by).first()
+            sub_dict['submitted_by_name'] = (trainer.full_name or trainer.username) if trainer else None
+        else:
+            sub_dict['submitted_by_name'] = None
+        result.append(sub_dict)
+    
+    return result
 
 
 # ===== LISTAR Submissions Pendentes de Revisão (para Formador) =====

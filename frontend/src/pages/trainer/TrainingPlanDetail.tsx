@@ -62,6 +62,7 @@ interface SubmissionData {
   calculated_mpu?: number;
   completed_at?: string;
   is_retry_allowed?: boolean;
+  submitted_by_name?: string;
 }
 
 interface CourseItem {
@@ -1872,7 +1873,7 @@ export default function TrainingPlanDetail() {
 
                                     {submission && (
                                       <div className={`mt-3 p-3 rounded-lg ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
-                                        <div className="flex items-center gap-4 text-sm">
+                                        <div className="flex flex-wrap items-center gap-4 text-sm">
                                           {submission.calculated_mpu && (
                                             <span className={isDark ? 'text-gray-400' : 'text-gray-600'}>
                                               <TrendingUp className="w-4 h-4 inline mr-1" />
@@ -1880,6 +1881,12 @@ export default function TrainingPlanDetail() {
                                             </span>
                                           )}
                                         </div>
+                                        {submission.submitted_by_name && (
+                                          <div className="flex items-center gap-1 mt-2 text-xs text-purple-400">
+                                            <User className="w-3 h-3" />
+                                            {t('trainingPlanDetail.appliedBy', 'Aplicado por')} {submission.submitted_by_name}
+                                          </div>
+                                        )}
                                       </div>
                                     )}
                                   </div>
