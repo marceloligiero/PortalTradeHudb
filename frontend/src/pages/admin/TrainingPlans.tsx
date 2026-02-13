@@ -544,12 +544,19 @@ export default function TrainingPlans() {
                                 {plan.student.full_name}
                               </span>
                             )}
-                            {plan.bank_code && (
+                            {plan.banks && plan.banks.length > 0 ? (
+                              plan.banks.slice(0, 2).map(bank => (
+                                <span key={bank.id} className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} flex items-center gap-1`}>
+                                  <Building2 className="w-3 h-3" />
+                                  {bank.name}
+                                </span>
+                              ))
+                            ) : plan.bank_code ? (
                               <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} flex items-center gap-1`}>
                                 <Building2 className="w-3 h-3" />
                                 {plan.bank_code}
                               </span>
-                            )}
+                            ) : null}
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
