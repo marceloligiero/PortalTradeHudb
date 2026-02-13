@@ -211,9 +211,27 @@ async def get_student_performance_report(
             mpu_values = [s.calculated_mpu for s in submissions if s.calculated_mpu and s.calculated_mpu > 0]
             avg_mpu = sum(mpu_values) / len(mpu_values) if mpu_values else 0
             
-            # Calculate total time
-            time_values = [lp.actual_time_minutes or 0 for lp in lesson_progress]
-            total_time_hours = sum(time_values) / 60.0
+            # Calculate total time from accumulated_seconds (lessons) + challenge submissions time
+            lesson_seconds = sum(lp.accumulated_seconds or 0 for lp in lesson_progress)
+            # Also add time from started_at/completed_at for lessons if accumulated_seconds is 0
+            for lp in lesson_progress:
+                if (not lp.accumulated_seconds or lp.accumulated_seconds == 0) and lp.started_at and lp.completed_at:
+                    delta = (lp.completed_at - lp.started_at).total_seconds()
+                    lesson_seconds += max(delta, 0)
+            
+            # Add challenge time
+            challenge_subs = db.query(models.ChallengeSubmission).filter(
+                models.ChallengeSubmission.user_id == student.id
+            ).all()
+            challenge_seconds = 0
+            for cs in challenge_subs:
+                if cs.total_time_minutes and cs.total_time_minutes > 0:
+                    challenge_seconds += cs.total_time_minutes * 60
+                elif cs.started_at and cs.completed_at:
+                    delta = (cs.completed_at - cs.started_at).total_seconds()
+                    challenge_seconds += max(delta, 0)
+            
+            total_time_hours = (lesson_seconds + challenge_seconds) / 3600.0
             
             # Count certificates
             certificates_count = db.query(models.Certificate).filter(
@@ -390,9 +408,26 @@ async def get_course_analytics_report(
             ).all()
             total_enrollments = len(enrollments)
             
-            # Calculate completion rate
-            completed = len([e for e in enrollments if e.completed_at])
-            avg_completion_rate = (completed / total_enrollments * 100) if total_enrollments > 0 else 0
+            # Calculate completion rate based on lesson progress
+            # Get all lessons for this course
+            lesson_ids = [l.id for l in db.query(models.Lesson.id).filter(
+                models.Lesson.course_id == course.id
+            ).all()]
+            
+            if total_enrollments > 0 and lesson_ids:
+                # For each enrolled user, check if they completed all lessons
+                completed_users = 0
+                for enrollment in enrollments:
+                    user_completed = db.query(models.LessonProgress).filter(
+                        models.LessonProgress.user_id == enrollment.user_id,
+                        models.LessonProgress.lesson_id.in_(lesson_ids),
+                        models.LessonProgress.status == "COMPLETED"
+                    ).count()
+                    if user_completed >= len(lesson_ids):
+                        completed_users += 1
+                avg_completion_rate = (completed_users / total_enrollments * 100)
+            else:
+                avg_completion_rate = 0
             
             # Calculate average MPU from challenge submissions (minutos por operação)
             challenges = db.query(models.Challenge).filter(
