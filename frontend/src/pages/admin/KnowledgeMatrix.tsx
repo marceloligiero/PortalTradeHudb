@@ -5,7 +5,8 @@ import {
   TrendingUp, ChevronDown, ChevronRight,
   Search, Download, RefreshCw,
   Minus, Star, Zap, Shield, X,
-  Activity, Layers, Eye, EyeOff
+  Activity, Layers, Eye, EyeOff,
+  Building2, Package, Filter
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../lib/axios';
@@ -72,8 +73,8 @@ interface KnowledgeMatrixData {
 
 // ============ LEVEL CONFIG ============
 
-const levelConfig: Record<string, {
-  label: string;
+const levelConfigBase: Record<string, {
+  translationKey: string;
   shortLabel: string;
   color: string;
   textColor: string;
@@ -85,7 +86,7 @@ const levelConfig: Record<string, {
   score: number;
 }> = {
   EXPERT: {
-    label: 'Expert',
+    translationKey: 'levelExpert',
     shortLabel: 'EXP',
     color: '#10b981',
     textColor: 'text-emerald-400',
@@ -97,7 +98,7 @@ const levelConfig: Record<string, {
     score: 5,
   },
   ADVANCED: {
-    label: 'Avançado',
+    translationKey: 'levelAdvanced',
     shortLabel: 'AVN',
     color: '#3b82f6',
     textColor: 'text-blue-400',
@@ -109,7 +110,7 @@ const levelConfig: Record<string, {
     score: 4,
   },
   INTERMEDIATE: {
-    label: 'Intermédio',
+    translationKey: 'levelIntermediate',
     shortLabel: 'INT',
     color: '#f59e0b',
     textColor: 'text-amber-400',
@@ -121,7 +122,7 @@ const levelConfig: Record<string, {
     score: 3,
   },
   BEGINNER: {
-    label: 'Iniciante',
+    translationKey: 'levelBeginner',
     shortLabel: 'INI',
     color: '#f97316',
     textColor: 'text-orange-400',
@@ -133,7 +134,7 @@ const levelConfig: Record<string, {
     score: 2,
   },
   NOT_STARTED: {
-    label: 'Não Iniciado',
+    translationKey: 'levelNotStarted',
     shortLabel: '—',
     color: '#6b7280',
     textColor: 'text-gray-500',
@@ -185,6 +186,24 @@ export default function KnowledgeMatrix() {
   const [sortBy, setSortBy] = useState<'level' | 'completion' | 'name' | 'mpu'>('level');
   const [sortAsc, setSortAsc] = useState(false);
   const [showTooltip, setShowTooltip] = useState(true);
+  const [groupBy, setGroupBy] = useState<'none' | 'bank' | 'service'>('service');
+  const [selectedGroup, setSelectedGroup] = useState<string>('all');
+
+  // Helper to get translated level label
+  const getLevelLabel = useCallback((levelKey: string) => {
+    const cfg = levelConfigBase[levelKey];
+    if (!cfg) return levelKey;
+    return t(`knowledgeMatrix.${cfg.translationKey}`, levelKey);
+  }, [t]);
+
+  // Build levelConfig with translated labels
+  const levelConfig = useMemo(() => {
+    const config: Record<string, typeof levelConfigBase[string] & { label: string }> = {};
+    for (const [key, val] of Object.entries(levelConfigBase)) {
+      config[key] = { ...val, label: getLevelLabel(key) };
+    }
+    return config;
+  }, [getLevelLabel]);
 
   const fetchData = async () => {
     try {
@@ -193,7 +212,7 @@ export default function KnowledgeMatrix() {
       const res = await api.get('/admin/knowledge-matrix');
       setData(res.data);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Erro ao carregar');
+      setError(err?.response?.data?.detail || t('knowledgeMatrix.errorLoadingData', 'Erro ao carregar'));
     } finally {
       setLoading(false);
     }
@@ -256,11 +275,35 @@ export default function KnowledgeMatrix() {
     });
   };
 
+  // ============ BANK/SERVICE GROUPING ============
+  const groupOptions = useMemo(() => {
+    if (!data) return [];
+    const groups = new Map<string, string>();
+    data.columns.forEach(col => {
+      if (groupBy === 'bank' && col.bank_name) {
+        groups.set(col.bank_name, col.bank_name);
+      } else if (groupBy === 'service' && col.product_name) {
+        groups.set(col.product_name, col.product_name);
+      }
+    });
+    return Array.from(groups.values()).sort();
+  }, [data, groupBy]);
+
+  const filteredColumns = useMemo(() => {
+    if (!data) return [];
+    if (groupBy === 'none' || selectedGroup === 'all') return data.columns;
+    return data.columns.filter(col => {
+      if (groupBy === 'bank') return col.bank_name === selectedGroup;
+      if (groupBy === 'service') return col.product_name === selectedGroup;
+      return true;
+    });
+  }, [data, groupBy, selectedGroup]);
+
   // ============ EXPORT CSV ============
   const exportCSV = useCallback(() => {
     if (!data) return;
-    const headers = ['Formando', 'Email', 'Nível', 'Conclusão %', 'MPU', 'Horas', 'Certificados'];
-    data.columns.forEach(c => headers.push(`${c.course_title} (Nível)`, `${c.course_title} (%)`));
+    const headers = [t('knowledgeMatrix.trainees', 'Formando'), 'Email', t('knowledgeMatrix.levelExpert', 'Nível'), `${t('knowledgeMatrix.completion', 'Conclusão')} %`, 'MPU', t('knowledgeMatrix.hours', 'Horas'), t('common.certificates', 'Certificados')];
+    filteredColumns.forEach(c => headers.push(`${c.course_title} (${t('knowledgeMatrix.levelExpert', 'Nível')})`, `${c.course_title} (%)`));
 
     const csvRows = [headers.join(';')];
     filteredRows.forEach(row => {
@@ -272,7 +315,7 @@ export default function KnowledgeMatrix() {
         row.total_study_hours.toFixed(1),
         String(row.total_certificates),
       ];
-      data.columns.forEach(c => {
+      filteredColumns.forEach(c => {
         const s = row.skills[String(c.course_id)];
         cols.push(s ? (levelConfig[s.level]?.label || s.level) : 'N/A');
         cols.push(s ? s.lesson_completion_pct.toFixed(1) : '0');
@@ -287,7 +330,7 @@ export default function KnowledgeMatrix() {
     a.download = `matriz_conhecimento_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [data, filteredRows]);
+  }, [data, filteredRows, filteredColumns, levelConfig, t]);
 
   // ============ LOADING / ERROR ============
   if (loading) {
@@ -298,7 +341,7 @@ export default function KnowledgeMatrix() {
             <div className="w-16 h-16 rounded-full border-2 border-purple-500/20 animate-pulse" />
             <Brain className="w-8 h-8 text-purple-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
           </div>
-          <p className="text-gray-400 text-sm animate-pulse">A carregar Matriz de Conhecimento…</p>
+          <p className="text-gray-400 text-sm animate-pulse">{t('knowledgeMatrix.loading', 'A carregar Matriz de Conhecimento…')}</p>
         </div>
       </div>
     );
@@ -310,7 +353,7 @@ export default function KnowledgeMatrix() {
         <AlertTriangle className="w-12 h-12 text-red-400" />
         <p className="text-red-400 text-center">{error}</p>
         <button onClick={fetchData} className="px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all">
-          Tentar novamente
+          {t('knowledgeMatrix.tryAgain', 'Tentar novamente')}
         </button>
       </div>
     );
@@ -359,7 +402,7 @@ export default function KnowledgeMatrix() {
               className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-gray-300 transition-all text-sm font-medium"
             >
               <Download className="w-4 h-4" />
-              Exportar CSV
+              {t('knowledgeMatrix.exportCSV', 'Exportar CSV')}
             </button>
             <button
               onClick={fetchData}
@@ -375,12 +418,12 @@ export default function KnowledgeMatrix() {
       {/* ═══════════════ KPI RIBBON ═══════════════ */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
-          { icon: Users, label: 'Formandos', value: summary.total_students, suffix: '', color: 'from-blue-600/20 to-blue-800/20', border: 'border-blue-500/20', iconColor: 'text-blue-400' },
-          { icon: BookOpen, label: 'Cursos', value: summary.total_courses, suffix: '', color: 'from-purple-600/20 to-purple-800/20', border: 'border-purple-500/20', iconColor: 'text-purple-400' },
-          { icon: Target, label: 'Conclusão', value: summary.avg_completion.toFixed(1), suffix: '%', color: 'from-emerald-600/20 to-emerald-800/20', border: 'border-emerald-500/20', iconColor: 'text-emerald-400' },
-          { icon: Clock, label: 'Horas', value: summary.total_study_hours.toFixed(1), suffix: 'h', color: 'from-amber-600/20 to-amber-800/20', border: 'border-amber-500/20', iconColor: 'text-amber-400' },
-          { icon: Activity, label: 'MPU Médio', value: summary.avg_mpu ? summary.avg_mpu.toFixed(2) : '—', suffix: '', color: 'from-cyan-600/20 to-cyan-800/20', border: 'border-cyan-500/20', iconColor: 'text-cyan-400' },
-          { icon: AlertTriangle, label: 'Erro Frequente', value: summary.top_error_type || 'Nenhum', suffix: '', color: 'from-red-600/20 to-red-800/20', border: 'border-red-500/20', iconColor: 'text-red-400' },
+          { icon: Users, label: t('knowledgeMatrix.students', 'Formandos'), value: summary.total_students, suffix: '', color: 'from-blue-600/20 to-blue-800/20', border: 'border-blue-500/20', iconColor: 'text-blue-400' },
+          { icon: BookOpen, label: t('knowledgeMatrix.courses', 'Cursos'), value: summary.total_courses, suffix: '', color: 'from-purple-600/20 to-purple-800/20', border: 'border-purple-500/20', iconColor: 'text-purple-400' },
+          { icon: Target, label: t('knowledgeMatrix.completion', 'Conclusão'), value: summary.avg_completion.toFixed(1), suffix: '%', color: 'from-emerald-600/20 to-emerald-800/20', border: 'border-emerald-500/20', iconColor: 'text-emerald-400' },
+          { icon: Clock, label: t('knowledgeMatrix.hours', 'Horas'), value: summary.total_study_hours.toFixed(1), suffix: 'h', color: 'from-amber-600/20 to-amber-800/20', border: 'border-amber-500/20', iconColor: 'text-amber-400' },
+          { icon: Activity, label: t('knowledgeMatrix.mpuAvg', 'MPU Médio'), value: summary.avg_mpu ? summary.avg_mpu.toFixed(2) : '—', suffix: '', color: 'from-cyan-600/20 to-cyan-800/20', border: 'border-cyan-500/20', iconColor: 'text-cyan-400' },
+          { icon: AlertTriangle, label: t('knowledgeMatrix.frequentError', 'Erro Frequente'), value: summary.top_error_type || t('knowledgeMatrix.noErrors', 'Nenhum'), suffix: '', color: 'from-red-600/20 to-red-800/20', border: 'border-red-500/20', iconColor: 'text-red-400' },
         ].map((kpi, i) => (
           <motion.div
             key={kpi.label}
@@ -406,11 +449,11 @@ export default function KnowledgeMatrix() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
             <Layers className="w-4 h-4 text-purple-400" />
-            Distribuição por Nível
+            {t('knowledgeMatrix.levelDistribution', 'Distribuição por Nível')}
           </h3>
           {activeLevelFilters.size > 0 && (
             <button onClick={() => setActiveLevelFilters(new Set())} className="text-xs text-purple-400 hover:text-purple-300 underline">
-              Limpar filtros
+              {t('knowledgeMatrix.clearFilters', 'Limpar filtros')}
             </button>
           )}
         </div>
@@ -448,12 +491,54 @@ export default function KnowledgeMatrix() {
                     style={{ backgroundColor: cfg.color }}
                   />
                 </div>
-                <div className="text-[10px] text-gray-500 mt-1">{pct.toFixed(0)}% do total</div>
+                <div className="text-[10px] text-gray-500 mt-1">{pct.toFixed(0)}% {t('knowledgeMatrix.ofTotalPct', 'do total')}</div>
               </button>
             );
           })}
         </div>
       </motion.div>
+
+      {/* ═══════════════ BANK/SERVICE GROUPING ═══════════════ */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="flex items-center gap-2 flex-1">
+          <div className="flex items-center gap-1 bg-white/[0.03] border border-white/[0.08] rounded-xl p-1">
+            <button
+              onClick={() => { setGroupBy('none'); setSelectedGroup('all'); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${groupBy === 'none' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-white/[0.06]'}`}
+            >
+              {t('knowledgeMatrix.allCourses', 'Todos')}
+            </button>
+            <button
+              onClick={() => { setGroupBy('bank'); setSelectedGroup('all'); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${groupBy === 'bank' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-white/[0.06]'}`}
+            >
+              <Building2 className="w-3 h-3" />
+              {t('knowledgeMatrix.groupByBank', 'Agrupar por Banco')}
+            </button>
+            <button
+              onClick={() => { setGroupBy('service'); setSelectedGroup('all'); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1 ${groupBy === 'service' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:bg-white/[0.06]'}`}
+            >
+              <Package className="w-3 h-3" />
+              {t('knowledgeMatrix.groupByService', 'Agrupar por Serviço')}
+            </button>
+          </div>
+          {groupBy !== 'none' && groupOptions.length > 0 && (
+            <select
+              value={selectedGroup}
+              onChange={(e) => setSelectedGroup(e.target.value)}
+              className="bg-white/[0.03] border border-white/[0.08] rounded-xl text-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-purple-500/40"
+            >
+              <option value="all">
+                {groupBy === 'bank' ? t('knowledgeMatrix.allBanks', 'Todos os Bancos') : t('knowledgeMatrix.allServices', 'Todos os Serviços')}
+              </option>
+              {groupOptions.map(g => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          )}
+        </div>
+      </div>
 
       {/* ═══════════════ TOOLBAR ═══════════════ */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
@@ -478,29 +563,29 @@ export default function KnowledgeMatrix() {
             onChange={(e) => setSortBy(e.target.value as 'level' | 'completion' | 'name' | 'mpu')}
             className="bg-white/[0.03] border border-white/[0.08] rounded-xl text-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500/40"
           >
-            <option value="level">Ordenar: Nível</option>
-            <option value="completion">Ordenar: Conclusão</option>
-            <option value="name">Ordenar: Nome</option>
-            <option value="mpu">Ordenar: MPU</option>
+            <option value="level">{t('knowledgeMatrix.sortLevel', 'Ordenar: Nível')}</option>
+            <option value="completion">{t('knowledgeMatrix.sortCompletion', 'Ordenar: Conclusão')}</option>
+            <option value="name">{t('knowledgeMatrix.sortName', 'Ordenar: Nome')}</option>
+            <option value="mpu">{t('knowledgeMatrix.sortMPU', 'Ordenar: MPU')}</option>
           </select>
           <button
             onClick={() => setSortAsc(!sortAsc)}
             className="p-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl hover:bg-white/[0.06] transition-colors"
-            title={sortAsc ? 'Ascendente' : 'Descendente'}
+            title={sortAsc ? t('knowledgeMatrix.ascending', 'Ascendente') : t('knowledgeMatrix.descending', 'Descendente')}
           >
             {sortAsc ? <ChevronDown className="w-4 h-4 text-gray-400 rotate-180" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
           </button>
           <button
             onClick={() => setShowTooltip(!showTooltip)}
             className={`p-2.5 rounded-xl border transition-colors ${showTooltip ? 'bg-purple-600/20 border-purple-500/30 text-purple-400' : 'bg-white/[0.03] border-white/[0.08] text-gray-400'}`}
-            title={showTooltip ? 'Ocultar detalhes ao clicar' : 'Mostrar detalhes ao clicar'}
+            title={showTooltip ? t('knowledgeMatrix.hideDetails', 'Ocultar detalhes ao clicar') : t('knowledgeMatrix.showDetails', 'Mostrar detalhes ao clicar')}
           >
             {showTooltip ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
-      <div className="text-xs text-gray-500">{filteredRows.length} de {data.rows.length} formandos</div>
+      <div className="text-xs text-gray-500">{filteredRows.length} {t('knowledgeMatrix.ofTotal', 'de')} {data.rows.length} {t('knowledgeMatrix.trainees', 'formandos')}</div>
 
       {/* ═══════════════ STUDENT CARDS ═══════════════ */}
       <div className="space-y-3">
@@ -569,7 +654,7 @@ export default function KnowledgeMatrix() {
 
                         {/* Course skill pills */}
                         <div className="flex items-center gap-1.5 mt-3 flex-wrap">
-                          {columns.map(col => {
+                          {filteredColumns.map(col => {
                             const skill = row.skills[String(col.course_id)];
                             const cfg = levelConfig[skill?.level || 'NOT_STARTED'];
                             const SkillIcon = cfg.icon;
@@ -625,7 +710,7 @@ export default function KnowledgeMatrix() {
                         </div>
                         <div className="text-center">
                           <div className="text-lg font-black text-blue-400">{row.total_study_hours.toFixed(1)}h</div>
-                          <div className="text-[10px] text-gray-500 uppercase">Tempo</div>
+                          <div className="text-[10px] text-gray-500 uppercase">{t('knowledgeMatrix.time', 'Tempo')}</div>
                         </div>
                         <div className="text-gray-500">
                           {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
@@ -640,7 +725,7 @@ export default function KnowledgeMatrix() {
                         <span className="text-xs font-bold text-white ml-1">{row.overall_completion_pct.toFixed(0)}%</span>
                       </div>
                       <div className="text-xs text-gray-400">MPU: <span className="text-white font-bold">{row.overall_avg_mpu?.toFixed(2) || '—'}</span></div>
-                      <div className="text-xs text-gray-400">Tempo: <span className="text-blue-400 font-bold">{row.total_study_hours.toFixed(1)}h</span></div>
+                      <div className="text-xs text-gray-400">{t('knowledgeMatrix.time', 'Tempo')}: <span className="text-blue-400 font-bold">{row.total_study_hours.toFixed(1)}h</span></div>
                       {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
                     </div>
                   </div>
@@ -657,7 +742,7 @@ export default function KnowledgeMatrix() {
                       >
                         <div className="px-5 md:px-6 pb-5 pt-2 border-t border-white/[0.06]">
                           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-3">
-                            {columns.map(col => {
+                            {filteredColumns.map(col => {
                               const skill = row.skills[String(col.course_id)];
                               if (!skill) return null;
                               const cfg = levelConfig[skill.level];
@@ -698,14 +783,14 @@ export default function KnowledgeMatrix() {
                                       <div className="flex items-center gap-2">
                                         <CircularProgress value={skill.lesson_completion_pct} size={40} strokeWidth={3} color="#3b82f6" />
                                         <div>
-                                          <div className="text-xs text-gray-400">Aulas</div>
+                                          <div className="text-xs text-gray-400">{t('knowledgeMatrix.lessons', 'Aulas')}</div>
                                           <div className="text-xs text-white font-bold">{skill.lessons_completed}/{skill.lessons_total}</div>
                                         </div>
                                       </div>
                                       <div className="flex items-center gap-2">
                                         <CircularProgress value={skill.challenge_approval_pct} size={40} strokeWidth={3} color="#10b981" />
                                         <div>
-                                          <div className="text-xs text-gray-400">Desafios</div>
+                                          <div className="text-xs text-gray-400">{t('knowledgeMatrix.challenges', 'Desafios')}</div>
                                           <div className="text-xs text-white font-bold">{skill.challenges_approved}/{skill.challenges_attempted}</div>
                                         </div>
                                       </div>
@@ -713,15 +798,15 @@ export default function KnowledgeMatrix() {
 
                                     <div className="grid grid-cols-3 gap-2">
                                       <div className="bg-white/[0.04] rounded-lg p-2 text-center">
-                                        <div className="text-[10px] text-gray-500">MPU</div>
+                                        <div className="text-[10px] text-gray-500">{t('knowledgeMatrix.mpu', 'MPU')}</div>
                                         <div className="text-sm font-bold text-white">{skill.avg_mpu?.toFixed(2) || '—'}</div>
                                       </div>
                                       <div className="bg-white/[0.04] rounded-lg p-2 text-center">
-                                        <div className="text-[10px] text-gray-500">Tempo</div>
+                                        <div className="text-[10px] text-gray-500">{t('knowledgeMatrix.time', 'Tempo')}</div>
                                         <div className="text-sm font-bold text-white">{skill.total_time_hours.toFixed(1)}h</div>
                                       </div>
                                       <div className="bg-white/[0.04] rounded-lg p-2 text-center">
-                                        <div className="text-[10px] text-gray-500">Erros</div>
+                                        <div className="text-[10px] text-gray-500">{t('knowledgeMatrix.errors', 'Erros')}</div>
                                         <div className={`text-sm font-bold ${skill.total_errors > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                                           {skill.total_errors}
                                         </div>
@@ -732,10 +817,10 @@ export default function KnowledgeMatrix() {
                                       <div className="mt-3 pt-3 border-t border-white/[0.04]">
                                         <div className="flex items-center gap-4 text-[11px]">
                                           {[
-                                            { label: 'Met', value: skill.error_methodology, color: '#ef4444' },
-                                            { label: 'Con', value: skill.error_knowledge, color: '#f97316' },
-                                            { label: 'Det', value: skill.error_detail, color: '#eab308' },
-                                            { label: 'Proc', value: skill.error_procedure, color: '#a855f7' },
+                                            { label: t('knowledgeMatrix.errorMethodologyShort', 'Met'), value: skill.error_methodology, color: '#ef4444' },
+                                            { label: t('knowledgeMatrix.errorKnowledgeShort', 'Con'), value: skill.error_knowledge, color: '#f97316' },
+                                            { label: t('knowledgeMatrix.errorDetailShort', 'Det'), value: skill.error_detail, color: '#eab308' },
+                                            { label: t('knowledgeMatrix.errorProcedureShort', 'Proc'), value: skill.error_procedure, color: '#a855f7' },
                                           ].filter(e => e.value > 0).map(err => (
                                             <div key={err.label} className="flex items-center gap-1">
                                               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: err.color }} />
@@ -772,7 +857,7 @@ export default function KnowledgeMatrix() {
             <Users className="w-10 h-10 text-gray-600" />
           </div>
           <p className="text-gray-500 text-lg font-medium">{t('knowledgeMatrix.noStudents', 'Nenhum formando encontrado')}</p>
-          <p className="text-gray-600 text-sm mt-1">Tente ajustar os filtros</p>
+          <p className="text-gray-600 text-sm mt-1">{t('knowledgeMatrix.adjustFilters', 'Tente ajustar os filtros')}</p>
         </motion.div>
       )}
 
@@ -806,7 +891,7 @@ export default function KnowledgeMatrix() {
       <AnimatePresence>
         {hoveredCell && showTooltip && (() => {
           const row = data.rows.find(r => r.student_id === hoveredCell.studentId);
-          const col = columns.find(c => c.course_id === hoveredCell.courseId);
+          const col = filteredColumns.find(c => c.course_id === hoveredCell.courseId) || columns.find(c => c.course_id === hoveredCell.courseId);
           const skill = row?.skills[String(hoveredCell.courseId)];
           if (!row || !col || !skill) return null;
           const cfg = levelConfig[skill.level];
@@ -851,24 +936,24 @@ export default function KnowledgeMatrix() {
                 <div className="flex items-center gap-2">
                   <CircularProgress value={skill.lesson_completion_pct} size={36} strokeWidth={2.5} color="#3b82f6" />
                   <div>
-                    <div className="text-[10px] text-gray-500">Aulas</div>
+                    <div className="text-[10px] text-gray-500">{t('knowledgeMatrix.lessons', 'Aulas')}</div>
                     <div className="text-xs text-white font-bold">{skill.lessons_completed}/{skill.lessons_total} ({skill.lesson_completion_pct.toFixed(0)}%)</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <CircularProgress value={skill.challenge_approval_pct} size={36} strokeWidth={2.5} color="#10b981" />
                   <div>
-                    <div className="text-[10px] text-gray-500">Desafios Aprov.</div>
+                    <div className="text-[10px] text-gray-500">{t('knowledgeMatrix.challengesApproved', 'Desafios Aprov.')}</div>
                     <div className="text-xs text-white font-bold">{skill.challenges_approved}/{skill.challenges_attempted} ({skill.challenge_approval_pct.toFixed(0)}%)</div>
                   </div>
                 </div>
                 <div className="bg-white/[0.04] rounded-lg p-2 text-center">
-                  <div className="text-[10px] text-gray-500">MPU Médio</div>
+                  <div className="text-[10px] text-gray-500">{t('knowledgeMatrix.mpuAvg', 'MPU Médio')}</div>
                   <div className="text-sm font-bold text-white">{skill.avg_mpu?.toFixed(2) || '—'}</div>
-                  <div className="text-[9px] text-gray-600">min/op</div>
+                  <div className="text-[9px] text-gray-600">{t('knowledgeMatrix.minPerOp', 'min/op')}</div>
                 </div>
                 <div className="bg-white/[0.04] rounded-lg p-2 text-center">
-                  <div className="text-[10px] text-gray-500">Tempo de Estudo</div>
+                  <div className="text-[10px] text-gray-500">{t('knowledgeMatrix.studyTime', 'Tempo de Estudo')}</div>
                   <div className="text-sm font-bold text-white">{skill.total_time_hours.toFixed(1)}h</div>
                 </div>
               </div>
@@ -877,13 +962,13 @@ export default function KnowledgeMatrix() {
                 <div className="px-4 pb-3">
                   <div className="bg-red-500/10 rounded-xl p-3">
                     <div className="text-[11px] text-red-400 font-bold mb-1.5 flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" /> {skill.total_errors} erros identificados
+                      <AlertTriangle className="w-3 h-3" /> {skill.total_errors} {t('knowledgeMatrix.errorsIdentified', 'erros identificados')}
                     </div>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
-                      {skill.error_methodology > 0 && <div className="text-gray-300">Metodologia: <span className="text-red-400 font-bold">{skill.error_methodology}</span></div>}
-                      {skill.error_knowledge > 0 && <div className="text-gray-300">Conhecimento: <span className="text-orange-400 font-bold">{skill.error_knowledge}</span></div>}
-                      {skill.error_detail > 0 && <div className="text-gray-300">Detalhe: <span className="text-amber-400 font-bold">{skill.error_detail}</span></div>}
-                      {skill.error_procedure > 0 && <div className="text-gray-300">Procedimento: <span className="text-purple-400 font-bold">{skill.error_procedure}</span></div>}
+                      {skill.error_methodology > 0 && <div className="text-gray-300">{t('knowledgeMatrix.errorMethodology', 'Metodologia')}: <span className="text-red-400 font-bold">{skill.error_methodology}</span></div>}
+                      {skill.error_knowledge > 0 && <div className="text-gray-300">{t('knowledgeMatrix.errorKnowledge', 'Conhecimento')}: <span className="text-orange-400 font-bold">{skill.error_knowledge}</span></div>}
+                      {skill.error_detail > 0 && <div className="text-gray-300">{t('knowledgeMatrix.errorDetail', 'Detalhe')}: <span className="text-amber-400 font-bold">{skill.error_detail}</span></div>}
+                      {skill.error_procedure > 0 && <div className="text-gray-300">{t('knowledgeMatrix.errorProcedure', 'Procedimento')}: <span className="text-purple-400 font-bold">{skill.error_procedure}</span></div>}
                     </div>
                   </div>
                 </div>

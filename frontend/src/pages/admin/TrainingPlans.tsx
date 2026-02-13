@@ -47,6 +47,8 @@ interface TrainingPlan {
   product_code?: string;
   product_ids?: number[];
   bank_ids?: number[];
+  banks?: Array<{ id: number; code: string; name: string }>;
+  products?: Array<{ id: number; code: string; name: string }>;
   student?: {
     id: number;
     full_name: string;
@@ -170,17 +172,35 @@ export default function TrainingPlans() {
     });
   }, [plans, searchTerm, filterProduct, filterBank]);
 
-  // Group plans by product
+  // Group plans by product — plans with multiple products appear in ALL relevant groups
   const groupedPlans = useMemo(() => {
     if (!groupByProduct) return { 'all': filteredPlans };
     
     const groups: Record<string, TrainingPlan[]> = {};
     filteredPlans.forEach(plan => {
-      const key = plan.product_code 
-        ? getTranslatedProductName(t, plan.product_code, plan.product_name || '') 
-        : (plan.product_name || t('common.noProduct', 'Sem Produto'));
-      if (!groups[key]) groups[key] = [];
-      groups[key].push(plan);
+      // Use the products array (N:N) if available
+      const planProducts = plan.products && plan.products.length > 0
+        ? plan.products
+        : plan.product_code
+          ? [{ id: plan.product_id || 0, code: plan.product_code, name: plan.product_name || '' }]
+          : [];
+      
+      if (planProducts.length === 0) {
+        // No product assigned
+        const key = t('common.noProduct', 'Sem Produto');
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(plan);
+      } else {
+        // Add to each product group
+        planProducts.forEach(prod => {
+          const key = getTranslatedProductName(t, prod.code, prod.name);
+          if (!groups[key]) groups[key] = [];
+          // Avoid duplicates if same plan is already in this group
+          if (!groups[key].some(p => p.id === plan.id)) {
+            groups[key].push(plan);
+          }
+        });
+      }
     });
     return groups;
   }, [filteredPlans, groupByProduct, t]);
