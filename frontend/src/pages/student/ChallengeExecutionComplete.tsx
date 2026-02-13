@@ -116,11 +116,14 @@ const StudentChallengeExecution: React.FC = () => {
         }
         setOperations(mappedOps);
         
-        // Resume timer for in-progress operation
+        // Resume in-progress operation in PAUSED state so user must manually resume
         const activeIdx = mappedOps.findIndex(op => op.status === 'in_progress');
         if (activeIdx >= 0 && mappedOps[activeIdx].startedAt) {
           setActiveOperationIndex(activeIdx);
           activeStartTimeRef.current = mappedOps[activeIdx].startedAt!.getTime();
+          // Start paused — accumulate time elapsed so far as paused duration
+          setIsPaused(true);
+          pauseStartRef.current = Date.now();
         }
       } else if (challenge) {
         // Retry ou submission sem operações ainda - inicializar operações vazias
