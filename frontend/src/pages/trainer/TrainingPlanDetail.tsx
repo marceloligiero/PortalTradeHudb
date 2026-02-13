@@ -1426,7 +1426,7 @@ export default function TrainingPlanDetail() {
                                         {lesson.estimated_minutes} min
                                       </span>
                                       <span className={`px-2 py-0.5 rounded text-xs font-medium ${isDark ? 'bg-white/10' : 'bg-gray-100'}`}>
-                                        {lesson.lesson_type}
+                                        {lesson.lesson_type === 'THEORETICAL' ? t('lessons.theoretical') : lesson.lesson_type === 'PRACTICAL' ? t('lessons.practical') : lesson.lesson_type}
                                       </span>
                                     </div>
 
