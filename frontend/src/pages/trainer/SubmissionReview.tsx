@@ -925,31 +925,15 @@ export default function SubmissionReview() {
                 </div>
               )}
             </div>
-            {/* Botões só aparecem se NÃO for modo manual */}
+            {/* Botões: AUTO = botão único, MANUAL = aparece noutro sítio */}
             {submission?.challenge?.kpi_mode !== 'MANUAL' && (
               <div className="flex gap-3">
-                <button
-                  onClick={() => handleFinalizeReview(false)}
-                  disabled={!canFinalize || submittingReview}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
-                    canFinalize && !submittingReview
-                      ? 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 shadow-lg shadow-red-500/20'
-                      : 'bg-gray-600/50 text-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  {submittingReview ? (
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <X className="w-5 h-5" />
-                  )}
-                  {t('submissionReview.reject')}
-                </button>
                 <button
                   onClick={() => handleFinalizeReview(true)}
                   disabled={!canFinalize || submittingReview}
                   className={`flex items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all ${
                     canFinalize && !submittingReview
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-lg shadow-green-500/20'
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 shadow-lg shadow-blue-500/20'
                       : 'bg-gray-600/50 text-gray-400 cursor-not-allowed'
                   }`}
                 >
@@ -958,7 +942,7 @@ export default function SubmissionReview() {
                   ) : (
                     <CheckCircle className="w-5 h-5" />
                   )}
-                  {t('submissionReview.approve')}
+                  {t('challengeResult.finalizeAuto', 'Finalizar Avaliação Automática')}
                 </button>
               </div>
             )}
