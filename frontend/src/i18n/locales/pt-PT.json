@@ -487,7 +487,14 @@
     "thankYouRating": "Obrigado pela sua avaliação!",
     "ratingImportant": "A sua opinião é importante para melhorarmos.",
     "challengeRated": "Desafio Classificado ✓",
-    "rateButton": "Classificar Desafio"
+    "rateButton": "Classificar Desafio",
+    "retryTitle": "Liberar Nova Tentativa",
+    "retryDescription": "O formando foi reprovado. Pode liberar uma nova tentativa para que tente novamente.",
+    "confirmRetry": "Deseja liberar uma nova tentativa?",
+    "retrySuccess": "Nova tentativa liberada com sucesso!",
+    "retryError": "Erro ao liberar nova tentativa",
+    "allowRetry": "Liberar Nova Tentativa",
+    "retryAlreadyAllowed": "Nova tentativa já foi liberada para o formando."
   },
   "errors": {
     "concepts": {
@@ -1523,6 +1530,11 @@
     "continueChallenge": "Continuar",
     "viewResult": "Ver Resultado",
     "retry": "Tentar Novamente",
+    "confirmAllowRetry": "Deseja liberar uma nova tentativa para este desafio?",
+    "retryAllowed": "Nova tentativa liberada com sucesso!",
+    "retryError": "Erro ao liberar nova tentativa",
+    "allowRetry": "Nova Tentativa",
+    "retryReleased": "Tentativa Liberada",
     "time": "Tempo",
     "targetMPU": "Meta MPU",
     "maxErrors": "Máx. erros",

@@ -1930,9 +1930,6 @@ async def allow_submission_retry(
     if not challenge:
         raise HTTPException(status_code=404, detail="Desafio não encontrado")
     
-    if not getattr(challenge, 'allow_retry', False):
-        raise HTTPException(status_code=400, detail="Este desafio não permite novas tentativas")
-    
     # Marcar como permitida nova tentativa
     submission.is_retry_allowed = True
     submission.trainer_notes = notes

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
   BookOpen, Calendar, ArrowLeft, Clock, Target, AlertCircle, PlayCircle, 
-  CheckCircle2, Pause, Play, Eye, Settings2, TrendingUp, Timer, Award, Download, Star, User, ChevronDown, Users, UserPlus, UserMinus, Edit3, Search, Trash2
+  CheckCircle2, Pause, Play, Eye, Settings2, TrendingUp, Timer, Award, Download, Star, User, ChevronDown, Users, UserPlus, UserMinus, Edit3, Search, Trash2, RotateCcw
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -61,6 +61,7 @@ interface SubmissionData {
   is_approved: boolean;
   calculated_mpu?: number;
   completed_at?: string;
+  is_retry_allowed?: boolean;
 }
 
 interface CourseItem {
@@ -1930,17 +1931,43 @@ export default function TrainingPlanDetail() {
                                         
                                         {/* Já corrigido - Ver Resultado */}
                                         {(submission.status === 'COMPLETED' || submission.status === 'APPROVED' || submission.status === 'REJECTED') && (
-                                          <button
-                                            onClick={() => navigate(`/challenges/result/${submission.id}`)}
-                                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                                              isDark 
-                                                ? 'bg-white/10 text-white hover:bg-white/20' 
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                            }`}
-                                          >
-                                            <Eye className="w-4 h-4" />
-                                            {t('trainingPlanDetail.viewResult')}
-                                          </button>
+                                          <div className="flex items-center gap-2">
+                                            <button
+                                              onClick={() => navigate(`/challenges/result/${submission.id}`)}
+                                              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                isDark 
+                                                  ? 'bg-white/10 text-white hover:bg-white/20' 
+                                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                              }`}
+                                            >
+                                              <Eye className="w-4 h-4" />
+                                              {t('trainingPlanDetail.viewResult')}
+                                            </button>
+                                            {submission.status === 'REJECTED' && !submission.is_retry_allowed && (
+                                              <button
+                                                onClick={async () => {
+                                                  if (!confirm(t('trainingPlanDetail.confirmAllowRetry', 'Deseja liberar uma nova tentativa para este desafio?'))) return;
+                                                  try {
+                                                    await api.post(`/api/challenges/submissions/${submission.id}/allow-retry`);
+                                                    alert(t('trainingPlanDetail.retryAllowed', 'Nova tentativa liberada com sucesso!'));
+                                                    if (plan) fetchProgressData(plan);
+                                                  } catch (err: any) {
+                                                    alert(err.response?.data?.detail || t('trainingPlanDetail.retryError', 'Erro ao liberar nova tentativa'));
+                                                  }
+                                                }}
+                                                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg text-sm font-medium hover:from-orange-600 hover:to-amber-600 transition-all shadow-sm"
+                                              >
+                                                <RotateCcw className="w-4 h-4" />
+                                                {t('trainingPlanDetail.allowRetry', 'Nova Tentativa')}
+                                              </button>
+                                            )}
+                                            {submission.is_retry_allowed && (
+                                              <span className="flex items-center gap-2 px-3 py-2 bg-green-500/20 text-green-400 rounded-lg text-sm font-medium">
+                                                <RotateCcw className="w-4 h-4" />
+                                                {t('trainingPlanDetail.retryReleased', 'Tentativa Liberada')}
+                                              </span>
+                                            )}
+                                          </div>
                                         )}
                                       </>
                                     )}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, TrendingUp, Target, Clock, Award, Check, X, AlertTriangle, Star } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Clock, Award, Check, X, AlertTriangle, Star, RotateCcw } from 'lucide-react';
 import api from '../lib/axios';
 import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../contexts/ThemeContext';
@@ -681,6 +681,50 @@ const ChallengeResult: React.FC = () => {
                 </div>
               </>
             )}
+          </div>
+        )}
+
+        {/* Botão de Nova Tentativa (para formador/admin quando reprovado) */}
+        {isTrainerOrAdmin && submission.status === 'REJECTED' && !(submission as any).is_retry_allowed && (
+          <div className="bg-orange-100 dark:bg-orange-500/10 border border-orange-300 dark:border-orange-500/20 rounded-xl p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-orange-600 dark:text-orange-400 mb-2 flex items-center gap-2">
+                  <RotateCcw className="w-5 h-5" />
+                  {t('challengeResult.retryTitle', 'Liberar Nova Tentativa')}
+                </h2>
+                <p className="text-gray-500 dark:text-gray-400">
+                  {t('challengeResult.retryDescription', 'O formando foi reprovado. Pode liberar uma nova tentativa para que tente novamente.')}
+                </p>
+              </div>
+              <button
+                onClick={async () => {
+                  if (!confirm(t('challengeResult.confirmRetry', 'Deseja liberar uma nova tentativa?'))) return;
+                  try {
+                    await api.post(`/api/challenges/submissions/${submissionId}/allow-retry`);
+                    alert(t('challengeResult.retrySuccess', 'Nova tentativa liberada com sucesso!'));
+                    await loadSubmission();
+                  } catch (err: any) {
+                    alert(err.response?.data?.detail || t('challengeResult.retryError', 'Erro ao liberar nova tentativa'));
+                  }
+                }}
+                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg font-medium hover:from-orange-600 hover:to-amber-600 transition-all shadow-md"
+              >
+                <RotateCcw className="w-5 h-5" />
+                {t('challengeResult.allowRetry', 'Liberar Nova Tentativa')}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isTrainerOrAdmin && (submission as any).is_retry_allowed && (
+          <div className="bg-green-100 dark:bg-green-500/10 border border-green-300 dark:border-green-500/20 rounded-xl p-6 mb-8">
+            <div className="flex items-center gap-3">
+              <RotateCcw className="w-5 h-5 text-green-500" />
+              <span className="text-green-600 dark:text-green-400 font-medium">
+                {t('challengeResult.retryAlreadyAllowed', 'Nova tentativa já foi liberada para o formando.')}
+              </span>
+            </div>
           </div>
         )}
 

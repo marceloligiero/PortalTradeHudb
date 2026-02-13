@@ -950,8 +950,8 @@ export default function SubmissionReview() {
         </div>
       )}
 
-      {/* Seção de Retentativa - apenas se reprovado e desafio permite retry */}
-      {submission?.status === 'COMPLETED' && submission.is_approved === false && submission.challenge?.allow_retry && !submission.is_retry_allowed && (
+      {/* Seção de Retentativa - apenas se reprovado */}
+      {(submission?.status === 'REJECTED' || (submission?.status === 'COMPLETED' && submission.is_approved === false)) && !submission.is_retry_allowed && (
         <div className="bg-orange-500/10 backdrop-blur-xl rounded-2xl border border-orange-500/30 p-6">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>

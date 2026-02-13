@@ -490,7 +490,14 @@
     "thankYouRating": "Thank you for your rating!",
     "ratingImportant": "Your opinion is important for us to improve.",
     "challengeRated": "Challenge Rated ✓",
-    "rateButton": "Rate Challenge"
+    "rateButton": "Rate Challenge",
+    "retryTitle": "Allow Retry",
+    "retryDescription": "The student was rejected. You can allow a retry so they can try again.",
+    "confirmRetry": "Do you want to allow a retry?",
+    "retrySuccess": "Retry allowed successfully!",
+    "retryError": "Error allowing retry",
+    "allowRetry": "Allow Retry",
+    "retryAlreadyAllowed": "A retry has already been allowed for the student."
   },
   "errors": {
     "concepts": {
@@ -1438,6 +1445,11 @@
     "continueChallenge": "Continue",
     "viewResult": "View Result",
     "retry": "Try Again",
+    "confirmAllowRetry": "Do you want to allow a retry for this challenge?",
+    "retryAllowed": "Retry allowed successfully!",
+    "retryError": "Error allowing retry",
+    "allowRetry": "Allow Retry",
+    "retryReleased": "Retry Allowed",
     "time": "Time",
     "targetMPU": "Target MPU",
     "maxErrors": "Max. errors",
