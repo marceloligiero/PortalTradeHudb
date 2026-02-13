@@ -62,11 +62,18 @@ interface CertificationData {
   avg_completion_time_days: number;
 }
 
-interface MPUData {
-  bank_code: string;
+interface MPUItem {
+  name: string;
   avg_mpu: number;
   total_students: number;
+  total_submissions: number;
   performance_category: string;
+}
+
+interface MPUData {
+  by_bank: MPUItem[];
+  by_service: MPUItem[];
+  by_plan: MPUItem[];
 }
 
 export default function AdvancedReportsPage() {
@@ -78,7 +85,7 @@ export default function AdvancedReportsPage() {
   const [trainerProductivity, setTrainerProductivity] = useState<TrainerProductivity[]>([]);
   const [courseAnalytics, setCourseAnalytics] = useState<CourseAnalytics[]>([]);
   const [certifications, setCertifications] = useState<CertificationData[]>([]);
-  const [mpuData, setMpuData] = useState<MPUData[]>([]);
+  const [mpuData, setMpuData] = useState<MPUData>({ by_bank: [], by_service: [], by_plan: [] });
 
   useEffect(() => {
     fetchData();
@@ -110,7 +117,7 @@ export default function AdvancedReportsPage() {
           break;
         case 'mpu':
           const mpuRes = await api.get('/api/admin/advanced-reports/mpu-analytics');
-          setMpuData(mpuRes.data?.banks || []);
+          setMpuData(mpuRes.data || { by_bank: [], by_service: [], by_plan: [] });
           break;
       }
     } catch (error) {
@@ -460,11 +467,11 @@ export default function AdvancedReportsPage() {
                           </td>
                           <td className="px-6 py-4">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              course.avg_mpu >= 80 ? 'bg-green-100 text-green-700' :
-                              course.avg_mpu >= 60 ? 'bg-amber-100 text-amber-700' :
-                              'bg-red-100 text-red-700'
+                              course.avg_mpu > 0 && course.avg_mpu <= 5 ? 'bg-green-100 text-green-700' :
+                              course.avg_mpu > 0 && course.avg_mpu <= 10 ? 'bg-amber-100 text-amber-700' :
+                              course.avg_mpu > 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
                             }`}>
-                              {course.avg_mpu?.toFixed(1) || 0}%
+                              {course.avg_mpu > 0 ? `${course.avg_mpu?.toFixed(2)} min/op` : 'N/A'}
                             </span>
                           </td>
                         </tr>
@@ -513,72 +520,134 @@ export default function AdvancedReportsPage() {
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6"
             >
+              {/* MPU by Bank */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
                   {t('admin.mpuByBank', 'MPU por Banco')}
                 </h2>
-                {mpuData.length > 0 ? (
+                {mpuData.by_bank.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={mpuData}>
+                    <BarChart data={mpuData.by_bank}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="bank_code" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                       <YAxis />
-                      <Tooltip formatter={(value: number) => [`${value} min`, t('advancedReports.avgMpu')]} />
-                      <Bar dataKey="avg_mpu" fill="#10b981" name={t('advancedReports.avgMpuMinOp')} />
+                      <Tooltip formatter={(value: number) => [`${value} min/op`, 'MPU']} />
+                      <Bar dataKey="avg_mpu" fill="#10b981" name="MPU" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-64 flex items-center justify-center text-gray-500">
+                  <div className="h-32 flex items-center justify-center text-gray-500">
                     {t('common.noData', 'Nenhum dado disponível')}
                   </div>
                 )}
               </div>
 
+              {/* MPU by Service */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+                  {t('admin.mpuByService', 'MPU por Serviço')}
+                </h2>
+                {mpuData.by_service.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={mpuData.by_service}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                      <YAxis />
+                      <Tooltip formatter={(value: number) => [`${value} min/op`, 'MPU']} />
+                      <Bar dataKey="avg_mpu" fill="#8b5cf6" name="MPU" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-32 flex items-center justify-center text-gray-500">
+                    {t('common.noData', 'Nenhum dado disponível')}
+                  </div>
+                )}
+              </div>
+
+              {/* MPU by Training Plan */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
+                  {t('admin.mpuByPlan', 'MPU por Plano de Formação')}
+                </h2>
+                {mpuData.by_plan.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={mpuData.by_plan}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                      <YAxis />
+                      <Tooltip formatter={(value: number) => [`${value} min/op`, 'MPU']} />
+                      <Bar dataKey="avg_mpu" fill="#f59e0b" name="MPU" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-32 flex items-center justify-center text-gray-500">
+                    {t('common.noData', 'Nenhum dado disponível')}
+                  </div>
+                )}
+              </div>
+
+              {/* Combined MPU Details Table */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {t('admin.mpuDetails', 'Detalhes MPU por Banco')}
+                    {t('admin.mpuDetails', 'Detalhes MPU')}
                   </h2>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50 dark:bg-gray-900">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.bank')}</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.avgMpu')}</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.students')}</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.category')}</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.type', 'Tipo')}</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.name', 'Nome')}</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.avgMpu', 'MPU Médio')}</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.submissions', 'Submissões')}</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.students', 'Alunos')}</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('advancedReports.category', 'Categoria')}</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {mpuData.length === 0 ? (
+                      {[...mpuData.by_bank.map(d => ({...d, type: t('advancedReports.bank', 'Banco')})),
+                        ...mpuData.by_service.map(d => ({...d, type: t('advancedReports.service', 'Serviço')})),
+                        ...mpuData.by_plan.map(d => ({...d, type: t('advancedReports.plan', 'Plano')}))
+                      ].length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                          <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
                             {t('common.noData', 'Nenhum dado disponível')}
                           </td>
                         </tr>
                       ) : (
-                        mpuData.map((bank, idx) => (
+                        [...mpuData.by_bank.map(d => ({...d, type: t('advancedReports.bank', 'Banco')})),
+                          ...mpuData.by_service.map(d => ({...d, type: t('advancedReports.service', 'Serviço')})),
+                          ...mpuData.by_plan.map(d => ({...d, type: t('advancedReports.plan', 'Plano')}))
+                        ].map((item, idx) => (
                           <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{bank.bank_code}</td>
-                            <td className="px-6 py-4">
-                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                bank.avg_mpu > 0 && bank.avg_mpu <= 5 ? 'bg-green-100 text-green-700' :
-                                bank.avg_mpu > 0 && bank.avg_mpu <= 10 ? 'bg-amber-100 text-amber-700' :
-                                bank.avg_mpu > 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
-                              }`}>
-                                {bank.avg_mpu > 0 ? `${bank.avg_mpu?.toFixed(1)} min` : 'N/A'}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4 text-gray-900 dark:text-white">{bank.total_students}</td>
                             <td className="px-6 py-4">
                               <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                bank.performance_category === 'Excelente' ? 'bg-green-100 text-green-700' :
-                                bank.performance_category === 'Bom' ? 'bg-blue-100 text-blue-700' :
-                                bank.performance_category === 'Regular' ? 'bg-amber-100 text-amber-700' :
+                                item.type === t('advancedReports.bank', 'Banco') ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                                item.type === t('advancedReports.service', 'Serviço') ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                                'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                              }`}>{item.type}</span>
+                            </td>
+                            <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{item.name}</td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                item.avg_mpu > 0 && item.avg_mpu <= 5 ? 'bg-green-100 text-green-700' :
+                                item.avg_mpu > 0 && item.avg_mpu <= 10 ? 'bg-amber-100 text-amber-700' :
+                                item.avg_mpu > 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                              }`}>
+                                {item.avg_mpu > 0 ? `${item.avg_mpu.toFixed(2)} min/op` : 'N/A'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-gray-900 dark:text-white">{item.total_submissions}</td>
+                            <td className="px-6 py-4 text-gray-900 dark:text-white">{item.total_students}</td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                item.performance_category === 'Excelente' ? 'bg-green-100 text-green-700' :
+                                item.performance_category === 'Bom' ? 'bg-blue-100 text-blue-700' :
+                                item.performance_category === 'Regular' ? 'bg-amber-100 text-amber-700' :
                                 'bg-red-100 text-red-700'
                               }`}>
-                                {bank.performance_category || 'N/A'}
+                                {item.performance_category || 'N/A'}
                               </span>
                             </td>
                           </tr>

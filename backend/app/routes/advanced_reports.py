@@ -80,14 +80,17 @@ class CertificationResponse(BaseModel):
 
 
 class MPUAnalyticsItem(BaseModel):
-    bank_code: str
+    name: str
     avg_mpu: float = 0.0
     total_students: int = 0
+    total_submissions: int = 0
     performance_category: str = "Sem Dados"
 
 
 class MPUAnalyticsResponse(BaseModel):
-    banks: List[MPUAnalyticsItem] = []
+    by_bank: List[MPUAnalyticsItem] = []
+    by_service: List[MPUAnalyticsItem] = []
+    by_plan: List[MPUAnalyticsItem] = []
 
 
 # ============ Endpoints ============
@@ -254,15 +257,31 @@ async def get_trainer_productivity_report(
                 models.Course.created_by == trainer.id
             ).count()
             
-            # Count training plans (as trainer or assigned_by)
-            total_training_plans = db.query(models.TrainingPlan).filter(
-                models.TrainingPlan.trainer_id == trainer.id
-            ).count()
+            # Count training plans (as trainer_id, created_by, or via training_plan_trainers)
+            plan_ids_trainer = set(
+                tp.id for tp in db.query(models.TrainingPlan.id).filter(
+                    models.TrainingPlan.trainer_id == trainer.id
+                ).all()
+            )
+            plan_ids_created = set(
+                tp.id for tp in db.query(models.TrainingPlan.id).filter(
+                    models.TrainingPlan.created_by == trainer.id
+                ).all()
+            )
+            plan_ids_m2m = set(
+                tpt.training_plan_id for tpt in db.query(models.TrainingPlanTrainer.training_plan_id).filter(
+                    models.TrainingPlanTrainer.trainer_id == trainer.id
+                ).all()
+            )
+            all_plan_ids = plan_ids_trainer | plan_ids_created | plan_ids_m2m
+            total_training_plans = len(all_plan_ids)
             
-            # Count unique students in training plans
-            total_students = db.query(func.count(func.distinct(models.TrainingPlan.student_id))).filter(
-                models.TrainingPlan.trainer_id == trainer.id
-            ).scalar() or 0
+            # Count unique students from assignments of these plans
+            total_students = 0
+            if all_plan_ids:
+                total_students = db.query(func.count(func.distinct(models.TrainingPlanAssignment.user_id))).filter(
+                    models.TrainingPlanAssignment.training_plan_id.in_(all_plan_ids)
+                ).scalar() or 0
             
             # Also count lessons given and challenges applied/reviewed
             lessons_given = db.query(models.LessonProgress).filter(
@@ -290,9 +309,12 @@ async def get_trainer_productivity_report(
                 total_students = len(student_ids_lessons | student_ids_challenges)
             
             # Calculate average completion rate of their training plans
-            plans = db.query(models.TrainingPlan).filter(
-                models.TrainingPlan.trainer_id == trainer.id
-            ).all()
+            if all_plan_ids:
+                plans = db.query(models.TrainingPlan).filter(
+                    models.TrainingPlan.id.in_(all_plan_ids)
+                ).all()
+            else:
+                plans = []
             
             completed_plans = len([p for p in plans if p.status == "COMPLETED"])
             avg_completion = (completed_plans / len(plans) * 100) if plans else 0
@@ -455,74 +477,138 @@ async def get_certification_report(
 async def get_mpu_analytics(
     current_user: models.User = Depends(auth.require_role(["ADMIN"])),
     db: Session = Depends(get_db)
-) -> MPUAnalyticsResponse:
-    """MPU performance analytics by bank - MPU = minutos por operação nos desafios"""
+):
+    """MPU performance analytics by bank, service and training plan"""
+    
+    def categorize_mpu(avg_mpu):
+        if avg_mpu > 0 and avg_mpu <= 3:
+            return "Excelente"
+        elif avg_mpu > 0 and avg_mpu <= 5:
+            return "Bom"
+        elif avg_mpu > 0 and avg_mpu <= 10:
+            return "Regular"
+        elif avg_mpu > 0:
+            return "Precisa Melhorar"
+        return "Sem Dados"
     
     try:
-        banks = db.query(models.Bank).all()
-        mpu_list = []
+        # Get all approved/rejected submissions with MPU
+        all_submissions = db.query(models.ChallengeSubmission).filter(
+            models.ChallengeSubmission.calculated_mpu.isnot(None),
+            models.ChallengeSubmission.calculated_mpu > 0,
+            models.ChallengeSubmission.status.in_(["APPROVED", "REJECTED", "COMPLETED"])
+        ).all()
         
-        for bank in banks:
-            # Get courses for this bank (legacy + many-to-many)
-            legacy_courses = db.query(models.Course).filter(
-                models.Course.bank_id == bank.id
-            ).all()
-            m2m_course_ids = [cb.course_id for cb in db.query(models.CourseBank.course_id).filter(models.CourseBank.bank_id == bank.id).all()]
-            m2m_courses = db.query(models.Course).filter(models.Course.id.in_(m2m_course_ids)).all() if m2m_course_ids else []
-            # Merge unique
-            seen_ids = set()
-            courses = []
-            for c in legacy_courses + m2m_courses:
-                if c.id not in seen_ids:
-                    seen_ids.add(c.id)
-                    courses.append(c)
-            
-            if not courses:
-                # Add bank with no data
-                mpu_list.append(MPUAnalyticsItem(
-                    bank_code=bank.name,
-                    avg_mpu=0,
-                    total_students=0,
-                    performance_category="Sem Dados"
-                ))
+        # Pre-load challenge -> course mapping
+        challenge_ids = list(set(s.challenge_id for s in all_submissions))
+        challenges = {c.id: c for c in db.query(models.Challenge).filter(models.Challenge.id.in_(challenge_ids)).all()} if challenge_ids else {}
+        
+        course_ids = list(set(c.course_id for c in challenges.values()))
+        courses = {c.id: c for c in db.query(models.Course).filter(models.Course.id.in_(course_ids)).all()} if course_ids else {}
+        
+        # ========= BY BANK =========
+        # Build course_id -> bank_names mapping
+        course_bank_map = {}  # course_id -> [bank_names]
+        for cid in course_ids:
+            banks_list = []
+            # Many-to-many
+            cbs = db.query(models.CourseBank).filter(models.CourseBank.course_id == cid).all()
+            for cb in cbs:
+                bank = db.query(models.Bank).filter(models.Bank.id == cb.bank_id).first()
+                if bank:
+                    banks_list.append(bank.name)
+            # Legacy fallback
+            if not banks_list and courses.get(cid) and courses[cid].bank_id:
+                bank = db.query(models.Bank).filter(models.Bank.id == courses[cid].bank_id).first()
+                if bank:
+                    banks_list.append(bank.name)
+            course_bank_map[cid] = banks_list if banks_list else ["N/A"]
+        
+        # Aggregate by bank
+        bank_data = {}  # bank_name -> {mpus: [], students: set()}
+        for sub in all_submissions:
+            ch = challenges.get(sub.challenge_id)
+            if not ch:
                 continue
-            
-            course_ids = [c.id for c in courses]
-            
-            # Get challenge submissions for these courses
-            submissions = db.query(models.ChallengeSubmission).join(
-                models.Challenge, models.ChallengeSubmission.challenge_id == models.Challenge.id
-            ).filter(
-                models.Challenge.course_id.in_(course_ids),
-                models.ChallengeSubmission.calculated_mpu.isnot(None)
-            ).all()
-            
-            # Calculate average MPU from submissions
-            mpu_values = [s.calculated_mpu for s in submissions if s.calculated_mpu and s.calculated_mpu > 0]
-            avg_mpu = sum(mpu_values) / len(mpu_values) if mpu_values else 0
-            
-            # Count unique students
-            total_students = len(set([s.user_id for s in submissions]))
-            
-            # Determine performance category based on MPU (lower is better for time)
-            if avg_mpu > 0 and avg_mpu <= 3:
-                performance_category = "Excelente"
-            elif avg_mpu > 0 and avg_mpu <= 5:
-                performance_category = "Bom"
-            elif avg_mpu > 0 and avg_mpu <= 10:
-                performance_category = "Regular"
-            elif avg_mpu > 0:
-                performance_category = "Precisa Melhorar"
-            else:
-                performance_category = "Sem Dados"
-            
-            mpu_list.append(MPUAnalyticsItem(
-                bank_code=bank.name,
-                avg_mpu=round(avg_mpu, 2),
-                total_students=total_students,
-                performance_category=performance_category
+            for bank_name in course_bank_map.get(ch.course_id, ["N/A"]):
+                if bank_name not in bank_data:
+                    bank_data[bank_name] = {"mpus": [], "students": set()}
+                bank_data[bank_name]["mpus"].append(sub.calculated_mpu)
+                bank_data[bank_name]["students"].add(sub.user_id)
+        
+        by_bank = []
+        for name, data in sorted(bank_data.items()):
+            avg = sum(data["mpus"]) / len(data["mpus"]) if data["mpus"] else 0
+            by_bank.append(MPUAnalyticsItem(
+                name=name,
+                avg_mpu=round(avg, 2),
+                total_students=len(data["students"]),
+                total_submissions=len(data["mpus"]),
+                performance_category=categorize_mpu(avg)
             ))
         
-        return MPUAnalyticsResponse(banks=mpu_list)
+        # ========= BY SERVICE (Product) =========
+        course_product_map = {}  # course_id -> [product_names]
+        for cid in course_ids:
+            products_list = []
+            cps = db.query(models.CourseProduct).filter(models.CourseProduct.course_id == cid).all()
+            for cp in cps:
+                prod = db.query(models.Product).filter(models.Product.id == cp.product_id).first()
+                if prod:
+                    products_list.append(prod.name)
+            if not products_list and courses.get(cid) and courses[cid].product_id:
+                prod = db.query(models.Product).filter(models.Product.id == courses[cid].product_id).first()
+                if prod:
+                    products_list.append(prod.name)
+            course_product_map[cid] = products_list if products_list else ["N/A"]
+        
+        service_data = {}
+        for sub in all_submissions:
+            ch = challenges.get(sub.challenge_id)
+            if not ch:
+                continue
+            for prod_name in course_product_map.get(ch.course_id, ["N/A"]):
+                if prod_name not in service_data:
+                    service_data[prod_name] = {"mpus": [], "students": set()}
+                service_data[prod_name]["mpus"].append(sub.calculated_mpu)
+                service_data[prod_name]["students"].add(sub.user_id)
+        
+        by_service = []
+        for name, data in sorted(service_data.items()):
+            avg = sum(data["mpus"]) / len(data["mpus"]) if data["mpus"] else 0
+            by_service.append(MPUAnalyticsItem(
+                name=name,
+                avg_mpu=round(avg, 2),
+                total_students=len(data["students"]),
+                total_submissions=len(data["mpus"]),
+                performance_category=categorize_mpu(avg)
+            ))
+        
+        # ========= BY TRAINING PLAN =========
+        plan_data = {}  # plan_title -> {mpus: [], students: set()}
+        for sub in all_submissions:
+            plan_id = sub.training_plan_id
+            if plan_id:
+                plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == plan_id).first()
+                plan_title = plan.title if plan else f"Plano #{plan_id}"
+            else:
+                plan_title = "Sem Plano"
+            if plan_title not in plan_data:
+                plan_data[plan_title] = {"mpus": [], "students": set()}
+            plan_data[plan_title]["mpus"].append(sub.calculated_mpu)
+            plan_data[plan_title]["students"].add(sub.user_id)
+        
+        by_plan = []
+        for name, data in sorted(plan_data.items()):
+            avg = sum(data["mpus"]) / len(data["mpus"]) if data["mpus"] else 0
+            by_plan.append(MPUAnalyticsItem(
+                name=name,
+                avg_mpu=round(avg, 2),
+                total_students=len(data["students"]),
+                total_submissions=len(data["mpus"]),
+                performance_category=categorize_mpu(avg)
+            ))
+        
+        return {"by_bank": by_bank, "by_service": by_service, "by_plan": by_plan}
     except Exception as e:
-        return MPUAnalyticsResponse(banks=[])
+        return {"by_bank": [], "by_service": [], "by_plan": []}
