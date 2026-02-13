@@ -388,7 +388,7 @@ export default function MyChallenges() {
                             {t('myChallenges.rejected')}
                           </span>
                         )}
-                        {submission.retry_count && submission.retry_count > 0 && (
+                        {submission.retry_count != null && submission.retry_count > 0 && (
                           <span className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs">
                             {submission.retry_count + 1} {t('myChallenges.attempts')}
                           </span>

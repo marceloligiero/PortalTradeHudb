@@ -962,7 +962,7 @@ export default function SubmissionReview() {
               <p className="text-sm text-gray-400">
                 {t('submissionReview.studentRejected')}
               </p>
-              {submission.retry_count && submission.retry_count > 0 && (
+              {submission.retry_count != null && submission.retry_count > 0 && (
                 <p className="text-xs text-orange-400 mt-1">
                   {t('submissionReview.previousAttempts', { count: submission.retry_count })}
                 </p>
