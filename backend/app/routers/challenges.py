@@ -1526,6 +1526,12 @@ async def finish_operation(
             )
             db.add(op_error)
     
+    # Auto-submit for review when operation is finished (Desafio Completo)
+    # This allows the trainer to review each operation as it's completed
+    if submission.status == "IN_PROGRESS":
+        submission.status = "PENDING_REVIEW"
+        submission.updated_at = datetime.now()
+    
     db.commit()
     db.refresh(operation)
     
@@ -1555,9 +1561,10 @@ async def submit_for_review(
         if submission.user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Sem permissão")
     
-    # Verificar se já foi submetida
+    # Verificar se já foi submetida - allow re-submission if already PENDING_REVIEW (idempotent)
     if getattr(submission, 'status', None) == "PENDING_REVIEW":
-        raise HTTPException(status_code=400, detail="Já submetida para revisão")
+        # Already pending review, just return current state
+        return submission
     
     if submission.completed_at:
         raise HTTPException(status_code=400, detail="Submission já foi finalizada")

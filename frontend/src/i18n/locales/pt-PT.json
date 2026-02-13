@@ -1671,6 +1671,26 @@
     "submitError": "Erro ao submeter para revisão",
     "confirmSubmit": "Tem certeza que deseja submeter o desafio para revisão? Após submeter, não poderá adicionar mais operações."
   },
+  "challengeComplete": {
+    "opApproved": "Aprovada",
+    "opHasErrors": "Com Erros",
+    "awaitingCorrection": "Aguardando Correção",
+    "errors": "erro(s)",
+    "errorsIdentified": "Erros Identificados",
+    "reviewProgress": "Progresso da Correção",
+    "reviewed": "corrigidas",
+    "approved": "aprovadas",
+    "withErrors": "com erros",
+    "pendingReview": "pendentes",
+    "finalizeChallenge": "Finalizar Desafio",
+    "completeAllFirst": "Complete todas as {{total}} operações. {{completed}}/{{total}} concluídas.",
+    "awaitAllReviews": "Aguarde a correção de {{pending}} operação(ões) pelo formador.",
+    "allReviewed": "Todas as operações foram corrigidas. Pode finalizar o desafio.",
+    "finalizeBtn": "Finalizar Desafio",
+    "completeAllOps": "Complete todas as operações antes de finalizar.",
+    "finishInProgress": "Finalize a operação em progresso antes de finalizar.",
+    "awaitReview": "Aguarde a correção de todas as operações pelo formador."
+  },
   "trainingPlanDetail": {
     "back": "Voltar",
     "completed": "Concluído",

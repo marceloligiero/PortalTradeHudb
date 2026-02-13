@@ -58,7 +58,7 @@ const CHARS_PER_PAGE = 2500;
 export default function LessonView() {
   const { lessonId } = useParams<{ lessonId: string }>();
   const [searchParams] = useSearchParams();
-  const planId = searchParams.get('planId');
+  const planId = searchParams.get('planId') || searchParams.get('plan_id');
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -183,11 +183,10 @@ export default function LessonView() {
 
   // Handle start lesson (for TRAINEE started_by)
   const handleStartLesson = async () => {
-    if (!planId) return;
     setStartLoading(true);
     try {
       await api.post(`/api/lessons/${lessonId}/start`, null, {
-        params: { training_plan_id: parseInt(planId) }
+        params: planId ? { training_plan_id: parseInt(planId) } : undefined
       });
       await fetchProgress();
     } catch (err: any) {
@@ -201,11 +200,10 @@ export default function LessonView() {
 
   // Handle pause lesson
   const handlePauseLesson = async () => {
-    if (!planId) return;
     setPauseLoading(true);
     try {
       await api.post(`/api/lessons/${lessonId}/pause`, null, {
-        params: { training_plan_id: parseInt(planId) }
+        params: planId ? { training_plan_id: parseInt(planId) } : undefined
       });
       await fetchProgress();
     } catch (err: any) {
@@ -219,11 +217,10 @@ export default function LessonView() {
 
   // Handle resume lesson
   const handleResumeLesson = async () => {
-    if (!planId) return;
     setResumeLoading(true);
     try {
       await api.post(`/api/lessons/${lessonId}/resume`, null, {
-        params: { training_plan_id: parseInt(planId) }
+        params: planId ? { training_plan_id: parseInt(planId) } : undefined
       });
       await fetchProgress();
     } catch (err: any) {

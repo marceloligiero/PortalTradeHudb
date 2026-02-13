@@ -1586,6 +1586,26 @@
     "submitError": "Error submitting for review",
     "confirmSubmit": "Are you sure you want to submit the challenge for review? After submitting, you cannot add more operations."
   },
+  "challengeComplete": {
+    "opApproved": "Approved",
+    "opHasErrors": "Has Errors",
+    "awaitingCorrection": "Awaiting Correction",
+    "errors": "error(s)",
+    "errorsIdentified": "Errors Identified",
+    "reviewProgress": "Correction Progress",
+    "reviewed": "reviewed",
+    "approved": "approved",
+    "withErrors": "with errors",
+    "pendingReview": "pending",
+    "finalizeChallenge": "Finalize Challenge",
+    "completeAllFirst": "Complete all {{total}} operations. {{completed}}/{{total}} completed.",
+    "awaitAllReviews": "Awaiting correction of {{pending}} operation(s) by the trainer.",
+    "allReviewed": "All operations have been reviewed. You can finalize the challenge.",
+    "finalizeBtn": "Finalize Challenge",
+    "completeAllOps": "Complete all operations before finalizing.",
+    "finishInProgress": "Finish the in-progress operation before finalizing.",
+    "awaitReview": "Wait for all operations to be reviewed by the trainer."
+  },
   "trainingPlanDetail": {
     "back": "Back",
     "completed": "Completed",

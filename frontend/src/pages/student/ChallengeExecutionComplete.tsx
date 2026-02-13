@@ -14,7 +14,10 @@ import {
   Timer,
   Hash,
   AlertTriangle,
-  Send
+  Send,
+  Eye,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { RatingModal } from '../../components';
@@ -41,6 +44,9 @@ interface Operation {
   durationSeconds: number;
   status: 'pending' | 'in_progress' | 'completed';
   backendId: number | null;  // ID da operação no backend
+  is_approved?: boolean | null;  // null = pendente de revisão, true = aprovada, false = reprovada
+  hasError?: boolean;
+  errors?: Array<{ id?: number; error_type: string; description?: string }>;
 }
 
 const StudentChallengeExecution: React.FC = () => {
@@ -100,7 +106,10 @@ const StudentChallengeExecution: React.FC = () => {
               completedAt: existingOp.completed_at ? new Date(existingOp.completed_at) : null,
               durationSeconds: existingOp.duration_seconds || 0,
               status: existingOp.completed_at ? 'completed' : (existingOp.started_at ? 'in_progress' : 'pending'),
-              backendId: existingOp.id
+              backendId: existingOp.id,
+              is_approved: existingOp.is_approved,
+              hasError: existingOp.has_error,
+              errors: existingOp.errors || []
             });
           } else {
             mappedOps.push({
@@ -187,6 +196,40 @@ const StudentChallengeExecution: React.FC = () => {
     
     return () => clearInterval(interval);
   }, [activeOperationIndex, isPaused]);
+
+  // Polling to refresh operation review statuses from trainer
+  useEffect(() => {
+    if (!submissionId || submitted) return;
+    
+    // Only poll if there are completed operations waiting for review
+    const hasCompletedOps = operations.some(op => op.status === 'completed');
+    if (!hasCompletedOps) return;
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await api.get(`/api/challenges/submissions/${submissionId}/operations`);
+        const backendOps = response.data || [];
+        
+        // Update review status on existing operations
+        setOperations(prev => prev.map(op => {
+          const backendOp = backendOps.find((bop: any) => bop.id === op.backendId);
+          if (backendOp) {
+            return {
+              ...op,
+              is_approved: backendOp.is_approved,
+              hasError: backendOp.has_error,
+              errors: backendOp.errors || []
+            };
+          }
+          return op;
+        }));
+      } catch (e) {
+        // Silently ignore polling errors
+      }
+    }, 5000);
+    
+    return () => clearInterval(pollInterval);
+  }, [submissionId, submitted, operations]);
 
   useEffect(() => {
     loadChallenge();
@@ -316,19 +359,27 @@ const StudentChallengeExecution: React.FC = () => {
     
     // Verificar se todas as operações requeridas foram completadas
     if (completedOps.length < requiredOps) {
-      setError(`Complete todas as ${requiredOps} operações antes de submeter. ${completedOps.length}/${requiredOps} concluídas.`);
+      setError(t('challengeComplete.completeAllOps', `Complete todas as ${requiredOps} operações antes de finalizar. ${completedOps.length}/${requiredOps} concluídas.`));
       return;
     }
 
     // Verificar se há operação em progresso
     if (activeOperationIndex !== null) {
-      setError('Finalize a operação em progresso antes de submeter');
+      setError(t('challengeComplete.finishInProgress', 'Finalize a operação em progresso antes de finalizar'));
+      return;
+    }
+
+    // Verificar se todas as operações foram corrigidas pelo formador
+    const unreviewedOps = completedOps.filter(op => op.is_approved === null || op.is_approved === undefined);
+    if (unreviewedOps.length > 0) {
+      setError(t('challengeComplete.awaitReview', `Aguarde a correção de todas as operações pelo formador. ${unreviewedOps.length} operação(ões) pendente(s) de revisão.`));
       return;
     }
 
     try {
       // As operações já foram criadas via startOperation/finishOperation
-      // Apenas marcar como submetido (pendente de revisão)
+      // Submission já está PENDING_REVIEW (auto-submitted na finalização de cada operação)
+      // Apenas marcar como submetido final
       await api.post(`/api/challenges/submissions/${submissionId}/submit-for-review`);
       
       setSubmitted(true);
@@ -413,6 +464,14 @@ const StudentChallengeExecution: React.FC = () => {
 
   const completedCount = operations.filter(op => op.status === 'completed').length;
   const progressPercent = challenge.operations_required > 0 ? (completedCount / challenge.operations_required) * 100 : 0;
+  
+  // Review tracking
+  const reviewedCount = operations.filter(op => op.status === 'completed' && op.is_approved !== null && op.is_approved !== undefined).length;
+  const pendingReviewCount = operations.filter(op => op.status === 'completed' && (op.is_approved === null || op.is_approved === undefined)).length;
+  const allOpsCompleted = completedCount >= challenge.operations_required;
+  const allOpsReviewed = allOpsCompleted && pendingReviewCount === 0;
+  const approvedCount = operations.filter(op => op.is_approved === true).length;
+  const errorCount = operations.filter(op => op.hasError === true).length;
 
   return (
     <div className="space-y-6">
@@ -556,7 +615,11 @@ const StudentChallengeExecution: React.FC = () => {
                   op.status === 'in_progress' 
                     ? 'border-blue-500/50 bg-blue-500/10' 
                     : op.status === 'completed' 
-                      ? 'border-green-500/30 bg-green-500/10' 
+                      ? op.is_approved === true 
+                        ? 'border-green-500/30 bg-green-500/10'
+                        : op.is_approved === false
+                          ? 'border-red-500/30 bg-red-500/10'
+                          : 'border-yellow-500/30 bg-yellow-500/5'
                       : 'border-white/10'
                 }`}
               >
@@ -564,7 +627,11 @@ const StudentChallengeExecution: React.FC = () => {
                   {/* Número da operação */}
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg ${
                     op.status === 'completed' 
-                      ? 'bg-green-500/20 text-green-400' 
+                      ? op.is_approved === true 
+                        ? 'bg-green-500/20 text-green-400'
+                        : op.is_approved === false
+                          ? 'bg-red-500/20 text-red-400'
+                          : 'bg-yellow-500/20 text-yellow-400'
                       : op.status === 'in_progress'
                         ? 'bg-blue-500/20 text-blue-400'
                         : 'bg-white/10 text-gray-400'
@@ -651,48 +718,131 @@ const StudentChallengeExecution: React.FC = () => {
                     )}
 
                     {op.status === 'completed' && (
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-lg">
-                          <Check className="w-4 h-4" />
-                          Concluída
-                        </div>
-                        {op.hasError && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Review status */}
+                        {op.is_approved === true && (
+                          <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-lg">
+                            <CheckCircle className="w-4 h-4" />
+                            {t('challengeComplete.opApproved', 'Aprovada')}
+                          </div>
+                        )}
+                        {op.is_approved === false && (
+                          <div className="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-400 rounded-lg">
+                            <XCircle className="w-4 h-4" />
+                            {t('challengeComplete.opHasErrors', 'Com Erros')}
+                          </div>
+                        )}
+                        {(op.is_approved === null || op.is_approved === undefined) && (
+                          <div className="flex items-center gap-2 px-4 py-2 bg-yellow-500/20 text-yellow-400 rounded-lg animate-pulse">
+                            <Eye className="w-4 h-4" />
+                            {t('challengeComplete.awaitingCorrection', 'Aguardando Correção')}
+                          </div>
+                        )}
+                        {op.hasError && op.errors && op.errors.length > 0 && (
                           <div className="flex items-center gap-1 px-3 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm">
                             <AlertTriangle className="w-4 h-4" />
-                            {op.errors.length} erro(s)
+                            {op.errors.length} {t('challengeComplete.errors', 'erro(s)')}
                           </div>
                         )}
                       </div>
                     )}
                   </div>
                 </div>
+                {/* Error details from trainer review */}
+                {op.status === 'completed' && op.hasError && op.errors && op.errors.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-red-500/20">
+                    <p className="text-xs text-red-400 font-semibold uppercase tracking-wide mb-2">
+                      {t('challengeComplete.errorsIdentified', 'Erros Identificados')} ({op.errors.length}):
+                    </p>
+                    <div className="space-y-1">
+                      {op.errors.map((err, errIdx) => (
+                        <div key={errIdx} className="flex items-start gap-3 p-2 bg-red-500/10 rounded-lg">
+                          <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${
+                            err.error_type === 'METODOLOGIA' || err.error_type === 'METHODOLOGY' ? 'bg-orange-500/20 text-orange-400' :
+                            err.error_type === 'CONHECIMENTO' || err.error_type === 'KNOWLEDGE' ? 'bg-blue-500/20 text-blue-400' :
+                            err.error_type === 'DETALHE' || err.error_type === 'DETAIL' ? 'bg-yellow-500/20 text-yellow-400' :
+                            'bg-purple-500/20 text-purple-400'
+                          }`}>
+                            {err.error_type}
+                          </span>
+                          {err.description && (
+                            <span className="text-sm text-gray-300 flex-1">{err.description}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
 
-          {/* Submeter */}
+          {/* Review Progress & Submeter */}
           <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6 mt-6">
+            {/* Review progress bar */}
+            {completedCount > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-400 flex items-center gap-2">
+                    <Eye className="w-4 h-4" />
+                    {t('challengeComplete.reviewProgress', 'Progresso da Correção')}
+                  </span>
+                  <span className="text-sm font-bold text-white">
+                    {reviewedCount}/{completedCount} {t('challengeComplete.reviewed', 'corrigidas')}
+                  </span>
+                </div>
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+                    style={{ width: `${completedCount > 0 ? (reviewedCount / completedCount) * 100 : 0}%` }}
+                  />
+                </div>
+                {completedCount > 0 && (
+                  <div className="flex items-center gap-4 mt-2 text-xs">
+                    <span className="text-green-400">{approvedCount} {t('challengeComplete.approved', 'aprovadas')}</span>
+                    <span className="text-red-400">{errorCount} {t('challengeComplete.withErrors', 'com erros')}</span>
+                    <span className="text-yellow-400">{pendingReviewCount} {t('challengeComplete.pendingReview', 'pendentes')}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-white">Submeter para Revisão</h3>
+                <h3 className="text-lg font-semibold text-white">
+                  {t('challengeComplete.finalizeChallenge', 'Finalizar Desafio')}
+                </h3>
                 <p className="text-gray-400 text-sm">
                   {completedCount < (challenge?.operations_required || 0) ? (
                     <span className="text-yellow-400">
-                      Complete todas as {challenge?.operations_required} operações antes de submeter. {completedCount}/{challenge?.operations_required} concluídas.
+                      {t('challengeComplete.completeAllFirst', {
+                        total: challenge?.operations_required,
+                        completed: completedCount,
+                        defaultValue: `Complete todas as ${challenge?.operations_required} operações. ${completedCount}/${challenge?.operations_required} concluídas.`
+                      })}
+                    </span>
+                  ) : !allOpsReviewed ? (
+                    <span className="text-yellow-400">
+                      {t('challengeComplete.awaitAllReviews', {
+                        pending: pendingReviewCount,
+                        defaultValue: `Aguarde a correção de ${pendingReviewCount} operação(ões) pelo formador.`
+                      })}
                     </span>
                   ) : (
-                    'Após submeter, o formador irá aprovar o desafio.'
+                    <span className="text-green-400">
+                      {t('challengeComplete.allReviewed', 'Todas as operações foram corrigidas. Pode finalizar o desafio.')}
+                    </span>
                   )}
                 </p>
               </div>
               
               <button
                 onClick={submitChallenge}
-                disabled={completedCount < (challenge?.operations_required || 0)}
+                disabled={!allOpsReviewed}
                 className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg transition-all"
               >
                 <Send className="w-6 h-6" />
-                Submeter Desafio
+                {t('challengeComplete.finalizeBtn', 'Finalizar Desafio')}
               </button>
             </div>
           </div>
