@@ -619,7 +619,8 @@ async def submit_challenge_summary(
         mpu_vs_target=mpu_vs_target,
         is_approved=is_approved,
         score=score,
-        submitted_by=current_user.id
+        submitted_by=current_user.id,
+        reviewed_by=current_user.id if status in ("APPROVED", "REJECTED") else None
     )
     
     db.add(db_submission)

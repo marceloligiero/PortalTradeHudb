@@ -240,9 +240,10 @@ async def get_trainer_productivity_report(
     """Trainer productivity and effectiveness analysis"""
     
     try:
+        # Include both TRAINER and ADMIN roles (admins also train)
         trainers = db.query(models.User).filter(
-            models.User.role == "TRAINER",
-            models.User.is_pending == False
+            models.User.role.in_(["TRAINER", "ADMIN"]),
+            models.User.is_active == True
         ).all()
         
         productivity_list = []
@@ -253,7 +254,7 @@ async def get_trainer_productivity_report(
                 models.Course.created_by == trainer.id
             ).count()
             
-            # Count training plans
+            # Count training plans (as trainer or assigned_by)
             total_training_plans = db.query(models.TrainingPlan).filter(
                 models.TrainingPlan.trainer_id == trainer.id
             ).count()
@@ -263,6 +264,31 @@ async def get_trainer_productivity_report(
                 models.TrainingPlan.trainer_id == trainer.id
             ).scalar() or 0
             
+            # Also count lessons given and challenges applied/reviewed
+            lessons_given = db.query(models.LessonProgress).filter(
+                models.LessonProgress.finished_by == trainer.id
+            ).count()
+            challenges_applied = db.query(models.ChallengeSubmission).filter(
+                models.ChallengeSubmission.submitted_by == trainer.id
+            ).count()
+            challenges_reviewed = db.query(models.ChallengeSubmission).filter(
+                models.ChallengeSubmission.reviewed_by == trainer.id
+            ).count()
+            
+            # If no training plans, count students from lesson/challenge activity
+            if total_students == 0:
+                student_ids_lessons = set(
+                    lp.user_id for lp in db.query(models.LessonProgress.user_id).filter(
+                        models.LessonProgress.finished_by == trainer.id
+                    ).all()
+                )
+                student_ids_challenges = set(
+                    cs.user_id for cs in db.query(models.ChallengeSubmission.user_id).filter(
+                        models.ChallengeSubmission.submitted_by == trainer.id
+                    ).all()
+                )
+                total_students = len(student_ids_lessons | student_ids_challenges)
+            
             # Calculate average completion rate of their training plans
             plans = db.query(models.TrainingPlan).filter(
                 models.TrainingPlan.trainer_id == trainer.id
@@ -271,14 +297,17 @@ async def get_trainer_productivity_report(
             completed_plans = len([p for p in plans if p.status == "COMPLETED"])
             avg_completion = (completed_plans / len(plans) * 100) if plans else 0
             
-            productivity_list.append(TrainerProductivityItem(
-                trainer_name=trainer.full_name or "Sem nome",
-                email=trainer.email,
-                total_courses=total_courses,
-                total_students=total_students,
-                total_training_plans=total_training_plans,
-                avg_student_completion=round(avg_completion, 2)
-            ))
+            # Only include trainers with any activity
+            total_activity = total_courses + total_training_plans + lessons_given + challenges_applied + challenges_reviewed
+            if total_activity > 0 or total_students > 0:
+                productivity_list.append(TrainerProductivityItem(
+                    trainer_name=trainer.full_name or "Sem nome",
+                    email=trainer.email,
+                    total_courses=total_courses,
+                    total_students=total_students,
+                    total_training_plans=total_training_plans,
+                    avg_student_completion=round(avg_completion, 2)
+                ))
         
         return TrainerProductivityResponse(trainers=productivity_list)
     except Exception as e:
