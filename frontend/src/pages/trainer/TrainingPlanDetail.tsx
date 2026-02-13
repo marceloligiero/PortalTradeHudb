@@ -1980,6 +1980,7 @@ export default function TrainingPlanDetail() {
           itemTitle={plan.title}
           onSuccess={() => {
             setHasPlanRating(true);
+            setPendingRatingsCount(prev => Math.max(0, prev - 1));
             setShowPlanRatingModal(false);
           }}
         />
@@ -1999,6 +2000,7 @@ export default function TrainingPlanDetail() {
           trainingPlanId={plan.id}
           onSuccess={() => {
             setTrainerRatings(prev => ({ ...prev, [selectedTrainer.id]: true }));
+            setPendingRatingsCount(prev => Math.max(0, prev - 1));
             setShowTrainerRatingModal(false);
             setSelectedTrainer(null);
           }}
@@ -2019,6 +2021,7 @@ export default function TrainingPlanDetail() {
           trainingPlanId={plan.id}
           onSuccess={() => {
             setCourseRatings(prev => ({ ...prev, [selectedCourse.id]: true }));
+            setPendingRatingsCount(prev => Math.max(0, prev - 1));
             setShowCourseRatingModal(false);
             setSelectedCourse(null);
           }}
