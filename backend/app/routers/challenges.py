@@ -1984,7 +1984,7 @@ async def start_submission_retry(
         started_at=datetime.now(),
         submitted_by=current_user.id,
         retry_count=retry_count,
-        is_approved=False
+        is_approved=None
     )
     
     # Desabilitar retry na submission original

@@ -109,6 +109,21 @@ const StudentChallengeExecution: React.FC = () => {
           setActiveOperationIndex(activeIdx);
           activeStartTimeRef.current = mappedOps[activeIdx].startedAt!.getTime();
         }
+      } else if (challenge) {
+        // Retry ou submission sem operações ainda - inicializar operações vazias
+        const initialOps: Operation[] = [];
+        for (let i = 1; i <= challenge.operations_required; i++) {
+          initialOps.push({
+            operationNumber: i,
+            reference: '',
+            startedAt: null,
+            completedAt: null,
+            durationSeconds: 0,
+            status: 'pending',
+            backendId: null
+          });
+        }
+        setOperations(initialOps);
       }
     } catch (err) {
       console.error('Erro ao carregar operações existentes:', err);
