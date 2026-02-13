@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
@@ -71,6 +71,7 @@ const ChallengeExecutionComplete: React.FC = () => {
   const [operations, setOperations] = useState<Operation[]>([]);
   const [activeOperationIndex, setActiveOperationIndex] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
+  const activeStartTimeRef = useRef<number | null>(null);
 
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [planStudent, setPlanStudent] = useState<{id: number, full_name: string, email: string} | null>(null);
@@ -102,20 +103,22 @@ const ChallengeExecutionComplete: React.FC = () => {
 
   // Cronómetro para operação ativa
   useEffect(() => {
-    if (activeOperationIndex === null) {
+    if (activeOperationIndex === null || activeStartTimeRef.current === null) {
       return;
     }
     
-    const op = operations[activeOperationIndex];
-    if (!op || !op.startedAt) return;
+    const startTime = activeStartTimeRef.current;
+    
+    // Update immediately
+    setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
     
     const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - op.startedAt!.getTime()) / 1000);
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
       setElapsedTime(elapsed);
     }, 1000);
     
     return () => clearInterval(interval);
-  }, [activeOperationIndex, operations]);
+  }, [activeOperationIndex]);
 
   useEffect(() => {
     loadChallenge();
@@ -261,8 +264,11 @@ const ChallengeExecutionComplete: React.FC = () => {
       return;
     }
 
+    const now = new Date();
+    activeStartTimeRef.current = now.getTime();
+
     const updated = [...operations];
-    updated[index].startedAt = new Date();
+    updated[index].startedAt = now;
     updated[index].status = 'in_progress';
     setOperations(updated);
     setActiveOperationIndex(index);
@@ -309,6 +315,7 @@ const ChallengeExecutionComplete: React.FC = () => {
     updated[index].errors = operationErrors;
     updated[index].hasError = pendingErrors.length > 0;
     setOperations(updated);
+    activeStartTimeRef.current = null;
     setActiveOperationIndex(null);
     setElapsedTime(0);
     
@@ -617,7 +624,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                       type="text"
                       value={op.reference}
                       onChange={(e) => updateOperationReference(index, e.target.value)}
-                      disabled={op.status !== 'pending'}
+                      disabled={op.status === 'completed'}
                       placeholder="Referência da operação (ex: 4060ILC0001111)"
                       className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
