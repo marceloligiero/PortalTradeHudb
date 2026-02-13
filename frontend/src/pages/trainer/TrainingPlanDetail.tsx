@@ -1918,17 +1918,39 @@ export default function TrainingPlanDetail() {
 
                                     {isStudent && submission && (
                                       submission.status === 'APPROVED' || submission.status === 'REJECTED' ? (
-                                        <button
-                                          onClick={() => navigate(`/challenges/result/${submission.id}`)}
-                                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                                            isDark 
-                                              ? 'bg-white/10 text-white hover:bg-white/20' 
-                                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                          }`}
-                                        >
-                                          <Eye className="w-4 h-4" />
-                                          {t('trainingPlanDetail.viewResult')}
-                                        </button>
+                                        <div className="flex flex-col gap-2">
+                                          <button
+                                            onClick={() => navigate(`/challenges/result/${submission.id}`)}
+                                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                              isDark 
+                                                ? 'bg-white/10 text-white hover:bg-white/20' 
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
+                                          >
+                                            <Eye className="w-4 h-4" />
+                                            {t('trainingPlanDetail.viewResult')}
+                                          </button>
+                                          {/* Classificar desafio - quando plano finalizado e desafio aprovado */}
+                                          {completionStatus?.is_finalized && submission.status === 'APPROVED' && (
+                                            challengeRatings[challenge.id] ? (
+                                              <span className="flex items-center gap-1 px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-xs font-medium">
+                                                <Star className="w-3 h-3 fill-green-400" />
+                                                {t('trainingPlanDetail.rated', 'Classificado')} ✓
+                                              </span>
+                                            ) : (
+                                              <button
+                                                onClick={() => {
+                                                  setSelectedChallengeForRating(challenge);
+                                                  setShowChallengeRatingModal(true);
+                                                }}
+                                                className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-600 text-white rounded-lg text-xs font-medium hover:from-amber-600 hover:to-yellow-700 transition-all"
+                                              >
+                                                <Star className="w-3 h-3" />
+                                                {t('trainingPlanDetail.rateChallenge', 'Classificar Desafio')}
+                                              </button>
+                                            )
+                                          )}
+                                        </div>
                                       ) : (
                                         <button
                                           onClick={() => navigate(`/challenges/${challenge.id}/execute/complete?planId=${id}&submissionId=${submission.id}`)}
@@ -2037,27 +2059,6 @@ export default function TrainingPlanDetail() {
                                               </span>
                                             )}
                                           </div>
-                                        )}
-
-                                        {/* Classificar desafio - quando plano finalizado e desafio aprovado */}
-                                        {isStudent && completionStatus?.is_finalized && submission.status === 'APPROVED' && (
-                                          challengeRatings[challenge.id] ? (
-                                            <span className="flex items-center gap-1 px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-xs font-medium">
-                                              <Star className="w-3 h-3 fill-green-400" />
-                                              {t('trainingPlanDetail.rated', 'Classificado')} ✓
-                                            </span>
-                                          ) : (
-                                            <button
-                                              onClick={() => {
-                                                setSelectedChallengeForRating(challenge);
-                                                setShowChallengeRatingModal(true);
-                                              }}
-                                              className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-600 text-white rounded-lg text-xs font-medium hover:from-amber-600 hover:to-yellow-700 transition-all"
-                                            >
-                                              <Star className="w-3 h-3" />
-                                              {t('trainingPlanDetail.rateChallenge', 'Classificar Desafio')}
-                                            </button>
-                                          )
                                         )}
                                       </>
                                     )}
