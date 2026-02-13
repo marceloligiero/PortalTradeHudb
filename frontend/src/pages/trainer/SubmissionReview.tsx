@@ -119,6 +119,20 @@ export default function SubmissionReview() {
     { value: 'DETALHE', label: t('submissionReview.detail'), description: t('submissionReview.detailDesc') },
     { value: 'PROCEDIMENTO', label: t('submissionReview.procedure'), description: t('submissionReview.procedureDesc') }
   ];
+
+  const translateErrorType = (type: string): string => {
+    const map: Record<string, string> = {
+      'METHODOLOGY': t('submissionReview.methodology'),
+      'METODOLOGIA': t('submissionReview.methodology'),
+      'KNOWLEDGE': t('submissionReview.knowledge'),
+      'CONHECIMENTO': t('submissionReview.knowledge'),
+      'DETAIL': t('submissionReview.detail'),
+      'DETALHE': t('submissionReview.detail'),
+      'PROCEDURE': t('submissionReview.procedure'),
+      'PROCEDIMENTO': t('submissionReview.procedure'),
+    };
+    return map[type?.toUpperCase()] || type;
+  };
   
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [operations, setOperations] = useState<Operation[]>([]);
@@ -638,12 +652,12 @@ export default function SubmissionReview() {
                   <div key={err.id || index} className="bg-white/5 rounded-xl p-4 border border-white/10">
                     <div className="flex items-start gap-3">
                       <span className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs font-bold whitespace-nowrap">
-                        {err.error_type}
+                        {translateErrorType(err.error_type)}
                       </span>
                       <div className="flex-1">
                         <p className="text-gray-300 text-sm">{err.description || '-'}</p>
                         {err.operation_reference && (
-                          <p className="text-gray-500 text-xs mt-1">Ref: {err.operation_reference}</p>
+                          <p className="text-gray-500 text-xs mt-1">{t('submissionReview.ref', 'Ref')}: {err.operation_reference}</p>
                         )}
                       </div>
                     </div>
@@ -863,7 +877,7 @@ export default function SubmissionReview() {
                         {op.errors.map((err, errIndex) => (
                           <div key={errIndex} className="flex items-start gap-2 text-sm">
                             <span className="px-2 py-0.5 bg-red-500/20 text-red-400 rounded text-xs font-bold">
-                              {err.error_type}
+                              {translateErrorType(err.error_type)}
                             </span>
                             <span className="text-gray-300">{err.description}</span>
                           </div>
