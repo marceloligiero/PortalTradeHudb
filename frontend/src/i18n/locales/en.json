@@ -94,7 +94,8 @@
     "trainingPlans": "Training Plans",
     "banks": "Banks",
     "Services": "Services",
-    "ratings": "Ratings"
+    "ratings": "Ratings",
+    "knowledgeMatrix": "Knowledge Matrix"
   },
   "roles": {
     "ADMIN": "Administrator",
@@ -1935,5 +1936,19 @@
     "GR": "Received Guarantees",
     "OP": "Financed Payment Orders",
     "EU": "Eurocollections"
+  },
+  "knowledgeMatrix": {
+    "title": "Knowledge Matrix",
+    "subtitle": "Complete view of trainee skills and progress",
+    "totalStudents": "Total Trainees",
+    "totalCourses": "Courses",
+    "avgCompletion": "Avg Completion",
+    "totalHours": "Total Hours",
+    "avgMPU": "Avg MPU",
+    "topError": "Top Error",
+    "levelDistribution": "Level Distribution",
+    "searchStudent": "Search trainee...",
+    "allLevels": "All Levels",
+    "noStudents": "No trainees found"
   }
 }

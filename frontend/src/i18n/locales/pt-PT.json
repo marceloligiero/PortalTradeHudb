@@ -94,7 +94,8 @@
     "trainingPlans": "Planos de Formação",
     "banks": "Bancos",
     "products": "Serviços",
-    "ratings": "Avaliações"
+    "ratings": "Avaliações",
+    "knowledgeMatrix": "Matriz de Conhecimento"
   },
   "roles": {
     "ADMIN": "Administrador",
@@ -2021,5 +2022,19 @@
     "GR": "Garantias Recebidas",
     "OP": "Ordens de Pagamento Financiadas",
     "EU": "Eurocobranças"
+  },
+  "knowledgeMatrix": {
+    "title": "Matriz de Conhecimento",
+    "subtitle": "Visão completa das competências e evolução dos formandos",
+    "totalStudents": "Total Formandos",
+    "totalCourses": "Cursos",
+    "avgCompletion": "Conclusão Média",
+    "totalHours": "Horas Totais",
+    "avgMPU": "MPU Médio",
+    "topError": "Erro Principal",
+    "levelDistribution": "Distribuição por Nível",
+    "searchStudent": "Pesquisar formando...",
+    "allLevels": "Todos os Níveis",
+    "noStudents": "Nenhum formando encontrado"
   }
 }
