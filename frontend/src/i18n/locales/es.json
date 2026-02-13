@@ -983,6 +983,7 @@
     "courseManagementDescription": "Gestionar cursos y contenidos de la plataforma",
     "searchCourses": "Buscar por nombre del curso...",
     "searchPlans": "Buscar planes...",
+    "createdBy": "Creado por",
     "noCoursesFound": "No se encontraron cursos",
     "noPlansFound": "No se encontraron planes",
     "tryDifferentSearch": "Prueba una búsqueda diferente",

@@ -801,6 +801,7 @@
     "courseManagementDescription": "Manage courses and platform content",
     "searchCourses": "Search by course name...",
     "searchPlans": "Search plans...",
+    "createdBy": "Created by",
     "noCoursesFound": "No courses found",
     "noPlansFound": "No plans found",
     "tryDifferentSearch": "Try a different search",
