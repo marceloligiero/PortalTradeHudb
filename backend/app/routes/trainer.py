@@ -1090,3 +1090,253 @@ async def get_trainer_lessons_report(
         "total_duration_minutes": int(total_duration),
         "lessons_per_course": round(total_lessons / len(course_ids), 1) if course_ids else 0
     }
+
+
+@router.get("/reports/challenges")
+async def get_trainer_challenges_report(
+    current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Relatório completo de desafios com análise de erros das operações"""
+    
+    # Get plans for this trainer
+    if current_user.role == "TRAINER":
+        plan_ids_created = [p.id for p in db.query(models.TrainingPlan.id).filter(
+            models.TrainingPlan.created_by == current_user.id
+        ).all()]
+        plan_ids_assigned = [t.training_plan_id for t in db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).all()]
+        plan_ids = list(set(plan_ids_created + plan_ids_assigned))
+        
+        plan_course_ids = [pc.course_id for pc in db.query(models.TrainingPlanCourse).filter(
+            models.TrainingPlanCourse.training_plan_id.in_(plan_ids)
+        ).all()] if plan_ids else []
+        created_course_ids = [c.id for c in db.query(models.Course.id).filter(
+            models.Course.created_by == current_user.id
+        ).all()]
+        course_ids = list(set(plan_course_ids + created_course_ids))
+    else:
+        course_ids = [c.id for c in db.query(models.Course.id).all()]
+    
+    if not course_ids:
+        return {
+            "summary": {
+                "total_challenges": 0,
+                "total_submissions": 0,
+                "approved": 0,
+                "rejected": 0,
+                "pending": 0,
+                "approval_rate": 0,
+                "avg_mpu": 0,
+                "avg_score": 0,
+                "total_operations": 0,
+                "total_errors": 0,
+                "error_rate": 0,
+            },
+            "error_breakdown": {
+                "methodology": 0,
+                "knowledge": 0,
+                "detail": 0,
+                "procedure": 0,
+            },
+            "submissions_detail": [],
+        }
+    
+    # Get challenges for these courses
+    challenges = db.query(models.Challenge).filter(
+        models.Challenge.course_id.in_(course_ids)
+    ).all()
+    challenge_ids = [c.id for c in challenges]
+    challenge_map = {c.id: c for c in challenges}
+    
+    if not challenge_ids:
+        return {
+            "summary": {
+                "total_challenges": 0,
+                "total_submissions": 0,
+                "approved": 0,
+                "rejected": 0,
+                "pending": 0,
+                "approval_rate": 0,
+                "avg_mpu": 0,
+                "avg_score": 0,
+                "total_operations": 0,
+                "total_errors": 0,
+                "error_rate": 0,
+            },
+            "error_breakdown": {
+                "methodology": 0,
+                "knowledge": 0,
+                "detail": 0,
+                "procedure": 0,
+            },
+            "submissions_detail": [],
+        }
+    
+    # Get all submissions
+    submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id.in_(challenge_ids)
+    ).all()
+    
+    total_submissions = len(submissions)
+    approved = sum(1 for s in submissions if s.status == "APPROVED")
+    rejected = sum(1 for s in submissions if s.status == "REJECTED")
+    pending = sum(1 for s in submissions if s.status in ("PENDING_REVIEW", "IN_PROGRESS"))
+    
+    # MPU and score averages (only from completed / reviewed submissions)
+    mpu_values = [s.calculated_mpu for s in submissions if s.calculated_mpu and s.status in ("APPROVED", "REJECTED")]
+    score_values = [s.score for s in submissions if s.score is not None and s.status in ("APPROVED", "REJECTED")]
+    avg_mpu = round(sum(mpu_values) / len(mpu_values), 2) if mpu_values else 0
+    avg_score = round(sum(score_values) / len(score_values), 1) if score_values else 0
+    
+    # Error totals from submission-level counters
+    total_error_methodology = sum(s.error_methodology or 0 for s in submissions)
+    total_error_knowledge = sum(s.error_knowledge or 0 for s in submissions)
+    total_error_detail = sum(s.error_detail or 0 for s in submissions)
+    total_error_procedure = sum(s.error_procedure or 0 for s in submissions)
+    
+    # Also count from operation_errors and submission_errors tables
+    submission_ids = [s.id for s in submissions]
+    
+    if submission_ids:
+        # SubmissionError (SUMMARY type)
+        se_counts = db.query(
+            models.SubmissionError.error_type,
+            func.count(models.SubmissionError.id)
+        ).filter(
+            models.SubmissionError.submission_id.in_(submission_ids)
+        ).group_by(models.SubmissionError.error_type).all()
+        
+        se_map = {row[0]: row[1] for row in se_counts}
+        
+        # OperationError (COMPLETE type) - via operations
+        operation_ids = [op.id for op in db.query(models.ChallengeOperation.id).filter(
+            models.ChallengeOperation.submission_id.in_(submission_ids)
+        ).all()]
+        
+        oe_counts = {}
+        if operation_ids:
+            oe_rows = db.query(
+                models.OperationError.error_type,
+                func.count(models.OperationError.id)
+            ).filter(
+                models.OperationError.operation_id.in_(operation_ids)
+            ).group_by(models.OperationError.error_type).all()
+            oe_counts = {row[0]: row[1] for row in oe_rows}
+        
+        # Use whichever source has data: submission columns or error tables
+        err_methodology = max(total_error_methodology, se_map.get("METHODOLOGY", 0) + oe_counts.get("METHODOLOGY", 0))
+        err_knowledge = max(total_error_knowledge, se_map.get("KNOWLEDGE", 0) + oe_counts.get("KNOWLEDGE", 0))
+        err_detail = max(total_error_detail, se_map.get("DETAIL", 0) + oe_counts.get("DETAIL", 0))
+        err_procedure = max(total_error_procedure, se_map.get("PROCEDURE", 0) + oe_counts.get("PROCEDURE", 0))
+        
+        # Total operations
+        total_operations_sum = sum(s.total_operations or 0 for s in submissions)
+        # Operations with errors
+        operations_with_errors = sum(s.errors_count or 0 for s in submissions)
+    else:
+        err_methodology = 0
+        err_knowledge = 0
+        err_detail = 0
+        err_procedure = 0
+        total_operations_sum = 0
+        operations_with_errors = 0
+    
+    total_individual_errors = err_methodology + err_knowledge + err_detail + err_procedure
+    error_rate = round((operations_with_errors / total_operations_sum * 100), 1) if total_operations_sum > 0 else 0
+    
+    # Per-submission detail (for table)
+    submissions_detail = []
+    for s in submissions:
+        ch = challenge_map.get(s.challenge_id)
+        user = db.query(models.User).filter(models.User.id == s.user_id).first()
+        
+        # Get course name
+        course_name = ""
+        if ch:
+            course = db.query(models.Course).filter(models.Course.id == ch.course_id).first()
+            if course:
+                course_name = course.title
+        
+        # Count individual errors for this submission
+        sub_errors = {
+            "methodology": s.error_methodology or 0,
+            "knowledge": s.error_knowledge or 0,
+            "detail": s.error_detail or 0,
+            "procedure": s.error_procedure or 0,
+        }
+        sub_total_errors = sum(sub_errors.values())
+        
+        # If counters are zero, check error tables
+        if sub_total_errors == 0 and s.id:
+            se_list = db.query(models.SubmissionError.error_type).filter(
+                models.SubmissionError.submission_id == s.id
+            ).all()
+            for (et,) in se_list:
+                key = et.lower()
+                if key in sub_errors:
+                    sub_errors[key] += 1
+            
+            ops = db.query(models.ChallengeOperation.id).filter(
+                models.ChallengeOperation.submission_id == s.id
+            ).all()
+            if ops:
+                op_ids = [o.id for o in ops]
+                oe_list = db.query(models.OperationError.error_type).filter(
+                    models.OperationError.operation_id.in_(op_ids)
+                ).all()
+                for (et,) in oe_list:
+                    key = et.lower()
+                    if key in sub_errors:
+                        sub_errors[key] += 1
+            sub_total_errors = sum(sub_errors.values())
+        
+        submissions_detail.append({
+            "id": s.id,
+            "challenge_title": ch.title if ch else "—",
+            "challenge_type": ch.challenge_type if ch else "",
+            "course_name": course_name,
+            "student_name": user.full_name if user else "—",
+            "student_email": user.email if user else "",
+            "status": s.status,
+            "total_operations": s.total_operations or 0,
+            "total_time_minutes": round(s.total_time_minutes or 0, 1) if s.total_time_minutes else 0,
+            "calculated_mpu": round(s.calculated_mpu, 2) if s.calculated_mpu else 0,
+            "mpu_vs_target": round(s.mpu_vs_target, 1) if s.mpu_vs_target else 0,
+            "target_mpu": ch.target_mpu if ch else 0,
+            "errors_count": s.errors_count or 0,
+            "errors": sub_errors,
+            "total_individual_errors": sub_total_errors,
+            "score": round(s.score, 1) if s.score else None,
+            "is_approved": s.is_approved,
+            "retry_count": s.retry_count or 0,
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+        })
+    
+    # Sort by most recent first
+    submissions_detail.sort(key=lambda x: x["created_at"] or "", reverse=True)
+    
+    return {
+        "summary": {
+            "total_challenges": len(challenge_ids),
+            "total_submissions": total_submissions,
+            "approved": approved,
+            "rejected": rejected,
+            "pending": pending,
+            "approval_rate": round(approved / total_submissions * 100, 1) if total_submissions > 0 else 0,
+            "avg_mpu": avg_mpu,
+            "avg_score": avg_score,
+            "total_operations": total_operations_sum,
+            "total_errors": total_individual_errors,
+            "operations_with_errors": operations_with_errors,
+            "error_rate": error_rate,
+        },
+        "error_breakdown": {
+            "methodology": err_methodology,
+            "knowledge": err_knowledge,
+            "detail": err_detail,
+            "procedure": err_procedure,
+        },
+        "submissions_detail": submissions_detail,
+    }
