@@ -143,7 +143,7 @@ async def get_dashboard_summary(
             all_course_ids = list(set(legacy_course_ids + m2m_course_ids))
             if all_course_ids:
                 enroll_count = db.query(models.Enrollment).filter(models.Enrollment.course_id.in_(all_course_ids)).count()
-                bank_scores.append((bank.code, enroll_count))
+                bank_scores.append((bank.name, enroll_count))
         if bank_scores:
             bank_scores.sort(key=lambda x: x[1], reverse=True)
             top_performing_bank = bank_scores[0][0]
@@ -156,7 +156,7 @@ async def get_dashboard_summary(
             p_courses += db.query(models.CourseProduct).filter(models.CourseProduct.product_id == product.id).count()
             p_plans = db.query(models.TrainingPlan).filter(models.TrainingPlan.product_id == product.id).count()
             p_plans += db.query(models.TrainingPlanProduct).filter(models.TrainingPlanProduct.product_id == product.id).count()
-            product_scores.append((product.code, p_courses + p_plans))
+            product_scores.append((product.name, p_courses + p_plans))
         if product_scores:
             product_scores.sort(key=lambda x: x[1], reverse=True)
             most_popular_product = product_scores[0][0]
@@ -337,12 +337,12 @@ async def get_course_analytics_report(
                 for cb in course_banks:
                     b = db.query(models.Bank).filter(models.Bank.id == cb.bank_id).first()
                     if b:
-                        bank_codes.append(b.code)
+                        bank_codes.append(b.name)
                 bank_code = ", ".join(bank_codes) if bank_codes else "N/A"
             elif course.bank_id:
                 bank = db.query(models.Bank).filter(models.Bank.id == course.bank_id).first()
                 if bank:
-                    bank_code = bank.code
+                    bank_code = bank.name
             
             course_products = db.query(models.CourseProduct).filter(models.CourseProduct.course_id == course.id).all()
             if course_products:
@@ -350,12 +350,12 @@ async def get_course_analytics_report(
                 for cp in course_products:
                     p = db.query(models.Product).filter(models.Product.id == cp.product_id).first()
                     if p:
-                        prod_codes.append(p.code)
+                        prod_codes.append(p.name)
                 product_code = ", ".join(prod_codes) if prod_codes else "N/A"
             elif course.product_id:
                 product = db.query(models.Product).filter(models.Product.id == course.product_id).first()
                 if product:
-                    product_code = product.code
+                    product_code = product.name
             
             # Count lessons
             total_lessons = db.query(models.Lesson).filter(
@@ -480,7 +480,7 @@ async def get_mpu_analytics(
             if not courses:
                 # Add bank with no data
                 mpu_list.append(MPUAnalyticsItem(
-                    bank_code=bank.code,
+                    bank_code=bank.name,
                     avg_mpu=0,
                     total_students=0,
                     performance_category="Sem Dados"
@@ -517,7 +517,7 @@ async def get_mpu_analytics(
                 performance_category = "Sem Dados"
             
             mpu_list.append(MPUAnalyticsItem(
-                bank_code=bank.code,
+                bank_code=bank.name,
                 avg_mpu=round(avg_mpu, 2),
                 total_students=total_students,
                 performance_category=performance_category
