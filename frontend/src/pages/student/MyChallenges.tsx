@@ -32,6 +32,7 @@ interface Challenge {
   use_mpu_kpi: boolean;
   use_errors_kpi: boolean;
   course_id: number;
+  course_name?: string;
 }
 
 interface MySubmission {
@@ -39,6 +40,7 @@ interface MySubmission {
   challenge_id: number;
   challenge_title: string;
   challenge_type?: string;
+  course_name?: string;
   submission_type: string;
   total_operations: number;
   started_at?: string;
@@ -218,6 +220,11 @@ export default function MyChallenges() {
                           {challenge.challenge_type === 'COMPLETE' ? t('myChallenges.completeMode') : t('myChallenges.summaryMode')}
                         </span>
                       </div>
+                      {challenge.course_name && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                          📚 {challenge.course_name}
+                        </p>
+                      )}
                       {challenge.description && (
                         <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">{challenge.description}</p>
                       )}
@@ -322,6 +329,11 @@ export default function MyChallenges() {
                       <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-yellow-400 transition-colors">
                         {submission.challenge_title}
                       </h3>
+                      {submission.course_name && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                          📚 {submission.course_name}
+                        </p>
+                      )}
                       <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
                         {submission.started_at ? new Date(submission.started_at).toLocaleString() : '-'}
                       </p>
@@ -401,6 +413,11 @@ export default function MyChallenges() {
                       }`}>
                         {submission.challenge_title}
                       </h3>
+                      {submission.course_name && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                          📚 {submission.course_name}
+                        </p>
+                      )}
                       <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
                         {submission.completed_at ? new Date(submission.completed_at).toLocaleString() : '-'}
                       </p>

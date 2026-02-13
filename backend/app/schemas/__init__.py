@@ -314,6 +314,7 @@ class ChallengeUpdate(BaseModel):
 class Challenge(ChallengeBase):
     id: int
     course_id: int
+    course_name: Optional[str] = None
     created_by: int
     is_active: bool
     is_released: bool = False

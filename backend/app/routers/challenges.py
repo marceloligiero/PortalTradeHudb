@@ -369,7 +369,7 @@ async def release_challenge(
 
 
 # ===== LISTAR Desafios Liberados para Formando =====
-@router.get("/student/released", response_model=List[schemas.Challenge])
+@router.get("/student/released")
 async def list_released_challenges(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user)
@@ -397,7 +397,15 @@ async def list_released_challenges(
         models.Challenge.is_active == True
     ).all()
     
-    return challenges
+    # Adicionar nome do curso a cada desafio
+    result = []
+    for ch in challenges:
+        ch_dict = schemas.Challenge.model_validate(ch).model_dump()
+        course = db.query(models.Course).filter(models.Course.id == ch.course_id).first()
+        ch_dict["course_name"] = course.title if course else None
+        result.append(ch_dict)
+    
+    return result
 
 
 # ===== FORMADOR: Liberar Desafio para Estudante =====
@@ -1683,11 +1691,18 @@ async def list_my_submissions(
             models.ChallengeOperation.has_error == True
         ).count()
         
+        # Buscar nome do curso
+        course_name = None
+        if challenge and challenge.course_id:
+            course = db.query(models.Course).filter(models.Course.id == challenge.course_id).first()
+            course_name = course.title if course else None
+        
         result.append({
             "id": sub.id,
             "challenge_id": sub.challenge_id,
             "challenge_title": challenge.title if challenge else None,
             "challenge_type": challenge.challenge_type if challenge else None,
+            "course_name": course_name,
             "submission_type": sub.submission_type,
             "total_operations": sub.total_operations or operations_count,
             "started_at": sub.started_at.isoformat() if sub.started_at else None,
