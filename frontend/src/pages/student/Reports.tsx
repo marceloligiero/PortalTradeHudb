@@ -53,13 +53,19 @@ interface DashboardData {
   }>;
   challenges: Array<{
     id: number;
+    challenge_id: number;
     title: string;
     target_mpu: number;
-    attempts: number;
-    approvals: number;
-    approval_rate: number;
-    avg_mpu: number;
-    best_mpu: number;
+    attempt_number: number;
+    calculated_mpu: number;
+    mpu_vs_target: number;
+    total_operations: number;
+    errors_count: number;
+    is_approved: boolean | null;
+    status: string;
+    course_title: string | null;
+    plan_title: string | null;
+    completed_at: string | null;
   }>;
   recent_activity: Array<{
     id: number;
@@ -518,10 +524,15 @@ const Reports: React.FC = () => {
               <thead>
                 <tr className={`border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
                   <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.challenge')}</th>
-                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.attempts')}</th>
-                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.bestMPU')}</th>
-                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.avgMPUShort')}</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Curso</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Plano</th>
+                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Tentativa</th>
+                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>MPU</th>
+                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Meta</th>
+                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Ops.</th>
+                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.errors')}</th>
                   <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.result')}</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Data</th>
                 </tr>
               </thead>
               <tbody>
@@ -530,41 +541,60 @@ const Reports: React.FC = () => {
                     key={challenge.id}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.8 + idx * 0.05 }}
+                    transition={{ delay: 0.8 + idx * 0.03 }}
                     className={`border-b ${isDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50'} transition-colors`}
                   >
                     <td className={`py-3 px-4 font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}>{challenge.title}</td>
-                    <td className={`py-3 px-4 text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{challenge.attempts}</td>
-                    <td className="py-3 px-4 text-center">
-                      <span className={`font-mono ${isDark ? 'text-green-400' : 'text-green-600'} font-medium`}>
-                        {(challenge.best_mpu ?? 0).toFixed(2)}
+                    <td className={`py-3 px-4 text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{challenge.course_title || '-'}</td>
+                    <td className={`py-3 px-4 text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{challenge.plan_title || '-'}</td>
+                    <td className={`py-3 px-4 text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                      <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${isDark ? 'bg-white/10 text-white' : 'bg-gray-200 text-gray-700'}`}>
+                        {challenge.attempt_number}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <span className={`font-mono ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{(challenge.avg_mpu ?? 0).toFixed(2)}</span>
+                      <span className={`font-mono font-medium ${
+                        challenge.is_approved === true
+                          ? isDark ? 'text-green-400' : 'text-green-600'
+                          : challenge.is_approved === false
+                          ? isDark ? 'text-red-400' : 'text-red-600'
+                          : isDark ? 'text-blue-400' : 'text-blue-600'
+                      }`}>
+                        {(challenge.calculated_mpu ?? 0).toFixed(2)}
+                      </span>
+                    </td>
+                    <td className={`py-3 px-4 text-center font-mono text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {(challenge.target_mpu ?? 0).toFixed(2)}
+                    </td>
+                    <td className={`py-3 px-4 text-center ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>{challenge.total_operations}</td>
+                    <td className={`py-3 px-4 text-center ${challenge.errors_count > 0 ? (isDark ? 'text-red-400' : 'text-red-600') : (isDark ? 'text-gray-400' : 'text-gray-500')}`}>
+                      {challenge.errors_count}
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span
                         className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-                          challenge.approvals > 0
+                          challenge.is_approved === true
                             ? isDark ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'
-                            : challenge.attempts > 0
-                            ? isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700'
-                            : isDark ? 'bg-white/10 text-gray-400' : 'bg-gray-100 text-gray-700'
+                            : challenge.is_approved === false
+                            ? isDark ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-700'
+                            : challenge.status === 'PENDING_REVIEW'
+                            ? isDark ? 'bg-yellow-500/20 text-yellow-400' : 'bg-yellow-100 text-yellow-700'
+                            : isDark ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-700'
                         }`}
                       >
-                        {challenge.approvals > 0 ? (
-                          <>
-                            <CheckCircle2 className="w-4 h-4" /> {challenge.approvals} {t('myReports.approvals')}
-                          </>
-                        ) : challenge.attempts > 0 ? (
-                          <>
-                            <Clock className="w-4 h-4" /> {challenge.attempts} {t('myReports.attempts')}
-                          </>
+                        {challenge.is_approved === true ? (
+                          <><CheckCircle2 className="w-3.5 h-3.5" /> {t('myReports.approved')}</>
+                        ) : challenge.is_approved === false ? (
+                          <><XCircle className="w-3.5 h-3.5" /> {t('myReports.rejections')}</>
+                        ) : challenge.status === 'PENDING_REVIEW' ? (
+                          <><Clock className="w-3.5 h-3.5" /> Pendente</>
                         ) : (
-                          t('myReports.noAttempts')
+                          <><Clock className="w-3.5 h-3.5" /> {challenge.status}</>
                         )}
                       </span>
+                    </td>
+                    <td className={`py-3 px-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} whitespace-nowrap`}>
+                      {challenge.completed_at ? new Date(challenge.completed_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
                     </td>
                   </motion.tr>
                 ))}

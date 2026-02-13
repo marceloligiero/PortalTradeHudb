@@ -102,37 +102,62 @@ async def get_student_dashboard(
         for stat in daily_stats
     ]
     
-    # 4. PERFORMANCE POR DESAFIO
-    challenge_performance = db.query(
-        models.Challenge.id,
-        models.Challenge.title,
+    # 4. PERFORMANCE POR DESAFIO - cada tentativa individual
+    challenge_submissions = db.query(
+        models.ChallengeSubmission,
+        models.Challenge.title.label('challenge_title'),
         models.Challenge.target_mpu,
-        func.count(models.ChallengeSubmission.id).label('attempts'),
-        func.sum(case((models.ChallengeSubmission.is_approved == True, 1), else_=0)).label('approvals'),
-        func.avg(models.ChallengeSubmission.calculated_mpu).label('avg_mpu'),
-        func.min(models.ChallengeSubmission.calculated_mpu).label('best_mpu'),
+        models.Challenge.course_id,
     ).join(
-        models.ChallengeSubmission, models.Challenge.id == models.ChallengeSubmission.challenge_id
+        models.Challenge, models.ChallengeSubmission.challenge_id == models.Challenge.id
     ).filter(
         models.ChallengeSubmission.user_id == user_id,
-        models.ChallengeSubmission.status.in_(['REVIEWED', 'APPROVED', 'REJECTED'])
-    ).group_by(
-        models.Challenge.id, models.Challenge.title, models.Challenge.target_mpu
+        models.ChallengeSubmission.status.in_(['REVIEWED', 'APPROVED', 'REJECTED', 'PENDING_REVIEW'])
+    ).order_by(
+        desc(models.ChallengeSubmission.completed_at)
     ).all()
     
-    challenges = [
-        {
-            'id': cp.id,
-            'title': cp.title,
-            'target_mpu': float(cp.target_mpu or 0),
-            'attempts': cp.attempts,
-            'approvals': int(cp.approvals or 0),
-            'approval_rate': round((int(cp.approvals or 0) / cp.attempts * 100) if cp.attempts > 0 else 0, 1),
-            'avg_mpu': round(float(cp.avg_mpu or 0), 2),
-            'best_mpu': round(float(cp.best_mpu or 0), 2),
-        }
-        for cp in challenge_performance
-    ]
+    challenges = []
+    # Contar tentativa por desafio
+    attempt_counter: dict = {}
+    # Ordenar por data ascendente para numerar tentativas corretamente
+    sorted_subs = sorted(challenge_submissions, key=lambda x: x.ChallengeSubmission.created_at or datetime.min)
+    for cs in sorted_subs:
+        sub = cs.ChallengeSubmission
+        cid = sub.challenge_id
+        attempt_counter[cid] = attempt_counter.get(cid, 0) + 1
+        
+        # Buscar nome do curso
+        course_title = None
+        if cs.course_id:
+            course = db.query(models.Course.title).filter(models.Course.id == cs.course_id).first()
+            course_title = course.title if course else None
+        
+        # Buscar nome do plano
+        plan_title = None
+        if sub.training_plan_id:
+            plan = db.query(models.TrainingPlan.title).filter(models.TrainingPlan.id == sub.training_plan_id).first()
+            plan_title = plan.title if plan else None
+        
+        challenges.append({
+            'id': sub.id,
+            'challenge_id': sub.challenge_id,
+            'title': cs.challenge_title,
+            'target_mpu': float(cs.target_mpu or 0),
+            'attempt_number': attempt_counter[cid],
+            'calculated_mpu': round(float(sub.calculated_mpu or 0), 2),
+            'mpu_vs_target': round(float(sub.mpu_vs_target or 0), 1),
+            'total_operations': sub.total_operations or 0,
+            'errors_count': sub.errors_count or 0,
+            'is_approved': sub.is_approved,
+            'status': sub.status,
+            'course_title': course_title,
+            'plan_title': plan_title,
+            'completed_at': sub.completed_at.isoformat() if sub.completed_at else None,
+        })
+    
+    # Reordenar por data desc (mais recente primeiro)
+    challenges.sort(key=lambda x: x['completed_at'] or '', reverse=True)
     
     # 5. AULAS COMPLETADAS
     lessons_stats = db.query(
