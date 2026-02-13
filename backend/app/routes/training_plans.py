@@ -1647,11 +1647,13 @@ def check_course_completion(db: Session, plan_id: int, course_id: int, student_i
     
     if challenge_ids:
         # Para cada desafio, verifica se tem ao menos uma submission aprovada
+        # Também inclui submissions com training_plan_id NULL (fallback)
         for challenge_id in challenge_ids:
             approved = db.query(models.ChallengeSubmission).filter(
                 models.ChallengeSubmission.challenge_id == challenge_id,
                 models.ChallengeSubmission.user_id == student_id,
-                models.ChallengeSubmission.training_plan_id == plan_id,
+                (models.ChallengeSubmission.training_plan_id == plan_id) |
+                (models.ChallengeSubmission.training_plan_id == None),
                 models.ChallengeSubmission.is_approved == True
             ).first()
             if approved:

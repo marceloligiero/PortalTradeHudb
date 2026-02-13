@@ -685,6 +685,10 @@ async def start_challenge_complete_self(
     if not plans_with_course:
         raise HTTPException(status_code=403, detail="Não está atribuído a um plano que contenha este desafio")
     
+    # Auto-detect training_plan_id se não fornecido
+    if not training_plan_id and plans_with_course:
+        training_plan_id = plans_with_course[0].id
+    
     # Verificar se já existe submissão submetida ou concluída (não pode refazer)
     completed_submission = db.query(models.ChallengeSubmission).filter(
         models.ChallengeSubmission.challenge_id == challenge_id,
@@ -1975,10 +1979,33 @@ async def start_submission_retry(
     # Criar nova submission
     retry_count = (getattr(original, 'retry_count', 0) or 0) + 1
     
+    # Auto-detect training_plan_id se original não tem
+    plan_id = original.training_plan_id
+    if not plan_id:
+        challenge = db.query(models.Challenge).filter(
+            models.Challenge.id == original.challenge_id
+        ).first()
+        if challenge:
+            plan = db.query(models.TrainingPlan).join(
+                models.TrainingPlanCourse
+            ).join(
+                models.TrainingPlanAssignment
+            ).filter(
+                models.TrainingPlanCourse.course_id == challenge.course_id,
+                models.TrainingPlanAssignment.user_id == original.user_id
+            ).first()
+            if not plan:
+                plan = db.query(models.TrainingPlan).join(models.TrainingPlanCourse).filter(
+                    models.TrainingPlanCourse.course_id == challenge.course_id,
+                    models.TrainingPlan.student_id == original.user_id
+                ).first()
+            if plan:
+                plan_id = plan.id
+    
     new_submission = models.ChallengeSubmission(
         challenge_id=original.challenge_id,
         user_id=original.user_id,
-        training_plan_id=original.training_plan_id,
+        training_plan_id=plan_id,
         submission_type=original.submission_type,
         status="IN_PROGRESS",
         started_at=datetime.now(),
