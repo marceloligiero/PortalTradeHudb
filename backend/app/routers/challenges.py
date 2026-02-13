@@ -1052,9 +1052,12 @@ async def list_challenge_submissions(
         if user_id:
             query = query.filter(models.ChallengeSubmission.user_id == user_id)
     
-    # Filtrar por training_plan_id se fornecido
+    # Filtrar por training_plan_id se fornecido (also match NULL training_plan_id)
     if training_plan_id:
-        query = query.filter(models.ChallengeSubmission.training_plan_id == training_plan_id)
+        query = query.filter(
+            (models.ChallengeSubmission.training_plan_id == training_plan_id) |
+            (models.ChallengeSubmission.training_plan_id == None)
+        )
     
     submissions = query.order_by(models.ChallengeSubmission.created_at.desc()).all()
     
