@@ -218,7 +218,10 @@ async def get_knowledge_matrix(
             models.Certificate.user_id == student.id
         ).count()
         
-        for course in courses:
+        # Only iterate courses where the student is enrolled
+        student_courses = [c for c in courses if c.id in enrollment_course_ids]
+        
+        for course in student_courses:
             total_lessons = course_lesson_counts.get(course.id, 0)
             total_challenges = course_challenge_counts.get(course.id, 0)
             
@@ -248,8 +251,6 @@ async def get_knowledge_matrix(
                 
                 if completed_lessons > 0:
                     has_activity = True
-            else:
-                student_total_lessons += total_lessons
             
             # Challenge submissions for this student and course
             submissions = db.query(models.ChallengeSubmission).join(
