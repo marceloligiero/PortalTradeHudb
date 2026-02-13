@@ -5,6 +5,7 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Link from '@tiptap/extension-link';
 import Highlight from '@tiptap/extension-highlight';
+import Image from '@tiptap/extension-image';
 import { 
   Bold, 
   Italic, 
@@ -24,7 +25,8 @@ import {
   AlignRight,
   Link as LinkIcon,
   Highlighter,
-  Minus
+  Minus,
+  ImageIcon
 } from 'lucide-react';
 import { useCallback, useEffect } from 'react';
 
@@ -97,6 +99,13 @@ export default function RichTextEditor({ content, onChange, placeholder = 'Escre
       }),
       Highlight.configure({
         multicolor: false,
+      }),
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'max-w-full h-auto rounded-lg',
+        },
       }),
     ],
     content,
@@ -325,6 +334,20 @@ export default function RichTextEditor({ content, onChange, placeholder = 'Escre
           isDark={isDark}
         >
           <LinkIcon className="w-4 h-4" />
+        </MenuButton>
+
+        {/* Image */}
+        <MenuButton
+          onClick={() => {
+            const url = window.prompt('URL da imagem:');
+            if (url) {
+              editor.chain().focus().setImage({ src: url }).run();
+            }
+          }}
+          title="Inserir imagem por URL"
+          isDark={isDark}
+        >
+          <ImageIcon className="w-4 h-4" />
         </MenuButton>
       </div>
 
