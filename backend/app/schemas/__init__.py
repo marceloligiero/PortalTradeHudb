@@ -465,7 +465,7 @@ class OperationError(OperationErrorBase):
 
 class ChallengeOperationBase(BaseModel):
     operation_number: int
-    operation_reference: str  # Ex: 4060ILC0001111
+    operation_reference: Optional[str] = None  # Ex: 4060ILC0001111
 
 class ChallengeOperationCreate(ChallengeOperationBase):
     errors: Optional[list[OperationErrorCreate]] = []
