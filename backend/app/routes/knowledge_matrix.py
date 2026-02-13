@@ -181,10 +181,15 @@ async def get_knowledge_matrix(
             total_challenges=challenge_count
         ))
     
-    # ============ ROWS: All students/trainees ============
+    # ============ ROWS: Only students with at least one enrollment ============
+    # Only show students who are actually enrolled in at least one course
+    enrolled_student_ids = db.query(models.Enrollment.user_id).distinct().all()
+    enrolled_ids_set = {row[0] for row in enrolled_student_ids}
+    
     students = db.query(models.User).filter(
         models.User.role.in_(["STUDENT", "TRAINEE"]),
-        models.User.is_active == True
+        models.User.is_active == True,
+        models.User.id.in_(enrolled_ids_set)
     ).all()
     
     rows = []
