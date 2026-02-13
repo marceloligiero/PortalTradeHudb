@@ -20,77 +20,146 @@ async def get_trainer_stats(
     """Get trainer dashboard statistics"""
     trainer_id = current_user.id
     
-    # Courses created by trainer
-    total_courses = db.query(models.Course).filter(
-        models.Course.created_by == trainer_id
-    ).count()
+    # Training plans where trainer is responsible (created_by, trainer_id, or TrainingPlanTrainer)
+    created_plan_ids = {p.id for p in db.query(models.TrainingPlan.id).filter(
+        models.TrainingPlan.created_by == trainer_id
+    ).all()}
     
-    # Training plans where trainer is responsible
-    training_plans = db.query(models.TrainingPlan).filter(
+    trainer_plan_ids = {p.id for p in db.query(models.TrainingPlan.id).filter(
         models.TrainingPlan.trainer_id == trainer_id
-    ).all()
+    ).all()}
+    
+    assigned_plan_ids = {t.training_plan_id for t in db.query(models.TrainingPlanTrainer.training_plan_id).filter(
+        models.TrainingPlanTrainer.trainer_id == trainer_id
+    ).all()}
+    
+    all_plan_ids = list(created_plan_ids | trainer_plan_ids | assigned_plan_ids)
+    
+    # Fetch all plans for active count
+    training_plans = []
+    if all_plan_ids:
+        training_plans = db.query(models.TrainingPlan).filter(
+            models.TrainingPlan.id.in_(all_plan_ids)
+        ).all()
     
     total_training_plans = len(training_plans)
     active_training_plans = len([p for p in training_plans if p.is_active])
     
-    # Students assigned to trainer's plans
-    plan_ids = [p.id for p in training_plans]
+    # Students: unique students from assignments + direct student_id
     total_students = 0
-    if plan_ids:
-        # Count unique students assigned to trainer's plans
-        total_students = db.query(models.TrainingPlan).filter(
-            models.TrainingPlan.trainer_id == trainer_id,
+    if all_plan_ids:
+        # From TrainingPlanAssignment
+        assignment_student_ids = {a.user_id for a in db.query(models.TrainingPlanAssignment.user_id).filter(
+            models.TrainingPlanAssignment.training_plan_id.in_(all_plan_ids)
+        ).all()}
+        
+        # From direct student_id on plans
+        direct_student_ids = {p.student_id for p in db.query(models.TrainingPlan.student_id).filter(
+            models.TrainingPlan.id.in_(all_plan_ids),
             models.TrainingPlan.student_id.isnot(None)
-        ).count()
+        ).all()}
+        
+        total_students = len(assignment_student_ids | direct_student_ids)
     
     # Challenges created by trainer
     total_challenges = db.query(models.Challenge).filter(
         models.Challenge.created_by == trainer_id
     ).count()
     
-    # Challenge submissions for trainer's challenges
-    trainer_challenge_ids = db.query(models.Challenge.id).filter(
+    # Also count challenges from courses in trainer's plans
+    plan_course_ids = set()
+    if all_plan_ids:
+        plan_courses = db.query(models.TrainingPlanCourse.course_id).filter(
+            models.TrainingPlanCourse.training_plan_id.in_(all_plan_ids)
+        ).all()
+        plan_course_ids = {pc.course_id for pc in plan_courses}
+    
+    # Challenges from trainer's plan courses (not already counted)
+    trainer_created_challenge_ids = {c.id for c in db.query(models.Challenge.id).filter(
         models.Challenge.created_by == trainer_id
-    ).subquery()
+    ).all()}
     
-    total_submissions = db.query(models.ChallengeSubmission).filter(
-        models.ChallengeSubmission.challenge_id.in_(trainer_challenge_ids)
-    ).count()
+    plan_challenge_ids = set()
+    if plan_course_ids:
+        plan_challenge_ids = {c.id for c in db.query(models.Challenge.id).filter(
+            models.Challenge.course_id.in_(list(plan_course_ids))
+        ).all()}
     
-    approved_submissions = db.query(models.ChallengeSubmission).filter(
-        models.ChallengeSubmission.challenge_id.in_(trainer_challenge_ids),
-        models.ChallengeSubmission.is_approved == True
-    ).count()
+    all_challenge_ids = list(trainer_created_challenge_ids | plan_challenge_ids)
+    total_challenges = len(all_challenge_ids)
     
-    # Average MPU from submissions
-    avg_mpu_result = db.query(func.avg(models.ChallengeSubmission.calculated_mpu)).filter(
-        models.ChallengeSubmission.challenge_id.in_(trainer_challenge_ids),
-        models.ChallengeSubmission.calculated_mpu.isnot(None)
-    ).scalar()
-    avg_mpu = round(avg_mpu_result, 2) if avg_mpu_result else 0
+    # Challenge submissions for all trainer's challenges (created + plan-related)
+    total_submissions = 0
+    approved_submissions = 0
+    avg_mpu = 0
+    recent_submissions = 0
+    
+    if all_challenge_ids:
+        total_submissions = db.query(models.ChallengeSubmission).filter(
+            models.ChallengeSubmission.challenge_id.in_(all_challenge_ids)
+        ).count()
+        
+        approved_submissions = db.query(models.ChallengeSubmission).filter(
+            models.ChallengeSubmission.challenge_id.in_(all_challenge_ids),
+            models.ChallengeSubmission.is_approved == True
+        ).count()
+        
+        # Average MPU from submissions
+        avg_mpu_result = db.query(func.avg(models.ChallengeSubmission.calculated_mpu)).filter(
+            models.ChallengeSubmission.challenge_id.in_(all_challenge_ids),
+            models.ChallengeSubmission.calculated_mpu.isnot(None)
+        ).scalar()
+        avg_mpu = round(avg_mpu_result, 2) if avg_mpu_result else 0
+        
+        # Recent activity - last 7 days submissions
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        recent_submissions = db.query(models.ChallengeSubmission).filter(
+            models.ChallengeSubmission.challenge_id.in_(all_challenge_ids),
+            models.ChallengeSubmission.created_at >= seven_days_ago
+        ).count()
+    
+    # Also count submissions directly linked to trainer's plans
+    if all_plan_ids:
+        plan_submissions = db.query(models.ChallengeSubmission).filter(
+            models.ChallengeSubmission.training_plan_id.in_(all_plan_ids),
+            ~models.ChallengeSubmission.challenge_id.in_(all_challenge_ids) if all_challenge_ids else True
+        ).count()
+        total_submissions += plan_submissions
+        
+        plan_approved = db.query(models.ChallengeSubmission).filter(
+            models.ChallengeSubmission.training_plan_id.in_(all_plan_ids),
+            models.ChallengeSubmission.is_approved == True,
+            ~models.ChallengeSubmission.challenge_id.in_(all_challenge_ids) if all_challenge_ids else True
+        ).count()
+        approved_submissions += plan_approved
     
     # Certificates issued for trainer's plans
     certificates_issued = 0
-    if plan_ids:
+    if all_plan_ids:
         certificates_issued = db.query(models.Certificate).filter(
-            models.Certificate.training_plan_id.in_(plan_ids)
+            models.Certificate.training_plan_id.in_(all_plan_ids)
         ).count()
     
-    # Lessons count from trainer's courses
-    trainer_course_ids = db.query(models.Course.id).filter(
+    # Lessons count from trainer's courses + plan courses
+    all_course_ids = set()
+    
+    # Courses created by trainer
+    trainer_created_courses = {c.id for c in db.query(models.Course.id).filter(
         models.Course.created_by == trainer_id
-    ).subquery()
+    ).all()}
+    all_course_ids.update(trainer_created_courses)
     
-    total_lessons = db.query(models.Lesson).filter(
-        models.Lesson.course_id.in_(trainer_course_ids)
-    ).count()
+    # Courses from trainer's plans
+    all_course_ids.update(plan_course_ids)
     
-    # Recent activity - last 7 days submissions
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
-    recent_submissions = db.query(models.ChallengeSubmission).filter(
-        models.ChallengeSubmission.challenge_id.in_(trainer_challenge_ids),
-        models.ChallengeSubmission.created_at >= seven_days_ago
-    ).count()
+    total_lessons = 0
+    if all_course_ids:
+        total_lessons = db.query(models.Lesson).filter(
+            models.Lesson.course_id.in_(list(all_course_ids))
+        ).count()
+    
+    # Total courses includes plan courses too
+    total_courses = len(all_course_ids)
     
     return {
         "total_courses": total_courses,
