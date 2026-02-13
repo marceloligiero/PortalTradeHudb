@@ -1780,7 +1780,8 @@
     "rateLesson": "Clasificar Lección",
     "challengeRated": "Desafío Clasificado",
     "rateChallenge": "Clasificar Desafío",
-    "appliedBy": "Aplicado por"
+    "appliedBy": "Aplicado por",
+    "correctedBy": "Corregido por"
   },
   "adminDashboard": {
     "controlPanel": "Panel de Control",

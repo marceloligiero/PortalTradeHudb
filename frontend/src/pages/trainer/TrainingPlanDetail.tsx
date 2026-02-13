@@ -63,6 +63,7 @@ interface SubmissionData {
   completed_at?: string;
   is_retry_allowed?: boolean;
   submitted_by_name?: string;
+  reviewed_by_name?: string;
 }
 
 interface CourseItem {
@@ -1885,6 +1886,12 @@ export default function TrainingPlanDetail() {
                                           <div className="flex items-center gap-1 mt-2 text-xs text-purple-400">
                                             <User className="w-3 h-3" />
                                             {t('trainingPlanDetail.appliedBy', 'Aplicado por')} {submission.submitted_by_name}
+                                          </div>
+                                        )}
+                                        {submission.reviewed_by_name && (
+                                          <div className="flex items-center gap-1 mt-1 text-xs text-emerald-400">
+                                            <User className="w-3 h-3" />
+                                            {t('trainingPlanDetail.correctedBy', 'Corrigido por')} {submission.reviewed_by_name}
                                           </div>
                                         )}
                                       </div>

@@ -1008,6 +1008,7 @@ async def finish_challenge_complete(
     submission.mpu_vs_target = mpu_vs_target
     submission.is_approved = is_approved
     submission.score = score
+    submission.reviewed_by = current_user.id
     submission.updated_at = datetime.now()
     
     db.commit()
@@ -1100,7 +1101,7 @@ async def list_challenge_submissions(
     
     submissions = query.order_by(models.ChallengeSubmission.created_at.desc()).all()
     
-    # Adicionar nome do formador que aplicou/corrigiu
+    # Adicionar nome do formador que aplicou e do que corrigiu
     result = []
     for sub in submissions:
         sub_dict = schemas.ChallengeSubmission.model_validate(sub).model_dump()
@@ -1109,6 +1110,11 @@ async def list_challenge_submissions(
             sub_dict['submitted_by_name'] = (trainer.full_name or trainer.username) if trainer else None
         else:
             sub_dict['submitted_by_name'] = None
+        if getattr(sub, 'reviewed_by', None):
+            reviewer = db.query(models.User).filter(models.User.id == sub.reviewed_by).first()
+            sub_dict['reviewed_by_name'] = (reviewer.full_name or reviewer.username) if reviewer else None
+        else:
+            sub_dict['reviewed_by_name'] = None
         result.append(sub_dict)
     
     return result
@@ -1762,6 +1768,7 @@ async def finalize_submission_review(
     if submission.submission_type == "SUMMARY":
         submission.is_approved = approve
         submission.status = "APPROVED" if approve else "REJECTED"
+        submission.reviewed_by = current_user.id
         if not submission.completed_at:
             submission.completed_at = datetime.utcnow()
         submission.updated_at = datetime.utcnow()
@@ -1900,6 +1907,7 @@ async def finalize_submission_review(
     submission.mpu_vs_target = round((calculated_mpu / target_mpu * 100) if target_mpu > 0 else 100, 1)
     submission.is_approved = is_approved
     submission.status = "APPROVED" if is_approved else "REJECTED"
+    submission.reviewed_by = current_user.id
     # Garantir que completed_at seja definido
     if not submission.completed_at:
         submission.completed_at = datetime.utcnow()

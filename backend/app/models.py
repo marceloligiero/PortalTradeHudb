@@ -421,6 +421,7 @@ class ChallengeSubmission(Base):
     score = Column(Float)  # Nota calculada
     feedback = Column(Text)
     submitted_by = Column(Integer, ForeignKey("users.id"))  # Formador que aplicou
+    reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # Formador que corrigiu/reviu
     
     # Controle de novas tentativas
     retry_count = Column(Integer, default=0)  # Número de tentativas realizadas
@@ -434,6 +435,7 @@ class ChallengeSubmission(Base):
     user = relationship("User", foreign_keys=[user_id])
     training_plan = relationship("TrainingPlan")
     submitter = relationship("User", foreign_keys=[submitted_by])
+    reviewer = relationship("User", foreign_keys=[reviewed_by])
     parts = relationship("ChallengePart", back_populates="submission", cascade="all, delete-orphan")
     operations = relationship("ChallengeOperation", back_populates="submission", cascade="all, delete-orphan")
     submission_errors = relationship("SubmissionError", back_populates="submission", cascade="all, delete-orphan")

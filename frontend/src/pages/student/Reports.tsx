@@ -540,7 +540,8 @@ const Reports: React.FC = () => {
                   <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Ops.</th>
                   <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.errors')}</th>
                   <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.result')}</th>
-                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Formador</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('trainingPlanDetail.appliedBy', 'Aplicado por')}</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('trainingPlanDetail.correctedBy', 'Corrigido por')}</th>
                   <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Data</th>
                 </tr>
               </thead>
@@ -604,6 +605,9 @@ const Reports: React.FC = () => {
                     </td>
                     <td className={`py-3 px-4 text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                       {challenge.submitted_by_name || '-'}
+                    </td>
+                    <td className={`py-3 px-4 text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                      {challenge.reviewed_by_name || '-'}
                     </td>
                     <td className={`py-3 px-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} whitespace-nowrap`}>
                       {challenge.completed_at ? new Date(challenge.completed_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}

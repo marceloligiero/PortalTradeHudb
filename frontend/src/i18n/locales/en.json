@@ -1694,7 +1694,8 @@
     "rateLesson": "Rate Lesson",
     "challengeRated": "Challenge Rated",
     "rateChallenge": "Rate Challenge",
-    "appliedBy": "Applied by"
+    "appliedBy": "Applied by",
+    "correctedBy": "Corrected by"
   },
   "adminDashboard": {
     "controlPanel": "Control Panel",
