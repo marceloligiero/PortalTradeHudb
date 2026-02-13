@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import auth, admin, student, trainer, training_plans, advanced_reports, certificates, student_reports, ratings, password_reset, knowledge_matrix
+from app.routes import auth, admin, student, trainer, training_plans, advanced_reports, certificates, student_reports, ratings, password_reset, knowledge_matrix, public
 from app.routers import challenges, stats, lessons, finalization
 
 app = FastAPI(title="Trade Data Hub API", version="1.0.0")
@@ -108,6 +108,8 @@ app.include_router(student_reports.router, tags=["student-reports"])
 app.include_router(ratings.router, tags=["ratings"])
 # Mount knowledge matrix router
 app.include_router(knowledge_matrix.router, tags=["knowledge_matrix"])
+# Mount public routes (landing page stats — no auth)
+app.include_router(public.router, tags=["public"])
 
 @app.get("/")
 async def root():

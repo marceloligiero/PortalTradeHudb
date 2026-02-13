@@ -1169,9 +1169,9 @@
     "startTraining": "Start Training",
     "exploreProcesses": "Explore Processes",
     "stats": {
-      "areas": "Operational Areas",
-      "processes": "Mapped Processes",
-      "access": "Access Available",
+      "areas": "Services",
+      "courses": "Courses",
+      "students": "Students",
       "satisfaction": "Satisfaction"
     },
     "navbar": {
@@ -1323,6 +1323,11 @@
       "subtitle": "Explore training paths by Trade process and develop essential competencies for operational excellence.",
       "startNow": "Start Now",
       "haveAccount": "I already have an account"
+    },
+    "ratings": {
+      "badge": "Reviews",
+      "title": "What our students say",
+      "subtitle": "Discover the feedback from those who already transformed their knowledge with us."
     },
     "footer": {
       "copyright": "© {{year}} Santander Digital Services. Training Portal - Trade Datahub."

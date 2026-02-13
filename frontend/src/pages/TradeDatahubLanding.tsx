@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, Variants, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
@@ -18,6 +18,7 @@ import {
   Target,
   Award,
   ChevronRight,
+  ChevronLeft,
   Database,
   Workflow,
   GraduationCap,
@@ -31,7 +32,9 @@ import {
   Play,
   TrendingUp,
   Briefcase,
-  Receipt
+  Receipt,
+  Quote,
+  Users as UsersIcon
 } from 'lucide-react';
 
 // Language options with flags (using FlagCDN images)
@@ -301,6 +304,30 @@ export default function TradeDatahubLanding() {
     return saved === null || saved === 'dark';
   });
   const [showLangMenu, setShowLangMenu] = useState(false);
+  
+  // --- Landing data from API ---
+  const [landingData, setLandingData] = useState<{
+    stats: { total_products: number; total_courses: number; total_students: number; total_lessons: number; avg_satisfaction: number };
+    ratings: Array<{ user_name: string; stars: number; comment: string | null; rating_type: string; item_name: string | null; created_at: string | null }>;
+  } | null>(null);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/public/landing')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data) setLandingData(data); })
+      .catch(() => {});
+  }, []);
+
+  // Auto-advance carousel
+  const publicRatings = landingData?.ratings || [];
+  useEffect(() => {
+    if (publicRatings.length <= 1) return;
+    const timer = setInterval(() => {
+      setCarouselIndex(prev => (prev + 1) % publicRatings.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [publicRatings.length]);
   
   const { scrollYProgress } = useScroll();
   const heroOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
@@ -620,10 +647,10 @@ export default function TradeDatahubLanding() {
                   ? 'bg-white/5 backdrop-blur-xl border border-white/10' 
                   : 'bg-white shadow-2xl border border-gray-100'
               }`}>
-                <StatCounter value={4} suffix="" label={t('landing.stats.areas')} isDark={isDark} />
-                <StatCounter value={100} suffix="%" label={t('landing.stats.processes')} isDark={isDark} />
-                <StatCounter value={24} suffix="/7" label={t('landing.stats.access')} isDark={isDark} />
-                <StatCounter value={98} suffix="%" label={t('landing.stats.satisfaction')} isDark={isDark} />
+                <StatCounter value={landingData?.stats.total_products ?? 7} suffix="" label={t('landing.stats.areas')} isDark={isDark} />
+                <StatCounter value={landingData?.stats.total_courses ?? 0} suffix="" label={t('landing.stats.courses')} isDark={isDark} />
+                <StatCounter value={landingData?.stats.total_students ?? 0} suffix="" label={t('landing.stats.students')} isDark={isDark} />
+                <StatCounter value={landingData?.stats.avg_satisfaction ?? 0} suffix="%" label={t('landing.stats.satisfaction')} isDark={isDark} />
               </div>
             </motion.div>
           </motion.div>
@@ -953,6 +980,123 @@ export default function TradeDatahubLanding() {
           </div>
         </div>
       </Section>
+
+      {/* Ratings Carousel */}
+      {publicRatings.length > 0 && (
+        <Section className="relative overflow-hidden" isDark={isDark}>
+          <div className="max-w-5xl mx-auto text-center">
+            <motion.div variants={fadeInUp}>
+              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-6 ${
+                isDark ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+              }`}>
+                <Star className="w-4 h-4 fill-current" />
+                {t('landing.ratings.badge')}
+              </div>
+              <h2 className={`text-3xl md:text-4xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                {t('landing.ratings.title')}
+              </h2>
+              <p className={`text-lg mb-12 max-w-2xl mx-auto ${isDark ? 'text-white/60' : 'text-gray-600'}`}>
+                {t('landing.ratings.subtitle')}
+              </p>
+            </motion.div>
+
+            <div className="relative">
+              {/* Carousel Cards */}
+              <div className="overflow-hidden">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={carouselIndex}
+                    initial={{ opacity: 0, x: 80 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -80 }}
+                    transition={{ duration: 0.4 }}
+                    className={`p-8 md:p-12 rounded-3xl ${
+                      isDark
+                        ? 'bg-white/5 backdrop-blur-xl border border-white/10'
+                        : 'bg-white shadow-2xl border border-gray-100'
+                    }`}
+                  >
+                    <Quote className={`w-10 h-10 mx-auto mb-6 ${isDark ? 'text-red-400/40' : 'text-red-200'}`} />
+                    <p className={`text-lg md:text-xl leading-relaxed mb-8 italic ${
+                      isDark ? 'text-white/80' : 'text-gray-700'
+                    }`}>
+                      "{publicRatings[carouselIndex]?.comment}"
+                    </p>
+                    <div className="flex items-center justify-center gap-4">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
+                        isDark ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-600'
+                      }`}>
+                        {publicRatings[carouselIndex]?.user_name?.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="text-left">
+                        <p className={`font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {publicRatings[carouselIndex]?.user_name}
+                        </p>
+                        {publicRatings[carouselIndex]?.item_name && (
+                          <p className={`text-sm ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
+                            {publicRatings[carouselIndex]?.item_name}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-0.5 ml-4">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-5 h-5 ${
+                              i < (publicRatings[carouselIndex]?.stars || 0)
+                                ? 'text-yellow-400 fill-yellow-400'
+                                : isDark ? 'text-white/20' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {/* Navigation Arrows */}
+              {publicRatings.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setCarouselIndex(prev => (prev - 1 + publicRatings.length) % publicRatings.length)}
+                    className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-6 w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
+                      isDark ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-white shadow-lg hover:bg-gray-50 text-gray-700'
+                    }`}
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => setCarouselIndex(prev => (prev + 1) % publicRatings.length)}
+                    className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-6 w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
+                      isDark ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-white shadow-lg hover:bg-gray-50 text-gray-700'
+                    }`}
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </>
+              )}
+
+              {/* Dots */}
+              {publicRatings.length > 1 && (
+                <div className="flex justify-center gap-2 mt-8">
+                  {publicRatings.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCarouselIndex(i)}
+                      className={`w-2.5 h-2.5 rounded-full transition-all ${
+                        i === carouselIndex
+                          ? 'bg-red-500 w-8'
+                          : isDark ? 'bg-white/20 hover:bg-white/40' : 'bg-gray-300 hover:bg-gray-400'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </Section>
+      )}
 
       {/* CTA Section */}
       <Section className="relative overflow-hidden" isDark={isDark}>

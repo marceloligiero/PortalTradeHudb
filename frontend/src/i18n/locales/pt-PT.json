@@ -1170,9 +1170,9 @@
     "startTraining": "Começar Formação",
     "exploreProcesses": "Explorar Processos",
     "stats": {
-      "areas": "Áreas Operacionais",
-      "processes": "Processos Mapeados",
-      "access": "Acesso Disponível",
+      "areas": "Serviços",
+      "courses": "Cursos",
+      "students": "Formandos",
       "satisfaction": "Satisfação"
     },
     "navbar": {
@@ -1408,6 +1408,11 @@
       "subtitle": "Explore as trilhas de capacitação por processo de Trade e desenvolva as competências essenciais para a excelência operacional.",
       "startNow": "Começar Agora",
       "haveAccount": "Já tenho conta"
+    },
+    "ratings": {
+      "badge": "Avaliações",
+      "title": "O que dizem os nossos formandos",
+      "subtitle": "Descubra as opiniões de quem já transformou o seu conhecimento connosco."
     },
     "footer": {
       "copyright": "© {{year}} Santander Digital Services. Portal de Formações - Trade Datahub."
