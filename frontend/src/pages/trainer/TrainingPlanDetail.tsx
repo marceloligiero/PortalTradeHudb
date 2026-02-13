@@ -1919,7 +1919,7 @@ export default function TrainingPlanDetail() {
                                     )}
 
                                     {isStudent && submission && (
-                                      submission.status === 'APPROVED' || submission.status === 'REJECTED' ? (
+                                      submission.status === 'APPROVED' || submission.status === 'REJECTED' || submission.status === 'PENDING_REVIEW' || submission.status === 'REVIEWED' || submission.status === 'COMPLETED' || submission.is_approved !== null ? (
                                         <div className="flex flex-col gap-2">
                                           <button
                                             onClick={() => navigate(`/challenges/result/${submission.id}`)}
