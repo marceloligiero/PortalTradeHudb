@@ -71,6 +71,15 @@ const StudentChallengeExecution: React.FC = () => {
 
   const loadExistingOperations = async () => {
     try {
+      // Check submission status first
+      try {
+        const subResp = await api.get(`/api/challenges/submissions/${submissionId}`);
+        if (subResp.data?.status === 'PENDING_REVIEW' || subResp.data?.status === 'APPROVED' || subResp.data?.status === 'REJECTED') {
+          setSubmitted(true);
+          return;
+        }
+      } catch (e) { /* ignore */ }
+
       const response = await api.get(`/api/challenges/submissions/${submissionId}/operations`);
       const existingOps = response.data || [];
       
