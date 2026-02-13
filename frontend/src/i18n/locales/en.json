@@ -60,6 +60,7 @@
     "registerTrainerSuccess": "Trainer request submitted! Please wait for admin validation. Redirecting to login...",
     "registrationError": "Error while creating the account",
     "forgotPasswordTitle": "Forgot your password?",
+    "forgotPassword": "Forgot your password?",
     "forgotPasswordSubtitle": "Enter your registered email to reset your password.",
     "emailNotFound": "Email not found in the system",
     "newPassword": "New Password",

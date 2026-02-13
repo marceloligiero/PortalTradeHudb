@@ -60,6 +60,7 @@
     "registerTrainerSuccess": "¡Solicitud de Formador enviada! Espera la validación del administrador. Redirigiendo al inicio de sesión...",
     "registrationError": "Error al registrar la cuenta",
     "forgotPasswordTitle": "¿Olvidaste tu contraseña?",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
     "forgotPasswordSubtitle": "Introduce tu correo electrónico registrado para restablecer tu contraseña.",
     "emailNotFound": "Correo electrónico no encontrado en el sistema",
     "newPassword": "Nueva Contraseña",

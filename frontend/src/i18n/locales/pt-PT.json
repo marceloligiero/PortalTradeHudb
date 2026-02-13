@@ -60,6 +60,7 @@
     "registerTrainerSuccess": "Inscrição de Formador enviada! Aguarde validação do administrador. Redirecionando para login...",
     "registrationError": "Erro ao registar a conta",
     "forgotPasswordTitle": "Esqueceu a palavra-passe?",
+    "forgotPassword": "Esqueceu a palavra-passe?",
     "forgotPasswordSubtitle": "Introduza o seu e-mail registado para redefinir a sua palavra-passe.",
     "emailNotFound": "E-mail não encontrado no sistema",
     "newPassword": "Nova Palavra-passe",
