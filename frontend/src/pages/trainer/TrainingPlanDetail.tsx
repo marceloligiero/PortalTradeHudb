@@ -1929,7 +1929,7 @@ export default function TrainingPlanDetail() {
                                         )}
                                         
                                         {/* Já corrigido - Ver Resultado */}
-                                        {(submission.status === 'COMPLETED' || submission.is_approved) && (
+                                        {(submission.status === 'COMPLETED' || submission.status === 'APPROVED' || submission.status === 'REJECTED') && (
                                           <button
                                             onClick={() => navigate(`/challenges/result/${submission.id}`)}
                                             className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
