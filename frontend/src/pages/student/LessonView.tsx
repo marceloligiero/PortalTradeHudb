@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,11 +14,15 @@ import {
   ChevronRight,
   Check,
   Play,
+  Pause,
   AlertCircle,
   Sparkles,
   Flag,
   Loader2,
-  Star
+  Star,
+  Timer,
+  AlertTriangle,
+  Square
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { RatingModal } from '../../components';
@@ -69,9 +73,16 @@ export default function LessonView() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [hasRated, setHasRated] = useState(false);
   const [isPlanFinalized, setIsPlanFinalized] = useState(false);
+  const [startLoading, setStartLoading] = useState(false);
+  const [pauseLoading, setPauseLoading] = useState(false);
+  const [resumeLoading, setResumeLoading] = useState(false);
+  const [liveElapsed, setLiveElapsed] = useState(0);
+  const [showTimeWarning, setShowTimeWarning] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Se a aula foi iniciada pelo FORMADOR, o formando pode finalizar após ler todas as páginas
   const isTrainerStarted = lesson?.started_by === 'TRAINER';
+  const isTraineeStarted = lesson?.started_by === 'TRAINEE';
 
   // Split content into pages
   const contentPages = useMemo(() => {
@@ -122,6 +133,12 @@ export default function LessonView() {
   // Se a aula está em progresso e todas as páginas foram lidas, pode finalizar
   const canFinish = allPagesVisited && lessonProgress?.status === 'IN_PROGRESS' && !lessonProgress?.is_paused;
 
+  // Para aulas TRAINEE: pode iniciar, pausar, retomar
+  const canStart = isTraineeStarted && lessonProgress && (lessonProgress.status === 'NOT_STARTED' || lessonProgress.status === 'RELEASED') && !isFinished;
+  const canPause = isTraineeStarted && lessonProgress?.status === 'IN_PROGRESS' && !lessonProgress?.is_paused;
+  const canResume = isTraineeStarted && (lessonProgress?.status === 'PAUSED' || (lessonProgress?.status === 'IN_PROGRESS' && lessonProgress?.is_paused));
+  const canFinishTrainee = isTraineeStarted && allPagesVisited && lessonProgress?.status === 'IN_PROGRESS' && !lessonProgress?.is_paused && !isFinished;
+
   // Load visited pages and last page from localStorage
   useEffect(() => {
     if (lessonId) {
@@ -145,11 +162,8 @@ export default function LessonView() {
         }
       }
       
-      // Check if already finished
-      const finished = localStorage.getItem(`lesson_${lessonId}_finished`);
-      if (finished === 'true') {
-        setIsFinished(true);
-      }
+      // Note: don't restore isFinished from localStorage alone
+      // It will be set by backend progress status check
     }
   }, [lessonId]);
 
@@ -167,6 +181,60 @@ export default function LessonView() {
     });
   }, [lessonId]);
 
+  // Handle start lesson (for TRAINEE started_by)
+  const handleStartLesson = async () => {
+    if (!planId) return;
+    setStartLoading(true);
+    try {
+      await api.post(`/api/lessons/${lessonId}/start`, null, {
+        params: { training_plan_id: parseInt(planId) }
+      });
+      await fetchProgress();
+    } catch (err: any) {
+      console.error('Erro ao iniciar aula:', err);
+      const detail = err?.response?.data?.detail;
+      if (detail) alert(detail);
+    } finally {
+      setStartLoading(false);
+    }
+  };
+
+  // Handle pause lesson
+  const handlePauseLesson = async () => {
+    if (!planId) return;
+    setPauseLoading(true);
+    try {
+      await api.post(`/api/lessons/${lessonId}/pause`, null, {
+        params: { training_plan_id: parseInt(planId) }
+      });
+      await fetchProgress();
+    } catch (err: any) {
+      console.error('Erro ao pausar aula:', err);
+      const detail = err?.response?.data?.detail;
+      if (detail) alert(detail);
+    } finally {
+      setPauseLoading(false);
+    }
+  };
+
+  // Handle resume lesson
+  const handleResumeLesson = async () => {
+    if (!planId) return;
+    setResumeLoading(true);
+    try {
+      await api.post(`/api/lessons/${lessonId}/resume`, null, {
+        params: { training_plan_id: parseInt(planId) }
+      });
+      await fetchProgress();
+    } catch (err: any) {
+      console.error('Erro ao retomar aula:', err);
+      const detail = err?.response?.data?.detail;
+      if (detail) alert(detail);
+    } finally {
+      setResumeLoading(false);
+    }
+  };
+
   // Handle finish lesson
   const handleFinishLesson = async () => {
     if (!allPagesVisited || isFinished) return;
@@ -175,6 +243,18 @@ export default function LessonView() {
     if (isTrainerStarted && lessonProgress?.status !== 'IN_PROGRESS') {
       alert(t('lessonView.moduleNotStartedYet'));
       return;
+    }
+
+    // Verificar se tempo real é menor que estimado
+    const estimatedSeconds = (lesson?.estimated_minutes || 0) * 60;
+    if (liveElapsed > 0 && liveElapsed < estimatedSeconds) {
+      const estimatedMin = lesson?.estimated_minutes || 0;
+      const actualMin = Math.floor(liveElapsed / 60);
+      const actualSec = liveElapsed % 60;
+      const confirmed = window.confirm(
+        `⚠️ Atenção: O tempo real (${actualMin}m ${actualSec}s) é inferior ao tempo estimado (${estimatedMin}m).\n\nTem a certeza que deseja finalizar o módulo?`
+      );
+      if (!confirmed) return;
     }
     
     setFinishLoading(true);
@@ -222,6 +302,52 @@ export default function LessonView() {
   useEffect(() => {
     markPageVisited(currentPage);
   }, [currentPage, markPageVisited]);
+
+  // Live timer for lesson in progress
+  useEffect(() => {
+    if (lessonProgress?.status === 'IN_PROGRESS' && !lessonProgress?.is_paused) {
+      // Start live timer
+      const baseElapsed = lessonProgress.elapsed_seconds || 0;
+      setLiveElapsed(baseElapsed);
+      
+      const startedCountingAt = Date.now();
+      
+      timerRef.current = setInterval(() => {
+        const additionalSeconds = Math.floor((Date.now() - startedCountingAt) / 1000);
+        setLiveElapsed(baseElapsed + additionalSeconds);
+      }, 1000);
+      
+      return () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+      };
+    } else if (lessonProgress?.status === 'PAUSED') {
+      setLiveElapsed(lessonProgress.accumulated_seconds || 0);
+      if (timerRef.current) clearInterval(timerRef.current);
+    } else if (lessonProgress?.status === 'COMPLETED') {
+      setLiveElapsed(lessonProgress.accumulated_seconds || 0);
+      if (timerRef.current) clearInterval(timerRef.current);
+    } else {
+      setLiveElapsed(0);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  }, [lessonProgress?.status, lessonProgress?.is_paused, lessonProgress?.elapsed_seconds, lessonProgress?.accumulated_seconds]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) {
+      return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
 
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -549,7 +675,7 @@ export default function LessonView() {
                   </div>
 
                   {/* Show Finish button when all pages visited AND lesson is in progress, otherwise show Next button */}
-                  {allPagesVisited && currentPage === totalPages && canFinish ? (
+                  {allPagesVisited && currentPage === totalPages && (canFinish || canFinishTrainee) ? (
                     <button
                       onClick={handleFinishLesson}
                       disabled={finishLoading || isFinished}
@@ -592,7 +718,7 @@ export default function LessonView() {
             )}
             
             {/* Botão de finalizar para aulas com 1 página apenas */}
-            {totalPages <= 1 && canFinish && !isFinished && (
+            {totalPages <= 1 && (canFinish || canFinishTrainee) && !isFinished && (
               <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                 <div className="flex items-center justify-center">
                   <button
@@ -663,8 +789,84 @@ export default function LessonView() {
               </div>
             </div>
             
+            {/* Timer ao vivo */}
+            {(lessonProgress?.status === 'IN_PROGRESS' || lessonProgress?.status === 'PAUSED') && isTraineeStarted && (
+              <div className={`flex items-center justify-between gap-3 px-4 py-3 rounded-lg border ${
+                lessonProgress?.status === 'PAUSED'
+                  ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800/30'
+                  : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/30'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <Timer className={`w-5 h-5 ${
+                    lessonProgress?.status === 'PAUSED' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'
+                  }`} />
+                  <div>
+                    <p className={`text-lg font-mono font-bold ${
+                      lessonProgress?.status === 'PAUSED' ? 'text-yellow-700 dark:text-yellow-300' : 'text-blue-700 dark:text-blue-300'
+                    }`}>{formatTime(liveElapsed)}</p>
+                    {lesson?.estimated_duration && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Estimado: {formatTime(lesson.estimated_duration * 60)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {lessonProgress?.status === 'PAUSED' && (
+                  <span className="text-xs font-medium text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/40 px-2 py-1 rounded-full">
+                    {t('lessonView.paused')}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Botões de controlo: Iniciar / Pausar / Retomar */}
+            {canStart && (
+              <button
+                onClick={handleStartLesson}
+                disabled={startLoading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 dark:shadow-green-900/30 disabled:opacity-50"
+              >
+                {startLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Play className="w-5 h-5" />
+                )}
+                Iniciar Aula
+              </button>
+            )}
+
+            {canPause && (
+              <button
+                onClick={handlePauseLesson}
+                disabled={pauseLoading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 text-white rounded-lg font-medium hover:from-yellow-600 hover:to-amber-600 transition-all shadow-lg shadow-yellow-200 dark:shadow-yellow-900/30 disabled:opacity-50"
+              >
+                {pauseLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Pause className="w-5 h-5" />
+                )}
+                Pausar Aula
+              </button>
+            )}
+
+            {canResume && (
+              <button
+                onClick={handleResumeLesson}
+                disabled={resumeLoading}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 dark:shadow-green-900/30 disabled:opacity-50"
+              >
+                {resumeLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Play className="w-5 h-5" />
+                )}
+                Retomar Aula
+              </button>
+            )}
+
             {/* Botão de finalizar na sidebar quando pode finalizar */}
-            {canFinish && !isFinished && (
+            {(canFinish || canFinishTrainee) && !isFinished && (
                 <button
                 onClick={handleFinishLesson}
                 disabled={finishLoading}
@@ -722,7 +924,7 @@ export default function LessonView() {
               </div>
             )}
             
-            {!canFinish && !isFinished && lessonProgress?.status !== 'IN_PROGRESS' && (
+            {!canFinish && !canFinishTrainee && !isFinished && !canStart && !canPause && !canResume && lessonProgress?.status !== 'IN_PROGRESS' && (
                 <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg font-medium border border-amber-200 dark:border-amber-800/30 text-sm">
                 <Clock className="w-5 h-5" />
                 {lessonProgress?.status === 'PAUSED' ? t('lessonView.modulePausedByTrainer') : t('lessonView.awaitingTrainerStart')}
