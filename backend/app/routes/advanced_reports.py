@@ -125,9 +125,13 @@ async def get_dashboard_summary(
         ).count()
         avg_completion_rate = (completed_enrollments / total_enrollments * 100) if total_enrollments > 0 else 0
         
-        # Total study hours (from lesson progress)
-        total_study_minutes = db.query(func.sum(models.LessonProgress.actual_time_minutes)).scalar() or 0
-        total_study_hours = total_study_minutes / 60.0
+        # Total study hours (from accumulated_seconds in lesson_progress + challenge submissions)
+        total_study_seconds = db.query(func.sum(models.LessonProgress.accumulated_seconds)).scalar() or 0
+        challenge_time_minutes = db.query(func.sum(models.ChallengeSubmission.total_time_minutes)).filter(
+            models.ChallengeSubmission.total_time_minutes.isnot(None),
+            models.ChallengeSubmission.total_time_minutes > 0
+        ).scalar() or 0
+        total_study_hours = (float(total_study_seconds) / 3600.0) + (float(challenge_time_minutes) / 60.0)
         
         # Active students (30 days) - simplified query
         month_ago = datetime.utcnow() - timedelta(days=30)
