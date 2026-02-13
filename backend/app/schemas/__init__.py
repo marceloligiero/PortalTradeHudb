@@ -337,6 +337,11 @@ class ChallengeBasic(BaseModel):
     time_limit_minutes: int
     target_mpu: Optional[float] = None
     max_errors: Optional[int] = None
+    use_volume_kpi: Optional[bool] = True
+    use_mpu_kpi: Optional[bool] = True
+    use_errors_kpi: Optional[bool] = True
+    kpi_mode: Optional[str] = "AUTO"
+    allow_retry: Optional[bool] = False
     is_released: Optional[bool] = False
     created_by: Optional[int] = None
     is_active: Optional[bool] = True
