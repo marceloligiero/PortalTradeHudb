@@ -1,16 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Target, Calendar, CheckCircle2, AlertCircle, Users, Building2, Package, Check } from 'lucide-react';
+import { Target, Calendar, CheckCircle2, AlertCircle, Building2, Package, Check } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 import { getTranslatedProductName } from '../../utils/productTranslation';
-
-interface Trainer {
-  id: number;
-  full_name: string;
-  email: string;
-}
 
 interface Course {
   id: number;
@@ -34,13 +28,6 @@ interface Product {
   code: string;
 }
 
-interface Student {
-  id: number;
-  full_name: string;
-  email: string;
-  role?: 'TRAINEE' | 'TRAINER';
-}
-
 export default function AdminTrainingPlanForm() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -49,11 +36,9 @@ export default function AdminTrainingPlanForm() {
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
-  const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [banks, setBanks] = useState<Bank[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
   
   const [formData, setFormData] = useState({
     title: '',
@@ -62,9 +47,7 @@ export default function AdminTrainingPlanForm() {
     product_ids: [] as number[],
     start_date: '',
     end_date: '',
-    trainer_ids: [] as number[],
     course_ids: [] as number[],
-    student_id: null as number | null,
   });
 
   useEffect(() => {
@@ -80,25 +63,19 @@ export default function AdminTrainingPlanForm() {
       setLoading(true);
       console.log('🔄 Carregando dados do formulário...');
       
-      const [trainersRes, coursesRes, banksRes, productsRes, studentsRes] = await Promise.all([
-        api.get('/api/admin/trainers'),
+      const [coursesRes, banksRes, productsRes] = await Promise.all([
         api.get('/api/admin/courses'),
         api.get('/api/admin/banks'),
         api.get('/api/admin/products'),
-        api.get('/api/admin/students')
       ]);
       
-      console.log('✅ Formadores carregados:', trainersRes.data.length);
       console.log('✅ Cursos carregados:', coursesRes.data.length);
       console.log('✅ Bancos carregados:', banksRes.data.length);
       console.log('✅ Produtos carregados:', productsRes.data.length);
-      console.log('✅ Formandos carregados:', studentsRes.data.length);
       
-      setTrainers(trainersRes.data || []);
       setCourses(coursesRes.data || []);
       setBanks(banksRes.data || []);
       setProducts(productsRes.data || []);
-      setStudents(studentsRes.data || []);
     } catch (error: any) {
       console.error('❌ Erro ao carregar dados:', error);
       console.error('❌ Detalhes:', error.response?.data);
@@ -114,27 +91,21 @@ export default function AdminTrainingPlanForm() {
     const newErrors: Record<string, string> = {};
 
     if (step === 1) {
-      // Validar título
       if (!formData.title.trim()) {
         newErrors.title = 'Título é obrigatório';
       } else if (formData.title.trim().length < 3) {
         newErrors.title = 'Título deve ter pelo menos 3 caracteres';
       }
 
-      // Validar descrição
       if (!formData.description.trim()) {
         newErrors.description = 'Descrição é obrigatória';
       } else if (formData.description.trim().length < 10) {
         newErrors.description = 'Descrição deve ter pelo menos 10 caracteres';
       }
 
-      // Validar datas
       if (formData.start_date && formData.end_date) {
         const startDate = new Date(formData.start_date);
         const endDate = new Date(formData.end_date);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
         if (endDate < startDate) {
           newErrors.end_date = 'Data de fim deve ser posterior à data de início';
         }
@@ -142,37 +113,15 @@ export default function AdminTrainingPlanForm() {
     }
 
     if (step === 2) {
-      // Formadores são opcionais - podem ser adicionados depois
-      // Apenas validar conflito se ambos foram selecionados
-      if (formData.student_id && formData.trainer_ids.includes(formData.student_id)) {
-        newErrors.trainer_ids = 'O aluno selecionado não pode ser também formador';
-      }
-    }
-
-    if (step === 3) {
-      // Validar cursos
       if (formData.course_ids.length === 0) {
         newErrors.course_ids = 'Selecione pelo menos um curso';
       }
     }
 
-    if (step === 4) {
-      // Validar que o formando não seja também formador
-      if (formData.student_id && formData.trainer_ids.includes(formData.student_id)) {
-        newErrors.student_id = 'O aluno não pode ser também formador do mesmo plano';
-      }
-    }
-
-    // Step 5 - validação final completa
-    if (step === 5) {
-      // Revalidar todos os campos obrigatórios
+    if (step === 3) {
       if (!formData.title.trim()) newErrors.title = 'Título é obrigatório';
       if (!formData.description.trim()) newErrors.description = 'Descrição é obrigatória';
       if (formData.course_ids.length === 0) newErrors.course_ids = 'Pelo menos um curso é obrigatório';
-      // Validar conflito aluno/formador (apenas se ambos foram selecionados)
-      if (formData.student_id && formData.trainer_ids.includes(formData.student_id)) {
-        newErrors.student_id = 'O aluno não pode ser também formador do mesmo plano';
-      }
     }
 
     setErrors(newErrors);
@@ -205,10 +154,7 @@ export default function AdminTrainingPlanForm() {
         product_ids: formData.product_ids,
         start_date: formData.start_date || null,
         end_date: formData.end_date || null,
-        trainer_id: formData.trainer_ids[0] || null,
-        trainer_ids: formData.trainer_ids,
         course_ids: formData.course_ids,
-        student_id: formData.student_id
       };
 
       console.log('📤 Enviando plano de formação:', payload);
@@ -233,10 +179,8 @@ export default function AdminTrainingPlanForm() {
 
   const steps = [
     { number: 1, title: 'Informações Básicas', icon: Target },
-    { number: 2, title: 'Atribuir Formadores', icon: Users },
-    { number: 3, title: 'Selecionar Cursos', icon: Calendar },
-    { number: 4, title: 'Selecionar Formandos', icon: Users },
-    { number: 5, title: 'Revisão', icon: CheckCircle2 }
+    { number: 2, title: 'Selecionar Cursos', icon: Calendar },
+    { number: 3, title: 'Revisão', icon: CheckCircle2 }
   ];
 
   if (success) {
@@ -256,7 +200,7 @@ export default function AdminTrainingPlanForm() {
   }
 
   // Mostrar loading enquanto carrega dados iniciais
-  if (loading && trainers.length === 0) {
+  if (loading && courses.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
         <div className="text-center animate-fadeIn">
@@ -269,7 +213,7 @@ export default function AdminTrainingPlanForm() {
   }
 
   // Mostrar erro se falhou ao carregar
-  if (errors.submit && trainers.length === 0) {
+  if (errors.submit && courses.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center p-8">
         <div className="max-w-md w-full glass rounded-2xl border border-red-500/20 p-8 text-center animate-fadeIn">
@@ -511,84 +455,8 @@ export default function AdminTrainingPlanForm() {
             </div>
           )}
 
-          {/* Step 2: Assign Trainers */}
+          {/* Step 2: Select Courses */}
           {currentStep === 2 && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-6">
-                <Users className="w-6 h-6 text-purple-400" />
-                <h2 className="text-xl font-semibold text-white">Atribuir Formadores</h2>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
-                  Selecione os formadores responsáveis por este plano de formação *
-                  <span className="text-gray-500 ml-2">(O primeiro selecionado será o formador principal)</span>
-                </label>
-                <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                  {trainers.length === 0 ? (
-                    <div className="text-center py-8 text-gray-400">
-                      <Users className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                      <p>{t('errors.noTrainers')}</p>
-                    </div>
-                  ) : (
-                    trainers.map((trainer) => {
-                      const isSelected = formData.trainer_ids.includes(trainer.id);
-                      const selectionIndex = formData.trainer_ids.indexOf(trainer.id);
-                      return (
-                        <label 
-                          key={trainer.id}
-                          className={`flex items-center gap-4 p-4 border rounded-xl cursor-pointer transition-all ${
-                            isSelected
-                              ? 'bg-purple-500/20 border-purple-500'
-                              : 'bg-white/5 border-white/10 hover:border-purple-500/50'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => {
-                              if (isSelected) {
-                                setFormData({ 
-                                  ...formData, 
-                                  trainer_ids: formData.trainer_ids.filter(id => id !== trainer.id) 
-                                });
-                              } else {
-                                setFormData({ 
-                                  ...formData, 
-                                  trainer_ids: [...formData.trainer_ids, trainer.id] 
-                                });
-                              }
-                            }}
-                            className="w-5 h-5 text-purple-600 focus:ring-2 focus:ring-purple-500/20 rounded"
-                          />
-                          <div className="flex-1">
-                            <div className="text-white font-medium flex items-center gap-2">
-                              {trainer.full_name}
-                              {selectionIndex === 0 && (
-                                <span className="text-xs bg-purple-500 text-white px-2 py-0.5 rounded-full">
-                                  Principal
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-gray-400 text-sm">{trainer.email}</div>
-                          </div>
-                        </label>
-                      );
-                    })
-                  )}
-                </div>
-                {errors.trainer_ids && (
-                  <div className="flex items-center gap-2 text-red-400 text-sm mt-2">
-                    <AlertCircle className="w-4 h-4" />
-                    {errors.trainer_ids}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Select Courses */}
-          {currentStep === 3 && (
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-6">
                 <Calendar className="w-6 h-6 text-purple-400" />
@@ -666,91 +534,8 @@ export default function AdminTrainingPlanForm() {
             </div>
           )}
 
-          {/* Step 4: Select Students */}
-          {currentStep === 4 && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-6">
-                <Users className="w-6 h-6 text-green-400" />
-                <h2 className="text-xl font-semibold text-white">{t('trainingPlans.selectStudent')}</h2>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
-                  {t('trainingPlans.selectStudentDesc')}
-                </label>
-                <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                  {students.length === 0 ? (
-                    <div className="text-center py-8 text-gray-400">
-                      <Users className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-                      <p>{t('errors.noStudents')}</p>
-                    </div>
-                  ) : (
-                    students.map((student) => (
-                      <label 
-                        key={student.id}
-                        className={`flex items-center gap-3 p-4 border rounded-xl cursor-pointer transition-all ${
-                          formData.student_id === student.id
-                            ? formData.trainer_ids.includes(student.id)
-                              ? 'bg-red-500/10 border-red-500/50'
-                              : 'bg-green-500/10 border-green-500/50'
-                            : 'bg-white/5 border-white/10 hover:border-green-500/50'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="student"
-                          checked={formData.student_id === student.id}
-                          onChange={() => setFormData({ ...formData, student_id: student.id })}
-                          className="w-5 h-5 border-white/20 text-green-600 focus:ring-2 focus:ring-green-500/20"
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-white font-medium">{student.full_name}</span>
-                            {student.role === 'TRAINER' && (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
-                                Formador
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-gray-400 text-sm">{student.email}</div>
-                          {formData.trainer_ids.includes(student.id) && (
-                            <div className="text-amber-400 text-xs mt-1 flex items-center gap-1">
-                              <AlertCircle className="w-3 h-3" />
-                              Este utilizador é formador deste plano
-                            </div>
-                          )}
-                        </div>
-                      </label>
-                    ))
-                  )}
-                </div>
-                {errors.student_id && (
-                  <div className="mt-3 flex items-center gap-2 text-red-400 text-sm p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                    <AlertCircle className="w-4 h-4" />
-                    {errors.student_id}
-                  </div>
-                )}
-                {formData.student_id && !formData.trainer_ids.includes(formData.student_id) && (
-                  <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                    <div className="text-green-300 font-medium">
-                      {t('trainingPlans.studentSelected')}: {students.find(s => s.id === formData.student_id)?.full_name}
-                    </div>
-                  </div>
-                )}
-                {formData.student_id && formData.trainer_ids.includes(formData.student_id) && (
-                  <div className="mt-3 p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                    <div className="text-red-300 font-medium flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4" />
-                      O aluno selecionado não pode ser também formador do mesmo plano
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Step 5: Review */}
-          {currentStep === 5 && (
+          {/* Step 3: Review */}
+          {currentStep === 3 && (
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-6">
                 <CheckCircle2 className="w-6 h-6 text-purple-400" />
@@ -807,38 +592,9 @@ export default function AdminTrainingPlanForm() {
                 </div>
 
                 <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                  <div className="text-sm text-gray-400 mb-1">Formadores ({formData.trainer_ids.length})</div>
-                  <div className="space-y-1">
-                    {formData.trainer_ids.map((tid, idx) => {
-                      const trainer = trainers.find(t => t.id === tid);
-                      return trainer ? (
-                        <div key={tid} className="text-white flex items-center gap-2">
-                          <span>{trainer.full_name}</span>
-                          {idx === 0 && (
-                            <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded">
-                              Principal
-                            </span>
-                          )}
-                        </div>
-                      ) : null;
-                    })}
-                    {formData.trainer_ids.length === 0 && <span className="text-gray-500">N/A</span>}
-                  </div>
-                </div>
-
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10">
                   <div className="text-sm text-gray-400 mb-1">Cursos</div>
                   <div className="text-white font-medium">
                     {formData.course_ids.length} {t('errors.coursesSelected')}
-                  </div>
-                </div>
-
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                  <div className="text-sm text-gray-400 mb-1">{t('trainingPlans.student')}</div>
-                  <div className="text-white font-medium">
-                    {formData.student_id 
-                      ? students.find(s => s.id === formData.student_id)?.full_name 
-                      : t('trainingPlans.noStudentSelected')}
                   </div>
                 </div>
               </div>
@@ -864,7 +620,7 @@ export default function AdminTrainingPlanForm() {
               </button>
             )}
             
-            {currentStep < 5 ? (
+            {currentStep < 3 ? (
               <button
                 type="button"
                 onClick={handleNext}
