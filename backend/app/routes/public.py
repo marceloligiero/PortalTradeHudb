@@ -46,7 +46,7 @@ async def get_landing_data(db: Session = Depends(get_db)):
     total_products = db.query(func.count(models.Product.id)).scalar() or 0
     total_courses = db.query(func.count(models.Course.id)).scalar() or 0
     total_students = db.query(func.count(models.User.id)).filter(
-        models.User.role == "formando"
+        models.User.role.in_(["formando", "TRAINEE", "trainee"])
     ).scalar() or 0
     total_lessons = db.query(func.count(models.Lesson.id)).scalar() or 0
 
