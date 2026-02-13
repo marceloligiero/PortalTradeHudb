@@ -29,6 +29,7 @@ const stripHtml = (html: string): string => {
 interface MyLesson {
   id: number;
   lesson_id: number;
+  training_plan_id?: number;
   lesson_title: string;
   lesson_description?: string;
   materials_url?: string;
@@ -40,6 +41,7 @@ interface MyLesson {
   actual_time_minutes?: number;
   student_confirmed: boolean;
   student_confirmed_at?: string;
+  started_by?: string;
 }
 
 export default function MyLessons() {
@@ -113,6 +115,22 @@ export default function MyLessons() {
         </span>
       );
     }
+    if (lesson.status === 'RELEASED') {
+      return (
+        <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+          <Play className="w-3 h-3 inline mr-1" />
+          Disponível
+        </span>
+      );
+    }
+    if (lesson.status === 'NOT_STARTED') {
+      return (
+        <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-500/20 text-gray-600 dark:text-gray-400 border border-gray-500/30">
+          <Clock className="w-3 h-3 inline mr-1" />
+          Pendente
+        </span>
+      );
+    }
     return null;
   };
 
@@ -129,7 +147,8 @@ export default function MyLessons() {
   }
 
   const completedLessons = lessons.filter(l => l.status === 'COMPLETED');
-  const inProgressLessons = lessons.filter(l => l.status !== 'COMPLETED');
+  const activeLessons = lessons.filter(l => l.status === 'IN_PROGRESS' || l.status === 'PAUSED');
+  const pendingLessons = lessons.filter(l => l.status === 'NOT_STARTED' || l.status === 'RELEASED');
   const pendingConfirmation = completedLessons.filter(l => !l.student_confirmed);
 
   return (
@@ -143,7 +162,7 @@ export default function MyLessons() {
       />
 
       {/* Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm dark:shadow-none">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/20 rounded-lg">
@@ -151,7 +170,18 @@ export default function MyLessons() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{lessons.length}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t('myLessons.lessonsCompleted')}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Total de Aulas</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm dark:shadow-none">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-gray-500/20 rounded-lg">
+              <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{pendingLessons.length}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Pendentes</p>
             </div>
           </div>
         </div>
@@ -161,8 +191,8 @@ export default function MyLessons() {
               <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{completedLessons.filter(l => l.student_confirmed).length}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t('myLessons.lessonsConfirmed')}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{completedLessons.length}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('myLessons.lessonsCompleted')}</p>
             </div>
           </div>
         </div>
@@ -282,21 +312,75 @@ export default function MyLessons() {
         </div>
       )}
 
+      {/* Aulas pendentes (NOT_STARTED / RELEASED) */}
+      {pendingLessons.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Clock className="w-5 h-5 text-gray-400" />
+            Aulas Pendentes
+          </h2>
+          <div className="grid gap-4">
+            {pendingLessons.map((lesson, index) => (
+              <motion.div
+                key={`pending-${lesson.lesson_id}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                onClick={() => {
+                  const params = lesson.training_plan_id ? `?plan_id=${lesson.training_plan_id}` : '';
+                  navigate(`/lessons/${lesson.lesson_id}/view${params}`);
+                }}
+                className="relative overflow-hidden bg-gray-500/10 backdrop-blur-xl rounded-2xl border border-gray-500/30 cursor-pointer hover:bg-gray-500/20 transition-colors"
+              >
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                          {lesson.lesson_title}
+                        </h3>
+                        {getStatusBadge(lesson)}
+                      </div>
+                      {lesson.lesson_description && (
+                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{stripHtml(lesson.lesson_description)}</p>
+                      )}
+                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          {t('myLessons.estimatedTime')}: {lesson.estimated_minutes} min
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                      <Eye className="w-5 h-5" />
+                      <span className="text-sm font-medium">Abrir</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Aulas em progresso */}
-      {inProgressLessons.length > 0 && (
+      {activeLessons.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <Play className="w-5 h-5 text-blue-400" />
             {t('myLessons.pendingLessons')}
           </h2>
           <div className="grid gap-4">
-            {inProgressLessons.map((lesson, index) => (
+            {activeLessons.map((lesson, index) => (
               <motion.div
                 key={lesson.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                onClick={() => navigate(`/lessons/${lesson.lesson_id}/view`)}
+                onClick={() => {
+                  const params = lesson.training_plan_id ? `?plan_id=${lesson.training_plan_id}` : '';
+                  navigate(`/lessons/${lesson.lesson_id}/view${params}`);
+                }}
                 className="relative overflow-hidden bg-blue-500/10 backdrop-blur-xl rounded-2xl border border-blue-500/30 cursor-pointer hover:bg-blue-500/20 transition-colors"
               >
                 <div className="p-6">

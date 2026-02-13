@@ -925,41 +925,130 @@ async def list_my_lessons(
     current_user: models.User = Depends(get_current_user)
 ):
     """
-    Formando vê suas aulas (finalizadas e em andamento)
-    Só vê aulas que já foram iniciadas ou finalizadas pelo formador
+    Formando vê TODAS as suas aulas - tanto as que já têm progresso
+    como as que estão em planos de formação atribuídos ao formando.
     """
     if current_user.role not in ["TRAINEE", "STUDENT"]:
         raise HTTPException(status_code=403, detail="Apenas formandos podem acessar")
     
-    query = db.query(models.LessonProgress).filter(
-        models.LessonProgress.user_id == current_user.id,
-        models.LessonProgress.status.in_(["IN_PROGRESS", "PAUSED", "COMPLETED"])
+    # 1) Aulas com progresso (qualquer status)
+    progress_query = db.query(models.LessonProgress).filter(
+        models.LessonProgress.user_id == current_user.id
     )
-    
     if training_plan_id:
-        query = query.filter(models.LessonProgress.training_plan_id == training_plan_id)
+        progress_query = progress_query.filter(models.LessonProgress.training_plan_id == training_plan_id)
     
-    progress_list = query.all()
+    progress_list = progress_query.all()
     
-    result = []
+    # Mapear lesson_id -> progress para evitar duplicados
+    progress_map = {}
     for p in progress_list:
-        lesson = db.query(models.Lesson).filter(models.Lesson.id == p.lesson_id).first()
+        key = (p.lesson_id, p.training_plan_id)
+        progress_map[key] = p
+    
+    # 2) Encontrar TODAS as aulas de planos de formação atribuídos ao formando
+    #    (via student_id direto ou TrainingPlanAssignment)
+    from sqlalchemy import or_
+    
+    plans_query = db.query(models.TrainingPlan).filter(
+        models.TrainingPlan.is_active == True,
+        or_(
+            models.TrainingPlan.student_id == current_user.id,
+            models.TrainingPlan.id.in_(
+                db.query(models.TrainingPlanAssignment.training_plan_id).filter(
+                    models.TrainingPlanAssignment.user_id == current_user.id
+                )
+            )
+        )
+    )
+    if training_plan_id:
+        plans_query = plans_query.filter(models.TrainingPlan.id == training_plan_id)
+    
+    plans = plans_query.all()
+    
+    # Para cada plano, buscar cursos e suas aulas
+    for plan in plans:
+        plan_courses = db.query(models.TrainingPlanCourse).filter(
+            models.TrainingPlanCourse.training_plan_id == plan.id
+        ).all()
         
-        result.append({
-            "id": p.id,
-            "lesson_id": p.lesson_id,
-            "lesson_title": lesson.title if lesson else None,
-            "lesson_description": lesson.description if lesson else None,
-            "materials_url": lesson.materials_url if lesson else None,
-            "video_url": lesson.video_url if lesson else None,
-            "status": p.status,
-            "started_at": p.started_at.isoformat() if p.started_at else None,
-            "completed_at": p.completed_at.isoformat() if p.completed_at else None,
-            "estimated_minutes": p.estimated_minutes,
-            "actual_time_minutes": p.actual_time_minutes,
-            "student_confirmed": getattr(p, 'student_confirmed', False),
-            "student_confirmed_at": p.student_confirmed_at.isoformat() if getattr(p, 'student_confirmed_at', None) else None
-        })
+        for pc in plan_courses:
+            course = db.query(models.Course).filter(models.Course.id == pc.course_id).first()
+            if not course:
+                continue
+            lessons = db.query(models.Lesson).filter(models.Lesson.course_id == course.id).all()
+            for lesson in lessons:
+                key = (lesson.id, plan.id)
+                if key not in progress_map:
+                    # Aula sem progresso - criar entrada virtual
+                    progress_map[key] = {
+                        "virtual": True,
+                        "lesson_id": lesson.id,
+                        "training_plan_id": plan.id,
+                        "status": "NOT_STARTED",
+                        "started_at": None,
+                        "completed_at": None,
+                        "estimated_minutes": lesson.estimated_minutes or 30,
+                        "actual_time_minutes": None,
+                        "student_confirmed": False,
+                        "student_confirmed_at": None,
+                    }
+    
+    # 3) Construir resultado
+    result = []
+    seen_lesson_ids = set()
+    
+    for key, p in progress_map.items():
+        lesson_id = key[0]
+        
+        # Evitar duplicados do mesmo lesson_id (mostrar o mais relevante)
+        if lesson_id in seen_lesson_ids:
+            continue
+        seen_lesson_ids.add(lesson_id)
+        
+        lesson = db.query(models.Lesson).filter(models.Lesson.id == lesson_id).first()
+        
+        if isinstance(p, dict):
+            # Entrada virtual (sem LessonProgress)
+            result.append({
+                "id": 0,
+                "lesson_id": lesson_id,
+                "training_plan_id": p["training_plan_id"],
+                "lesson_title": lesson.title if lesson else None,
+                "lesson_description": lesson.description if lesson else None,
+                "materials_url": lesson.materials_url if lesson else None,
+                "video_url": lesson.video_url if lesson else None,
+                "status": "NOT_STARTED",
+                "started_at": None,
+                "completed_at": None,
+                "estimated_minutes": p["estimated_minutes"],
+                "actual_time_minutes": None,
+                "student_confirmed": False,
+                "student_confirmed_at": None,
+                "started_by": lesson.started_by if lesson else "TRAINER",
+            })
+        else:
+            result.append({
+                "id": p.id,
+                "lesson_id": p.lesson_id,
+                "training_plan_id": p.training_plan_id,
+                "lesson_title": lesson.title if lesson else None,
+                "lesson_description": lesson.description if lesson else None,
+                "materials_url": lesson.materials_url if lesson else None,
+                "video_url": lesson.video_url if lesson else None,
+                "status": p.status,
+                "started_at": p.started_at.isoformat() if p.started_at else None,
+                "completed_at": p.completed_at.isoformat() if p.completed_at else None,
+                "estimated_minutes": p.estimated_minutes,
+                "actual_time_minutes": p.actual_time_minutes,
+                "student_confirmed": getattr(p, 'student_confirmed', False),
+                "student_confirmed_at": p.student_confirmed_at.isoformat() if getattr(p, 'student_confirmed_at', None) else None,
+                "started_by": lesson.started_by if lesson else "TRAINER",
+            })
+    
+    # Ordenar: NOT_STARTED/RELEASED primeiro, depois IN_PROGRESS/PAUSED, depois COMPLETED
+    status_order = {"NOT_STARTED": 0, "RELEASED": 1, "IN_PROGRESS": 2, "PAUSED": 3, "COMPLETED": 4}
+    result.sort(key=lambda x: status_order.get(x["status"], 5))
     
     return result
 
