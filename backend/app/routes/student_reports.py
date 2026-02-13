@@ -215,6 +215,64 @@ async def get_student_dashboard(
             'date': best_submission.ChallengeSubmission.completed_at.isoformat() if best_submission.ChallengeSubmission.completed_at else None,
         }
     
+    # 8. DETALHE DOS ERROS - erros individuais de cada submissão
+    # 8a. Erros de submissions SUMMARY (SubmissionError)
+    submission_errors = db.query(
+        models.SubmissionError,
+        models.ChallengeSubmission.challenge_id,
+        models.ChallengeSubmission.completed_at,
+        models.Challenge.title.label('challenge_title')
+    ).join(
+        models.ChallengeSubmission, models.SubmissionError.submission_id == models.ChallengeSubmission.id
+    ).join(
+        models.Challenge, models.ChallengeSubmission.challenge_id == models.Challenge.id
+    ).filter(
+        models.ChallengeSubmission.user_id == user_id
+    ).order_by(
+        desc(models.ChallengeSubmission.completed_at)
+    ).all()
+    
+    # 8b. Erros de operações COMPLETE (OperationError via ChallengeOperation)
+    operation_errors = db.query(
+        models.OperationError,
+        models.ChallengeOperation.operation_number,
+        models.ChallengeOperation.operation_reference,
+        models.ChallengeSubmission.challenge_id,
+        models.ChallengeSubmission.completed_at,
+        models.Challenge.title.label('challenge_title')
+    ).join(
+        models.ChallengeOperation, models.OperationError.operation_id == models.ChallengeOperation.id
+    ).join(
+        models.ChallengeSubmission, models.ChallengeOperation.submission_id == models.ChallengeSubmission.id
+    ).join(
+        models.Challenge, models.ChallengeSubmission.challenge_id == models.Challenge.id
+    ).filter(
+        models.ChallengeSubmission.user_id == user_id
+    ).order_by(
+        desc(models.ChallengeSubmission.completed_at)
+    ).all()
+    
+    error_details = []
+    for se in submission_errors:
+        error_details.append({
+            'error_type': se.SubmissionError.error_type,
+            'description': se.SubmissionError.description,
+            'operation_reference': se.SubmissionError.operation_reference,
+            'challenge_title': se.challenge_title,
+            'date': se.completed_at.isoformat() if se.completed_at else None,
+        })
+    for oe in operation_errors:
+        error_details.append({
+            'error_type': oe.OperationError.error_type,
+            'description': oe.OperationError.description,
+            'operation_reference': oe.operation_reference or f'Op. {oe.operation_number}',
+            'challenge_title': oe.challenge_title,
+            'date': oe.completed_at.isoformat() if oe.completed_at else None,
+        })
+    
+    # Ordenar por data (mais recente primeiro)
+    error_details.sort(key=lambda x: x['date'] or '', reverse=True)
+    
     return {
         'summary': {
             'total_plans': total_plans,
@@ -237,4 +295,5 @@ async def get_student_dashboard(
         'challenges': challenges,
         'recent_activity': recent_activity,
         'best_performance': best_performance,
+        'error_details': error_details,
     }

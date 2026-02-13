@@ -14,6 +14,9 @@ import {
   Calendar,
   Sparkles,
   Zap,
+  ChevronDown,
+  ChevronUp,
+  FileWarning,
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { PremiumHeader } from '../../components/premium';
@@ -65,6 +68,13 @@ interface DashboardData {
     calculated_mpu: number;
     errors_count: number;
     completed_at: string | null;
+  }>;
+  error_details: Array<{
+    error_type: string;
+    description: string;
+    operation_reference: string | null;
+    challenge_title: string;
+    date: string | null;
   }>;
   best_performance: {
     challenge_title: string;
@@ -130,6 +140,8 @@ const Reports: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAllErrors, setShowAllErrors] = useState(false);
+  const [errorTypeFilter, setErrorTypeFilter] = useState<string>('ALL');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -167,8 +179,27 @@ const Reports: React.FC = () => {
 
   if (!data) return null;
 
-  const { summary, errors_by_type, evolution, challenges, recent_activity, best_performance } = data;
+  const { summary, errors_by_type, evolution, challenges, recent_activity, best_performance, error_details } = data;
   const totalErrors = Object.values(errors_by_type).reduce((a, b) => a + b, 0);
+
+  const errorTypeLabels: Record<string, string> = {
+    'METHODOLOGY': `📐 ${t('myReports.methodology')}`,
+    'KNOWLEDGE': `💡 ${t('myReports.knowledge')}`,
+    'DETAIL': `🔍 ${t('myReports.detail')}`,
+    'PROCEDURE': `📋 ${t('myReports.procedure')}`,
+  };
+
+  const errorTypeColors: Record<string, string> = {
+    'METHODOLOGY': isDark ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-purple-100 text-purple-700 border-purple-200',
+    'KNOWLEDGE': isDark ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-blue-100 text-blue-700 border-blue-200',
+    'DETAIL': isDark ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' : 'bg-orange-100 text-orange-700 border-orange-200',
+    'PROCEDURE': isDark ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-red-100 text-red-700 border-red-200',
+  };
+
+  const filteredErrors = error_details?.filter(e => 
+    errorTypeFilter === 'ALL' || e.error_type === errorTypeFilter
+  ) || [];
+  const displayErrors = showAllErrors ? filteredErrors : filteredErrors.slice(0, 10);
 
   return (
     <div className="space-y-6">
@@ -336,6 +367,126 @@ const Reports: React.FC = () => {
       </div>
 
       {/* Challenge Performance Table */}
+      {/* Detailed Error List */}
+      {error_details && error_details.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65 }}
+          className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'} border rounded-2xl p-6 shadow-sm`}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
+              <FileWarning className="w-6 h-6 text-red-500" />
+              Detalhe dos Erros
+            </h3>
+            <span className={`text-sm px-3 py-1 rounded-full ${isDark ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-700'}`}>
+              {filteredErrors.length} {filteredErrors.length === 1 ? 'erro' : 'erros'}
+            </span>
+          </div>
+
+          {/* Filter by error type */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button
+              onClick={() => setErrorTypeFilter('ALL')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                errorTypeFilter === 'ALL'
+                  ? isDark ? 'bg-white/20 text-white border-white/30' : 'bg-gray-800 text-white border-gray-800'
+                  : isDark ? 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10' : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+              }`}
+            >
+              Todos ({error_details.length})
+            </button>
+            {(['METHODOLOGY', 'KNOWLEDGE', 'DETAIL', 'PROCEDURE'] as const).map(type => {
+              const count = error_details.filter(e => e.error_type === type).length;
+              if (count === 0) return null;
+              return (
+                <button
+                  key={type}
+                  onClick={() => setErrorTypeFilter(type)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                    errorTypeFilter === type
+                      ? errorTypeColors[type]
+                      : isDark ? 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10' : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+                  }`}
+                >
+                  {errorTypeLabels[type]} ({count})
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Error table */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className={`border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Tipo</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Descrição</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.challenge')}</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Ref.</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Data</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayErrors.map((err, idx) => (
+                  <motion.tr
+                    key={idx}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.7 + idx * 0.03 }}
+                    className={`border-b ${isDark ? 'border-white/5 hover:bg-white/5' : 'border-gray-100 hover:bg-gray-50'} transition-colors`}
+                  >
+                    <td className="py-3 px-4">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${errorTypeColors[err.error_type] || (isDark ? 'bg-gray-500/20 text-gray-400 border-gray-500/30' : 'bg-gray-100 text-gray-600 border-gray-200')}`}>
+                        {errorTypeLabels[err.error_type] || err.error_type}
+                      </span>
+                    </td>
+                    <td className={`py-3 px-4 text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'} max-w-xs`}>
+                      {err.description || '-'}
+                    </td>
+                    <td className={`py-3 px-4 text-sm font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                      {err.challenge_title}
+                    </td>
+                    <td className={`py-3 px-4 text-sm font-mono ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {err.operation_reference || '-'}
+                    </td>
+                    <td className={`py-3 px-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} whitespace-nowrap`}>
+                      {err.date ? new Date(err.date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Show more/less button */}
+          {filteredErrors.length > 10 && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={() => setShowAllErrors(!showAllErrors)}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  isDark ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {showAllErrors ? (
+                  <>
+                    <ChevronUp className="w-4 h-4" />
+                    Mostrar menos
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-4 h-4" />
+                    Ver todos ({filteredErrors.length} erros)
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {/* Challenge Performance Table - original */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
