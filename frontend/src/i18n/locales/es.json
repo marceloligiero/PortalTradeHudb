@@ -1748,7 +1748,9 @@
     "courseRated": "Curso Clasificado",
     "rateCourse": "Clasificar Curso",
     "lessonRated": "Lección Clasificada",
-    "rateLesson": "Clasificar Lección"
+    "rateLesson": "Clasificar Lección",
+    "challengeRated": "Desafío Clasificado",
+    "rateChallenge": "Clasificar Desafío"
   },
   "adminDashboard": {
     "controlPanel": "Panel de Control",

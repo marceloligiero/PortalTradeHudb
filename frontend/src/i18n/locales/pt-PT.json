@@ -1747,7 +1747,9 @@
     "courseRated": "Curso Classificado",
     "rateCourse": "Classificar Curso",
     "lessonRated": "Aula Classificada",
-    "rateLesson": "Classificar Aula"
+    "rateLesson": "Classificar Aula",
+    "challengeRated": "Desafio Classificado",
+    "rateChallenge": "Classificar Desafio"
   },
   "adminDashboard": {
     "controlPanel": "Painel de Controlo",

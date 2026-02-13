@@ -188,13 +188,16 @@ export default function TrainingPlanDetail() {
   const [showTrainerRatingModal, setShowTrainerRatingModal] = useState(false);
   const [showCourseRatingModal, setShowCourseRatingModal] = useState(false);
   const [showLessonRatingModal, setShowLessonRatingModal] = useState(false);
+  const [showChallengeRatingModal, setShowChallengeRatingModal] = useState(false);
   const [selectedTrainer, setSelectedTrainer] = useState<TrainerInfo | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<CourseItem | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<LessonItem | null>(null);
+  const [selectedChallengeForRating, setSelectedChallengeForRating] = useState<ChallengeItem | null>(null);
   const [hasPlanRating, setHasPlanRating] = useState(false);
   const [trainerRatings, setTrainerRatings] = useState<Record<number, boolean>>({});
   const [courseRatings, setCourseRatings] = useState<Record<number, boolean>>({});
   const [lessonRatings, setLessonRatings] = useState<Record<number, boolean>>({});
+  const [challengeRatings, setChallengeRatings] = useState<Record<number, boolean>>({});
   const [pendingRatingsCount, setPendingRatingsCount] = useState(0);
 
   const isStudent = user?.role === 'STUDENT' || user?.role === 'TRAINEE';
@@ -328,6 +331,27 @@ export default function TrainingPlanDetail() {
           }
         }
         setLessonRatings(lessonRatingsMap);
+      }
+
+      // Check challenge ratings
+      if (plan.courses) {
+        const challengeRatingsMap: Record<number, boolean> = {};
+        for (const course of plan.courses) {
+          if (course.challenges) {
+            for (const challenge of course.challenges) {
+              try {
+                const challengeResp = await api.get('/api/ratings/check', {
+                  params: { rating_type: 'CHALLENGE', challenge_id: challenge.id, training_plan_id: plan.id }
+                });
+                challengeRatingsMap[challenge.id] = challengeResp.data.exists;
+                if (!challengeResp.data.exists) pendingCount++;
+              } catch (err) {
+                console.log('Error checking challenge rating:', err);
+              }
+            }
+          }
+        }
+        setChallengeRatings(challengeRatingsMap);
       }
       
       setPendingRatingsCount(pendingCount);
@@ -2014,6 +2038,27 @@ export default function TrainingPlanDetail() {
                                             )}
                                           </div>
                                         )}
+
+                                        {/* Classificar desafio - quando plano finalizado e desafio aprovado */}
+                                        {isStudent && completionStatus?.is_finalized && submission.status === 'APPROVED' && (
+                                          challengeRatings[challenge.id] ? (
+                                            <span className="flex items-center gap-1 px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-xs font-medium">
+                                              <Star className="w-3 h-3 fill-green-400" />
+                                              {t('trainingPlanDetail.rated', 'Classificado')} ✓
+                                            </span>
+                                          ) : (
+                                            <button
+                                              onClick={() => {
+                                                setSelectedChallengeForRating(challenge);
+                                                setShowChallengeRatingModal(true);
+                                              }}
+                                              className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-600 text-white rounded-lg text-xs font-medium hover:from-amber-600 hover:to-yellow-700 transition-all"
+                                            >
+                                              <Star className="w-3 h-3" />
+                                              {t('trainingPlanDetail.rateChallenge', 'Classificar Desafio')}
+                                            </button>
+                                          )
+                                        )}
                                       </>
                                     )}
                                   </div>
@@ -2117,6 +2162,27 @@ export default function TrainingPlanDetail() {
             setPendingRatingsCount(prev => Math.max(0, prev - 1));
             setShowLessonRatingModal(false);
             setSelectedLesson(null);
+          }}
+        />
+      )}
+
+      {/* Rating Modal for Challenge */}
+      {selectedChallengeForRating && plan && (
+        <RatingModal
+          isOpen={showChallengeRatingModal}
+          onClose={() => {
+            setShowChallengeRatingModal(false);
+            setSelectedChallengeForRating(null);
+          }}
+          ratingType="CHALLENGE"
+          itemId={selectedChallengeForRating.id}
+          itemTitle={selectedChallengeForRating.title}
+          trainingPlanId={plan.id}
+          onSuccess={() => {
+            setChallengeRatings(prev => ({ ...prev, [selectedChallengeForRating.id]: true }));
+            setPendingRatingsCount(prev => Math.max(0, prev - 1));
+            setShowChallengeRatingModal(false);
+            setSelectedChallengeForRating(null);
           }}
         />
       )}
