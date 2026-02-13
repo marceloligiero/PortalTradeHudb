@@ -220,8 +220,10 @@ async def get_student_dashboard(
     submission_errors = db.query(
         models.SubmissionError,
         models.ChallengeSubmission.challenge_id,
+        models.ChallengeSubmission.training_plan_id,
         models.ChallengeSubmission.completed_at,
-        models.Challenge.title.label('challenge_title')
+        models.Challenge.title.label('challenge_title'),
+        models.Challenge.course_id,
     ).join(
         models.ChallengeSubmission, models.SubmissionError.submission_id == models.ChallengeSubmission.id
     ).join(
@@ -238,8 +240,10 @@ async def get_student_dashboard(
         models.ChallengeOperation.operation_number,
         models.ChallengeOperation.operation_reference,
         models.ChallengeSubmission.challenge_id,
+        models.ChallengeSubmission.training_plan_id,
         models.ChallengeSubmission.completed_at,
-        models.Challenge.title.label('challenge_title')
+        models.Challenge.title.label('challenge_title'),
+        models.Challenge.course_id,
     ).join(
         models.ChallengeOperation, models.OperationError.operation_id == models.ChallengeOperation.id
     ).join(
@@ -252,6 +256,26 @@ async def get_student_dashboard(
         desc(models.ChallengeSubmission.completed_at)
     ).all()
     
+    # Cache de nomes de cursos e planos
+    course_cache = {}
+    plan_cache = {}
+    
+    def get_course_title(course_id):
+        if not course_id:
+            return None
+        if course_id not in course_cache:
+            course = db.query(models.Course.title).filter(models.Course.id == course_id).first()
+            course_cache[course_id] = course.title if course else None
+        return course_cache[course_id]
+    
+    def get_plan_title(plan_id):
+        if not plan_id:
+            return None
+        if plan_id not in plan_cache:
+            plan = db.query(models.TrainingPlan.title).filter(models.TrainingPlan.id == plan_id).first()
+            plan_cache[plan_id] = plan.title if plan else None
+        return plan_cache[plan_id]
+    
     error_details = []
     for se in submission_errors:
         error_details.append({
@@ -259,6 +283,8 @@ async def get_student_dashboard(
             'description': se.SubmissionError.description,
             'operation_reference': se.SubmissionError.operation_reference,
             'challenge_title': se.challenge_title,
+            'course_title': get_course_title(se.course_id),
+            'plan_title': get_plan_title(se.training_plan_id),
             'date': se.completed_at.isoformat() if se.completed_at else None,
         })
     for oe in operation_errors:
@@ -267,6 +293,8 @@ async def get_student_dashboard(
             'description': oe.OperationError.description,
             'operation_reference': oe.operation_reference or f'Op. {oe.operation_number}',
             'challenge_title': oe.challenge_title,
+            'course_title': get_course_title(oe.course_id),
+            'plan_title': get_plan_title(oe.training_plan_id),
             'date': oe.completed_at.isoformat() if oe.completed_at else None,
         })
     

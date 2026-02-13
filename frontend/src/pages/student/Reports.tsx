@@ -74,6 +74,8 @@ interface DashboardData {
     description: string;
     operation_reference: string | null;
     challenge_title: string;
+    course_title: string | null;
+    plan_title: string | null;
     date: string | null;
   }>;
   best_performance: {
@@ -423,6 +425,8 @@ const Reports: React.FC = () => {
                 <tr className={`border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
                   <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Tipo</th>
                   <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Descrição</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Plano</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Curso</th>
                   <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.challenge')}</th>
                   <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Ref.</th>
                   <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Data</th>
@@ -444,6 +448,12 @@ const Reports: React.FC = () => {
                     </td>
                     <td className={`py-3 px-4 text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'} max-w-xs`}>
                       {err.description || '-'}
+                    </td>
+                    <td className={`py-3 px-4 text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                      {err.plan_title || '-'}
+                    </td>
+                    <td className={`py-3 px-4 text-sm ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+                      {err.course_title || '-'}
                     </td>
                     <td className={`py-3 px-4 text-sm font-medium ${isDark ? 'text-white' : 'text-gray-800'}`}>
                       {err.challenge_title}
