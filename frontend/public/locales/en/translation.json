@@ -96,7 +96,7 @@
     "submitted": "Submitted",
     "approved": "Approved",
     "rejected": "Rejected",
-    "mpu": "MPU (Min/Unit)",
+    "mpu": "MPU (Min/Op)",
     "operations": "Operations"
   },
   "certificates": {

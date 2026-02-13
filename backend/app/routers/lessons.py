@@ -1023,11 +1023,21 @@ async def list_my_lessons(
                 "completed_at": None,
                 "estimated_minutes": p["estimated_minutes"],
                 "actual_time_minutes": None,
+                "accumulated_seconds": 0,
+                "is_approved": False,
+                "finished_by_name": None,
                 "student_confirmed": False,
                 "student_confirmed_at": None,
                 "started_by": lesson.started_by if lesson else "TRAINER",
             })
         else:
+            # Buscar nome do formador que finalizou
+            finished_by_name = None
+            if p.finished_by:
+                finisher = db.query(models.User).filter(models.User.id == p.finished_by).first()
+                if finisher:
+                    finished_by_name = finisher.full_name or finisher.username
+            
             result.append({
                 "id": p.id,
                 "lesson_id": p.lesson_id,
@@ -1041,6 +1051,9 @@ async def list_my_lessons(
                 "completed_at": p.completed_at.isoformat() if p.completed_at else None,
                 "estimated_minutes": p.estimated_minutes,
                 "actual_time_minutes": p.actual_time_minutes,
+                "accumulated_seconds": p.accumulated_seconds or 0,
+                "is_approved": getattr(p, 'is_approved', False),
+                "finished_by_name": finished_by_name,
                 "student_confirmed": getattr(p, 'student_confirmed', False),
                 "student_confirmed_at": p.student_confirmed_at.isoformat() if getattr(p, 'student_confirmed_at', None) else None,
                 "started_by": lesson.started_by if lesson else "TRAINER",

@@ -689,7 +689,7 @@
     "challengesCreated": "desafíos creados",
     "approvalRate": "Tasa de Aprobación",
     "avgMPU": "MPU Medio",
-    "minutesPerUnit": "minutos por unidad",
+    "minutesPerUnit": "minutos por operación",
     "errorRate": "Tasa de Errores",
     "operations": "operaciones",
     "errorAnalysis": "Análisis Completo de Errores",
@@ -756,7 +756,7 @@
     "avgLessonTime": "Tiempo Medio (Lecciones)",
     "avgMPU": "MPU Medio",
     "avgMPUShort": "MPU Medio",
-    "minutesPerUnit": "minutos/unidad",
+    "minutesPerUnit": "minutos/operación",
     "perLesson": "por lección",
     "approved": "aprobadas",
     "rejections": "rechazos",
@@ -1625,7 +1625,10 @@
     "noLessonsDesc": "Aguarde el formador iniciar sus clases",
     "estimatedTime": "Tiempo Estimado",
     "actualTime": "Tiempo Real",
-    "pendingLessons": "Clases en Curso"
+    "pendingLessons": "Clases en Curso",
+    "confirmedByStudent": "Confirmado por el Formando",
+    "approvedBy": "Aprobada por",
+    "startedByTrainer": "Iniciada por el Formador"
   },
   "challengeExecution": {
     "insertReference": "Inserte la referencia de la operación",

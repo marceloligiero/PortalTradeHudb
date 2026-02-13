@@ -1042,7 +1042,7 @@
     "challengesCreated": "challenges created",
     "approvalRate": "Approval Rate",
     "avgMPU": "Avg MPU",
-    "minutesPerUnit": "minutes per unit",
+    "minutesPerUnit": "minutes per operation",
     "errorRate": "Error Rate",
     "operations": "operations",
     "errorAnalysis": "Complete Error Analysis",
@@ -1126,7 +1126,7 @@
     "avgLessonTime": "Avg. Lesson Time",
     "avgMPU": "Avg. MPU",
     "avgMPUShort": "Avg. MPU",
-    "minutesPerUnit": "minutes/unit",
+    "minutesPerUnit": "minutes/operation",
     "perLesson": "per lesson",
     "approved": "approved",
     "rejections": "rejections",
@@ -1539,7 +1539,10 @@
     "noLessonsDesc": "Wait for the trainer to start your lessons",
     "estimatedTime": "Estimated Time",
     "actualTime": "Actual Time",
-    "pendingLessons": "Lessons In Progress"
+    "pendingLessons": "Lessons In Progress",
+    "confirmedByStudent": "Confirmed by Student",
+    "approvedBy": "Approved by",
+    "startedByTrainer": "Started by Trainer"
   },
   "challengeExecution": {
     "insertReference": "Enter the operation reference",

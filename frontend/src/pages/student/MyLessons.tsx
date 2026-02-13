@@ -11,7 +11,9 @@ import {
   Video,
   Check,
   AlertCircle,
-  Eye
+  Eye,
+  User,
+  Shield
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -41,6 +43,9 @@ interface MyLesson {
   actual_time_minutes?: number;
   student_confirmed: boolean;
   student_confirmed_at?: string;
+  accumulated_seconds?: number;
+  is_approved?: boolean;
+  finished_by_name?: string;
   started_by?: string;
 }
 
@@ -51,6 +56,12 @@ export default function MyLessons() {
   const [lessons, setLessons] = useState<MyLesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     if (!token || !user) return;
@@ -237,14 +248,35 @@ export default function MyLessons() {
                       {lesson.lesson_description && (
                         <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{stripHtml(lesson.lesson_description)}</p>
                       )}
-                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {lesson.actual_time_minutes || lesson.estimated_minutes} min
+                          {lesson.accumulated_seconds ? formatTime(lesson.accumulated_seconds) : (lesson.actual_time_minutes || lesson.estimated_minutes) + ' min'} / {lesson.estimated_minutes} min
                         </span>
                         {lesson.completed_at && (
                           <span>
                             {t('myLessons.completed')}: {new Date(lesson.completed_at).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                      {/* Info: confirmação e aprovação */}
+                      <div className="flex flex-wrap items-center gap-3 mt-2">
+                        {lesson.student_confirmed && (
+                          <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 bg-green-500/10 px-2 py-1 rounded-full">
+                            <User className="w-3 h-3" />
+                            {t('myLessons.confirmedByStudent')}
+                          </span>
+                        )}
+                        {lesson.is_approved && lesson.finished_by_name && (
+                          <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-1 rounded-full">
+                            <Shield className="w-3 h-3" />
+                            {t('myLessons.approvedBy')} {lesson.finished_by_name}
+                          </span>
+                        )}
+                        {lesson.started_by === 'TRAINER' && (
+                          <span className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-1 rounded-full">
+                            <User className="w-3 h-3" />
+                            {t('myLessons.startedByTrainer')}
                           </span>
                         )}
                       </div>
@@ -395,10 +427,10 @@ export default function MyLessons() {
                       {lesson.lesson_description && (
                         <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{stripHtml(lesson.lesson_description)}</p>
                       )}
-                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {t('myLessons.estimatedTime')}: {lesson.estimated_minutes} min
+                          {lesson.accumulated_seconds ? formatTime(lesson.accumulated_seconds) : '0:00'} / {lesson.estimated_minutes} min
                         </span>
                         {lesson.started_at && (
                           <span>
@@ -406,6 +438,14 @@ export default function MyLessons() {
                           </span>
                         )}
                       </div>
+                      {lesson.started_by === 'TRAINER' && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-1 rounded-full">
+                            <User className="w-3 h-3" />
+                            {t('myLessons.startedByTrainer')}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
                       <Eye className="w-5 h-5" />
@@ -444,10 +484,10 @@ export default function MyLessons() {
                         </h3>
                         {getStatusBadge(lesson)}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {lesson.actual_time_minutes || lesson.estimated_minutes} min
+                          {lesson.accumulated_seconds ? formatTime(lesson.accumulated_seconds) : (lesson.actual_time_minutes || lesson.estimated_minutes) + ' min'} / {lesson.estimated_minutes} min
                         </span>
                         {lesson.completed_at && (
                           <span>
@@ -457,6 +497,27 @@ export default function MyLessons() {
                         {lesson.student_confirmed_at && (
                           <span className="text-green-600 dark:text-green-400">
                             {t('myLessons.confirmed')}: {new Date(lesson.student_confirmed_at).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                      {/* Info: confirmação e aprovação */}
+                      <div className="flex flex-wrap items-center gap-3 mt-2">
+                        {lesson.student_confirmed && (
+                          <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 bg-green-500/10 px-2 py-1 rounded-full">
+                            <User className="w-3 h-3" />
+                            {t('myLessons.confirmedByStudent')}
+                          </span>
+                        )}
+                        {lesson.is_approved && lesson.finished_by_name && (
+                          <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-1 rounded-full">
+                            <Shield className="w-3 h-3" />
+                            {t('myLessons.approvedBy')} {lesson.finished_by_name}
+                          </span>
+                        )}
+                        {lesson.started_by === 'TRAINER' && (
+                          <span className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-1 rounded-full">
+                            <User className="w-3 h-3" />
+                            {t('myLessons.startedByTrainer')}
                           </span>
                         )}
                       </div>
