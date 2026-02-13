@@ -666,10 +666,26 @@ export default function Reports() {
                     <p className={`text-sm font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{tr.name}</p>
                     <p className={`text-xs truncate ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{tr.email}</p>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <BookOpen className="w-4 h-4 text-purple-500" />
-                    <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{tr.courses_created}</span>
-                    <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('insights.coursesShort', 'cursos')}</span>
+                  <div className="flex items-center gap-3">
+                    {tr.lessons_given > 0 && (
+                      <div className="flex items-center gap-1" title={t('insights.lessonsGiven', 'Aulas dadas')}>
+                        <BookOpen className="w-3.5 h-3.5 text-blue-500" />
+                        <span className={`text-xs font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{tr.lessons_given}</span>
+                      </div>
+                    )}
+                    {tr.challenges_applied > 0 && (
+                      <div className="flex items-center gap-1" title={t('insights.challengesApplied', 'Desafios aplicados')}>
+                        <Target className="w-3.5 h-3.5 text-purple-500" />
+                        <span className={`text-xs font-bold ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>{tr.challenges_applied}</span>
+                      </div>
+                    )}
+                    {tr.challenges_reviewed > 0 && (
+                      <div className="flex items-center gap-1" title={t('insights.challengesReviewed', 'Desafios corrigidos')}>
+                        <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                        <span className={`text-xs font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{tr.challenges_reviewed}</span>
+                      </div>
+                    )}
+                    <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{tr.total_activity}</span>
                   </div>
                 </div>
               ))}

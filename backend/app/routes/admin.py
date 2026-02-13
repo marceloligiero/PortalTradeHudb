@@ -1373,24 +1373,38 @@ async def get_admin_insights(
         for s in top_students_query
     ]
     
-    # Top trainers by courses created
-    top_trainers_query = db.query(
-        models.User.id,
-        models.User.full_name,
-        models.User.email,
-        func.count(models.Course.id).label("courses_created")
-    ).join(
-        models.Course, models.Course.created_by == models.User.id
-    ).filter(
-        models.User.role == "TRAINER"
-    ).group_by(models.User.id, models.User.full_name, models.User.email
-    ).order_by(func.count(models.Course.id).desc()
-    ).limit(5).all()
+    # Top trainers by activity (lessons finished + challenges applied/reviewed)
+    # Include both TRAINER and ADMIN roles since admins also train
+    trainer_users = db.query(models.User).filter(
+        models.User.role.in_(["TRAINER", "ADMIN"]),
+        models.User.is_active == True
+    ).all()
     
-    top_trainers = [
-        {"id": t.id, "name": t.full_name, "email": t.email, "courses_created": t.courses_created}
-        for t in top_trainers_query
-    ]
+    top_trainers = []
+    for u in trainer_users:
+        lessons_given = db.query(models.LessonProgress).filter(
+            models.LessonProgress.finished_by == u.id
+        ).count()
+        challenges_applied = db.query(models.ChallengeSubmission).filter(
+            models.ChallengeSubmission.submitted_by == u.id
+        ).count()
+        challenges_reviewed = db.query(models.ChallengeSubmission).filter(
+            models.ChallengeSubmission.reviewed_by == u.id
+        ).count()
+        total_activity = lessons_given + challenges_applied + challenges_reviewed
+        if total_activity > 0:
+            top_trainers.append({
+                "id": u.id,
+                "name": u.full_name,
+                "email": u.email,
+                "lessons_given": lessons_given,
+                "challenges_applied": challenges_applied,
+                "challenges_reviewed": challenges_reviewed,
+                "total_activity": total_activity
+            })
+    
+    top_trainers.sort(key=lambda x: x["total_activity"], reverse=True)
+    top_trainers = top_trainers[:5]
     
     # ═══════════════ 8. MONTHLY TRENDS (last 6 months) ═══════════════
     monthly_trends = []
