@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Brain, Users, BookOpen, Target, Award, Clock, AlertTriangle,
-  TrendingUp, ArrowUp, ArrowDown, ChevronDown, ChevronRight,
-  Search, Filter, Download, RefreshCw, Eye, BarChart3,
-  CheckCircle2, XCircle, Minus, Star, Zap, Shield
+  TrendingUp, ChevronDown, ChevronRight,
+  Search, Download, RefreshCw,
+  Minus, Star, Zap, Shield, X,
+  Activity, Layers, Eye, EyeOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../lib/axios';
@@ -73,61 +74,104 @@ interface KnowledgeMatrixData {
 
 const levelConfig: Record<string, {
   label: string;
+  shortLabel: string;
   color: string;
-  bgColor: string;
-  borderColor: string;
-  cellBg: string;
-  icon: typeof Star;
+  textColor: string;
+  bgGlow: string;
+  dotColor: string;
+  ringColor: string;
   gradient: string;
+  icon: typeof Star;
+  score: number;
 }> = {
   EXPERT: {
     label: 'Expert',
-    color: 'text-emerald-400',
-    bgColor: 'bg-emerald-500/20',
-    borderColor: 'border-emerald-500/30',
-    cellBg: 'bg-emerald-500/15',
+    shortLabel: 'EXP',
+    color: '#10b981',
+    textColor: 'text-emerald-400',
+    bgGlow: 'shadow-emerald-500/30',
+    dotColor: 'bg-emerald-500',
+    ringColor: 'ring-emerald-500/40',
+    gradient: 'from-emerald-500 to-teal-400',
     icon: Star,
-    gradient: 'from-emerald-600 to-emerald-400',
+    score: 5,
   },
   ADVANCED: {
     label: 'Avançado',
-    color: 'text-blue-400',
-    bgColor: 'bg-blue-500/20',
-    borderColor: 'border-blue-500/30',
-    cellBg: 'bg-blue-500/15',
+    shortLabel: 'AVN',
+    color: '#3b82f6',
+    textColor: 'text-blue-400',
+    bgGlow: 'shadow-blue-500/30',
+    dotColor: 'bg-blue-500',
+    ringColor: 'ring-blue-500/40',
+    gradient: 'from-blue-500 to-cyan-400',
     icon: Zap,
-    gradient: 'from-blue-600 to-blue-400',
+    score: 4,
   },
   INTERMEDIATE: {
     label: 'Intermédio',
-    color: 'text-amber-400',
-    bgColor: 'bg-amber-500/20',
-    borderColor: 'border-amber-500/30',
-    cellBg: 'bg-amber-500/15',
+    shortLabel: 'INT',
+    color: '#f59e0b',
+    textColor: 'text-amber-400',
+    bgGlow: 'shadow-amber-500/30',
+    dotColor: 'bg-amber-500',
+    ringColor: 'ring-amber-500/40',
+    gradient: 'from-amber-500 to-yellow-400',
     icon: Shield,
-    gradient: 'from-amber-600 to-amber-400',
+    score: 3,
   },
   BEGINNER: {
     label: 'Iniciante',
-    color: 'text-orange-400',
-    bgColor: 'bg-orange-500/20',
-    borderColor: 'border-orange-500/30',
-    cellBg: 'bg-orange-500/15',
+    shortLabel: 'INI',
+    color: '#f97316',
+    textColor: 'text-orange-400',
+    bgGlow: 'shadow-orange-500/30',
+    dotColor: 'bg-orange-500',
+    ringColor: 'ring-orange-500/40',
+    gradient: 'from-orange-500 to-red-400',
     icon: TrendingUp,
-    gradient: 'from-orange-600 to-orange-400',
+    score: 2,
   },
   NOT_STARTED: {
     label: 'Não Iniciado',
-    color: 'text-gray-500',
-    bgColor: 'bg-gray-500/10',
-    borderColor: 'border-gray-500/20',
-    cellBg: 'bg-gray-500/5',
+    shortLabel: '—',
+    color: '#6b7280',
+    textColor: 'text-gray-500',
+    bgGlow: '',
+    dotColor: 'bg-gray-600',
+    ringColor: 'ring-gray-600/20',
+    gradient: 'from-gray-600 to-gray-500',
     icon: Minus,
-    gradient: 'from-gray-600 to-gray-400',
+    score: 0,
   },
 };
 
-// ============ COMPONENT ============
+const levelKeys = ['EXPERT', 'ADVANCED', 'INTERMEDIATE', 'BEGINNER', 'NOT_STARTED'] as const;
+
+// ============ CIRCULAR PROGRESS ============
+
+function CircularProgress({ value, size = 48, strokeWidth = 4, color = '#10b981' }: {
+  value: number; size?: number; strokeWidth?: number; color?: string;
+}) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (value / 100) * circumference;
+
+  return (
+    <svg width={size} height={size} className="transform -rotate-90">
+      <circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth} fill="none" />
+      <circle
+        cx={size / 2} cy={size / 2} r={radius}
+        stroke={color} strokeWidth={strokeWidth} fill="none"
+        strokeDasharray={circumference} strokeDashoffset={offset}
+        strokeLinecap="round"
+        className="transition-all duration-1000 ease-out"
+      />
+    </svg>
+  );
+}
+
+// ============ MAIN COMPONENT ============
 
 export default function KnowledgeMatrix() {
   const { t } = useTranslation();
@@ -135,10 +179,12 @@ export default function KnowledgeMatrix() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [levelFilter, setLevelFilter] = useState<string>('ALL');
-  const [expandedStudents, setExpandedStudents] = useState<Set<number>>(new Set());
-  const [selectedCell, setSelectedCell] = useState<{ studentId: number; courseId: number } | null>(null);
-  const [viewMode, setViewMode] = useState<'matrix' | 'details'>('matrix');
+  const [activeLevelFilters, setActiveLevelFilters] = useState<Set<string>>(new Set());
+  const [selectedStudent, setSelectedStudent] = useState<StudentRow | null>(null);
+  const [hoveredCell, setHoveredCell] = useState<{ studentId: number; courseId: number; rect: DOMRect } | null>(null);
+  const [sortBy, setSortBy] = useState<'level' | 'completion' | 'name' | 'mpu'>('level');
+  const [sortAsc, setSortAsc] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(true);
 
   const fetchData = async () => {
     try {
@@ -147,7 +193,7 @@ export default function KnowledgeMatrix() {
       const res = await api.get('/admin/knowledge-matrix');
       setData(res.data);
     } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Erro ao carregar a Matriz de Conhecimento');
+      setError(err?.response?.data?.detail || 'Erro ao carregar');
     } finally {
       setLoading(false);
     }
@@ -155,10 +201,17 @@ export default function KnowledgeMatrix() {
 
   useEffect(() => { fetchData(); }, []);
 
-  // ============ FILTERING ============
+  // Close tooltip on click outside
+  useEffect(() => {
+    const handler = () => setHoveredCell(null);
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, []);
+
+  // ============ FILTERING & SORTING ============
   const filteredRows = useMemo(() => {
     if (!data) return [];
-    let rows = data.rows;
+    let rows = [...data.rows];
 
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -168,139 +221,85 @@ export default function KnowledgeMatrix() {
       );
     }
 
-    if (levelFilter !== 'ALL') {
-      rows = rows.filter(r => r.overall_level === levelFilter);
+    if (activeLevelFilters.size > 0) {
+      rows = rows.filter(r => activeLevelFilters.has(r.overall_level));
     }
 
-    return rows;
-  }, [data, searchTerm, levelFilter]);
+    rows.sort((a, b) => {
+      let cmp = 0;
+      switch (sortBy) {
+        case 'level':
+          cmp = (levelConfig[b.overall_level]?.score || 0) - (levelConfig[a.overall_level]?.score || 0);
+          break;
+        case 'completion':
+          cmp = b.overall_completion_pct - a.overall_completion_pct;
+          break;
+        case 'name':
+          cmp = a.student_name.localeCompare(b.student_name);
+          break;
+        case 'mpu':
+          cmp = (a.overall_avg_mpu || 999) - (b.overall_avg_mpu || 999);
+          break;
+      }
+      return sortAsc ? -cmp : cmp;
+    });
 
-  const toggleStudent = (id: number) => {
-    setExpandedStudents(prev => {
+    return rows;
+  }, [data, searchTerm, activeLevelFilters, sortBy, sortAsc]);
+
+  const toggleLevelFilter = (level: string) => {
+    setActiveLevelFilters(prev => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(level)) next.delete(level);
+      else next.add(level);
       return next;
     });
   };
 
   // ============ EXPORT CSV ============
-  const exportCSV = () => {
+  const exportCSV = useCallback(() => {
     if (!data) return;
-    const headers = ['Formando', 'Email', 'Nível Global', 'Conclusão %', 'MPU Médio', 'Horas', 'Certificados'];
-    data.columns.forEach(c => headers.push(c.course_title + ' (Nível)', c.course_title + ' (%)'));
+    const headers = ['Formando', 'Email', 'Nível', 'Conclusão %', 'MPU', 'Horas', 'Certificados'];
+    data.columns.forEach(c => headers.push(`${c.course_title} (Nível)`, `${c.course_title} (%)`));
 
     const csvRows = [headers.join(';')];
     filteredRows.forEach(row => {
-      const cols = [
-        row.student_name,
-        row.email,
+      const cols: string[] = [
+        row.student_name, row.email,
         levelConfig[row.overall_level]?.label || row.overall_level,
         row.overall_completion_pct.toFixed(1),
         row.overall_avg_mpu?.toFixed(2) || 'N/A',
         row.total_study_hours.toFixed(1),
-        row.total_certificates.toString(),
+        String(row.total_certificates),
       ];
       data.columns.forEach(c => {
-        const skill = row.skills[String(c.course_id)];
-        if (skill) {
-          cols.push(levelConfig[skill.level]?.label || skill.level);
-          cols.push(skill.lesson_completion_pct.toFixed(1));
-        } else {
-          cols.push('N/A', '0');
-        }
+        const s = row.skills[String(c.course_id)];
+        cols.push(s ? (levelConfig[s.level]?.label || s.level) : 'N/A');
+        cols.push(s ? s.lesson_completion_pct.toFixed(1) : '0');
       });
       csvRows.push(cols.join(';'));
     });
 
     const blob = new Blob(['\ufeff' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `matriz_conhecimento_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `matriz_conhecimento_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
     URL.revokeObjectURL(url);
-  };
-
-  // ============ RENDER LEVEL BADGE ============
-  const LevelBadge = ({ level, size = 'sm' }: { level: string; size?: 'sm' | 'md' | 'lg' }) => {
-    const cfg = levelConfig[level] || levelConfig.NOT_STARTED;
-    const Icon = cfg.icon;
-    const sizeClasses = {
-      sm: 'px-2 py-0.5 text-xs gap-1',
-      md: 'px-3 py-1 text-sm gap-1.5',
-      lg: 'px-4 py-1.5 text-sm gap-2',
-    };
-    return (
-      <span className={`inline-flex items-center rounded-full font-semibold ${cfg.bgColor} ${cfg.color} border ${cfg.borderColor} ${sizeClasses[size]}`}>
-        <Icon className={size === 'sm' ? 'w-3 h-3' : 'w-4 h-4'} />
-        {cfg.label}
-      </span>
-    );
-  };
-
-  // ============ RENDER CELL TOOLTIP ============
-  const CellDetail = ({ skill, courseName }: { skill: StudentSkillCell; courseName: string }) => {
-    const cfg = levelConfig[skill.level] || levelConfig.NOT_STARTED;
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="absolute z-50 w-80 p-4 bg-[#1a1a2e] border border-white/10 rounded-2xl shadow-2xl -translate-x-1/2 left-1/2 top-full mt-2"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="font-bold text-white text-sm">{courseName}</h4>
-          <LevelBadge level={skill.level} size="sm" />
-        </div>
-        
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="bg-white/5 rounded-lg p-2">
-            <div className="text-gray-400">Aulas</div>
-            <div className="text-white font-bold">{skill.lessons_completed}/{skill.lessons_total}</div>
-            <div className={`${skill.lesson_completion_pct >= 100 ? 'text-emerald-400' : 'text-amber-400'}`}>
-              {skill.lesson_completion_pct.toFixed(0)}%
-            </div>
-          </div>
-          <div className="bg-white/5 rounded-lg p-2">
-            <div className="text-gray-400">Desafios</div>
-            <div className="text-white font-bold">{skill.challenges_approved}/{skill.challenges_attempted}</div>
-            <div className={`${skill.challenge_approval_pct >= 80 ? 'text-emerald-400' : skill.challenge_approval_pct >= 50 ? 'text-amber-400' : 'text-red-400'}`}>
-              {skill.challenge_approval_pct.toFixed(0)}% aprovados
-            </div>
-          </div>
-          <div className="bg-white/5 rounded-lg p-2">
-            <div className="text-gray-400">MPU Médio</div>
-            <div className="text-white font-bold">{skill.avg_mpu?.toFixed(2) || '—'}</div>
-            <div className="text-gray-500">min/op</div>
-          </div>
-          <div className="bg-white/5 rounded-lg p-2">
-            <div className="text-gray-400">Tempo</div>
-            <div className="text-white font-bold">{skill.total_time_hours.toFixed(1)}h</div>
-          </div>
-        </div>
-
-        {skill.total_errors > 0 && (
-          <div className="mt-3 bg-red-500/10 rounded-lg p-2">
-            <div className="text-xs text-red-400 font-semibold mb-1">Erros ({skill.total_errors})</div>
-            <div className="grid grid-cols-2 gap-1 text-xs">
-              {skill.error_methodology > 0 && <div className="text-gray-300">Metodologia: <span className="text-red-400">{skill.error_methodology}</span></div>}
-              {skill.error_knowledge > 0 && <div className="text-gray-300">Conhecimento: <span className="text-red-400">{skill.error_knowledge}</span></div>}
-              {skill.error_detail > 0 && <div className="text-gray-300">Detalhe: <span className="text-red-400">{skill.error_detail}</span></div>}
-              {skill.error_procedure > 0 && <div className="text-gray-300">Procedimento: <span className="text-red-400">{skill.error_procedure}</span></div>}
-            </div>
-          </div>
-        )}
-      </motion.div>
-    );
-  };
+  }, [data, filteredRows]);
 
   // ============ LOADING / ERROR ============
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-500"></div>
+      <div className="flex items-center justify-center min-h-[70vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-full border-2 border-purple-500/20 animate-pulse" />
+            <Brain className="w-8 h-8 text-purple-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+          </div>
+          <p className="text-gray-400 text-sm animate-pulse">A carregar Matriz de Conhecimento…</p>
+        </div>
       </div>
     );
   }
@@ -309,8 +308,8 @@ export default function KnowledgeMatrix() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <AlertTriangle className="w-12 h-12 text-red-400" />
-        <p className="text-red-400">{error}</p>
-        <button onClick={fetchData} className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors">
+        <p className="text-red-400 text-center">{error}</p>
+        <button onClick={fetchData} className="px-5 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all">
           Tentar novamente
         </button>
       </div>
@@ -318,495 +317,581 @@ export default function KnowledgeMatrix() {
   }
 
   if (!data) return null;
-
   const { summary, columns } = data;
 
+  const levelDistribution = [
+    { key: 'EXPERT', count: summary.students_expert },
+    { key: 'ADVANCED', count: summary.students_advanced },
+    { key: 'INTERMEDIATE', count: summary.students_intermediate },
+    { key: 'BEGINNER', count: summary.students_beginner },
+    { key: 'NOT_STARTED', count: summary.students_not_started },
+  ];
+
   return (
-    <div className="p-6 space-y-6 max-w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <Brain className="w-8 h-8 text-purple-500" />
-            {t('knowledgeMatrix.title', 'Matriz de Conhecimento')}
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
-            {t('knowledgeMatrix.subtitle', 'Visão completa das competências e evolução dos formandos')}
-          </p>
+    <div className="p-4 md:p-6 space-y-5 max-w-full min-h-screen">
+      
+      {/* ═══════════════ HEADER ═══════════════ */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-900/40 via-indigo-900/30 to-blue-900/40 border border-purple-500/20 p-6 md:p-8"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-purple-600/10 via-transparent to-transparent" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
+        
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-purple-500/25">
+              <Brain className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+                {t('knowledgeMatrix.title', 'Matriz de Conhecimento')}
+              </h1>
+              <p className="text-purple-300/70 text-sm mt-0.5">
+                {t('knowledgeMatrix.subtitle', 'Visão completa das competências e evolução dos formandos')}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportCSV}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-gray-300 transition-all text-sm font-medium"
+            >
+              <Download className="w-4 h-4" />
+              Exportar CSV
+            </button>
+            <button
+              onClick={fetchData}
+              className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all text-sm font-medium shadow-lg shadow-purple-600/20"
+            >
+              <RefreshCw className="w-4 h-4" />
+              {t('common.refresh', 'Atualizar')}
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={exportCSV}
-            className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:bg-white/10 transition-colors"
+      </motion.div>
+
+      {/* ═══════════════ KPI RIBBON ═══════════════ */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {[
+          { icon: Users, label: 'Formandos', value: summary.total_students, suffix: '', color: 'from-blue-600/20 to-blue-800/20', border: 'border-blue-500/20', iconColor: 'text-blue-400' },
+          { icon: BookOpen, label: 'Cursos', value: summary.total_courses, suffix: '', color: 'from-purple-600/20 to-purple-800/20', border: 'border-purple-500/20', iconColor: 'text-purple-400' },
+          { icon: Target, label: 'Conclusão', value: summary.avg_completion.toFixed(1), suffix: '%', color: 'from-emerald-600/20 to-emerald-800/20', border: 'border-emerald-500/20', iconColor: 'text-emerald-400' },
+          { icon: Clock, label: 'Horas', value: summary.total_study_hours.toFixed(1), suffix: 'h', color: 'from-amber-600/20 to-amber-800/20', border: 'border-amber-500/20', iconColor: 'text-amber-400' },
+          { icon: Activity, label: 'MPU Médio', value: summary.avg_mpu ? summary.avg_mpu.toFixed(2) : '—', suffix: '', color: 'from-cyan-600/20 to-cyan-800/20', border: 'border-cyan-500/20', iconColor: 'text-cyan-400' },
+          { icon: AlertTriangle, label: 'Erro Frequente', value: summary.top_error_type || 'Nenhum', suffix: '', color: 'from-red-600/20 to-red-800/20', border: 'border-red-500/20', iconColor: 'text-red-400' },
+        ].map((kpi, i) => (
+          <motion.div
+            key={kpi.label}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+            className={`bg-gradient-to-br ${kpi.color} backdrop-blur-xl rounded-2xl border ${kpi.border} p-4 hover:scale-[1.02] transition-transform`}
           >
-            <Download className="w-4 h-4" />
-            CSV
-          </button>
-          <button
-            onClick={fetchData}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-            {t('common.refresh', 'Atualizar')}
-          </button>
-        </div>
+            <kpi.icon className={`w-5 h-5 ${kpi.iconColor} mb-2`} />
+            <div className="text-xl md:text-2xl font-black text-white">{kpi.value}{kpi.suffix}</div>
+            <div className="text-xs text-gray-400 mt-0.5">{kpi.label}</div>
+          </motion.div>
+        ))}
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        <SummaryCard
-          icon={Users}
-          label={t('knowledgeMatrix.totalStudents', 'Total Formandos')}
-          value={summary.total_students}
-          color="blue"
-        />
-        <SummaryCard
-          icon={BookOpen}
-          label={t('knowledgeMatrix.totalCourses', 'Cursos')}
-          value={summary.total_courses}
-          color="purple"
-        />
-        <SummaryCard
-          icon={Target}
-          label={t('knowledgeMatrix.avgCompletion', 'Conclusão Média')}
-          value={`${summary.avg_completion.toFixed(1)}%`}
-          color="emerald"
-        />
-        <SummaryCard
-          icon={Clock}
-          label={t('knowledgeMatrix.totalHours', 'Horas Totais')}
-          value={`${summary.total_study_hours.toFixed(1)}h`}
-          color="amber"
-        />
-        <SummaryCard
-          icon={BarChart3}
-          label={t('knowledgeMatrix.avgMPU', 'MPU Médio')}
-          value={summary.avg_mpu ? `${summary.avg_mpu.toFixed(2)}` : 'N/A'}
-          color="cyan"
-        />
-        <SummaryCard
-          icon={AlertTriangle}
-          label={t('knowledgeMatrix.topError', 'Erro Principal')}
-          value={summary.top_error_type || 'Nenhum'}
-          color="red"
-        />
-      </div>
-
-      {/* Level Distribution */}
-      <div className="bg-white/5 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-        <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-purple-400" />
-          {t('knowledgeMatrix.levelDistribution', 'Distribuição por Nível')}
-        </h3>
-        <div className="flex flex-wrap gap-4">
-          {[
-            { key: 'EXPERT', count: summary.students_expert },
-            { key: 'ADVANCED', count: summary.students_advanced },
-            { key: 'INTERMEDIATE', count: summary.students_intermediate },
-            { key: 'BEGINNER', count: summary.students_beginner },
-            { key: 'NOT_STARTED', count: summary.students_not_started },
-          ].map(item => {
-            const cfg = levelConfig[item.key];
-            const pct = summary.total_students > 0 ? (item.count / summary.total_students * 100) : 0;
+      {/* ═══════════════ LEVEL DISTRIBUTION — Clickable filter chips ═══════════════ */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-white/[0.06] p-5"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+            <Layers className="w-4 h-4 text-purple-400" />
+            Distribuição por Nível
+          </h3>
+          {activeLevelFilters.size > 0 && (
+            <button onClick={() => setActiveLevelFilters(new Set())} className="text-xs text-purple-400 hover:text-purple-300 underline">
+              Limpar filtros
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {levelDistribution.map(({ key, count }) => {
+            const cfg = levelConfig[key];
+            const pct = summary.total_students > 0 ? (count / summary.total_students * 100) : 0;
+            const isActive = activeLevelFilters.size === 0 || activeLevelFilters.has(key);
+            const Icon = cfg.icon;
             return (
-              <div key={item.key} className="flex-1 min-w-[150px]">
+              <button
+                key={key}
+                onClick={() => toggleLevelFilter(key)}
+                className={`relative group rounded-2xl border p-4 text-left transition-all duration-300
+                  ${isActive
+                    ? 'hover:ring-2'
+                    : 'border-white/5 bg-white/[0.02] opacity-40 hover:opacity-70'}
+                `}
+                style={isActive ? { borderColor: cfg.color + '40', backgroundColor: cfg.color + '08' } : {}}
+              >
                 <div className="flex items-center justify-between mb-2">
-                  <LevelBadge level={item.key} size="md" />
-                  <span className="text-white font-bold text-lg">{item.count}</span>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: cfg.color + '20' }}>
+                    <Icon className="w-4 h-4" style={{ color: cfg.color }} />
+                  </div>
+                  <span className="text-2xl font-black text-white">{count}</span>
                 </div>
-                <div className="w-full bg-white/5 rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full bg-gradient-to-r ${cfg.gradient}`}
-                    style={{ width: `${pct}%` }}
+                <div className="text-xs font-semibold mb-2" style={{ color: cfg.color }}>{cfg.label}</div>
+                <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ duration: 1, delay: 0.5 }}
+                    className="h-full rounded-full"
+                    style={{ backgroundColor: cfg.color }}
                   />
                 </div>
-                <div className="text-xs text-gray-500 mt-1">{pct.toFixed(0)}%</div>
-              </div>
+                <div className="text-[10px] text-gray-500 mt-1">{pct.toFixed(0)}% do total</div>
+              </button>
             );
           })}
         </div>
-      </div>
+      </motion.div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="relative flex-1 min-w-[250px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      {/* ═══════════════ TOOLBAR ═══════════════ */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input
             type="text"
             placeholder={t('knowledgeMatrix.searchStudent', 'Pesquisar formando...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50"
+            className="w-full pl-10 pr-4 py-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500/40 focus:ring-1 focus:ring-purple-500/20 transition-all text-sm"
           />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2">
+              <X className="w-3.5 h-3.5 text-gray-500 hover:text-white" />
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-gray-400" />
           <select
-            value={levelFilter}
-            onChange={(e) => setLevelFilter(e.target.value)}
-            className="bg-white/5 border border-white/10 rounded-xl text-white px-3 py-2 focus:outline-none focus:border-purple-500/50"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'level' | 'completion' | 'name' | 'mpu')}
+            className="bg-white/[0.03] border border-white/[0.08] rounded-xl text-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500/40"
           >
-            <option value="ALL">{t('knowledgeMatrix.allLevels', 'Todos os Níveis')}</option>
-            <option value="EXPERT">Expert</option>
-            <option value="ADVANCED">Avançado</option>
-            <option value="INTERMEDIATE">Intermédio</option>
-            <option value="BEGINNER">Iniciante</option>
-            <option value="NOT_STARTED">Não Iniciado</option>
+            <option value="level">Ordenar: Nível</option>
+            <option value="completion">Ordenar: Conclusão</option>
+            <option value="name">Ordenar: Nome</option>
+            <option value="mpu">Ordenar: MPU</option>
           </select>
-        </div>
-        <div className="flex items-center gap-1 bg-white/5 rounded-xl p-1 border border-white/10">
           <button
-            onClick={() => setViewMode('matrix')}
-            className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${viewMode === 'matrix' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}
+            onClick={() => setSortAsc(!sortAsc)}
+            className="p-2.5 bg-white/[0.03] border border-white/[0.08] rounded-xl hover:bg-white/[0.06] transition-colors"
+            title={sortAsc ? 'Ascendente' : 'Descendente'}
           >
-            Matriz
+            {sortAsc ? <ChevronDown className="w-4 h-4 text-gray-400 rotate-180" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
           </button>
           <button
-            onClick={() => setViewMode('details')}
-            className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${viewMode === 'details' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}
+            onClick={() => setShowTooltip(!showTooltip)}
+            className={`p-2.5 rounded-xl border transition-colors ${showTooltip ? 'bg-purple-600/20 border-purple-500/30 text-purple-400' : 'bg-white/[0.03] border-white/[0.08] text-gray-400'}`}
+            title={showTooltip ? 'Ocultar detalhes ao clicar' : 'Mostrar detalhes ao clicar'}
           >
-            Lista Detalhada
+            {showTooltip ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
-      {/* Results count */}
-      <div className="text-sm text-gray-400">
-        {filteredRows.length} de {data.rows.length} formandos
-      </div>
+      <div className="text-xs text-gray-500">{filteredRows.length} de {data.rows.length} formandos</div>
 
-      {/* MATRIX VIEW */}
-      {viewMode === 'matrix' ? (
-        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px]">
-              <thead>
-                <tr className="border-b border-white/10">
-                  <th className="sticky left-0 z-20 bg-[#0a0a1a] px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[250px]">
-                    Formando
-                  </th>
-                  <th className="px-3 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[100px]">
-                    Nível
-                  </th>
-                  <th className="px-3 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[80px]">
-                    %
-                  </th>
-                  {columns.map(col => (
-                    <th key={col.course_id} className="px-3 py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wider min-w-[120px]">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="truncate max-w-[110px]" title={col.course_title}>{col.course_title}</span>
-                        <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                          <span>{col.total_lessons} aulas</span>
-                          <span>{col.total_challenges} desaf.</span>
-                        </div>
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRows.map((row, idx) => (
-                  <motion.tr
-                    key={row.student_id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.02 }}
-                    className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
-                    onClick={() => toggleStudent(row.student_id)}
-                  >
-                    <td className="sticky left-0 z-10 bg-[#0a0a1a] px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-xs font-bold">
+      {/* ═══════════════ STUDENT CARDS ═══════════════ */}
+      <div className="space-y-3">
+        <AnimatePresence mode="popLayout">
+          {filteredRows.map((row, idx) => {
+            const overallCfg = levelConfig[row.overall_level] || levelConfig.NOT_STARTED;
+            const OverallIcon = overallCfg.icon;
+            const isExpanded = selectedStudent?.student_id === row.student_id;
+
+            return (
+              <motion.div
+                key={row.student_id}
+                layout
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.25, delay: Math.min(idx * 0.02, 0.4) }}
+                className="group"
+              >
+                <div
+                  className={`relative rounded-2xl border backdrop-blur-xl overflow-hidden transition-all duration-300 cursor-pointer
+                    ${isExpanded
+                      ? 'bg-white/[0.04] border-purple-500/30 shadow-xl shadow-purple-500/5'
+                      : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.12]'}`}
+                  onClick={() => setSelectedStudent(isExpanded ? null : row)}
+                >
+                  {/* Glow accent on left */}
+                  <div
+                    className="absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl"
+                    style={{ backgroundColor: overallCfg.color }}
+                  />
+
+                  <div className="p-4 md:p-5 pl-5 md:pl-6">
+                    <div className="flex items-start gap-4">
+                      {/* Avatar */}
+                      <div className="relative flex-shrink-0">
+                        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white text-base font-black shadow-lg"
+                          style={{ background: `linear-gradient(135deg, ${overallCfg.color}80, ${overallCfg.color}40)` }}>
                           {row.student_name.charAt(0).toUpperCase()}
                         </div>
-                        <div>
-                          <div className="text-white text-sm font-medium">{row.student_name}</div>
-                          <div className="text-gray-500 text-xs">{row.email}</div>
+                        <div
+                          className="absolute -bottom-1 -right-1 w-5 h-5 rounded-lg flex items-center justify-center border-2 border-[#0d0d1a]"
+                          style={{ backgroundColor: overallCfg.color }}
+                        >
+                          <OverallIcon className="w-2.5 h-2.5 text-white" />
                         </div>
                       </div>
-                    </td>
-                    <td className="px-3 py-3 text-center">
-                      <LevelBadge level={row.overall_level} />
-                    </td>
-                    <td className="px-3 py-3 text-center">
-                      <span className={`text-sm font-bold ${
-                        row.overall_completion_pct >= 80 ? 'text-emerald-400' :
-                        row.overall_completion_pct >= 50 ? 'text-amber-400' :
-                        row.overall_completion_pct > 0 ? 'text-orange-400' : 'text-gray-500'
-                      }`}>
-                        {row.overall_completion_pct.toFixed(0)}%
-                      </span>
-                    </td>
-                    {columns.map(col => {
-                      const skill = row.skills[String(col.course_id)];
-                      if (!skill) {
-                        return (
-                          <td key={col.course_id} className="px-3 py-3 text-center">
-                            <div className="w-6 h-6 mx-auto rounded bg-gray-800/50 flex items-center justify-center">
-                              <Minus className="w-3 h-3 text-gray-600" />
-                            </div>
-                          </td>
-                        );
-                      }
-                      const cfg = levelConfig[skill.level];
-                      return (
-                        <td key={col.course_id} className="px-3 py-3 text-center relative group">
-                          <div
-                            className={`relative w-10 h-10 mx-auto rounded-lg ${cfg.cellBg} border ${cfg.borderColor} flex items-center justify-center cursor-pointer hover:scale-110 transition-transform`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedCell(
-                                selectedCell?.studentId === row.student_id && selectedCell?.courseId === col.course_id
-                                  ? null
-                                  : { studentId: row.student_id, courseId: col.course_id }
-                              );
-                            }}
+
+                      {/* Name + email */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-white font-bold text-base truncate">{row.student_name}</h3>
+                          <span
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide"
+                            style={{ backgroundColor: overallCfg.color + '20', color: overallCfg.color }}
                           >
-                            {skill.level === 'EXPERT' && <Star className={`w-4 h-4 ${cfg.color}`} />}
-                            {skill.level === 'ADVANCED' && <Zap className={`w-4 h-4 ${cfg.color}`} />}
-                            {skill.level === 'INTERMEDIATE' && <Shield className={`w-4 h-4 ${cfg.color}`} />}
-                            {skill.level === 'BEGINNER' && <TrendingUp className={`w-4 h-4 ${cfg.color}`} />}
-                            {skill.level === 'NOT_STARTED' && <Minus className={`w-3 h-3 ${cfg.color}`} />}
-                            
-                            {skill.total_errors > 0 && (
-                              <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full flex items-center justify-center">
-                                <span className="text-[8px] text-white font-bold">{skill.total_errors > 9 ? '9+' : skill.total_errors}</span>
-                              </div>
-                            )}
-                          </div>
-                          
-                          <AnimatePresence>
-                            {selectedCell?.studentId === row.student_id && selectedCell?.courseId === col.course_id && (
-                              <CellDetail skill={skill} courseName={col.course_title} />
-                            )}
-                          </AnimatePresence>
-                        </td>
-                      );
-                    })}
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (
-        /* DETAILS VIEW */
-        <div className="space-y-4">
-          {filteredRows.map((row, idx) => (
-            <motion.div
-              key={row.student_id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.03 }}
-              className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden"
-            >
-              {/* Student Header */}
-              <div
-                className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-white/5 transition-colors"
-                onClick={() => toggleStudent(row.student_id)}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-lg font-bold">
-                    {row.student_name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 className="text-white font-bold text-lg">{row.student_name}</h3>
-                    <p className="text-gray-400 text-sm">{row.email}</p>
-                  </div>
-                  <LevelBadge level={row.overall_level} size="lg" />
-                </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <div className="text-xs text-gray-400">Conclusão</div>
-                    <div className={`text-lg font-bold ${
-                      row.overall_completion_pct >= 80 ? 'text-emerald-400' :
-                      row.overall_completion_pct >= 50 ? 'text-amber-400' : 'text-gray-400'
-                    }`}>{row.overall_completion_pct.toFixed(1)}%</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xs text-gray-400">MPU</div>
-                    <div className="text-lg font-bold text-white">{row.overall_avg_mpu?.toFixed(2) || '—'}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xs text-gray-400">Horas</div>
-                    <div className="text-lg font-bold text-blue-400">{row.total_study_hours.toFixed(1)}h</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-xs text-gray-400">Certif.</div>
-                    <div className="text-lg font-bold text-amber-400">{row.total_certificates}</div>
-                  </div>
-                  {expandedStudents.has(row.student_id) ? (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <ChevronRight className="w-5 h-5 text-gray-400" />
-                  )}
-                </div>
-              </div>
+                            {overallCfg.label}
+                          </span>
+                          {row.total_certificates > 0 && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-400 flex items-center gap-1">
+                              <Award className="w-2.5 h-2.5" /> {row.total_certificates}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-gray-500 text-xs mt-0.5 truncate">{row.email}</p>
 
-              {/* Expanded Details */}
-              <AnimatePresence>
-                {expandedStudents.has(row.student_id) && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="px-6 pb-6 border-t border-white/10 pt-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {columns.map(col => {
-                          const skill = row.skills[String(col.course_id)];
-                          if (!skill) return null;
-                          const cfg = levelConfig[skill.level];
-                          return (
-                            <div key={col.course_id} className={`rounded-xl border ${cfg.borderColor} ${cfg.cellBg} p-4`}>
-                              <div className="flex items-center justify-between mb-3">
-                                <h4 className="text-white font-semibold text-sm truncate max-w-[60%]" title={col.course_title}>
-                                  {col.course_title}
-                                </h4>
-                                <LevelBadge level={skill.level} />
-                              </div>
-                              
-                              {col.bank_name && (
-                                <div className="text-xs text-gray-500 mb-2">
-                                  🏦 {col.bank_name} {col.product_name ? `· ${col.product_name}` : ''}
-                                </div>
-                              )}
-
-                              {/* Progress bars */}
-                              <div className="space-y-2 mb-3">
-                                <div>
-                                  <div className="flex justify-between text-xs mb-1">
-                                    <span className="text-gray-400">Aulas</span>
-                                    <span className="text-white">{skill.lessons_completed}/{skill.lessons_total}</span>
-                                  </div>
-                                  <div className="w-full bg-white/5 rounded-full h-1.5">
-                                    <div className="h-1.5 rounded-full bg-gradient-to-r from-blue-500 to-blue-400" style={{ width: `${Math.min(skill.lesson_completion_pct, 100)}%` }} />
-                                  </div>
-                                </div>
-                                <div>
-                                  <div className="flex justify-between text-xs mb-1">
-                                    <span className="text-gray-400">Desafios aprovados</span>
-                                    <span className="text-white">{skill.challenges_approved}/{skill.challenges_attempted}</span>
-                                  </div>
-                                  <div className="w-full bg-white/5 rounded-full h-1.5">
-                                    <div className="h-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-400" style={{ width: `${Math.min(skill.challenge_approval_pct, 100)}%` }} />
-                                  </div>
+                        {/* Course skill pills */}
+                        <div className="flex items-center gap-1.5 mt-3 flex-wrap">
+                          {columns.map(col => {
+                            const skill = row.skills[String(col.course_id)];
+                            const cfg = levelConfig[skill?.level || 'NOT_STARTED'];
+                            const SkillIcon = cfg.icon;
+                            return (
+                              <div
+                                key={col.course_id}
+                                className="relative"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (!showTooltip) return;
+                                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                  setHoveredCell(
+                                    hoveredCell?.studentId === row.student_id && hoveredCell?.courseId === col.course_id
+                                      ? null
+                                      : { studentId: row.student_id, courseId: col.course_id, rect }
+                                  );
+                                }}
+                              >
+                                <div
+                                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all hover:scale-105 cursor-pointer"
+                                  style={{
+                                    backgroundColor: cfg.color + '10',
+                                    borderColor: cfg.color + '25',
+                                    color: cfg.color,
+                                  }}
+                                >
+                                  <SkillIcon className="w-3 h-3" />
+                                  <span className="max-w-[80px] truncate" title={col.course_title}>{col.course_title}</span>
+                                  {skill && skill.lesson_completion_pct > 0 && (
+                                    <span className="text-[10px] opacity-70">{skill.lesson_completion_pct.toFixed(0)}%</span>
+                                  )}
+                                  {skill && skill.total_errors > 0 && (
+                                    <span className="w-4 h-4 rounded-full bg-red-500/80 text-white text-[9px] font-bold flex items-center justify-center ml-0.5">
+                                      {skill.total_errors > 9 ? '9+' : skill.total_errors}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
+                            );
+                          })}
+                        </div>
+                      </div>
 
-                              {/* Metrics */}
-                              <div className="grid grid-cols-2 gap-2 text-xs">
-                                <div className="bg-white/5 rounded-lg p-2 text-center">
-                                  <div className="text-gray-500">MPU</div>
-                                  <div className="text-white font-bold">{skill.avg_mpu?.toFixed(2) || '—'}</div>
-                                </div>
-                                <div className="bg-white/5 rounded-lg p-2 text-center">
-                                  <div className="text-gray-500">Tempo</div>
-                                  <div className="text-white font-bold">{skill.total_time_hours.toFixed(1)}h</div>
-                                </div>
-                              </div>
-
-                              {/* Errors */}
-                              {skill.total_errors > 0 && (
-                                <div className="mt-2 pt-2 border-t border-white/5">
-                                  <div className="text-xs text-red-400 font-semibold mb-1 flex items-center gap-1">
-                                    <AlertTriangle className="w-3 h-3" />
-                                    {skill.total_errors} erros
-                                  </div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {skill.error_methodology > 0 && (
-                                      <span className="text-[10px] px-1.5 py-0.5 bg-red-500/10 text-red-400 rounded">Met: {skill.error_methodology}</span>
-                                    )}
-                                    {skill.error_knowledge > 0 && (
-                                      <span className="text-[10px] px-1.5 py-0.5 bg-orange-500/10 text-orange-400 rounded">Con: {skill.error_knowledge}</span>
-                                    )}
-                                    {skill.error_detail > 0 && (
-                                      <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/10 text-amber-400 rounded">Det: {skill.error_detail}</span>
-                                    )}
-                                    {skill.error_procedure > 0 && (
-                                      <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/10 text-purple-400 rounded">Proc: {skill.error_procedure}</span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                      {/* Right metrics */}
+                      <div className="hidden md:flex items-center gap-5 flex-shrink-0">
+                        <div className="relative flex items-center justify-center">
+                          <CircularProgress value={row.overall_completion_pct} size={52} strokeWidth={3} color={overallCfg.color} />
+                          <span className="absolute text-xs font-bold text-white">{row.overall_completion_pct.toFixed(0)}%</span>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-black text-white">{row.overall_avg_mpu?.toFixed(2) || '—'}</div>
+                          <div className="text-[10px] text-gray-500 uppercase">MPU</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-black text-blue-400">{row.total_study_hours.toFixed(1)}h</div>
+                          <div className="text-[10px] text-gray-500 uppercase">Tempo</div>
+                        </div>
+                        <div className="text-gray-500">
+                          {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                        </div>
                       </div>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-          ))}
-        </div>
-      )}
+
+                    {/* Mobile metrics */}
+                    <div className="flex md:hidden items-center justify-between mt-3 pt-3 border-t border-white/5">
+                      <div className="flex items-center gap-1">
+                        <CircularProgress value={row.overall_completion_pct} size={32} strokeWidth={2.5} color={overallCfg.color} />
+                        <span className="text-xs font-bold text-white ml-1">{row.overall_completion_pct.toFixed(0)}%</span>
+                      </div>
+                      <div className="text-xs text-gray-400">MPU: <span className="text-white font-bold">{row.overall_avg_mpu?.toFixed(2) || '—'}</span></div>
+                      <div className="text-xs text-gray-400">Tempo: <span className="text-blue-400 font-bold">{row.total_study_hours.toFixed(1)}h</span></div>
+                      {isExpanded ? <ChevronDown className="w-4 h-4 text-gray-500" /> : <ChevronRight className="w-4 h-4 text-gray-500" />}
+                    </div>
+                  </div>
+
+                  {/* ── Expanded Detail Panel ── */}
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.35, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-5 md:px-6 pb-5 pt-2 border-t border-white/[0.06]">
+                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mt-3">
+                            {columns.map(col => {
+                              const skill = row.skills[String(col.course_id)];
+                              if (!skill) return null;
+                              const cfg = levelConfig[skill.level];
+                              const SkillIcon = cfg.icon;
+
+                              return (
+                                <motion.div
+                                  key={col.course_id}
+                                  initial={{ opacity: 0, scale: 0.95 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="rounded-2xl border p-4 relative overflow-hidden"
+                                  style={{ borderColor: cfg.color + '20', backgroundColor: cfg.color + '05' }}
+                                >
+                                  <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-20"
+                                    style={{ backgroundColor: cfg.color }} />
+
+                                  <div className="relative">
+                                    <div className="flex items-start justify-between mb-3">
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="text-white font-bold text-sm truncate" title={col.course_title}>
+                                          {col.course_title}
+                                        </h4>
+                                        {col.bank_name && (
+                                          <p className="text-[11px] text-gray-500 mt-0.5 truncate">
+                                            {col.bank_name}{col.product_name ? ` · ${col.product_name}` : ''}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-bold"
+                                        style={{ backgroundColor: cfg.color + '20', color: cfg.color }}>
+                                        <SkillIcon className="w-3 h-3" />
+                                        {cfg.label}
+                                      </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-4 mb-3">
+                                      <div className="flex items-center gap-2">
+                                        <CircularProgress value={skill.lesson_completion_pct} size={40} strokeWidth={3} color="#3b82f6" />
+                                        <div>
+                                          <div className="text-xs text-gray-400">Aulas</div>
+                                          <div className="text-xs text-white font-bold">{skill.lessons_completed}/{skill.lessons_total}</div>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <CircularProgress value={skill.challenge_approval_pct} size={40} strokeWidth={3} color="#10b981" />
+                                        <div>
+                                          <div className="text-xs text-gray-400">Desafios</div>
+                                          <div className="text-xs text-white font-bold">{skill.challenges_approved}/{skill.challenges_attempted}</div>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-2">
+                                      <div className="bg-white/[0.04] rounded-lg p-2 text-center">
+                                        <div className="text-[10px] text-gray-500">MPU</div>
+                                        <div className="text-sm font-bold text-white">{skill.avg_mpu?.toFixed(2) || '—'}</div>
+                                      </div>
+                                      <div className="bg-white/[0.04] rounded-lg p-2 text-center">
+                                        <div className="text-[10px] text-gray-500">Tempo</div>
+                                        <div className="text-sm font-bold text-white">{skill.total_time_hours.toFixed(1)}h</div>
+                                      </div>
+                                      <div className="bg-white/[0.04] rounded-lg p-2 text-center">
+                                        <div className="text-[10px] text-gray-500">Erros</div>
+                                        <div className={`text-sm font-bold ${skill.total_errors > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                                          {skill.total_errors}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {skill.total_errors > 0 && (
+                                      <div className="mt-3 pt-3 border-t border-white/[0.04]">
+                                        <div className="flex items-center gap-4 text-[11px]">
+                                          {[
+                                            { label: 'Met', value: skill.error_methodology, color: '#ef4444' },
+                                            { label: 'Con', value: skill.error_knowledge, color: '#f97316' },
+                                            { label: 'Det', value: skill.error_detail, color: '#eab308' },
+                                            { label: 'Proc', value: skill.error_procedure, color: '#a855f7' },
+                                          ].filter(e => e.value > 0).map(err => (
+                                            <div key={err.label} className="flex items-center gap-1">
+                                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: err.color }} />
+                                              <span className="text-gray-400">{err.label}:</span>
+                                              <span className="font-bold" style={{ color: err.color }}>{err.value}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      </div>
 
       {filteredRows.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 text-gray-500">
-          <Users className="w-16 h-16 mb-4 opacity-30" />
-          <p className="text-lg">{t('knowledgeMatrix.noStudents', 'Nenhum formando encontrado')}</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center justify-center py-20"
+        >
+          <div className="w-20 h-20 rounded-full bg-white/[0.03] flex items-center justify-center mb-4">
+            <Users className="w-10 h-10 text-gray-600" />
+          </div>
+          <p className="text-gray-500 text-lg font-medium">{t('knowledgeMatrix.noStudents', 'Nenhum formando encontrado')}</p>
+          <p className="text-gray-600 text-sm mt-1">Tente ajustar os filtros</p>
+        </motion.div>
       )}
 
-      {/* Legend */}
-      <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-5">
-        <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Legenda dos Níveis</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-          {Object.entries(levelConfig).map(([key, cfg]) => {
+      {/* ═══════════════ LEGEND ═══════════════ */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+        className="bg-white/[0.02] backdrop-blur-xl rounded-2xl border border-white/[0.05] p-4"
+      >
+        <div className="flex items-center gap-6 justify-center flex-wrap">
+          {levelKeys.map(key => {
+            const cfg = levelConfig[key];
             const Icon = cfg.icon;
             return (
-              <div key={key} className={`flex items-center gap-2 p-2 rounded-lg ${cfg.bgColor} border ${cfg.borderColor}`}>
-                <Icon className={`w-4 h-4 ${cfg.color}`} />
-                <div>
-                  <div className={`text-xs font-bold ${cfg.color}`}>{cfg.label}</div>
-                  <div className="text-[10px] text-gray-500">
-                    {key === 'EXPERT' && '≥85% competência'}
-                    {key === 'ADVANCED' && '≥65% competência'}
-                    {key === 'INTERMEDIATE' && '≥40% competência'}
-                    {key === 'BEGINNER' && '<40% competência'}
-                    {key === 'NOT_STARTED' && 'Sem atividade'}
-                  </div>
+              <div key={key} className="flex items-center gap-1.5">
+                <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ backgroundColor: cfg.color + '20' }}>
+                  <Icon className="w-3 h-3" style={{ color: cfg.color }} />
                 </div>
+                <span className="text-xs font-medium" style={{ color: cfg.color }}>{cfg.label}</span>
+                <span className="text-[10px] text-gray-600">
+                  {key === 'EXPERT' ? '≥85%' : key === 'ADVANCED' ? '≥65%' : key === 'INTERMEDIATE' ? '≥40%' : key === 'BEGINNER' ? '<40%' : '—'}
+                </span>
               </div>
             );
           })}
         </div>
-      </div>
+      </motion.div>
+
+      {/* ═══════════════ FLOATING TOOLTIP ═══════════════ */}
+      <AnimatePresence>
+        {hoveredCell && showTooltip && (() => {
+          const row = data.rows.find(r => r.student_id === hoveredCell.studentId);
+          const col = columns.find(c => c.course_id === hoveredCell.courseId);
+          const skill = row?.skills[String(hoveredCell.courseId)];
+          if (!row || !col || !skill) return null;
+          const cfg = levelConfig[skill.level];
+          const SkillIcon = cfg.icon;
+
+          const { rect } = hoveredCell;
+          const tooltipStyle: React.CSSProperties = {
+            position: 'fixed',
+            top: rect.bottom + 8,
+            left: Math.min(rect.left, window.innerWidth - 340),
+            zIndex: 9999,
+          };
+
+          if (rect.bottom + 300 > window.innerHeight) {
+            tooltipStyle.top = rect.top - 8;
+            tooltipStyle.transform = 'translateY(-100%)';
+          }
+
+          return (
+            <motion.div
+              key="tooltip"
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 5 }}
+              style={tooltipStyle}
+              className="w-80 rounded-2xl border border-white/10 bg-[#13132a]/95 backdrop-blur-2xl shadow-2xl shadow-black/40 overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="p-4 pb-3" style={{ borderBottom: `1px solid ${cfg.color}20` }}>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-white font-bold text-sm truncate flex-1 mr-2">{col.course_title}</h4>
+                  <div className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold"
+                    style={{ backgroundColor: cfg.color + '20', color: cfg.color }}>
+                    <SkillIcon className="w-3 h-3" />
+                    {cfg.label}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">{row.student_name}</p>
+              </div>
+
+              <div className="p-4 pt-3 grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2">
+                  <CircularProgress value={skill.lesson_completion_pct} size={36} strokeWidth={2.5} color="#3b82f6" />
+                  <div>
+                    <div className="text-[10px] text-gray-500">Aulas</div>
+                    <div className="text-xs text-white font-bold">{skill.lessons_completed}/{skill.lessons_total} ({skill.lesson_completion_pct.toFixed(0)}%)</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CircularProgress value={skill.challenge_approval_pct} size={36} strokeWidth={2.5} color="#10b981" />
+                  <div>
+                    <div className="text-[10px] text-gray-500">Desafios Aprov.</div>
+                    <div className="text-xs text-white font-bold">{skill.challenges_approved}/{skill.challenges_attempted} ({skill.challenge_approval_pct.toFixed(0)}%)</div>
+                  </div>
+                </div>
+                <div className="bg-white/[0.04] rounded-lg p-2 text-center">
+                  <div className="text-[10px] text-gray-500">MPU Médio</div>
+                  <div className="text-sm font-bold text-white">{skill.avg_mpu?.toFixed(2) || '—'}</div>
+                  <div className="text-[9px] text-gray-600">min/op</div>
+                </div>
+                <div className="bg-white/[0.04] rounded-lg p-2 text-center">
+                  <div className="text-[10px] text-gray-500">Tempo de Estudo</div>
+                  <div className="text-sm font-bold text-white">{skill.total_time_hours.toFixed(1)}h</div>
+                </div>
+              </div>
+
+              {skill.total_errors > 0 && (
+                <div className="px-4 pb-3">
+                  <div className="bg-red-500/10 rounded-xl p-3">
+                    <div className="text-[11px] text-red-400 font-bold mb-1.5 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" /> {skill.total_errors} erros identificados
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]">
+                      {skill.error_methodology > 0 && <div className="text-gray-300">Metodologia: <span className="text-red-400 font-bold">{skill.error_methodology}</span></div>}
+                      {skill.error_knowledge > 0 && <div className="text-gray-300">Conhecimento: <span className="text-orange-400 font-bold">{skill.error_knowledge}</span></div>}
+                      {skill.error_detail > 0 && <div className="text-gray-300">Detalhe: <span className="text-amber-400 font-bold">{skill.error_detail}</span></div>}
+                      {skill.error_procedure > 0 && <div className="text-gray-300">Procedimento: <span className="text-purple-400 font-bold">{skill.error_procedure}</span></div>}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
     </div>
-  );
-}
-
-// ============ SUMMARY CARD COMPONENT ============
-
-function SummaryCard({ icon: Icon, label, value, color }: {
-  icon: typeof Users;
-  label: string;
-  value: string | number;
-  color: string;
-}) {
-  const colorMap: Record<string, string> = {
-    blue: 'from-blue-600 to-blue-400 shadow-blue-500/20',
-    purple: 'from-purple-600 to-purple-400 shadow-purple-500/20',
-    emerald: 'from-emerald-600 to-emerald-400 shadow-emerald-500/20',
-    amber: 'from-amber-600 to-amber-400 shadow-amber-500/20',
-    cyan: 'from-cyan-600 to-cyan-400 shadow-cyan-500/20',
-    red: 'from-red-600 to-red-400 shadow-red-500/20',
-  };
-  
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`bg-gradient-to-br ${colorMap[color]} p-4 rounded-2xl shadow-lg`}
-    >
-      <div className="flex items-center gap-2 mb-2">
-        <Icon className="w-4 h-4 text-white/80" />
-        <span className="text-xs text-white/80 font-medium">{label}</span>
-      </div>
-      <div className="text-2xl font-bold text-white">{value}</div>
-    </motion.div>
   );
 }
