@@ -476,7 +476,7 @@ class ChallengeOperation(Base):
     id = Column(Integer, primary_key=True, index=True)
     submission_id = Column(Integer, ForeignKey("challenge_submissions.id"), nullable=False)
     operation_number = Column(Integer, nullable=False)  # Número da operação (1, 2, 3...)
-    operation_reference = Column(String(255), nullable=False)  # Ref: 4060ILC0001111
+    operation_reference = Column(String(255), nullable=True)  # Ref: 4060ILC0001111
     started_at = Column(DateTime(timezone=True))
     completed_at = Column(DateTime(timezone=True))
     duration_seconds = Column(Integer)  # Tempo da operação em segundos
