@@ -480,6 +480,8 @@
     "feedback": "Feedback",
     "awaitingDecision": "Awaiting your decision",
     "manualEvalDescription": "This challenge is configured for manual evaluation. Analyse the results above and decide whether the student should be approved or rejected.",
+    "autoEvalDescription": "The evaluation will be calculated automatically based on the configured KPIs.",
+    "finalizeAuto": "Finalize Automatic Evaluation",
     "processing": "Processing...",
     "approve": "Approve",
     "reject": "Reject",

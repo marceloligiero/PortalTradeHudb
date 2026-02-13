@@ -1839,12 +1839,21 @@ async def finalize_submission_review(
         # MPU = tempo / operações (minutos por unidade)
         calculated_mpu = round(total_time_minutes / correct_ops, 2)
     
-    # Verificar aprovação - decisão manual do formador
+    # Verificar aprovação - AUTO vs MANUAL
     target_mpu = challenge.target_mpu or 0
     max_errors = challenge.max_errors
     
-    # O formador decide manualmente se aprova ou reprova
-    is_approved = approve
+    kpi_mode = getattr(challenge, 'kpi_mode', 'AUTO') or 'AUTO'
+    if kpi_mode == 'AUTO':
+        # Aprovação automática baseada nos KPIs
+        is_approved, kpi_details = calculate_kpi_approval(
+            challenge, total_ops, calculated_mpu, operations_with_error
+        )
+        if is_approved is None:
+            is_approved = approve  # fallback
+    else:
+        # MANUAL: o formador decide
+        is_approved = approve
     
     # Total de erros registados (para relatório)
     total_errors_registered = error_methodology + error_knowledge + error_detail + error_procedure

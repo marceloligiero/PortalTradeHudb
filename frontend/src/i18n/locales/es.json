@@ -480,6 +480,8 @@
     "feedback": "Feedback",
     "awaitingDecision": "Espera su decisión",
     "manualEvalDescription": "Este desafío está configurado para evaluación manual. Analice los resultados anteriores y decida si el formando debe ser aprobado o reprobado.",
+    "autoEvalDescription": "La evaluación se calculará automáticamente en función de los KPIs configurados.",
+    "finalizeAuto": "Finalizar Evaluación Automática",
     "processing": "Procesando...",
     "approve": "Aprobar",
     "reject": "Reprobar",

@@ -640,27 +640,47 @@ const ChallengeResult: React.FC = () => {
               <Clock className="w-5 h-5" />
               {t('challengeResult.awaitingDecision')}
             </h2>
-            <p className="text-gray-500 dark:text-gray-300 mb-6">
-              {t('challengeResult.manualEvalDescription')}
-            </p>
-            <div className="flex gap-4 justify-center">
-              <button
-                onClick={() => handleApproval(true)}
-                disabled={approving}
-                className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50"
-              >
-                <Check className="w-5 h-5" />
-                {approving ? t('challengeResult.processing') : t('challengeResult.approve')}
-              </button>
-              <button
-                onClick={() => handleApproval(false)}
-                disabled={approving}
-                className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all disabled:opacity-50"
-              >
-                <X className="w-5 h-5" />
-                {approving ? t('challengeResult.processing') : t('challengeResult.reject')}
-              </button>
-            </div>
+            {(submission.challenge as any)?.kpi_mode === 'AUTO' ? (
+              <>
+                <p className="text-gray-500 dark:text-gray-300 mb-6">
+                  {t('challengeResult.autoEvalDescription', 'A avaliação será calculada automaticamente com base nos KPIs configurados.')}
+                </p>
+                <div className="flex gap-4 justify-center">
+                  <button
+                    onClick={() => handleApproval(true)}
+                    disabled={approving}
+                    className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50"
+                  >
+                    <Check className="w-5 h-5" />
+                    {approving ? t('challengeResult.processing') : t('challengeResult.finalizeAuto', 'Finalizar Avaliação Automática')}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-gray-500 dark:text-gray-300 mb-6">
+                  {t('challengeResult.manualEvalDescription')}
+                </p>
+                <div className="flex gap-4 justify-center">
+                  <button
+                    onClick={() => handleApproval(true)}
+                    disabled={approving}
+                    className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50"
+                  >
+                    <Check className="w-5 h-5" />
+                    {approving ? t('challengeResult.processing') : t('challengeResult.approve')}
+                  </button>
+                  <button
+                    onClick={() => handleApproval(false)}
+                    disabled={approving}
+                    className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all disabled:opacity-50"
+                  >
+                    <X className="w-5 h-5" />
+                    {approving ? t('challengeResult.processing') : t('challengeResult.reject')}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
