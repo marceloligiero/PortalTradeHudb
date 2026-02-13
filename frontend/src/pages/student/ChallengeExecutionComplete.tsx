@@ -181,11 +181,6 @@ const StudentChallengeExecution: React.FC = () => {
   };
 
   const startOperation = async (index: number) => {
-    if (!operations[index].reference.trim()) {
-      setError(`Insira a referência da operação ${index + 1}`);
-      return;
-    }
-
     if (activeOperationIndex !== null) {
       setError('Termine a operação em progresso antes de iniciar outra');
       return;
@@ -194,7 +189,7 @@ const StudentChallengeExecution: React.FC = () => {
     try {
       // Chamar API para iniciar operação
       const response = await api.post(`/api/challenges/submissions/${submissionId}/operations/start`, {
-        operation_reference: operations[index].reference
+        operation_reference: operations[index].reference || null
       });
       
       const updated = [...operations];
@@ -215,12 +210,18 @@ const StudentChallengeExecution: React.FC = () => {
     const op = operations[index];
     if (!op.startedAt || !op.backendId) return;
 
+    if (!op.reference.trim()) {
+      setError(t('challenges.insertReference', `Insira a referência da operação ${index + 1} antes de finalizar`));
+      return;
+    }
+
     // Abrir modal para classificar erros antes de finalizar
     try {
       // Chamar API para finalizar operação (sem erros - erros são classificados pelo formador)
       await api.post(`/api/challenges/operations/${op.backendId}/finish`, {
         has_error: false,
-        errors: []
+        errors: [],
+        operation_reference: op.reference
       });
       
       const completedAt = new Date();

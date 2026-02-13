@@ -412,6 +412,7 @@
     "loadStudentsError": "Error al cargar estudiantes",
     "submitError": "Error al enviar desafío",
     "startError": "Error al iniciar",
+    "insertReference": "Ingrese la referencia de la operación antes de finalizar",
     "addPartError": "Error al añadir parte",
     "finalizeError": "Error al finalizar",
     "createError": "Error al crear desafío",

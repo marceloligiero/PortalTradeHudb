@@ -255,11 +255,6 @@ const ChallengeExecutionComplete: React.FC = () => {
   };
 
   const startOperation = (index: number) => {
-    if (!operations[index].reference.trim()) {
-      setError(`Insira a referência da operação ${index + 1}`);
-      return;
-    }
-
     // Verificar se há outra operação em progresso
     if (activeOperationIndex !== null) {
       setError('Termine a operação em progresso antes de iniciar outra');
@@ -278,6 +273,11 @@ const ChallengeExecutionComplete: React.FC = () => {
   const finishOperation = (index: number) => {
     const op = operations[index];
     if (!op.startedAt) return;
+
+    if (!op.reference.trim()) {
+      setError(t('challenges.insertReference', `Insira a referência da operação ${index + 1} antes de finalizar`));
+      return;
+    }
 
     // Mostrar modal de classificação de erros
     setFinishingOperationIndex(index);

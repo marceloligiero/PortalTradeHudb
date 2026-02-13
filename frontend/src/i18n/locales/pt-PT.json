@@ -411,6 +411,7 @@
     "fillOperations": "Preencha as operações antes de finalizar",
     "loadStudentsError": "Erro ao carregar estudantes",
     "startError": "Erro ao iniciar",
+    "insertReference": "Insira a referência da operação antes de finalizar",
     "addPartError": "Erro ao adicionar parte",
     "finalizeError": "Erro ao finalizar",
     "loadResultError": "Erro ao carregar resultado"

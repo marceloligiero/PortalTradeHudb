@@ -1406,6 +1406,7 @@ class OperationErrorInput(BaseModel):
 class FinishOperationInput(BaseModel):
     has_error: bool = False
     errors: List[OperationErrorInput] = []
+    operation_reference: Optional[str] = None
 
 @router.post("/operations/{operation_id}/finish", response_model=schemas.ChallengeOperation)
 async def finish_operation(
@@ -1443,6 +1444,10 @@ async def finish_operation(
     if operation.started_at:
         duration = (now - operation.started_at).total_seconds()
         operation.duration_seconds = int(duration)
+    
+    # Atualizar referência se fornecida
+    if data and data.operation_reference:
+        operation.operation_reference = data.operation_reference
     
     # Registar erros se fornecidos
     if data:

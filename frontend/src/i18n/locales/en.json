@@ -412,6 +412,7 @@
     "loadStudentsError": "Error loading students",
     "submitError": "Error submitting challenge",
     "startError": "Error starting",
+    "insertReference": "Enter the operation reference before finishing",
     "addPartError": "Error adding part",
     "finalizeError": "Error finalizing",
     "createError": "Error creating challenge",

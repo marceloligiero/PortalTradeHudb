@@ -472,7 +472,7 @@ class ChallengeOperationCreate(ChallengeOperationBase):
 
 class ChallengeOperationStart(BaseModel):
     """Para iniciar uma operação"""
-    operation_reference: str
+    operation_reference: Optional[str] = None
 
 class ChallengeOperationFinish(BaseModel):
     """Para finalizar uma operação com classificação de erros"""
