@@ -632,7 +632,9 @@ export default function TrainingPlanDetail() {
     if (!submission) return null;
     if (submission.is_approved) return { color: 'bg-green-500/20 text-green-400', label: t('trainingPlanDetail.approved') };
     if (submission.status === 'PENDING_REVIEW') return { color: 'bg-yellow-500/20 text-yellow-400', label: t('trainingPlanDetail.pendingReview') };
-    return { color: 'bg-red-500/20 text-red-400', label: t('trainingPlanDetail.rejected') };
+    if (submission.status === 'IN_PROGRESS') return { color: 'bg-blue-500/20 text-blue-400', label: t('trainingPlanDetail.inProgress') };
+    if (submission.status === 'REJECTED' || submission.is_approved === false) return { color: 'bg-red-500/20 text-red-400', label: t('trainingPlanDetail.rejected') };
+    return { color: 'bg-gray-500/20 text-gray-400', label: submission.status };
   };
 
   if (loading) return (
