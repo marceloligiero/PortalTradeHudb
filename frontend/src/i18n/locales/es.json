@@ -1744,9 +1744,11 @@
     "planRated": "Plan Clasificado",
     "ratePlan": "Clasificar Plan",
     "pendingRatings": "Evaluaciones Pendientes",
-    "pendingRatingsDesc": "¡Felicitaciones por la conclusión! Evalúe el plan, formadores y cursos para ayudarnos a mejorar.",
+    "pendingRatingsDesc": "¡Felicitaciones por la conclusión! Evalúe el plan, formadores, cursos y clases para ayudarnos a mejorar.",
     "courseRated": "Curso Clasificado",
-    "rateCourse": "Clasificar Curso"
+    "rateCourse": "Clasificar Curso",
+    "lessonRated": "Lección Clasificada",
+    "rateLesson": "Clasificar Lección"
   },
   "adminDashboard": {
     "controlPanel": "Panel de Control",

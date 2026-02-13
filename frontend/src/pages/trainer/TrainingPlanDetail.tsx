@@ -187,11 +187,14 @@ export default function TrainingPlanDetail() {
   const [showPlanRatingModal, setShowPlanRatingModal] = useState(false);
   const [showTrainerRatingModal, setShowTrainerRatingModal] = useState(false);
   const [showCourseRatingModal, setShowCourseRatingModal] = useState(false);
+  const [showLessonRatingModal, setShowLessonRatingModal] = useState(false);
   const [selectedTrainer, setSelectedTrainer] = useState<TrainerInfo | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<CourseItem | null>(null);
+  const [selectedLesson, setSelectedLesson] = useState<LessonItem | null>(null);
   const [hasPlanRating, setHasPlanRating] = useState(false);
   const [trainerRatings, setTrainerRatings] = useState<Record<number, boolean>>({});
   const [courseRatings, setCourseRatings] = useState<Record<number, boolean>>({});
+  const [lessonRatings, setLessonRatings] = useState<Record<number, boolean>>({});
   const [pendingRatingsCount, setPendingRatingsCount] = useState(0);
 
   const isStudent = user?.role === 'STUDENT' || user?.role === 'TRAINEE';
@@ -304,6 +307,27 @@ export default function TrainingPlanDetail() {
           }
         }
         setCourseRatings(courseRatingsMap);
+      }
+
+      // Check lesson ratings
+      if (plan.courses) {
+        const lessonRatingsMap: Record<number, boolean> = {};
+        for (const course of plan.courses) {
+          if (course.lessons) {
+            for (const lesson of course.lessons) {
+              try {
+                const lessonResp = await api.get('/api/ratings/check', {
+                  params: { rating_type: 'LESSON', lesson_id: lesson.id, training_plan_id: plan.id }
+                });
+                lessonRatingsMap[lesson.id] = lessonResp.data.exists;
+                if (!lessonResp.data.exists) pendingCount++;
+              } catch (err) {
+                console.log('Error checking lesson rating:', err);
+              }
+            }
+          }
+        }
+        setLessonRatings(lessonRatingsMap);
       }
       
       setPendingRatingsCount(pendingCount);
@@ -1557,6 +1581,27 @@ export default function TrainingPlanDetail() {
                                             {t('trainingPlanDetail.viewLesson')}
                                           </button>
                                         )}
+
+                                        {/* Classificar aula - quando plano finalizado e aula aprovada */}
+                                        {completionStatus?.is_finalized && progress?.is_approved && (
+                                          lessonRatings[lesson.id] ? (
+                                            <span className="flex items-center gap-1 px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-xs font-medium">
+                                              <Star className="w-3 h-3 fill-green-400" />
+                                              {t('trainingPlanDetail.rated', 'Classificado')} ✓
+                                            </span>
+                                          ) : (
+                                            <button
+                                              onClick={() => {
+                                                setSelectedLesson(lesson);
+                                                setShowLessonRatingModal(true);
+                                              }}
+                                              className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-600 text-white rounded-lg text-xs font-medium hover:from-amber-600 hover:to-yellow-700 transition-all"
+                                            >
+                                              <Star className="w-3 h-3" />
+                                              {t('trainingPlanDetail.rateLesson', 'Classificar Aula')}
+                                            </button>
+                                          )
+                                        )}
                                       </>
                                     )}
 
@@ -2051,6 +2096,27 @@ export default function TrainingPlanDetail() {
             setPendingRatingsCount(prev => Math.max(0, prev - 1));
             setShowCourseRatingModal(false);
             setSelectedCourse(null);
+          }}
+        />
+      )}
+
+      {/* Rating Modal for Lesson */}
+      {selectedLesson && plan && (
+        <RatingModal
+          isOpen={showLessonRatingModal}
+          onClose={() => {
+            setShowLessonRatingModal(false);
+            setSelectedLesson(null);
+          }}
+          ratingType="LESSON"
+          itemId={selectedLesson.id}
+          itemTitle={selectedLesson.title}
+          trainingPlanId={plan.id}
+          onSuccess={() => {
+            setLessonRatings(prev => ({ ...prev, [selectedLesson.id]: true }));
+            setPendingRatingsCount(prev => Math.max(0, prev - 1));
+            setShowLessonRatingModal(false);
+            setSelectedLesson(null);
           }}
         />
       )}

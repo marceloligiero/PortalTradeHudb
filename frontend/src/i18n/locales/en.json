@@ -1658,9 +1658,11 @@
     "planRated": "Plan Rated",
     "ratePlan": "Rate Plan",
     "pendingRatings": "Pending Ratings",
-    "pendingRatingsDesc": "Congratulations on completion! Rate the plan, trainers and courses to help us improve.",
+    "pendingRatingsDesc": "Congratulations on completion! Rate the plan, trainers, courses and lessons to help us improve.",
     "courseRated": "Course Rated",
-    "rateCourse": "Rate Course"
+    "rateCourse": "Rate Course",
+    "lessonRated": "Lesson Rated",
+    "rateLesson": "Rate Lesson"
   },
   "adminDashboard": {
     "controlPanel": "Control Panel",
