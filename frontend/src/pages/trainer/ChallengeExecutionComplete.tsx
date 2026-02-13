@@ -16,7 +16,8 @@ import {
   AlertTriangle,
   X,
   Plus,
-  Trash2
+  Trash2,
+  Pause
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -72,6 +73,9 @@ const ChallengeExecutionComplete: React.FC = () => {
   const [activeOperationIndex, setActiveOperationIndex] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const activeStartTimeRef = useRef<number | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
+  const pausedDurationRef = useRef<number>(0); // Total accumulated pause time in ms
+  const pauseStartRef = useRef<number | null>(null); // When current pause started
 
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [planStudent, setPlanStudent] = useState<{id: number, full_name: string, email: string} | null>(null);
@@ -103,22 +107,23 @@ const ChallengeExecutionComplete: React.FC = () => {
 
   // Cronómetro para operação ativa
   useEffect(() => {
-    if (activeOperationIndex === null || activeStartTimeRef.current === null) {
+    if (activeOperationIndex === null || activeStartTimeRef.current === null || isPaused) {
       return;
     }
     
     const startTime = activeStartTimeRef.current;
+    const pausedMs = pausedDurationRef.current;
     
     // Update immediately
-    setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    setElapsedTime(Math.floor((Date.now() - startTime - pausedMs) / 1000));
     
     const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const elapsed = Math.floor((Date.now() - startTime - pausedMs) / 1000);
       setElapsedTime(elapsed);
     }, 1000);
     
     return () => clearInterval(interval);
-  }, [activeOperationIndex]);
+  }, [activeOperationIndex, isPaused]);
 
   useEffect(() => {
     loadChallenge();
@@ -273,7 +278,24 @@ const ChallengeExecutionComplete: React.FC = () => {
     setOperations(updated);
     setActiveOperationIndex(index);
     setElapsedTime(0);
+    setIsPaused(false);
+    pausedDurationRef.current = 0;
     setError('');
+  };
+
+  const pauseOperation = () => {
+    if (activeOperationIndex === null || isPaused) return;
+    pauseStartRef.current = Date.now();
+    setIsPaused(true);
+  };
+
+  const resumeOperation = () => {
+    if (activeOperationIndex === null || !isPaused) return;
+    if (pauseStartRef.current) {
+      pausedDurationRef.current += (Date.now() - pauseStartRef.current);
+      pauseStartRef.current = null;
+    }
+    setIsPaused(false);
   };
 
   const finishOperation = (index: number) => {
@@ -300,7 +322,12 @@ const ChallengeExecutionComplete: React.FC = () => {
     if (!op.startedAt) return;
 
     const completedAt = new Date();
-    const durationSeconds = Math.floor((completedAt.getTime() - op.startedAt.getTime()) / 1000);
+    // If currently paused, add current pause duration
+    let totalPausedMs = pausedDurationRef.current;
+    if (isPaused && pauseStartRef.current) {
+      totalPausedMs += (completedAt.getTime() - pauseStartRef.current);
+    }
+    const durationSeconds = Math.max(0, Math.floor((completedAt.getTime() - op.startedAt.getTime() - totalPausedMs) / 1000));
 
     // Converter PendingError para OperationError
     const operationErrors: OperationError[] = pendingErrors.map(e => ({
@@ -318,6 +345,9 @@ const ChallengeExecutionComplete: React.FC = () => {
     activeStartTimeRef.current = null;
     setActiveOperationIndex(null);
     setElapsedTime(0);
+    setIsPaused(false);
+    pausedDurationRef.current = 0;
+    pauseStartRef.current = null;
     
     // Fechar modal
     setShowErrorModal(false);
@@ -634,7 +664,11 @@ const ChallengeExecutionComplete: React.FC = () => {
                   {op.status !== 'pending' && (
                     <div className="text-right min-w-[100px]">
                       <div className={`text-xl font-mono font-bold ${
-                        op.status === 'in_progress' ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400'
+                        op.status === 'in_progress' 
+                          ? isPaused 
+                            ? 'text-yellow-600 dark:text-yellow-400 animate-pulse' 
+                            : 'text-blue-600 dark:text-blue-400' 
+                          : 'text-green-600 dark:text-green-400'
                       }`}>
                         <Timer className="w-4 h-4 inline mr-1" />
                         {op.status === 'in_progress' 
@@ -642,6 +676,11 @@ const ChallengeExecutionComplete: React.FC = () => {
                           : formatTime(op.durationSeconds)
                         }
                       </div>
+                      {op.status === 'in_progress' && isPaused && (
+                        <div className="text-xs text-yellow-600 dark:text-yellow-400 font-medium mt-1">
+                          PAUSADO
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -659,13 +698,32 @@ const ChallengeExecutionComplete: React.FC = () => {
                     )}
 
                     {op.status === 'in_progress' && (
-                      <button
-                        onClick={() => finishOperation(index)}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
-                      >
-                        <Square className="w-4 h-4" />
-                        Terminar
-                      </button>
+                      <div className="flex gap-2">
+                        {isPaused ? (
+                          <button
+                            onClick={resumeOperation}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                          >
+                            <Play className="w-4 h-4" />
+                            Retomar
+                          </button>
+                        ) : (
+                          <button
+                            onClick={pauseOperation}
+                            className="flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium transition-colors"
+                          >
+                            <Pause className="w-4 h-4" />
+                            Pausar
+                          </button>
+                        )}
+                        <button
+                          onClick={() => finishOperation(index)}
+                          className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          <Square className="w-4 h-4" />
+                          Terminar
+                        </button>
+                      </div>
                     )}
 
                     {op.status === 'completed' && (

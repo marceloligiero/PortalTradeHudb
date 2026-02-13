@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { 
   ArrowLeft, 
   Play, 
+  Pause,
   Square, 
   Check, 
   AlertCircle, 
@@ -61,6 +62,9 @@ const StudentChallengeExecution: React.FC = () => {
   const [activeOperationIndex, setActiveOperationIndex] = useState<number | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const activeStartTimeRef = useRef<number | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
+  const pausedDurationRef = useRef<number>(0);
+  const pauseStartRef = useRef<number | null>(null);
 
   // Carregar operações existentes se houver submissionId
   useEffect(() => {
@@ -164,18 +168,22 @@ const StudentChallengeExecution: React.FC = () => {
       return;
     }
     
+    if (isPaused) {
+      return;
+    }
+    
     const startTime = activeStartTimeRef.current;
     
     // Update immediately
-    setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+    setElapsedTime(Math.floor((Date.now() - startTime - pausedDurationRef.current) / 1000));
     
     const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const elapsed = Math.floor((Date.now() - startTime - pausedDurationRef.current) / 1000);
       setElapsedTime(elapsed);
     }, 1000);
     
     return () => clearInterval(interval);
-  }, [activeOperationIndex]);
+  }, [activeOperationIndex, isPaused]);
 
   useEffect(() => {
     loadChallenge();
@@ -236,11 +244,26 @@ const StudentChallengeExecution: React.FC = () => {
       setOperations(updated);
       setActiveOperationIndex(index);
       setElapsedTime(0);
+      setIsPaused(false);
+      pausedDurationRef.current = 0;
       setError('');
     } catch (err: any) {
       console.error('Erro ao iniciar operação:', err);
       setError(err.response?.data?.detail || 'Erro ao iniciar operação');
     }
+  };
+
+  const pauseOperation = () => {
+    setIsPaused(true);
+    pauseStartRef.current = Date.now();
+  };
+
+  const resumeOperation = () => {
+    if (pauseStartRef.current) {
+      pausedDurationRef.current += Date.now() - pauseStartRef.current;
+      pauseStartRef.current = null;
+    }
+    setIsPaused(false);
   };
 
   const finishOperation = async (index: number) => {
@@ -261,8 +284,14 @@ const StudentChallengeExecution: React.FC = () => {
         operation_reference: op.reference
       });
       
+      // Account for pause duration
+      if (isPaused && pauseStartRef.current) {
+        pausedDurationRef.current += Date.now() - pauseStartRef.current;
+        pauseStartRef.current = null;
+        setIsPaused(false);
+      }
       const completedAt = new Date();
-      const durationSeconds = Math.floor((completedAt.getTime() - op.startedAt.getTime()) / 1000);
+      const durationSeconds = Math.floor((completedAt.getTime() - op.startedAt.getTime() - pausedDurationRef.current) / 1000);
 
       const updated = [...operations];
       updated[index].completedAt = completedAt;
@@ -556,7 +585,11 @@ const StudentChallengeExecution: React.FC = () => {
                   {op.status !== 'pending' && (
                     <div className="text-right min-w-[100px]">
                       <div className={`text-xl font-mono font-bold ${
-                        op.status === 'in_progress' ? 'text-blue-400' : 'text-green-400'
+                        op.status === 'in_progress' 
+                          ? isPaused 
+                            ? 'text-yellow-400 animate-pulse' 
+                            : 'text-blue-400' 
+                          : 'text-green-400'
                       }`}>
                         <Timer className="w-4 h-4 inline mr-1" />
                         {op.status === 'in_progress' 
@@ -564,6 +597,11 @@ const StudentChallengeExecution: React.FC = () => {
                           : formatTime(op.durationSeconds)
                         }
                       </div>
+                      {op.status === 'in_progress' && isPaused && (
+                        <div className="text-xs text-yellow-400 font-medium mt-1">
+                          PAUSADO
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -581,13 +619,32 @@ const StudentChallengeExecution: React.FC = () => {
                     )}
 
                     {op.status === 'in_progress' && (
-                      <button
-                        onClick={() => finishOperation(index)}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
-                      >
-                        <Square className="w-4 h-4" />
-                        Terminar
-                      </button>
+                      <div className="flex gap-2">
+                        {isPaused ? (
+                          <button
+                            onClick={resumeOperation}
+                            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                          >
+                            <Play className="w-4 h-4" />
+                            Retomar
+                          </button>
+                        ) : (
+                          <button
+                            onClick={pauseOperation}
+                            className="flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium transition-colors"
+                          >
+                            <Pause className="w-4 h-4" />
+                            Pausar
+                          </button>
+                        )}
+                        <button
+                          onClick={() => finishOperation(index)}
+                          className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          <Square className="w-4 h-4" />
+                          Terminar
+                        </button>
+                      </div>
                     )}
 
                     {op.status === 'completed' && (
