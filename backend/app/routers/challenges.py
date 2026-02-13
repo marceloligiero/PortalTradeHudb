@@ -525,18 +525,31 @@ async def submit_challenge_summary(
         
         if assignment:
             # Se o aplicador for TRAINER, garantir que o plan pertence ao trainer atual
-            if current_user.role == 'TRAINER' and plan.trainer_id != current_user.id:
-                # este plano não pertence ao trainer atual — ignorar e continuar procurando
-                continue
+            if current_user.role == 'TRAINER':
+                # Check legacy trainer_id OR training_plan_trainers N:N
+                is_plan_trainer = (plan.trainer_id == current_user.id)
+                if not is_plan_trainer:
+                    is_plan_trainer = db.query(models.TrainingPlanTrainer).filter(
+                        models.TrainingPlanTrainer.training_plan_id == plan.id,
+                        models.TrainingPlanTrainer.trainer_id == current_user.id
+                    ).first() is not None
+                if not is_plan_trainer:
+                    continue
             assignment_found = True
             break
         
         # Fallback: verificar student_id legacy no plano
         if plan.student_id == submission.user_id:
             # Se o aplicador for TRAINER, garantir que o plan pertence ao trainer atual
-            if current_user.role == 'TRAINER' and plan.trainer_id != current_user.id:
-                # este plano não pertence ao trainer atual — ignorar e continuar procurando
-                continue
+            if current_user.role == 'TRAINER':
+                is_plan_trainer = (plan.trainer_id == current_user.id)
+                if not is_plan_trainer:
+                    is_plan_trainer = db.query(models.TrainingPlanTrainer).filter(
+                        models.TrainingPlanTrainer.training_plan_id == plan.id,
+                        models.TrainingPlanTrainer.trainer_id == current_user.id
+                    ).first() is not None
+                if not is_plan_trainer:
+                    continue
             assignment_found = True
             break
 
@@ -766,15 +779,29 @@ async def start_challenge_complete(
         ).first()
         
         if assignment:
-            if current_user.role == 'TRAINER' and plan.trainer_id != current_user.id:
-                continue
+            if current_user.role == 'TRAINER':
+                is_plan_trainer = (plan.trainer_id == current_user.id)
+                if not is_plan_trainer:
+                    is_plan_trainer = db.query(models.TrainingPlanTrainer).filter(
+                        models.TrainingPlanTrainer.training_plan_id == plan.id,
+                        models.TrainingPlanTrainer.trainer_id == current_user.id
+                    ).first() is not None
+                if not is_plan_trainer:
+                    continue
             assignment_found = True
             break
         
         # Fallback: student_id legacy
         if plan.student_id == user_id:
-            if current_user.role == 'TRAINER' and plan.trainer_id != current_user.id:
-                continue
+            if current_user.role == 'TRAINER':
+                is_plan_trainer = (plan.trainer_id == current_user.id)
+                if not is_plan_trainer:
+                    is_plan_trainer = db.query(models.TrainingPlanTrainer).filter(
+                        models.TrainingPlanTrainer.training_plan_id == plan.id,
+                        models.TrainingPlanTrainer.trainer_id == current_user.id
+                    ).first() is not None
+                if not is_plan_trainer:
+                    continue
             assignment_found = True
             break
 
