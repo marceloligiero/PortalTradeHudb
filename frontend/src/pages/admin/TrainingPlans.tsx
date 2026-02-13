@@ -173,20 +173,28 @@ export default function TrainingPlans() {
   }, [plans, searchTerm, filterProduct, filterBank]);
 
   // Group plans by product — plans with multiple products appear in ALL relevant groups
+  // When a product filter is active, only group under the filtered product
   const groupedPlans = useMemo(() => {
     if (!groupByProduct) return { 'all': filteredPlans };
+    
+    const fpId = filterProduct ? parseInt(filterProduct) : null;
     
     const groups: Record<string, TrainingPlan[]> = {};
     filteredPlans.forEach(plan => {
       // Use the products array (N:N) if available
-      const planProducts = plan.products && plan.products.length > 0
+      let planProducts = plan.products && plan.products.length > 0
         ? plan.products
         : plan.product_code
           ? [{ id: plan.product_id || 0, code: plan.product_code, name: plan.product_name || '' }]
           : [];
       
+      // When a product filter is active, only group under the filtered product
+      if (fpId && planProducts.length > 0) {
+        planProducts = planProducts.filter(p => p.id === fpId);
+      }
+      
       if (planProducts.length === 0) {
-        // No product assigned
+        // No product assigned (or filtered out)
         const key = t('common.noProduct', 'Sem Produto');
         if (!groups[key]) groups[key] = [];
         groups[key].push(plan);
@@ -203,7 +211,7 @@ export default function TrainingPlans() {
       }
     });
     return groups;
-  }, [filteredPlans, groupByProduct, t]);
+  }, [filteredPlans, groupByProduct, filterProduct, t]);
 
   // Calculate stats
   const totalPlans = plans.length;

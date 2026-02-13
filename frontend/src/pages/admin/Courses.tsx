@@ -110,27 +110,39 @@ export default function CoursesPage() {
   }, [courses, searchTerm, filterProduct, filterBank]);
 
   // Agrupar cursos por produto (um curso pode aparecer em múltiplos grupos)
+  // Quando um filtro de produto está ativo, só mostra o grupo filtrado
   const groupedCourses = useMemo(() => {
     if (!groupByProduct) return { 'all': filteredCourses };
+    
+    const fpId = filterProduct ? parseInt(filterProduct) : null;
     
     const groups: Record<string, Course[]> = {};
     filteredCourses.forEach(course => {
       // Se o curso tem produtos, adiciona a cada grupo de produto
-      if (course.products && course.products.length > 0) {
-        course.products.forEach(product => {
+      let courseProducts = course.products && course.products.length > 0
+        ? course.products
+        : [];
+      
+      // Quando filtro de produto ativo, só agrupar pelo produto filtrado
+      if (fpId && courseProducts.length > 0) {
+        courseProducts = courseProducts.filter(p => p.id === fpId);
+      }
+      
+      if (courseProducts.length > 0) {
+        courseProducts.forEach(product => {
           const key = getTranslatedProductName(t, product.code, product.name);
           if (!groups[key]) groups[key] = [];
           groups[key].push(course);
         });
       } else {
         // Sem produto
-        const key = 'Sem Produto';
+        const key = t('common.noProduct', 'Sem Produto');
         if (!groups[key]) groups[key] = [];
         groups[key].push(course);
       }
     });
     return groups;
-  }, [filteredCourses, groupByProduct]);
+  }, [filteredCourses, groupByProduct, filterProduct, t]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
