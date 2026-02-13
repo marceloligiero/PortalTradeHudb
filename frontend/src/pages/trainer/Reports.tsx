@@ -339,11 +339,11 @@ export default function TrainerReportsPage() {
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                <option value="ALL">{t('trainerReports.allStatuses')}</option>
-                <option value="active">{t('trainerReports.activeStatus')}</option>
-                <option value="completed">{t('trainerReports.completedStatus')}</option>
+                <option value="ALL" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('trainerReports.allStatuses')}</option>
+                <option value="active" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('trainerReports.activeStatus')}</option>
+                <option value="completed" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('trainerReports.completedStatus')}</option>
               </select>
             </div>
           </div>
@@ -722,13 +722,13 @@ export default function TrainerReportsPage() {
                 <select
                   value={challengeStatusFilter}
                   onChange={(e) => setChallengeStatusFilter(e.target.value)}
-                  className="px-3 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
-                  <option value="ALL">{t('trainerReports.allStatuses')}</option>
-                  <option value="APPROVED">{t('trainerReports.challengeApproved')}</option>
-                  <option value="REJECTED">{t('trainerReports.challengeRejected')}</option>
-                  <option value="PENDING_REVIEW">{t('trainerReports.challengePending')}</option>
-                  <option value="IN_PROGRESS">{t('trainerReports.challengeInProgress')}</option>
+                  <option value="ALL" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('trainerReports.allStatuses')}</option>
+                  <option value="APPROVED" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('trainerReports.challengeApproved')}</option>
+                  <option value="REJECTED" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('trainerReports.challengeRejected')}</option>
+                  <option value="PENDING_REVIEW" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('trainerReports.challengePending')}</option>
+                  <option value="IN_PROGRESS" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('trainerReports.challengeInProgress')}</option>
                 </select>
               </div>
             </div>
