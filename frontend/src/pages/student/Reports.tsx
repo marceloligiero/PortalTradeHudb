@@ -195,6 +195,10 @@ const Reports: React.FC = () => {
     'KNOWLEDGE': `💡 ${t('myReports.knowledge')}`,
     'DETAIL': `🔍 ${t('myReports.detail')}`,
     'PROCEDURE': `📋 ${t('myReports.procedure')}`,
+    'METODOLOGIA': `📐 ${t('myReports.methodology')}`,
+    'CONHECIMENTO': `💡 ${t('myReports.knowledge')}`,
+    'DETALHE': `🔍 ${t('myReports.detail')}`,
+    'PROCEDIMENTO': `📋 ${t('myReports.procedure')}`,
   };
 
   const errorTypeColors: Record<string, string> = {
@@ -202,6 +206,10 @@ const Reports: React.FC = () => {
     'KNOWLEDGE': isDark ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-blue-100 text-blue-700 border-blue-200',
     'DETAIL': isDark ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' : 'bg-orange-100 text-orange-700 border-orange-200',
     'PROCEDURE': isDark ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-red-100 text-red-700 border-red-200',
+    'METODOLOGIA': isDark ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' : 'bg-purple-100 text-purple-700 border-purple-200',
+    'CONHECIMENTO': isDark ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' : 'bg-blue-100 text-blue-700 border-blue-200',
+    'DETALHE': isDark ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' : 'bg-orange-100 text-orange-700 border-orange-200',
+    'PROCEDIMENTO': isDark ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-red-100 text-red-700 border-red-200',
   };
 
   const filteredErrors = error_details?.filter(e => 
@@ -405,7 +413,7 @@ const Reports: React.FC = () => {
             >
               Todos ({error_details.length})
             </button>
-            {(['METHODOLOGY', 'KNOWLEDGE', 'DETAIL', 'PROCEDURE'] as const).map(type => {
+            {(Array.from(new Set(error_details.map(e => e.error_type)))).map(type => {
               const count = error_details.filter(e => e.error_type === type).length;
               if (count === 0) return null;
               return (

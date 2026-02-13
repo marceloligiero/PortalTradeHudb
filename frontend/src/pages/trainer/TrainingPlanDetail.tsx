@@ -1468,8 +1468,8 @@ export default function TrainingPlanDetail() {
                                       </div>
                                     )}
 
-                                    {/* Info de tempo para aulas controladas pelo FORMANDO (evita duplicação com botões do formador) */}
-                                    {progress && (progress.status === 'IN_PROGRESS' || progress.status === 'PAUSED' || progress.status === 'COMPLETED') && (lesson.started_by || 'TRAINER') === 'TRAINEE' && (
+                                    {/* Info de tempo, confirmação e aprovação */}
+                                    {progress && (progress.status === 'IN_PROGRESS' || progress.status === 'PAUSED' || progress.status === 'COMPLETED') && (
                                       <div className={`mt-3 p-3 rounded-lg ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
                                         <div className="flex items-center justify-between text-sm">
                                           {(() => {
