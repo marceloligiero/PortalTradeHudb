@@ -517,19 +517,19 @@ export default function SubmissionReview() {
         <div className="space-y-6">
           {/* MPU Result */}
           <div className={`rounded-2xl p-6 border-2 ${
-            submission.is_approved === true
+            submission.status === 'PENDING_REVIEW'
+              ? 'bg-yellow-500/10 border-yellow-500/30'
+              : submission.is_approved === true
               ? 'bg-green-500/10 border-green-500/30'
-              : submission.is_approved === false
-              ? 'bg-red-500/10 border-red-500/30'
-              : 'bg-yellow-500/10 border-yellow-500/30'
+              : 'bg-red-500/10 border-red-500/30'
           }`}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <TrendingUp className={`w-5 h-5 ${
-                    submission.is_approved === true ? 'text-green-400' 
-                    : submission.is_approved === false ? 'text-red-400' 
-                    : 'text-yellow-400'
+                    submission.status === 'PENDING_REVIEW' ? 'text-yellow-400'
+                    : submission.is_approved === true ? 'text-green-400' 
+                    : 'text-red-400'
                   }`} />
                   <span className="text-sm font-medium text-gray-300">MPU</span>
                 </div>
@@ -539,13 +539,13 @@ export default function SubmissionReview() {
               </div>
               <div className="text-right">
                 <p className={`text-sm font-medium ${
-                  submission.is_approved === true ? 'text-green-400' 
-                  : submission.is_approved === false ? 'text-red-400' 
-                  : 'text-yellow-400'
+                  submission.status === 'PENDING_REVIEW' ? 'text-yellow-400'
+                  : submission.is_approved === true ? 'text-green-400' 
+                  : 'text-red-400'
                 }`}>
-                  {submission.is_approved === true ? `✅ ${t('submissionReview.approved')}` 
-                   : submission.is_approved === false ? `❌ ${t('submissionReview.rejected')}` 
-                   : `⏳ ${t('submissionReview.pendingReview')}`}
+                  {submission.status === 'PENDING_REVIEW' ? `⏳ ${t('submissionReview.pendingReview')}`
+                   : submission.is_approved === true ? `✅ ${t('submissionReview.approved')}` 
+                   : `❌ ${t('submissionReview.rejected')}`}
                 </p>
                 {submission.mpu_vs_target != null && (
                   <p className="text-xs text-gray-400 mt-1">

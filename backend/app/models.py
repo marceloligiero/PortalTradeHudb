@@ -417,7 +417,7 @@ class ChallengeSubmission(Base):
     completed_at = Column(DateTime(timezone=True))
     calculated_mpu = Column(Float)  # MPU calculado (tempo / operações = minutos por unidade)
     mpu_vs_target = Column(Float)  # Percentual vs meta (target_mpu / calculado_mpu * 100) - quanto maior, melhor
-    is_approved = Column(Boolean, default=False)  # True se passou nos KPIs selecionados
+    is_approved = Column(Boolean, nullable=True, default=None)  # None = pendente/manual, True = aprovado, False = reprovado
     score = Column(Float)  # Nota calculada
     feedback = Column(Text)
     submitted_by = Column(Integer, ForeignKey("users.id"))  # Formador que aplicou
