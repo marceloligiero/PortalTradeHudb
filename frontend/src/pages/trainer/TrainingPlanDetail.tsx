@@ -1795,7 +1795,7 @@ export default function TrainingPlanDetail() {
                                           ? 'bg-blue-500/20 text-blue-400' 
                                           : 'bg-purple-500/20 text-purple-400'
                                       }`}>
-                                        {challenge.challenge_type}
+                                        {challenge.challenge_type === 'SUMMARY' ? t('challengeResult.typeSummary') : challenge.challenge_type === 'COMPLETE' ? t('challengeResult.typeComplete') : challenge.challenge_type}
                                       </span>
                                     </div>
 
