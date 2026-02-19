@@ -33,6 +33,8 @@ BACKEND_DIR = PROJECT_DIR / "backend"
 FRONTEND_DIR = PROJECT_DIR / "frontend"
 PYTHON_EXE = BACKEND_DIR / "venv" / "Scripts" / "python.exe"
 SSL_DIR = PROJECT_DIR / "ssl" / "letsencrypt"
+NPM_CMD = r"C:\Program Files\nodejs\npm.cmd"
+GIT_CMD = r"C:\Program Files\Git\cmd\git.exe"
 LOG_FILE = PROJECT_DIR / "deploy" / "deploy.log"
 
 # Logging
@@ -96,7 +98,7 @@ def deploy():
 
         # Step 1: Git pull
         logger.info("[1/4] Pulling latest code from GitHub...")
-        code, output = run_command(["git", "pull", "origin", "main"])
+        code, output = run_command([GIT_CMD, "pull", "origin", "main"])
         logger.info(f"  git pull: exit={code}")
         if output.strip():
             logger.info(f"  {output.strip()[:500]}")
@@ -119,14 +121,14 @@ def deploy():
         # Step 3: Rebuild frontend
         logger.info("[3/4] Rebuilding frontend...")
         code, output = run_command(
-            ["npm", "install", "--silent"],
+            [NPM_CMD, "install", "--silent"],
             cwd=str(FRONTEND_DIR),
             timeout=120,
         )
         logger.info(f"  npm install: exit={code}")
 
         code, output = run_command(
-            ["npm", "run", "build"],
+            [NPM_CMD, "run", "build"],
             cwd=str(FRONTEND_DIR),
             timeout=180,
         )
