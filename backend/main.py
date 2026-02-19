@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from app.routes import auth, admin, student, trainer, training_plans, advanced_reports, certificates, student_reports, ratings, password_reset, knowledge_matrix, public
 from app.routers import challenges, stats, lessons, finalization
 
@@ -45,6 +46,9 @@ origins, allow_origin_regex = get_allowed_origins_and_regex()
 # If wildcard '*' is present in explicit origins, do not allow credentials
 allow_credentials = False if "*" in origins else True
 
+# GZip compression - compresses responses > 500 bytes (critical for 2MB+ JS bundle)
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -64,23 +68,14 @@ logger = logging.getLogger("app.middleware")
 
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    logger.info(f"Incoming request: {request.method} {request.url}")
     try:
         response = await call_next(request)
-        logger.info(f"Response status: {response.status_code} for {request.method} {request.url}")
         return response
     except Exception as e:
         logger.error(f"Unhandled exception during request: {e}")
         tb = traceback.format_exc()
         logger.error(tb)
-        # Persist traceback to file for local debugging
-        try:
-            with open("backend/exception_trace.txt", "w", encoding="utf-8") as f:
-                f.write(tb)
-        except Exception:
-            pass
-        # RETURN TRACEBACK FOR DEBUGGING (temporary)
-        return JSONResponse(status_code=500, content={"detail": str(e), "trace": tb})
+        return JSONResponse(status_code=500, content={"detail": str(e)})
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
@@ -111,13 +106,59 @@ app.include_router(knowledge_matrix.router, tags=["knowledge_matrix"])
 # Mount public routes (landing page stats — no auth)
 app.include_router(public.router, tags=["public"])
 
-@app.get("/")
-async def root():
+@app.get("/api")
+async def api_root():
     return {"message": "Trade Data Hub API"}
 
 @app.get("/health")
+@app.get("/api/health")
 async def health():
     return {"status": "healthy"}
+
+# ---------------------------------------------------------------------------
+# Serve the React SPA (production build) from <project>/frontend/dist
+# This MUST come after all /api routes so they take priority.
+# ---------------------------------------------------------------------------
+import os
+from pathlib import Path as _Path
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from starlette.responses import Response
+
+_frontend_dist = _Path(__file__).resolve().parents[1] / "frontend" / "dist"
+if _frontend_dist.is_dir():
+    # Serve static assets (JS/CSS/images) with long cache (files are hashed by Vite)
+    app.mount("/assets", StaticFiles(directory=str(_frontend_dist / "assets")), name="static-assets")
+
+    # Add cache headers middleware for /assets (hashed filenames = safe to cache forever)
+    @app.middleware("http")
+    async def add_cache_headers(request: Request, call_next):
+        response = await call_next(request)
+        path = request.url.path
+        if path.startswith("/assets/"):
+            # Vite hashes filenames, safe to cache 1 year
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        elif path.startswith("/locales/"):
+            response.headers["Cache-Control"] = "public, max-age=3600"
+        return response
+
+    # Serve locale files
+    _locales = _frontend_dist / "locales"
+    if _locales.is_dir():
+        app.mount("/locales", StaticFiles(directory=str(_locales)), name="static-locales")
+    # Catch-all for SPA routing - serve index.html for any non-API, non-asset path
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # If the path matches a real file in dist, serve it
+        file_path = _frontend_dist / full_path
+        if full_path and file_path.is_file():
+            return FileResponse(str(file_path))
+        # Otherwise serve index.html for SPA client-side routing
+        return FileResponse(str(_frontend_dist / "index.html"))
+else:
+    @app.get("/")
+    async def root():
+        return {"message": "Trade Data Hub API - Frontend not built. Run 'npm run build' in frontend/"}
 
 if __name__ == "__main__":
     import uvicorn

@@ -909,11 +909,7 @@ export default function UsersPage() {
               {!loading && filteredUsers.length > 0 && (
                 <div className="px-6 py-4 bg-gray-50 dark:bg-white/5 border-t border-gray-200 dark:border-white/10 flex items-center justify-center">
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {t('usersPage.showingOf', { showing: filteredUsers.length, total: users.length }).split('{{showing}}')[0]}
-                    <span className="text-gray-900 dark:text-white font-medium">{filteredUsers.length}</span>
-                    {t('usersPage.showingOf').split('{{showing}}')[1]?.split('{{total}}')[0]}
-                    <span className="text-gray-900 dark:text-white font-medium">{users.length}</span>
-                    {t('usersPage.showingOf').split('{{total}}')[1]}
+                    {t('usersPage.showingOf', { showing: filteredUsers.length, total: users.length })}
                   </p>
                 </div>
               )}

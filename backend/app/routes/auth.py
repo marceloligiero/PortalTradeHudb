@@ -25,7 +25,16 @@ async def login(request: Request, db: Session = Depends(get_db)):
         username = body.get("username")
         password = body.get("password")
 
-    logger.info(f"Login attempt - username: {username}, password length: {len(password) if password else 0}")
+    logger.info(f"Login attempt - username: '{username}', password length: {len(password) if password else 0}, password repr: {repr(password) if password else None}, content-type: {content_type}")
+    
+    # Debug: verify the hash directly
+    from app.models import User as UserModel
+    dbuser = db.query(UserModel).filter(UserModel.email == username).first()
+    if dbuser:
+        import bcrypt
+        direct_check = bcrypt.checkpw(password.encode('utf-8'), dbuser.hashed_password.encode('utf-8'))
+        logger.info(f"Direct bcrypt check: {direct_check}, hash: {dbuser.hashed_password[:30]}...")
+    
     user = auth.authenticate_user(db, username, password)
     if not user:
         logger.warning(f"Authentication failed for user: {username}")

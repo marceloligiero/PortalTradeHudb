@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import viteCompression from 'vite-plugin-compression';
 import path from 'path';
 
 export default defineConfig(({ mode }) => {
@@ -25,11 +26,50 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-    plugins: [react()],
+    plugins: [
+      react(),
+      // Pre-compress assets at build time (saves CPU at runtime)
+      viteCompression({ algorithm: 'gzip', ext: '.gz', threshold: 1024 }),
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
       },
+    },
+    build: {
+      // Code splitting for faster parallel loading on mobile
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // React core - cached separately, rarely changes
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            // UI/animation libs
+            'vendor-ui': ['framer-motion', 'lucide-react', 'clsx'],
+            // Form handling
+            'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
+            // Charts
+            'vendor-charts': ['recharts'],
+            // PDF generation (heavy, rarely used)
+            'vendor-pdf': ['jspdf', 'jspdf-autotable', 'html2canvas'],
+            // Rich text editor (heavy, rarely used)
+            'vendor-editor': [
+              '@tiptap/react', '@tiptap/starter-kit',
+              '@tiptap/extension-color', '@tiptap/extension-highlight',
+              '@tiptap/extension-image', '@tiptap/extension-link',
+              '@tiptap/extension-placeholder', '@tiptap/extension-text-align',
+              '@tiptap/extension-text-style', '@tiptap/extension-underline',
+            ],
+            // State & data
+            'vendor-data': ['zustand', '@tanstack/react-query', 'axios', 'date-fns'],
+            // i18n
+            'vendor-i18n': ['i18next', 'react-i18next'],
+          },
+        },
+      },
+      // Target modern browsers for smaller output
+      target: 'es2020',
+      // Increase chunk warning threshold
+      chunkSizeWarningLimit: 600,
     },
     server: {
       host: '0.0.0.0',
