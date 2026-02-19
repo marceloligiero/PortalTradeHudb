@@ -141,12 +141,15 @@ def deploy():
         # Step 4: Restart backend servers
         logger.info("[4/4] Restarting backend servers...")
 
-        # Kill existing Python server processes
+        # Kill existing Python server processes (but NOT the webhook server itself)
+        my_pid = os.getpid()
+        kill_cmd = (
+            f"Get-Process python* -ErrorAction SilentlyContinue | "
+            f"Where-Object {{ $_.Id -ne {my_pid} }} | "
+            f"Stop-Process -Force -ErrorAction SilentlyContinue"
+        )
         code, _ = run_command(
-            ["powershell", "-Command",
-             "Get-Process python* -ErrorAction SilentlyContinue | "
-             "Where-Object { $_.Id -ne $PID } | "
-             "Stop-Process -Force -ErrorAction SilentlyContinue"],
+            ["powershell", "-Command", kill_cmd],
         )
         time.sleep(3)
 
