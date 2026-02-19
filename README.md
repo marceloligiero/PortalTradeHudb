@@ -1,6 +1,6 @@
 # 🎓 Portal TradeHub
 
-<!-- Auto-deploy test: 2026-02-19 #5 -->
+<!-- Auto-deploy test: 2026-02-19 #6 -->
 
 Sistema completo de gestão de formações e cursos online com funcionalidades avançadas de gestão de utilizadores, planos de treino, e certificados.
 
