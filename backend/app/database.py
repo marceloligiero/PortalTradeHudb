@@ -8,8 +8,15 @@ from sqlalchemy import exc as sa_exc
 # Suppress SQLAlchemy warnings about SQL Server version
 warnings.filterwarnings('ignore', category=sa_exc.SAWarning, message='.*Unrecognized server version info.*')
 
-# Create engine with pyodbc - pass the connection string directly
-engine = create_engine(settings.DATABASE_URL, echo=False)
+# Create engine with connection pool optimized for performance
+engine = create_engine(
+    settings.DATABASE_URL,
+    echo=False,
+    pool_size=10,
+    max_overflow=20,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
