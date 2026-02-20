@@ -96,6 +96,9 @@ def deploy():
         logger.info("=" * 60)
         start = time.time()
 
+        # Step 0: Ensure safe.directory is set (needed when running as SYSTEM)
+        run_command([GIT_CMD, "config", "--global", "--add", "safe.directory", str(PROJECT_DIR).replace("\\", "/")])
+
         # Step 1: Git pull
         logger.info("[1/4] Pulling latest code from GitHub...")
         code, output = run_command([GIT_CMD, "pull", "origin", "main"])
