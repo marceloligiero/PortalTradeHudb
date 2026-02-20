@@ -182,9 +182,8 @@ def deploy():
 
         time.sleep(3)
 
-        # Use DETACHED_PROCESS + CREATE_NEW_PROCESS_GROUP so processes survive
-        # independently from the webhook server process tree
-        DETACHED = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+        # Use CREATE_NO_WINDOW so processes don't open console windows
+        CREATE_NO_WINDOW = 0x08000000
         env = os.environ.copy()
 
         # Start HTTPS server (port 8443)
@@ -199,7 +198,7 @@ def deploy():
                 cwd=str(BACKEND_DIR),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                creationflags=DETACHED,
+                creationflags=CREATE_NO_WINDOW,
                 env=env,
             )
             logger.info(f"  HTTPS server started (PID {p1.pid})")
@@ -217,7 +216,7 @@ def deploy():
                 cwd=str(BACKEND_DIR),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                creationflags=DETACHED,
+                creationflags=CREATE_NO_WINDOW,
                 env=env,
             )
             logger.info(f"  HTTP server started (PID {p2.pid})")
