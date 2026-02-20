@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, Save, X, Users, Building2, Package, CheckCircle2, AlertCircle, Check, GraduationCap } from 'lucide-react';
+import { BookOpen, Save, X, Users, Building2, Package, CheckCircle2, AlertCircle, Check, GraduationCap, TrendingUp, Shield, Star } from 'lucide-react';
 import api from '../../lib/axios';
 import { getTranslatedProductName } from '../../utils/productTranslation';
 
@@ -256,26 +256,42 @@ export default function CourseForm() {
                     </label>
                     <div className="grid grid-cols-3 gap-3">
                       {[
-                        { value: 'BEGINNER', label: t('admin.levelBeginner', 'Principiante'), icon: '🟢', color: 'green' },
-                        { value: 'INTERMEDIATE', label: t('admin.levelIntermediate', 'Intermédio'), icon: '🟡', color: 'amber' },
-                        { value: 'EXPERT', label: t('admin.levelExpert', 'Experto'), icon: '🔴', color: 'red' },
-                      ].map((level) => (
-                        <button
-                          key={level.value}
-                          type="button"
-                          onClick={() => setFormData({ ...formData, level: level.value })}
-                          className={`p-4 rounded-xl border-2 text-center transition-all ${
-                            formData.level === level.value
-                              ? level.color === 'green' ? 'border-green-500 bg-green-500/10 dark:bg-green-500/20' :
-                                level.color === 'amber' ? 'border-amber-500 bg-amber-500/10 dark:bg-amber-500/20' :
-                                'border-red-500 bg-red-500/10 dark:bg-red-500/20'
-                              : 'border-gray-200 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/30'
-                          }`}
-                        >
-                          <div className="text-2xl mb-1">{level.icon}</div>
-                          <p className="font-medium text-gray-900 dark:text-white text-sm">{level.label}</p>
-                        </button>
-                      ))}
+                        { value: 'BEGINNER', label: t('admin.levelBeginner', 'Iniciante'), Icon: TrendingUp, color: 'orange', desc: t('admin.levelBeginnerDesc', 'Conceitos básicos') },
+                        { value: 'INTERMEDIATE', label: t('admin.levelIntermediate', 'Intermédio'), Icon: Shield, color: 'amber', desc: t('admin.levelIntermediateDesc', 'Conhecimento prático') },
+                        { value: 'EXPERT', label: t('admin.levelExpert', 'Especialista'), Icon: Star, color: 'emerald', desc: t('admin.levelExpertDesc', 'Domínio avançado') },
+                      ].map((level) => {
+                        const isSelected = formData.level === level.value;
+                        const colorStyles = level.color === 'orange'
+                          ? { border: 'border-orange-500', bg: 'bg-orange-500/10 dark:bg-orange-500/20', iconBg: 'bg-orange-500/20', iconColor: 'text-orange-500', ring: 'ring-orange-500/30' }
+                          : level.color === 'amber'
+                          ? { border: 'border-amber-500', bg: 'bg-amber-500/10 dark:bg-amber-500/20', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-500', ring: 'ring-amber-500/30' }
+                          : { border: 'border-emerald-500', bg: 'bg-emerald-500/10 dark:bg-emerald-500/20', iconBg: 'bg-emerald-500/20', iconColor: 'text-emerald-500', ring: 'ring-emerald-500/30' };
+                        return (
+                          <button
+                            key={level.value}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, level: level.value })}
+                            className={`relative p-5 rounded-xl border-2 text-center transition-all duration-200 ${
+                              isSelected
+                                ? `${colorStyles.border} ${colorStyles.bg} ring-2 ${colorStyles.ring} scale-[1.02]`
+                                : 'border-gray-200 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/20 hover:scale-[1.01]'
+                            }`}
+                          >
+                            {isSelected && (
+                              <div className={`absolute top-2 right-2 w-5 h-5 rounded-full ${colorStyles.iconBg} flex items-center justify-center`}>
+                                <Check className={`w-3 h-3 ${colorStyles.iconColor}`} />
+                              </div>
+                            )}
+                            <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${
+                              isSelected ? colorStyles.iconBg : 'bg-gray-100 dark:bg-white/5'
+                            }`}>
+                              <level.Icon className={`w-5 h-5 ${isSelected ? colorStyles.iconColor : 'text-gray-400 dark:text-gray-500'}`} />
+                            </div>
+                            <p className="font-semibold text-gray-900 dark:text-white text-sm">{level.label}</p>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{level.desc}</p>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>

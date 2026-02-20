@@ -21,7 +21,9 @@ import {
   Sparkles,
   ChevronRight,
   Play,
-  Star
+  Star,
+  Shield,
+  TrendingUp
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -273,14 +275,14 @@ export default function CourseDetail() {
                 </div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{course.title}</h1>
                 {course.level && (
-                  <span className={`inline-flex items-center px-3 py-1 rounded-lg text-sm font-bold mb-2 ${
-                    course.level === 'EXPERT' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400' :
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-bold mb-2 ${
+                    course.level === 'EXPERT' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' :
                     course.level === 'INTERMEDIATE' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' :
-                    'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400'
+                    'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400'
                   }`}>
-                    {course.level === 'EXPERT' ? `🔴 ${t('admin.levelExpert', 'Experto')}` :
-                     course.level === 'INTERMEDIATE' ? `🟡 ${t('admin.levelIntermediate', 'Intermédio')}` :
-                     `🟢 ${t('admin.levelBeginner', 'Principiante')}`}
+                    {course.level === 'EXPERT' ? <><Star className="w-3.5 h-3.5" /> {t('admin.levelExpert', 'Especialista')}</> :
+                     course.level === 'INTERMEDIATE' ? <><Shield className="w-3.5 h-3.5" /> {t('admin.levelIntermediate', 'Intermédio')}</> :
+                     <><TrendingUp className="w-3.5 h-3.5" /> {t('admin.levelBeginner', 'Iniciante')}</>}
                   </span>
                 )}
                 <p className="text-gray-600 dark:text-gray-400 max-w-2xl">{course.description}</p>

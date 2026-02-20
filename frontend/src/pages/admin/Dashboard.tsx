@@ -99,8 +99,12 @@ export default function AdminDashboard() {
         const plansResp = await api.get('/api/training-plans/');
         const plans = plansResp.data ?? [];
         const activePlansData = plans.filter((p: any) => {
-          if (!p.end_date) return true;
-          return new Date(p.end_date) >= new Date();
+          // Use API status field instead of client-side date check
+          // Active = not completed/finalized, or is_active flag is true
+          const status = p.status?.toUpperCase() ?? '';
+          if (status === 'COMPLETED') return false;
+          if (p.is_active === false) return false;
+          return true;
         });
 
         setStats({

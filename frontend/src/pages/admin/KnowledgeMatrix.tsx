@@ -754,14 +754,14 @@ export default function KnowledgeMatrix() {
                                           {col.course_title}
                                         </h4>
                                         {col.course_level && (
-                                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold mt-0.5 ${
-                                            col.course_level === 'EXPERT' ? 'bg-red-500/20 text-red-400' :
+                                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold mt-0.5 ${
+                                            col.course_level === 'EXPERT' ? 'bg-emerald-500/20 text-emerald-400' :
                                             col.course_level === 'INTERMEDIATE' ? 'bg-amber-500/20 text-amber-400' :
-                                            'bg-green-500/20 text-green-400'
+                                            'bg-orange-500/20 text-orange-400'
                                           }`}>
-                                            {col.course_level === 'EXPERT' ? t('knowledgeMatrix.expert', 'Experto') :
-                                             col.course_level === 'INTERMEDIATE' ? t('knowledgeMatrix.intermediate', 'Intermédio') :
-                                             t('knowledgeMatrix.beginner', 'Principiante')}
+                                            {col.course_level === 'EXPERT' ? <><Star className="w-2.5 h-2.5" /> {t('knowledgeMatrix.expert', 'Especialista')}</> :
+                                             col.course_level === 'INTERMEDIATE' ? <><Shield className="w-2.5 h-2.5" /> {t('knowledgeMatrix.intermediate', 'Intermédio')}</> :
+                                             <><TrendingUp className="w-2.5 h-2.5" /> {t('knowledgeMatrix.beginner', 'Iniciante')}</>}
                                           </span>
                                         )}
                                         {col.bank_name && (

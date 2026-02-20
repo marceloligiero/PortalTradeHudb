@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
   BookOpen, Calendar, ArrowLeft, Clock, Target, AlertCircle, PlayCircle, 
-  CheckCircle2, Pause, Play, Eye, Settings2, TrendingUp, Timer, Award, Download, Star, User, ChevronDown, Users, UserPlus, UserMinus, Edit3, Search, Trash2, RotateCcw
+  CheckCircle2, Pause, Play, Eye, Settings2, TrendingUp, Timer, Award, Download, Star, User, ChevronDown, Users, UserPlus, UserMinus, Edit3, Search, Trash2, RotateCcw, Shield
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -1377,10 +1377,10 @@ export default function TrainingPlanDetail() {
           {plan.courses && plan.courses.length > 0 ? (
             (() => {
               const levelOrder = ['BEGINNER', 'INTERMEDIATE', 'EXPERT'];
-              const levelConfig: Record<string, { emoji: string; label: string; color: string; borderColor: string }> = {
-                'BEGINNER': { emoji: '🟢', label: t('admin.levelBeginner'), color: isDark ? 'text-green-400' : 'text-green-600', borderColor: isDark ? 'border-green-500/30' : 'border-green-300' },
-                'INTERMEDIATE': { emoji: '🟡', label: t('admin.levelIntermediate'), color: isDark ? 'text-yellow-400' : 'text-yellow-600', borderColor: isDark ? 'border-yellow-500/30' : 'border-yellow-300' },
-                'EXPERT': { emoji: '🔴', label: t('admin.levelExpert'), color: isDark ? 'text-red-400' : 'text-red-600', borderColor: isDark ? 'border-red-500/30' : 'border-red-300' },
+              const levelConfig: Record<string, { icon: any; label: string; color: string; borderColor: string }> = {
+                'BEGINNER': { icon: TrendingUp, label: t('admin.levelBeginner'), color: isDark ? 'text-orange-400' : 'text-orange-600', borderColor: isDark ? 'border-orange-500/30' : 'border-orange-300' },
+                'INTERMEDIATE': { icon: Shield, label: t('admin.levelIntermediate'), color: isDark ? 'text-amber-400' : 'text-amber-600', borderColor: isDark ? 'border-amber-500/30' : 'border-amber-300' },
+                'EXPERT': { icon: Star, label: t('admin.levelExpert'), color: isDark ? 'text-emerald-400' : 'text-emerald-600', borderColor: isDark ? 'border-emerald-500/30' : 'border-emerald-300' },
               };
               const grouped = levelOrder
                 .map(level => ({
@@ -1394,7 +1394,7 @@ export default function TrainingPlanDetail() {
                 return (
                   <div key={group.level} className="space-y-4">
                     <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${cfg.borderColor} ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
-                      <span className="text-xl">{cfg.emoji}</span>
+                      {(() => { const Icon = cfg.icon; return <Icon className={`w-5 h-5 ${cfg.color}`} />; })()}
                       <h3 className={`text-lg font-bold ${cfg.color}`}>{cfg.label}</h3>
                       <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
                         ({group.courses.length})
@@ -1422,15 +1422,16 @@ export default function TrainingPlanDetail() {
                       <div className="flex items-center gap-3 flex-wrap">
                         <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{course.title}</h3>
                         {course.level && (() => {
-                          const lc: Record<string, { emoji: string; label: string; bg: string; text: string }> = {
-                            'BEGINNER': { emoji: '🟢', label: t('admin.levelBeginner'), bg: 'bg-green-500/20', text: 'text-green-400' },
-                            'INTERMEDIATE': { emoji: '🟡', label: t('admin.levelIntermediate'), bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
-                            'EXPERT': { emoji: '🔴', label: t('admin.levelExpert'), bg: 'bg-red-500/20', text: 'text-red-400' },
+                          const lc: Record<string, { icon: any; label: string; bg: string; text: string }> = {
+                            'BEGINNER': { icon: TrendingUp, label: t('admin.levelBeginner'), bg: 'bg-orange-500/20', text: 'text-orange-400' },
+                            'INTERMEDIATE': { icon: Shield, label: t('admin.levelIntermediate'), bg: 'bg-amber-500/20', text: 'text-amber-400' },
+                            'EXPERT': { icon: Star, label: t('admin.levelExpert'), bg: 'bg-emerald-500/20', text: 'text-emerald-400' },
                           };
                           const lv = lc[course.level] || lc['BEGINNER'];
+                          const LvIcon = lv.icon;
                           return (
                             <span className={`px-2 py-0.5 rounded-lg text-xs font-bold ${lv.bg} ${lv.text} flex items-center gap-1`}>
-                              {lv.emoji} {lv.label}
+                              <LvIcon className="w-3 h-3" /> {lv.label}
                             </span>
                           );
                         })()}
