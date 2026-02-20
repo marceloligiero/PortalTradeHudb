@@ -84,11 +84,12 @@ SERVICES = {
     },
 }
 
-# UPnP port mappings to maintain (only application ports - never expose DB/RDP/WinRM)
+# UPnP port mappings to maintain (only application ports + MySQL for dev)
 UPNP_MAPPINGS = [
     (8443, "TradeHub HTTPS"),
     (8000, "TradeHub HTTP"),
     (9000, "TradeHub Webhook"),
+    (3306, "TradeHub MySQL"),
 ]
 
 CREATE_FLAGS = 0x08000000 | 0x00000200  # CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP

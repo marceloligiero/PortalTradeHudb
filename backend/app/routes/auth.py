@@ -3,10 +3,31 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models, schemas, auth
 from app.audit import log_audit
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+import re
 
 router = APIRouter()
 
+# Rate limiter for auth endpoints
+limiter = Limiter(key_func=get_remote_address)
+
+
+PASSWORD_MIN_LENGTH = 8
+PASSWORD_POLICY_MSG = "A password deve ter pelo menos 8 caracteres, incluindo maiúscula, minúscula e número"
+_PASSWORD_RE = re.compile(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$')
+
+def validate_password_strength(password: str):
+    """Validate password meets minimum security requirements."""
+    if not _PASSWORD_RE.match(password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=PASSWORD_POLICY_MSG
+        )
+
+
 @router.post("/login")
+@limiter.limit("5/minute")
 async def login(request: Request, db: Session = Depends(get_db)):
     """Simple login endpoint that accepts either JSON or form (for tests)."""
     import logging
@@ -25,7 +46,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
         username = body.get("username")
         password = body.get("password")
 
-    logger.info(f"Login attempt - username: '{username}', content-type: {content_type}")
+    logger.info(f"Login attempt - username: '{username}'")
     
     user = auth.authenticate_user(db, username, password)
     if not user:
@@ -79,12 +100,8 @@ async def register(
                 detail="Email already registered"
             )
         
-        # Validate password strength (minimum 6 characters)
-        if len(user_in.password) < 6:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password must be at least 6 characters long"
-            )
+        # Validate password strength
+        validate_password_strength(user_in.password)
         
         # Create new user
         hashed_password = auth.get_password_hash(user_in.password)

@@ -1,10 +1,12 @@
 """
 Rotas para recuperação de senha
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 import secrets
 import logging
 
@@ -14,6 +16,7 @@ from app.auth import get_password_hash
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
+limiter = Limiter(key_func=get_remote_address)
 
 # Token válido por 1 hora
 TOKEN_EXPIRY_HOURS = 1
@@ -67,7 +70,8 @@ def verify_email(request: VerifyEmailRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/forgot-password", response_model=MessageResponse)
-def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+def forgot_password(request: Request, reset_req: ForgotPasswordRequest, db: Session = Depends(get_db)):
     """
     Solicita recuperação de senha.
     Envia um email com link para redefinir a senha.
@@ -75,7 +79,7 @@ def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db
     Sempre retorna sucesso para não revelar se o email existe.
     """
     # Busca o usuário pelo email
-    user = db.query(User).filter(User.email == request.email.lower()).first()
+    user = db.query(User).filter(User.email == reset_req.email.lower()).first()
     
     if user and user.is_active:
         # Invalida tokens anteriores não utilizados
@@ -86,7 +90,7 @@ def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db
         
         # Gera novo token
         token = secrets.token_urlsafe(32)
-        expires_at = datetime.utcnow() + timedelta(hours=TOKEN_EXPIRY_HOURS)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=TOKEN_EXPIRY_HOURS)
         
         # Salva o token
         reset_token = PasswordResetToken(
@@ -110,7 +114,7 @@ def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db
         else:
             logger.warning(f"Falha ao enviar email de recuperação para {user.email}")
     else:
-        logger.info(f"Tentativa de recuperação para email inexistente/inativo: {request.email}")
+        logger.info(f"Tentativa de recuperação para email inexistente/inativo: {reset_req.email}")
     
     # Sempre retorna sucesso para segurança
     return MessageResponse(
@@ -124,11 +128,8 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
     Redefine a senha usando o token de recuperação.
     """
     # Valida a nova senha
-    if len(request.new_password) < 6:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A senha deve ter pelo menos 6 caracteres"
-        )
+    from app.routes.auth import validate_password_strength
+    validate_password_strength(request.new_password)
     
     # Busca o token
     reset_token = db.query(PasswordResetToken).filter(
@@ -143,7 +144,7 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
         )
     
     # Verifica expiração
-    if datetime.utcnow() > reset_token.expires_at:
+    if datetime.now(timezone.utc) > reset_token.expires_at.replace(tzinfo=timezone.utc):
         reset_token.used = True
         db.commit()
         raise HTTPException(
@@ -190,7 +191,7 @@ def validate_reset_token(token: str, db: Session = Depends(get_db)):
             detail="Token inválido ou já utilizado"
         )
     
-    if datetime.utcnow() > reset_token.expires_at:
+    if datetime.now(timezone.utc) > reset_token.expires_at.replace(tzinfo=timezone.utc):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Token expirado"

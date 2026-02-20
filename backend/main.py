@@ -1,10 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from app.routes import auth, admin, student, trainer, training_plans, advanced_reports, certificates, student_reports, ratings, password_reset, knowledge_matrix, public
 from app.routers import challenges, stats, lessons, finalization
 
+# Rate limiter (shared instance used by route modules)
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+
 app = FastAPI(title="Trade Data Hub API", version="1.0.0")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware
 from app.config import settings
@@ -22,17 +30,15 @@ def get_allowed_origins_and_regex():
     # Build a conservative regex that matches the typical dynamic tunnels
     # and local addresses. This allows patterns like <subdomain>.trycloudflare.com
     # and <subdomain>.loca.lt as well as local IP addresses and localhost.
+    # Only allow localhost and local network IPs (no third-party tunnel domains)
     regex_parts = [
-        r"^https?://([a-z0-9-]+\.)*trycloudflare\.com(:\d+)?$",
-        r"^https?://([a-z0-9-]+\.)*loca\.lt(:\d+)?$",
         r"^https?://localhost(:\d+)?$",
         r"^https?://127\.0\.0\.1(:\d+)?$",
         r"^https?://192\.168\.\d+\.\d+(:\d+)?$",
         r"^https?://10\.\d+\.\d+\.\d+(:\d+)?$",
-        r"^https?://172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$",
     ]
 
-    allow_origin_regex = "(" + ")|(".join(regex_parts) + ")"
+    allow_origin_regex = "(" + ")|(".join(regex_parts) + ")" if not settings.DEBUG else None
 
     # If DEBUG and no explicit origins provided, allow '*' for convenience
     if settings.DEBUG and not origins:
@@ -54,8 +60,8 @@ app.add_middleware(
     allow_origins=origins,
     allow_origin_regex=allow_origin_regex,
     allow_credentials=allow_credentials,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Accept-Language", "X-Requested-With"],
 )
 
 # Request logging + exception middleware
