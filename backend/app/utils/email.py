@@ -7,8 +7,9 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# API Key do Resend
-RESEND_API_KEY = "re_Lb4qURgr_DWTaQvUjtfbqVqFDZzgSX4Cj"
+# API Key do Resend - loaded from environment
+import os
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 RESEND_API_URL = "https://api.resend.com/emails"
 
 

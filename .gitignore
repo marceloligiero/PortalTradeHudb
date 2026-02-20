@@ -30,3 +30,9 @@ win-acme.zip
 backend/package-lock.json
 frontend/src/pages/admin/Reports_backup.tsx
 backend/exception_trace.txt
+
+# Backup files (may contain sensitive data)
+*_backup*
+*.backup
+*_dump*
+*.dump.sql

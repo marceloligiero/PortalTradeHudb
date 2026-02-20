@@ -27,7 +27,6 @@ from pathlib import Path
 
 # Configuration
 PORT = int(os.environ.get("WEBHOOK_PORT", 9000))
-SECRET = os.environ.get("WEBHOOK_SECRET", "tradehub-deploy-2024")
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 BACKEND_DIR = PROJECT_DIR / "backend"
 FRONTEND_DIR = PROJECT_DIR / "frontend"
@@ -36,6 +35,19 @@ SSL_DIR = PROJECT_DIR / "ssl" / "letsencrypt"
 NPM_CMD = r"C:\Program Files\nodejs\npm.cmd"
 GIT_CMD = r"C:\Program Files\Git\cmd\git.exe"
 LOG_FILE = PROJECT_DIR / "deploy" / "deploy.log"
+
+# Load webhook secret from env var, then .env file, then fail
+SECRET = os.environ.get("WEBHOOK_SECRET", "")
+if not SECRET:
+    _env_file = PROJECT_DIR / "backend" / ".env"
+    if _env_file.exists():
+        for line in _env_file.read_text(encoding="utf-8").splitlines():
+            if line.startswith("WEBHOOK_SECRET="):
+                SECRET = line.split("=", 1)[1].strip()
+    if not SECRET:
+        import secrets as _sec
+        SECRET = _sec.token_hex(32)
+        print(f"WARNING: No WEBHOOK_SECRET configured. Generated random secret.")
 
 # Logging
 logging.basicConfig(
@@ -55,7 +67,8 @@ deploy_lock = threading.Lock()
 def verify_signature(payload: bytes, signature: str) -> bool:
     """Verify the GitHub webhook HMAC-SHA256 signature."""
     if not SECRET:
-        return True  # No secret configured, skip verification
+        logger.error("SECURITY: No webhook secret configured! Rejecting request.")
+        return False
     if not signature or not signature.startswith("sha256="):
         return False
     expected = "sha256=" + hmac.new(
@@ -272,7 +285,7 @@ def main():
     server = http.server.HTTPServer(("0.0.0.0", PORT), WebhookHandler)
     logger.info(f"Webhook server listening on port {PORT}")
     logger.info(f"Configure GitHub webhook URL: http://YOUR_IP:{PORT}/")
-    logger.info(f"Webhook secret: {SECRET}")
+    logger.info(f"Webhook secret configured: {'Yes' if SECRET else 'NO - INSECURE!'}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

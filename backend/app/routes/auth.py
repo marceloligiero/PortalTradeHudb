@@ -25,15 +25,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
         username = body.get("username")
         password = body.get("password")
 
-    logger.info(f"Login attempt - username: '{username}', password length: {len(password) if password else 0}, password repr: {repr(password) if password else None}, content-type: {content_type}")
-    
-    # Debug: verify the hash directly
-    from app.models import User as UserModel
-    dbuser = db.query(UserModel).filter(UserModel.email == username).first()
-    if dbuser:
-        import bcrypt
-        direct_check = bcrypt.checkpw(password.encode('utf-8'), dbuser.hashed_password.encode('utf-8'))
-        logger.info(f"Direct bcrypt check: {direct_check}, hash: {dbuser.hashed_password[:30]}...")
+    logger.info(f"Login attempt - username: '{username}', content-type: {content_type}")
     
     user = auth.authenticate_user(db, username, password)
     if not user:
@@ -95,15 +87,13 @@ async def register(
             )
         
         # Create new user
-        print(f"DEBUG: Password length before hashing: {len(user_in.password)} chars, {len(user_in.password.encode('utf-8'))} bytes")
         hashed_password = auth.get_password_hash(user_in.password)
         # Validate generated hash to avoid storing invalid hashes
         if not auth.is_valid_bcrypt_hash(hashed_password):
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Generated password hash is invalid"
+                detail="Internal server error"
             )
-        print(f"DEBUG: Hash created successfully")
         
         # If TRAINER, mark as pending for admin validation
         is_pending = user_in.role == "TRAINER"
@@ -136,11 +126,11 @@ async def register(
         raise
     except Exception as e:
         db.rollback()
-        import traceback
-        traceback.print_exc()
+        import logging as _log
+        _log.getLogger(__name__).error(f"Registration error: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Registration error: {str(e)}"
+            detail="Erro interno ao registar utilizador"
         )
 
 @router.get("/me", response_model=schemas.User)

@@ -33,6 +33,7 @@ class Settings(BaseSettings):
         # Ensure we always load the backend .env regardless of cwd
         env_file = str(Path(__file__).resolve().parents[1] / ".env")
         case_sensitive = True
+        extra = "ignore"  # Allow extra env vars not defined in Settings
 
 
 settings = Settings()

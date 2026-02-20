@@ -66,6 +66,18 @@ import logging
 
 logger = logging.getLogger("app.middleware")
 
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     try:
@@ -75,7 +87,7 @@ async def log_requests(request: Request, call_next):
         logger.error(f"Unhandled exception during request: {e}")
         tb = traceback.format_exc()
         logger.error(tb)
-        return JSONResponse(status_code=500, content={"detail": str(e)})
+        return JSONResponse(status_code=500, content={"detail": "Erro interno do servidor"})
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])

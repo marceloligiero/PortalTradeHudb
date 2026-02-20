@@ -45,61 +45,25 @@ class MessageResponse(BaseModel):
 def verify_email(request: VerifyEmailRequest, db: Session = Depends(get_db)):
     """
     Verifica se um email existe no sistema.
-    Usado no fluxo de redefinição direta de senha.
+    Retorna sempre a mesma resposta para não permitir enumeração de emails.
     """
     user = db.query(User).filter(User.email == request.email.lower()).first()
     
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Email não encontrado no sistema"
-        )
+    if not user or not user.is_active:
+        # Retorna mesma mensagem para não revelar se o email existe
+        logger.info(f"Tentativa de verificação para email inexistente/inativo: {request.email}")
+    else:
+        logger.info(f"Email verificado para redefinição: {request.email}")
     
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Usuário inativo. Entre em contato com o administrador."
-        )
-    
-    logger.info(f"Email verificado para redefinição: {request.email}")
-    return MessageResponse(message="Email encontrado")
+    # Sempre retorna sucesso - não revelar se email existe
+    return MessageResponse(message="Se o email estiver registado, receberá instruções de redefinição.")
 
 
-@router.post("/direct-reset-password", response_model=MessageResponse)
-def direct_reset_password(request: DirectResetPasswordRequest, db: Session = Depends(get_db)):
-    """
-    Redefine a senha diretamente pelo email (sem token).
-    Fluxo simplificado para quando o email é verificado primeiro.
-    """
-    # Valida a nova senha
-    if len(request.new_password) < 6:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A senha deve ter pelo menos 6 caracteres"
-        )
-    
-    # Busca o usuário
-    user = db.query(User).filter(User.email == request.email.lower()).first()
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuário não encontrado"
-        )
-    
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Usuário inativo"
-        )
-    
-    # Atualiza a senha
-    user.hashed_password = get_password_hash(request.new_password)
-    db.commit()
-    
-    logger.info(f"Senha redefinida diretamente para usuário {user.email}")
-    
-    return MessageResponse(message="Senha redefinida com sucesso!")
+# REMOVED: /direct-reset-password endpoint
+# This endpoint was a critical security vulnerability - it allowed
+# anyone to reset any user's password without authentication or token.
+# Password resets must go through /forgot-password (email with token) or
+# /reset-password (requires valid token).
 
 
 @router.post("/forgot-password", response_model=MessageResponse)

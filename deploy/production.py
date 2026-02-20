@@ -29,7 +29,7 @@ import signal
 from pathlib import Path
 
 # ============================================================
-# Configuration
+# Configuration - loaded from environment / .env
 # ============================================================
 PROJECT_DIR = Path(__file__).resolve().parents[1]
 BACKEND_DIR = PROJECT_DIR / "backend"
@@ -42,12 +42,23 @@ MYSQL_INI = Path(r"C:\wamp64\bin\mysql\mysql9.1.0\my.ini")
 WEBHOOK_SCRIPT = str(PROJECT_DIR / "deploy" / "webhook-server.py")
 LOG_FILE = PROJECT_DIR / "deploy" / "production.log"
 
-MYSQL_USER = "root"
-MYSQL_PASS = "TradeHub2024!"
-LOCAL_IP = "192.168.1.93"
+# Load credentials from .env file (never hardcode in source)
+def _load_env_var(name, default=""):
+    """Load a variable from backend/.env file."""
+    env_file = PROJECT_DIR / "backend" / ".env"
+    if env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith(f"{name}=") and not line.startswith("#"):
+                return line.split("=", 1)[1].strip()
+    return os.environ.get(name, default)
 
-DUCKDNS_DOMAIN = "portalformacoes"
-DUCKDNS_TOKEN = "97ca3d82-a186-4c2b-b589-8818069678d6"
+MYSQL_USER = _load_env_var("MYSQL_ADMIN_USER", "root")
+MYSQL_PASS = _load_env_var("MYSQL_ADMIN_PASS", "")
+LOCAL_IP = _load_env_var("LOCAL_IP", "192.168.1.93")
+
+DUCKDNS_DOMAIN = _load_env_var("DUCKDNS_DOMAIN", "portalformacoes")
+DUCKDNS_TOKEN = _load_env_var("DUCKDNS_TOKEN", "")
 
 # Services: (port, name, start_args, working_dir)
 SERVICES = {
@@ -73,14 +84,11 @@ SERVICES = {
     },
 }
 
-# UPnP port mappings to maintain
+# UPnP port mappings to maintain (only application ports - never expose DB/RDP/WinRM)
 UPNP_MAPPINGS = [
     (8443, "TradeHub HTTPS"),
     (8000, "TradeHub HTTP"),
     (9000, "TradeHub Webhook"),
-    (3389, "TradeHub RDP"),
-    (5985, "WinRM HTTP"),
-    (5986, "WinRM HTTPS"),
 ]
 
 CREATE_FLAGS = 0x08000000 | 0x00000200  # CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP

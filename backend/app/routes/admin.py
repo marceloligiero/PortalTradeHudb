@@ -58,7 +58,7 @@ async def list_users(
         except Exception:
             # best-effort file logging for local debugging
             pass
-        return JSONResponse(status_code=500, content={"detail": str(e), "trace": tb})
+        return JSONResponse(status_code=500, content={"detail": "Erro interno do servidor"})
 
 @router.post("/users", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
 async def create_user(
