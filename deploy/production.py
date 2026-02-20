@@ -1,7 +1,7 @@
 """
 TradeHub Production Manager
 ============================
-Unified script for all production operations:
+Unified script for all production operations (MySQL SSL enabled):
   - start   : Start all services (MySQL, HTTPS:8443, HTTP:8000, Webhook:9000)
   - stop    : Stop all services
   - restart : Stop + Start
