@@ -26,3 +26,4 @@ pytest-asyncio==0.21.1
 httpx==0.25.2
 requests==2.32.5
 slowapi==0.1.9
+psutil>=5.9.0

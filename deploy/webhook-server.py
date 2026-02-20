@@ -159,40 +159,85 @@ def deploy():
 
         # Kill existing Python server processes (but NOT the webhook server itself)
         my_pid = os.getpid()
-        kill_cmd = (
-            f"Get-Process python* -ErrorAction SilentlyContinue | "
-            f"Where-Object {{ $_.Id -ne {my_pid} }} | "
-            f"Stop-Process -Force -ErrorAction SilentlyContinue"
-        )
-        code, _ = run_command(
-            ["powershell", "-Command", kill_cmd],
-        )
+        try:
+            import psutil
+            for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+                try:
+                    if proc.info['name'] and 'python' in proc.info['name'].lower():
+                        if proc.info['pid'] != my_pid:
+                            cmdline = ' '.join(proc.info.get('cmdline') or [])
+                            if 'uvicorn' in cmdline:
+                                logger.info(f"  Killing uvicorn PID {proc.info['pid']}")
+                                proc.kill()
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+        except ImportError:
+            # Fallback if psutil not available
+            kill_cmd = (
+                f"Get-Process python* -ErrorAction SilentlyContinue | "
+                f"Where-Object {{ $_.Id -ne {my_pid} }} | "
+                f"Stop-Process -Force -ErrorAction SilentlyContinue"
+            )
+            run_command(["powershell", "-Command", kill_cmd])
+
         time.sleep(3)
+
+        # Use DETACHED_PROCESS + CREATE_NEW_PROCESS_GROUP so processes survive
+        # independently from the webhook server process tree
+        DETACHED = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+        env = os.environ.copy()
 
         # Start HTTPS server (port 8443)
         ssl_key = str(SSL_DIR / "portalformacoes.duckdns.org-key.pem")
         ssl_cert = str(SSL_DIR / "portalformacoes.duckdns.org-chain.pem")
-        subprocess.Popen(
-            [str(PYTHON_EXE), "-m", "uvicorn", "main:app",
-             "--host", "0.0.0.0", "--port", "8443",
-             "--ssl-keyfile", ssl_key, "--ssl-certfile", ssl_cert,
-             "--workers", "2"],
-            cwd=str(BACKEND_DIR),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        try:
+            p1 = subprocess.Popen(
+                [str(PYTHON_EXE), "-m", "uvicorn", "main:app",
+                 "--host", "0.0.0.0", "--port", "8443",
+                 "--ssl-keyfile", ssl_key, "--ssl-certfile", ssl_cert,
+                 "--workers", "2"],
+                cwd=str(BACKEND_DIR),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=DETACHED,
+                env=env,
+            )
+            logger.info(f"  HTTPS server started (PID {p1.pid})")
+        except Exception as e:
+            logger.error(f"  Failed to start HTTPS server: {e}")
+
+        time.sleep(2)
 
         # Start HTTP server (port 8000)
-        subprocess.Popen(
-            [str(PYTHON_EXE), "-m", "uvicorn", "main:app",
-             "--host", "0.0.0.0", "--port", "8000",
-             "--workers", "2"],
-            cwd=str(BACKEND_DIR),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        try:
+            p2 = subprocess.Popen(
+                [str(PYTHON_EXE), "-m", "uvicorn", "main:app",
+                 "--host", "0.0.0.0", "--port", "8000",
+                 "--workers", "2"],
+                cwd=str(BACKEND_DIR),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=DETACHED,
+                env=env,
+            )
+            logger.info(f"  HTTP server started (PID {p2.pid})")
+        except Exception as e:
+            logger.error(f"  Failed to start HTTP server: {e}")
 
         time.sleep(5)
+
+        # Verify ports are listening
+        import socket
+        for port, name in [(8443, "HTTPS"), (8000, "HTTP")]:
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(3)
+                s.connect(("127.0.0.1", port))
+                s.close()
+                logger.info(f"  {name} (:{port}) is UP")
+            except Exception:
+                logger.error(f"  {name} (:{port}) is DOWN!")
+
         elapsed = time.time() - start
         logger.info(f"DEPLOYMENT COMPLETED in {elapsed:.1f}s")
         logger.info("=" * 60)
