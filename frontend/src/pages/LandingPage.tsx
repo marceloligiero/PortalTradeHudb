@@ -32,10 +32,8 @@ import {
   Sun
 } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
 const fetchKPIs = async () => {
-  const { data } = await axios.get(`${API_URL}/api/stats/kpis`);
+  const { data } = await axios.get('/api/stats/kpis');
   return data;
 };
 

@@ -82,5 +82,71 @@ def main():
     if restarted:
         log("Services restarted by watchdog.")
 
+    # Ensure UPnP port mappings are active
+    ensure_upnp_mappings()
+
+
+def ensure_upnp_mappings():
+    """Check and restore UPnP port mappings if they disappeared."""
+    try:
+        import miniupnpc
+    except ImportError:
+        return
+
+    try:
+        u = miniupnpc.UPnP()
+        u.discoverdelay = 200
+        u.discover()
+        u.selectigd()
+
+        required = [
+            (8443, "TradeHub HTTPS"),
+            (8000, "TradeHub HTTP"),
+            (9000, "TradeHub Webhook"),
+            (3389, "TradeHub RDP"),
+            (5985, "WinRM HTTP"),
+            (5986, "WinRM HTTPS"),
+        ]
+
+        # Get existing mappings
+        existing_ports = set()
+        i = 0
+        while True:
+            p = u.getgenericportmapping(i)
+            if p is None:
+                break
+            existing_ports.add(p[0])
+            i += 1
+
+        restored = False
+        for port, name in required:
+            if port not in existing_ports:
+                try:
+                    u.addportmapping(port, "TCP", "192.168.1.93", port, name, "")
+                    log(f"  UPnP: Restored port {port} ({name})")
+                    restored = True
+                except Exception as e:
+                    log(f"  UPnP: Failed to restore port {port}: {e}")
+
+        if restored:
+            log("UPnP port mappings restored by watchdog.")
+
+        # Also update DuckDNS if IP changed
+        import socket
+        ext_ip = u.externalipaddress()
+        try:
+            dns_ip = socket.gethostbyname("portalformacoes.duckdns.org")
+            if ext_ip != dns_ip:
+                import urllib.request
+                url = f"https://www.duckdns.org/update?domains=portalformacoes&token=97ca3d82-a186-4c2b-b589-8818069678d6&ip={ext_ip}"
+                urllib.request.urlopen(url, timeout=10)
+                log(f"  DuckDNS: Updated IP from {dns_ip} to {ext_ip}")
+        except Exception as e:
+            log(f"  DuckDNS check error: {e}")
+
+    except Exception as e:
+        log(f"  UPnP check error: {e}")
+
+
 if __name__ == "__main__":
     main()
