@@ -529,6 +529,17 @@ export default function CoursesPage() {
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 group-hover:text-red-600 transition-colors line-clamp-1">
                           {course.title}
                         </h3>
+                        {course.level && (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold mb-2 ${
+                            course.level === 'EXPERT' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400' :
+                            course.level === 'INTERMEDIATE' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' :
+                            'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400'
+                          }`}>
+                            {course.level === 'EXPERT' ? `🔴 ${t('admin.levelExpert', 'Experto')}` :
+                             course.level === 'INTERMEDIATE' ? `🟡 ${t('admin.levelIntermediate', 'Intermédio')}` :
+                             `🟢 ${t('admin.levelBeginner', 'Principiante')}`}
+                          </span>
+                        )}
                         <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 line-clamp-2 min-h-[40px]">
                           {course.description || t('admin.noDescription')}
                         </p>
@@ -617,6 +628,17 @@ export default function CoursesPage() {
                             <h3 className="font-bold text-gray-900 dark:text-white group-hover:text-red-600 transition-colors truncate">
                               {course.title}
                             </h3>
+                            {course.level && (
+                              <span className={`px-2 py-0.5 rounded text-xs font-bold flex-shrink-0 ${
+                                course.level === 'EXPERT' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400' :
+                                course.level === 'INTERMEDIATE' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' :
+                                'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400'
+                              }`}>
+                                {course.level === 'EXPERT' ? t('admin.levelExpert', 'Experto') :
+                                 course.level === 'INTERMEDIATE' ? t('admin.levelIntermediate', 'Intermédio') :
+                                 t('admin.levelBeginner', 'Principiante')}
+                              </span>
+                            )}
                             {course.banks?.slice(0, 2).map(bank => (
                               <span key={bank.id} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 rounded text-xs font-medium flex-shrink-0 flex items-center gap-1">
                                 <Building2 className="w-3 h-3" />

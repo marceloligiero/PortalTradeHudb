@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { GraduationCap, BookOpen, Users, Check, Building2, Package, Search } from 'lucide-react';
+import { GraduationCap, BookOpen, Users, Check, Building2, Package, Search, Infinity } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -48,6 +48,7 @@ export default function TrainingPlanForm() {
     product_ids: [] as number[],
     start_date: '',
     end_date: '',
+    is_permanent: false,
     selectedCourses: [] as number[],
     selectedStudents: [] as number[],
   });
@@ -156,7 +157,8 @@ export default function TrainingPlanForm() {
         bank_ids: formData.bank_ids,
         product_ids: formData.product_ids,
         start_date: formData.start_date || null,
-        end_date: formData.end_date || null,
+        end_date: formData.is_permanent ? null : (formData.end_date || null),
+        is_permanent: formData.is_permanent,
         course_ids: formData.selectedCourses,
         student_ids: formData.selectedStudents
       });
@@ -319,12 +321,48 @@ export default function TrainingPlanForm() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
                     {t('trainingPlan.endDate')}
                   </label>
+                  {formData.is_permanent ? (
+                    <div className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-blue-500/30 rounded-lg text-blue-600 dark:text-blue-300 text-sm flex items-center gap-2">
+                      <Infinity className="w-4 h-4" />
+                      {t('trainingPlan.permanentEndDateAuto', `31/12/${new Date().getFullYear()} (renovação automática)`)}
+                    </div>
+                  ) : (
                   <input
                     type="date"
                     value={formData.end_date}
                     onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                     className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                  )}
+                </div>
+              </div>
+
+              {/* Plano Permanente Toggle */}
+              <div 
+                onClick={() => setFormData(prev => ({ ...prev, is_permanent: !prev.is_permanent, end_date: '' }))}
+                className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                  formData.is_permanent 
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/10' 
+                    : 'border-gray-200 dark:border-white/10 hover:border-blue-500/30'
+                }`}
+              >
+                <div className={`w-12 h-7 rounded-full transition-all relative ${
+                  formData.is_permanent ? 'bg-blue-600' : 'bg-gray-300 dark:bg-white/10'
+                }`}>
+                  <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-all ${
+                    formData.is_permanent ? 'left-6' : 'left-1'
+                  }`} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <Infinity className={`w-5 h-5 ${formData.is_permanent ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`} />
+                    <span className={`font-medium ${formData.is_permanent ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+                      {t('trainingPlan.permanentPlan', 'Plano de Formação Permanente')}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    {t('trainingPlan.permanentPlanDescription', 'Sem data de fim fixa. A data de fim é definida automaticamente como 31/12 do ano corrente e renova automaticamente a cada ano.')}
+                  </p>
                 </div>
               </div>
             </div>

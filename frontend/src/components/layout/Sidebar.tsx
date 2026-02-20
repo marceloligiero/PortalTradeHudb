@@ -39,7 +39,6 @@ export default function Sidebar() {
     { to: '/advanced-reports', icon: BarChart3, label: t('navigation.advancedReports') },
     { to: '/knowledge-matrix', icon: Brain, label: t('navigation.knowledgeMatrix') },
     { to: '/ratings', icon: Star, label: t('navigation.ratings') },
-    { to: '/settings', icon: Settings, label: t('navigation.settings') },
   ];
 
   const links =

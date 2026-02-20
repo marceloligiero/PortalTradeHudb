@@ -519,6 +519,7 @@ async def list_admin_courses(
             "id": course.id,
             "title": course.title,
             "description": course.description,
+            "level": course.level,
             "bank_id": course.bank_id,  # Legacy
             "product_id": course.product_id,  # Legacy
             "bank_ids": [b["id"] for b in banks],
@@ -592,6 +593,7 @@ async def get_admin_course(
         "id": course.id,
         "title": course.title,
         "description": course.description,
+        "level": course.level,
         "bank_id": course.bank_id,  # Legacy
         "product_id": course.product_id,  # Legacy
         "bank_ids": [b["id"] for b in banks],
@@ -877,6 +879,7 @@ async def create_admin_course(
         "id": db_course.id,
         "title": db_course.title,
         "description": db_course.description,
+        "level": db_course.level,
         "bank_id": db_course.bank_id,
         "product_id": db_course.product_id,
         "bank_ids": bank_ids,
@@ -933,6 +936,7 @@ async def update_admin_course(
         "id": db_course.id,
         "title": db_course.title,
         "description": db_course.description,
+        "level": db_course.level,
         "bank_id": db_course.bank_id,
         "product_id": db_course.product_id,
         "bank_ids": bank_ids,

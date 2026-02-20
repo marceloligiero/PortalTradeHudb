@@ -269,7 +269,11 @@
     "services": "Services",
     "searchCourses": "Search courses by name, bank or service...",
     "searchStudents": "Search students by name or email...",
-    "selectStudents": "Select Students"
+    "selectStudents": "Select Students",
+    "permanentPlan": "Permanent Training Plan",
+    "permanentPlanDescription": "No fixed end date. The end date is automatically set to 31/12 of the current year and renews automatically each year.",
+    "permanentEndDateAuto": "31/12 of current year (automatic renewal)",
+    "permanent": "Permanent"
   },
   "trainingPlans": {
     "selectStudent": "Select Student",
@@ -535,6 +539,7 @@
     "inProgress": "In Progress",
     "completed": "Completed",
     "delayed": "Delayed",
+    "finalized": "Finalized",
     "daysRemaining": "days remaining",
     "daysDelayed": "days delayed",
     "canFinalize": "Ready to finalize"
@@ -550,6 +555,7 @@
     "courses": "Courses",
     "duration": "Duration",
     "startDate": "Start",
+    "endDate": "End",
     "daysRemaining": "Days Remaining",
     "trainer": "Trainer",
     "trainers": "Trainers",
@@ -584,6 +590,8 @@
     "settingsSaved": "Settings saved successfully"
   },
   "admin": {
+    "catalogInfo": "Catalog Information",
+    "catalogDescription": "This challenge is part of the course catalog. To execute or view results, access it through a Training Plan.",
     "pendingTrainerValidations": "Pending Trainer Validations",
     "trainersPendingValidation": "Trainers waiting for validation",
     "noTrainersPending": "No trainers waiting for validation",
@@ -663,6 +671,10 @@
     "courseTitlePlaceholder": "E.g.: Introduction to Trading",
     "courseDescription": "Course Description",
     "courseDescriptionPlaceholder": "Describe the content and objectives of the course...",
+    "courseLevel": "Course Level",
+    "levelBeginner": "Beginner",
+    "levelIntermediate": "Intermediate",
+    "levelExpert": "Expert",
     "planTitle": "Plan Title",
     "planTitlePlaceholder": "E.g.: Complete Trading Training",
     "planDescription": "Plan Description",
@@ -800,7 +812,7 @@
     "seeSubmissions": "See submissions",
     "performance": "Performance",
     "totalSubmissions": "Total Submissions",
-    "avgScore": "Average Score",
+    "avgScore": "Average MPU",
     "completionRate": "Completion Rate",
     "requirements": "Requirements",
     "minOperations": "Min Operations",
@@ -934,7 +946,11 @@
     "cannotSelectSelf": "You cannot select yourself as a student in your own training plan",
     "searchCourses": "Search courses by name, bank or service...",
     "searchStudents": "Search students by name or email...",
-    "selectStudents": "Select Students"
+    "selectStudents": "Select Students",
+    "permanentPlan": "Permanent Training Plan",
+    "permanentPlanDescription": "No fixed end date. The end date is automatically set to 31/12 of the current year and renews automatically each year.",
+    "permanentEndDateAuto": "31/12 of current year (automatic renewal)",
+    "permanent": "Permanent"
   },
   "reports": {
     "title": "Reports and Statistics",
@@ -1463,7 +1479,13 @@
     "timeUsed": "Time Used",
     "operationDetails": "Operation Details",
     "errorBreakdown": "Error Breakdown",
-    "submittedBy": "Submitted by"
+    "submittedBy": "Submitted by",
+    "challengeApproved": "Challenge Approved",
+    "challengeRejected": "Challenge Rejected",
+    "autoFinalized": "Challenge auto-finalized after all operations were reviewed.",
+    "backToList": "Back",
+    "allClassifiedAutoFinalize": "All operations classified. The challenge will be auto-finalized.",
+    "autoFinalizing": "Finalizing..."
   },
   "myChallenges": {
     "title": "My Challenges",
@@ -1604,7 +1626,11 @@
     "finalizeBtn": "Finalize Challenge",
     "completeAllOps": "Complete all operations before finalizing.",
     "finishInProgress": "Finish the in-progress operation before finalizing.",
-    "awaitReview": "Wait for all operations to be reviewed by the trainer."
+    "awaitReview": "Wait for all operations to be reviewed by the trainer.",
+    "challengeStatus": "Challenge Status",
+    "autoFinalizing": "All operations reviewed. The challenge will be auto-finalized...",
+    "allReviewedAutoFinalize": "Auto-finalized",
+    "awaitingCorrections": "Awaiting corrections"
   },
   "trainingPlanDetail": {
     "back": "Back",
@@ -1631,6 +1657,8 @@
     "courses": "Courses",
     "totalDays": "Total days",
     "remainingDays": "Remaining days",
+    "startDate": "Start Date",
+    "endDate": "End Date",
     "status": "Status",
     "inProgress": "In Progress",
     "pending": "Pending",
@@ -1696,6 +1724,9 @@
     "allStudentsEnrolled": "All students are already enrolled",
     "noStudentsEnrolled": "No students enrolled",
     "clickAddStudentToEnroll": "Click \"Enroll Student\" to add",
+    "activeStudents": "Students in Training",
+    "completedStudents": "Students who Completed",
+    "noStudentsMatchFilter": "No students match the filter",
     "viewing": "Viewing",
     "progress": "Progress",
     "removeStudent": "Remove student",
@@ -1851,7 +1882,7 @@
     "rejected": "Rejected",
     "pendingReview": "Pending Review",
     "inProgressLabel": "In Progress",
-    "avgScore": "Average Score",
+    "avgScore": "Average MPU",
     "errorAnalysis": "Error Analysis",
     "methodology": "Methodology",
     "knowledge": "Knowledge",
@@ -1908,8 +1939,8 @@
     "certifications": "Certifications",
     "mpuAnalytics": "MPU Analytics",
     "totalStudents": "Total Students",
-    "totalTrainers": "Trainers",
-    "totalCourses": "Courses",
+    "totalTrainers": "Total Trainers",
+    "totalCourses": "Total Courses",
     "certificates": "Certificates",
     "activeLast30Days": "active last 30 days",
     "pendingValidation": "pending validation",
@@ -1922,6 +1953,7 @@
     "topBank": "Top Bank",
     "highestPerformance": "Highest average performance",
     "popularProduct": "Popular Product",
+    "popularService": "Popular Service",
     "mostEnrolled": "Most enrolled",
     "studentPerformanceTable": "Student Performance",
     "student": "Student",
@@ -1950,8 +1982,11 @@
     "issued": "Issued",
     "avgDays": "Avg Days",
     "mpuByBank": "MPU by Bank",
-    "mpuDetails": "MPU Details by Bank",
-    "category": "Category",    "performance": "Performance"
+    "mpuByService": "MPU by Service",
+    "mpuByPlan": "MPU by Training Plan",
+    "mpuDetails": "MPU Details",
+    "category": "Category",
+    "performance": "Performance"
   },
   "productNames": {
     "CI": "Import Credits",
@@ -2026,6 +2061,9 @@
     "groupByBank": "Group by Bank",
     "groupByService": "Group by Service",
     "noCourses": "No courses in this group",
-    "allCourses": "All"
+    "allCourses": "All",
+    "expert": "Expert",
+    "intermediate": "Intermediate",
+    "beginner": "Beginner"
   }
 }

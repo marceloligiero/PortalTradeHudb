@@ -46,6 +46,7 @@ class CourseColumn(BaseModel):
     """A column header: one course/knowledge area"""
     course_id: int
     course_title: str
+    course_level: Optional[str] = None  # BEGINNER, INTERMEDIATE, EXPERT
     bank_name: Optional[str] = None
     product_name: Optional[str] = None
     total_lessons: int = 0
@@ -58,7 +59,6 @@ class KnowledgeMatrixSummary(BaseModel):
     avg_completion: float = 0.0
     avg_mpu: Optional[float] = None
     students_expert: int = 0
-    students_advanced: int = 0
     students_intermediate: int = 0
     students_beginner: int = 0
     students_not_started: int = 0
@@ -102,9 +102,7 @@ def calculate_level(lesson_pct: float, challenge_pct: float, avg_mpu: Optional[f
     
     if normalized_score >= 85:
         return "EXPERT"
-    elif normalized_score >= 65:
-        return "ADVANCED"
-    elif normalized_score >= 40:
+    elif normalized_score >= 50:
         return "INTERMEDIATE"
     else:
         return "BEGINNER"
@@ -175,6 +173,7 @@ async def get_knowledge_matrix(
         columns.append(CourseColumn(
             course_id=course.id,
             course_title=course.title,
+            course_level=course.level,
             bank_name=bank_name,
             product_name=product_name,
             total_lessons=lesson_count,
@@ -193,7 +192,7 @@ async def get_knowledge_matrix(
     ).all()
     
     rows = []
-    level_counts = {"EXPERT": 0, "ADVANCED": 0, "INTERMEDIATE": 0, "BEGINNER": 0, "NOT_STARTED": 0}
+    level_counts = {"EXPERT": 0, "INTERMEDIATE": 0, "BEGINNER": 0, "NOT_STARTED": 0}
     all_completion_pcts = []
     all_mpus = []
     total_platform_hours = 0.0
@@ -294,13 +293,29 @@ async def get_knowledge_matrix(
                 student_total_errors["detail"] += cell.error_detail
                 student_total_errors["procedure"] += cell.error_procedure
             
-            # Calculate level for this cell
-            cell.level = calculate_level(
+            # Calculate level for this cell based on course's declared level
+            # If the course has a declared level, use it when the student has sufficiently completed the course
+            course_declared_level = course.level  # BEGINNER, INTERMEDIATE, EXPERT or None
+            base_level = calculate_level(
                 cell.lesson_completion_pct,
                 cell.challenge_approval_pct,
                 cell.avg_mpu,
                 has_activity
             )
+            
+            if course_declared_level and has_activity:
+                # Student achieves the course's declared level when completion is high enough
+                if cell.lesson_completion_pct >= 80 and cell.challenge_approval_pct >= 60:
+                    cell.level = course_declared_level
+                elif cell.lesson_completion_pct >= 50:
+                    # Partial completion: cap at one level below the course's declared level
+                    level_hierarchy = ['NOT_STARTED', 'BEGINNER', 'INTERMEDIATE', 'EXPERT']
+                    declared_idx = level_hierarchy.index(course_declared_level) if course_declared_level in level_hierarchy else 1
+                    cell.level = level_hierarchy[max(1, declared_idx - 1)]
+                else:
+                    cell.level = base_level
+            else:
+                cell.level = base_level
             
             student_skills[str(course.id)] = cell
         
@@ -308,19 +323,27 @@ async def get_knowledge_matrix(
         overall_completion = (student_total_lessons_done / student_total_lessons * 100) if student_total_lessons > 0 else 0.0
         overall_mpu = round(sum(student_mpus) / len(student_mpus), 2) if student_mpus else None
         
-        # Overall level based on all courses
-        overall_challenge_approval = 0.0
-        total_attempts = sum(cell.challenges_attempted for cell in student_skills.values())
-        total_approved = sum(cell.challenges_approved for cell in student_skills.values())
-        if total_attempts > 0:
-            overall_challenge_approval = total_approved / total_attempts * 100
+        # Overall level = highest achieved course level among completed courses
+        # To be EXPERT: must have completed ALL enrolled courses
+        cell_levels = [cell.level for cell in student_skills.values()]
+        level_hierarchy = ['NOT_STARTED', 'BEGINNER', 'INTERMEDIATE', 'EXPERT']
         
-        overall_level = calculate_level(
-            overall_completion,
-            overall_challenge_approval,
-            overall_mpu,
-            student_total_lessons_done > 0 or total_attempts > 0
-        )
+        if cell_levels:
+            # Get the highest achieved level from completed course cells
+            max_level_idx = max(level_hierarchy.index(lv) for lv in cell_levels if lv in level_hierarchy)
+            overall_level = level_hierarchy[max_level_idx]
+            
+            # EXPERT only if ALL enrolled courses are fully completed
+            if overall_level == 'EXPERT':
+                all_completed = all(
+                    cell.lesson_completion_pct >= 80 and cell.challenge_approval_pct >= 60
+                    for cell in student_skills.values()
+                )
+                if not all_completed:
+                    overall_level = 'INTERMEDIATE'
+        else:
+            overall_level = "NOT_STARTED"
+        
         level_counts[overall_level] += 1
         all_completion_pcts.append(overall_completion)
         total_platform_hours += student_total_hours
@@ -341,7 +364,7 @@ async def get_knowledge_matrix(
         ))
     
     # Sort rows by overall level priority (EXPERT first)
-    level_order = {"EXPERT": 0, "ADVANCED": 1, "INTERMEDIATE": 2, "BEGINNER": 3, "NOT_STARTED": 4}
+    level_order = {"EXPERT": 0, "INTERMEDIATE": 1, "BEGINNER": 2, "NOT_STARTED": 3}
     rows.sort(key=lambda r: (level_order.get(r.overall_level, 5), -r.overall_completion_pct))
     
     # ============ SUMMARY ============
@@ -357,7 +380,6 @@ async def get_knowledge_matrix(
         avg_completion=round(sum(all_completion_pcts) / len(all_completion_pcts), 1) if all_completion_pcts else 0.0,
         avg_mpu=round(sum(all_mpus) / len(all_mpus), 2) if all_mpus else None,
         students_expert=level_counts["EXPERT"],
-        students_advanced=level_counts["ADVANCED"],
         students_intermediate=level_counts["INTERMEDIATE"],
         students_beginner=level_counts["BEGINNER"],
         students_not_started=level_counts["NOT_STARTED"],

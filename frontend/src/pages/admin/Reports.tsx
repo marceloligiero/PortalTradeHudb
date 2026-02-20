@@ -313,7 +313,7 @@ export default function Reports() {
               </div>
             </div>
             {ch.avg_score > 0 && (
-              <MiniStat icon={Star} label={t('insights.avgScore', 'Nota Média')} value={`${ch.avg_score}/100`} color="text-amber-500" />
+              <MiniStat icon={Star} label={t('insights.avgScore', 'MPU Médio')} value={`${ch.avg_score}`} color="text-amber-500" />
             )}
           </div>
         </SectionCard>

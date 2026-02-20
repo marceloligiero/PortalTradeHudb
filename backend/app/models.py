@@ -132,6 +132,7 @@ class Course(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text)
+    level = Column(String(20), nullable=True)  # BEGINNER, INTERMEDIATE, EXPERT
     bank_id = Column(Integer, ForeignKey("banks.id"), nullable=True)  # Legacy - nullable for new multi-bank courses
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)  # Legacy - nullable for new multi-product courses
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -251,6 +252,7 @@ class TrainingPlan(Base):
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)  # Legacy - nullable for new multi-product plans
     start_date = Column(DateTime(timezone=True))
     end_date = Column(DateTime(timezone=True))
+    is_permanent = Column(Boolean, default=False)  # Plano de formação permanente (end_date = 31/12 do ano corrente, renova automaticamente)
     is_active = Column(Boolean, default=True)
     status = Column(String(50), default="PENDING")  # PENDING, IN_PROGRESS, COMPLETED, DELAYED
     completed_at = Column(DateTime(timezone=True))  # Quando o plano foi finalizado

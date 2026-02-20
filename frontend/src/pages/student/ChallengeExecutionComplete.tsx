@@ -14,7 +14,6 @@ import {
   Timer,
   Hash,
   AlertTriangle,
-  Send,
   Eye,
   CheckCircle,
   XCircle
@@ -71,6 +70,28 @@ const StudentChallengeExecution: React.FC = () => {
   const [isPaused, setIsPaused] = useState(false);
   const pausedDurationRef = useRef<number>(0);
   const pauseStartRef = useRef<number | null>(null);
+  
+  // Persist paused duration in localStorage to survive page reloads
+  const getPausedDurationKey = () => `challenge_paused_${submissionId}`;
+  const getPauseStartKey = () => `challenge_pause_start_${submissionId}`;
+  const savePausedDuration = (duration: number) => {
+    try { localStorage.setItem(getPausedDurationKey(), String(duration)); } catch {}
+  };
+  const savePauseStart = (timestamp: number) => {
+    try { localStorage.setItem(getPauseStartKey(), String(timestamp)); } catch {}
+  };
+  const loadPausedDuration = (): number => {
+    try { return parseInt(localStorage.getItem(getPausedDurationKey()) || '0') || 0; } catch { return 0; }
+  };
+  const loadPauseStart = (): number => {
+    try { return parseInt(localStorage.getItem(getPauseStartKey()) || '0') || 0; } catch { return 0; }
+  };
+  const clearPausedDuration = () => {
+    try { 
+      localStorage.removeItem(getPausedDurationKey()); 
+      localStorage.removeItem(getPauseStartKey());
+    } catch {}
+  };
 
   // Carregar operações existentes se houver submissionId
   useEffect(() => {
@@ -81,10 +102,10 @@ const StudentChallengeExecution: React.FC = () => {
 
   const loadExistingOperations = async () => {
     try {
-      // Check submission status first
+      // Check submission status first - only show submitted screen for truly finalized challenges
       try {
         const subResp = await api.get(`/api/challenges/submissions/${submissionId}`);
-        if (subResp.data?.status === 'PENDING_REVIEW' || subResp.data?.status === 'APPROVED' || subResp.data?.status === 'REJECTED') {
+        if (subResp.data?.status === 'APPROVED' || subResp.data?.status === 'REJECTED') {
           setSubmitted(true);
           return;
         }
@@ -129,10 +150,32 @@ const StudentChallengeExecution: React.FC = () => {
         const activeIdx = mappedOps.findIndex(op => op.status === 'in_progress');
         if (activeIdx >= 0 && mappedOps[activeIdx].startedAt) {
           setActiveOperationIndex(activeIdx);
-          activeStartTimeRef.current = mappedOps[activeIdx].startedAt!.getTime();
-          // Start paused — accumulate time elapsed so far as paused duration
+          const startTime = mappedOps[activeIdx].startedAt!.getTime();
+          activeStartTimeRef.current = startTime;
+          
+          // Restore saved paused duration and account for time since last pause
+          let savedPausedDuration = loadPausedDuration();
+          const savedPauseStart = loadPauseStart();
+          
+          if (savedPauseStart > 0) {
+            // Add the time from last saved pause start to now (page was closed while paused)
+            savedPausedDuration += Date.now() - savedPauseStart;
+          } else {
+            // No saved pause start — assume paused since start (first load)
+            savedPausedDuration = Date.now() - startTime;
+          }
+          
+          pausedDurationRef.current = savedPausedDuration;
+          
+          // Set elapsed time to the active (non-paused) duration so it shows correctly while paused
+          const activeTime = Math.floor((Date.now() - startTime - savedPausedDuration) / 1000);
+          setElapsedTime(Math.max(0, activeTime));
+          
+          // Mark as paused — the gap from now until user clicks Resume will be tracked
           setIsPaused(true);
           pauseStartRef.current = Date.now();
+          savePauseStart(Date.now());
+          savePausedDuration(pausedDurationRef.current);
         }
       } else if (challenge) {
         // Retry ou submission sem operações ainda - inicializar operações vazias
@@ -197,7 +240,7 @@ const StudentChallengeExecution: React.FC = () => {
     return () => clearInterval(interval);
   }, [activeOperationIndex, isPaused]);
 
-  // Polling to refresh operation review statuses from trainer
+  // Polling to refresh operation review statuses and detect auto-finalization
   useEffect(() => {
     if (!submissionId || submitted) return;
     
@@ -207,10 +250,21 @@ const StudentChallengeExecution: React.FC = () => {
     
     const pollInterval = setInterval(async () => {
       try {
+        // Check submission status (auto-finalization detection)
+        const subResp = await api.get(`/api/challenges/submissions/${submissionId}`);
+        const subData = subResp.data;
+        
+        if (subData?.status === 'APPROVED' || subData?.status === 'REJECTED') {
+          // Challenge was auto-finalized by the trainer's last review
+          setSubmitted(true);
+          setShowRatingModal(true);
+          return;
+        }
+        
+        // Update operation review statuses
         const response = await api.get(`/api/challenges/submissions/${submissionId}/operations`);
         const backendOps = response.data || [];
         
-        // Update review status on existing operations
         setOperations(prev => prev.map(op => {
           const backendOp = backendOps.find((bop: any) => bop.id === op.backendId);
           if (backendOp) {
@@ -292,6 +346,7 @@ const StudentChallengeExecution: React.FC = () => {
       setElapsedTime(0);
       setIsPaused(false);
       pausedDurationRef.current = 0;
+      clearPausedDuration();
       setError('');
     } catch (err: any) {
       console.error('Erro ao iniciar operação:', err);
@@ -302,12 +357,17 @@ const StudentChallengeExecution: React.FC = () => {
   const pauseOperation = () => {
     setIsPaused(true);
     pauseStartRef.current = Date.now();
+    // Save current accumulated paused duration and pause start time
+    savePausedDuration(pausedDurationRef.current);
+    savePauseStart(Date.now());
   };
 
   const resumeOperation = () => {
     if (pauseStartRef.current) {
       pausedDurationRef.current += Date.now() - pauseStartRef.current;
       pauseStartRef.current = null;
+      savePausedDuration(pausedDurationRef.current);
+      savePauseStart(0);
     }
     setIsPaused(false);
   };
@@ -323,21 +383,22 @@ const StudentChallengeExecution: React.FC = () => {
 
     // Abrir modal para classificar erros antes de finalizar
     try {
-      // Chamar API para finalizar operação (sem erros - erros são classificados pelo formador)
-      await api.post(`/api/challenges/operations/${op.backendId}/finish`, {
-        has_error: false,
-        errors: [],
-        operation_reference: op.reference
-      });
-      
-      // Account for pause duration
+      // Account for pause duration before calculating
       if (isPaused && pauseStartRef.current) {
         pausedDurationRef.current += Date.now() - pauseStartRef.current;
         pauseStartRef.current = null;
         setIsPaused(false);
       }
       const completedAt = new Date();
-      const durationSeconds = Math.floor((completedAt.getTime() - op.startedAt.getTime() - pausedDurationRef.current) / 1000);
+      const durationSeconds = Math.max(0, Math.floor((completedAt.getTime() - op.startedAt.getTime() - pausedDurationRef.current) / 1000));
+      
+      // Chamar API para finalizar operação com duração real (excluindo pausas)
+      await api.post(`/api/challenges/operations/${op.backendId}/finish`, {
+        has_error: false,
+        errors: [],
+        operation_reference: op.reference,
+        actual_duration_seconds: durationSeconds
+      });
 
       const updated = [...operations];
       updated[index].completedAt = completedAt;
@@ -347,47 +408,10 @@ const StudentChallengeExecution: React.FC = () => {
       activeStartTimeRef.current = null;
       setActiveOperationIndex(null);
       setElapsedTime(0);
+      clearPausedDuration();
     } catch (err: any) {
       console.error('Erro ao finalizar operação:', err);
       setError(err.response?.data?.detail || 'Erro ao finalizar operação');
-    }
-  };
-
-  const submitChallenge = async () => {
-    const completedOps = operations.filter(op => op.status === 'completed');
-    const requiredOps = challenge?.operations_required || 0;
-    
-    // Verificar se todas as operações requeridas foram completadas
-    if (completedOps.length < requiredOps) {
-      setError(t('challengeComplete.completeAllOps', `Complete todas as ${requiredOps} operações antes de finalizar. ${completedOps.length}/${requiredOps} concluídas.`));
-      return;
-    }
-
-    // Verificar se há operação em progresso
-    if (activeOperationIndex !== null) {
-      setError(t('challengeComplete.finishInProgress', 'Finalize a operação em progresso antes de finalizar'));
-      return;
-    }
-
-    // Verificar se todas as operações foram corrigidas pelo formador
-    const unreviewedOps = completedOps.filter(op => op.is_approved === null || op.is_approved === undefined);
-    if (unreviewedOps.length > 0) {
-      setError(t('challengeComplete.awaitReview', `Aguarde a correção de todas as operações pelo formador. ${unreviewedOps.length} operação(ões) pendente(s) de revisão.`));
-      return;
-    }
-
-    try {
-      // As operações já foram criadas via startOperation/finishOperation
-      // Submission já está PENDING_REVIEW (auto-submitted na finalização de cada operação)
-      // Apenas marcar como submetido final
-      await api.post(`/api/challenges/submissions/${submissionId}/submit-for-review`);
-      
-      setSubmitted(true);
-      // Show rating modal after submission
-      setShowRatingModal(true);
-    } catch (err: any) {
-      console.error('Erro ao submeter:', err);
-      setError(err.response?.data?.detail || 'Erro ao submeter desafio');
     }
   };
 
@@ -777,7 +801,7 @@ const StudentChallengeExecution: React.FC = () => {
             ))}
           </div>
 
-          {/* Review Progress & Submeter */}
+          {/* Review Progress & Status */}
           <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-6 mt-6">
             {/* Review progress bar */}
             {completedCount > 0 && (
@@ -788,13 +812,13 @@ const StudentChallengeExecution: React.FC = () => {
                     {t('challengeComplete.reviewProgress', 'Progresso da Correção')}
                   </span>
                   <span className="text-sm font-bold text-white">
-                    {reviewedCount}/{completedCount} {t('challengeComplete.reviewed', 'corrigidas')}
+                    {reviewedCount}/{challenge.operations_required} {t('challengeComplete.reviewed', 'corrigidas')}
                   </span>
                 </div>
                 <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
-                    style={{ width: `${completedCount > 0 ? (reviewedCount / completedCount) * 100 : 0}%` }}
+                    style={{ width: `${challenge.operations_required > 0 ? (reviewedCount / challenge.operations_required) * 100 : 0}%` }}
                   />
                 </div>
                 {completedCount > 0 && (
@@ -810,7 +834,7 @@ const StudentChallengeExecution: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-semibold text-white">
-                  {t('challengeComplete.finalizeChallenge', 'Finalizar Desafio')}
+                  {t('challengeComplete.challengeStatus', 'Estado do Desafio')}
                 </h3>
                 <p className="text-gray-400 text-sm">
                   {completedCount < (challenge?.operations_required || 0) ? (
@@ -822,28 +846,47 @@ const StudentChallengeExecution: React.FC = () => {
                       })}
                     </span>
                   ) : !allOpsReviewed ? (
-                    <span className="text-yellow-400">
+                    <span className="text-yellow-400 flex items-center gap-2">
+                      <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
                       {t('challengeComplete.awaitAllReviews', {
                         pending: pendingReviewCount,
                         defaultValue: `Aguarde a correção de ${pendingReviewCount} operação(ões) pelo formador.`
                       })}
                     </span>
                   ) : (
-                    <span className="text-green-400">
-                      {t('challengeComplete.allReviewed', 'Todas as operações foram corrigidas. Pode finalizar o desafio.')}
+                    <span className="text-green-400 flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                      {t('challengeComplete.autoFinalizing', 'Todas as operações corrigidas. O desafio será finalizado automaticamente...')}
                     </span>
                   )}
                 </p>
               </div>
               
-              <button
-                onClick={submitChallenge}
-                disabled={!allOpsReviewed}
-                className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg transition-all"
-              >
-                <Send className="w-6 h-6" />
-                {t('challengeComplete.finalizeBtn', 'Finalizar Desafio')}
-              </button>
+              {/* Info badge instead of button - challenge auto-finalizes */}
+              <div className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium ${
+                allOpsCompleted && allOpsReviewed
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  : allOpsCompleted
+                    ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                    : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+              }`}>
+                {allOpsCompleted && allOpsReviewed ? (
+                  <>
+                    <CheckCircle className="w-5 h-5" />
+                    {t('challengeComplete.allReviewedAutoFinalize', 'Finalizado automaticamente')}
+                  </>
+                ) : allOpsCompleted ? (
+                  <>
+                    <Eye className="w-5 h-5 animate-pulse" />
+                    {t('challengeComplete.awaitingCorrections', 'Aguardando correções')}
+                  </>
+                ) : (
+                  <>
+                    <Clock className="w-5 h-5" />
+                    {completedCount}/{challenge?.operations_required || 0}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>

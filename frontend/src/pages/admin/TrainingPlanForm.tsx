@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Target, Calendar, CheckCircle2, AlertCircle, Building2, Package, Check } from 'lucide-react';
+import { Target, Calendar, CheckCircle2, AlertCircle, Building2, Package, Check, Infinity } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 import { getTranslatedProductName } from '../../utils/productTranslation';
@@ -47,6 +47,7 @@ export default function AdminTrainingPlanForm() {
     product_ids: [] as number[],
     start_date: '',
     end_date: '',
+    is_permanent: false,
     course_ids: [] as number[],
   });
 
@@ -153,7 +154,8 @@ export default function AdminTrainingPlanForm() {
         bank_ids: formData.bank_ids,
         product_ids: formData.product_ids,
         start_date: formData.start_date || null,
-        end_date: formData.end_date || null,
+        end_date: formData.is_permanent ? null : (formData.end_date || null),
+        is_permanent: formData.is_permanent,
         course_ids: formData.course_ids,
       };
 
@@ -359,9 +361,8 @@ export default function AdminTrainingPlanForm() {
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="font-medium text-white">{bank.code}</p>
-                            <p className="text-sm text-gray-400">{bank.name}</p>
-                            {bank.country && <p className="text-xs text-gray-500">{bank.country}</p>}
+                            <p className="font-medium text-white">{bank.name}</p>
+                            {bank.country && <p className="text-sm text-gray-400">{bank.country}</p>}
                           </div>
                           {formData.bank_ids.includes(bank.id) && (
                             <Check className="w-5 h-5 text-purple-500" />
@@ -436,6 +437,12 @@ export default function AdminTrainingPlanForm() {
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Data de Fim
                   </label>
+                  {formData.is_permanent ? (
+                    <div className="w-full px-4 py-3 bg-white/5 border border-purple-500/30 rounded-xl text-purple-300 text-sm flex items-center gap-2">
+                      <Infinity className="w-4 h-4" />
+                      {t('trainingPlan.permanentEndDateAuto', `31/12/${new Date().getFullYear()} (renovação automática)`)}
+                    </div>
+                  ) : (
                   <input
                     type="date"
                     value={formData.end_date}
@@ -444,12 +451,42 @@ export default function AdminTrainingPlanForm() {
                       errors.end_date ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-white/10 focus:border-purple-500 focus:ring-purple-500/20'
                     }`}
                   />
+                  )}
                   {errors.end_date && (
                     <div className="flex items-center gap-2 text-red-400 text-sm mt-1">
                       <AlertCircle className="w-4 h-4" />
                       {errors.end_date}
                     </div>
                   )}
+                </div>
+              </div>
+
+              {/* Plano Permanente Toggle */}
+              <div 
+                onClick={() => setFormData(prev => ({ ...prev, is_permanent: !prev.is_permanent, end_date: '' }))}
+                className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                  formData.is_permanent 
+                    ? 'border-purple-500 bg-purple-500/10' 
+                    : 'border-white/10 hover:border-purple-500/30'
+                }`}
+              >
+                <div className={`w-12 h-7 rounded-full transition-all relative ${
+                  formData.is_permanent ? 'bg-purple-600' : 'bg-white/10'
+                }`}>
+                  <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-all ${
+                    formData.is_permanent ? 'left-6' : 'left-1'
+                  }`} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <Infinity className={`w-5 h-5 ${formData.is_permanent ? 'text-purple-400' : 'text-gray-500'}`} />
+                    <span className={`font-medium ${formData.is_permanent ? 'text-white' : 'text-gray-300'}`}>
+                      {t('trainingPlan.permanentPlan', 'Plano de Formação Permanente')}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {t('trainingPlan.permanentPlanDescription', 'Sem data de fim fixa. A data de fim é definida automaticamente como 31/12 do ano corrente e renova automaticamente a cada ano.')}
+                  </p>
                 </div>
               </div>
             </div>
@@ -585,7 +622,11 @@ export default function AdminTrainingPlanForm() {
                       </div>
                       <div>
                         <span className="text-gray-400">Data de Fim:</span>
-                        <span className="text-white ml-2">{formData.end_date || '-'}</span>
+                        <span className="text-white ml-2">
+                          {formData.is_permanent 
+                            ? `31/12/${new Date().getFullYear()} (Permanente ♾️)` 
+                            : (formData.end_date || '-')}
+                        </span>
                       </div>
                     </div>
                   </div>

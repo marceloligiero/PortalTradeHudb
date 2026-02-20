@@ -51,6 +51,7 @@ interface Course {
   id: number;
   title: string;
   description: string;
+  level?: string;
   bank_code: string;
   bank_name: string;
   product_code: string;
@@ -250,14 +251,14 @@ export default function CourseDetail() {
                   {course.banks && course.banks.length > 0 ? (
                     course.banks.map(bank => (
                       <span key={bank.id} className="px-3 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full text-sm font-medium">
-                        {bank.code}
+                        {bank.name}
                       </span>
                     ))
-                  ) : (
-                    <span className="px-3 py-1 bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 rounded-full text-sm font-medium">
-                      {course.bank_code}
+                  ) : course.bank_name ? (
+                    <span className="px-3 py-1 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-full text-sm font-medium">
+                      {course.bank_name}
                     </span>
-                  )}
+                  ) : null}
                   {course.products && course.products.length > 0 ? (
                     course.products.map(product => (
                       <span key={product.id} className="px-3 py-1 bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 rounded-full text-sm font-medium">
@@ -271,6 +272,17 @@ export default function CourseDetail() {
                   )}
                 </div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{course.title}</h1>
+                {course.level && (
+                  <span className={`inline-flex items-center px-3 py-1 rounded-lg text-sm font-bold mb-2 ${
+                    course.level === 'EXPERT' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400' :
+                    course.level === 'INTERMEDIATE' ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400' :
+                    'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400'
+                  }`}>
+                    {course.level === 'EXPERT' ? `🔴 ${t('admin.levelExpert', 'Experto')}` :
+                     course.level === 'INTERMEDIATE' ? `🟡 ${t('admin.levelIntermediate', 'Intermédio')}` :
+                     `🟢 ${t('admin.levelBeginner', 'Principiante')}`}
+                  </span>
+                )}
                 <p className="text-gray-600 dark:text-gray-400 max-w-2xl">{course.description}</p>
               </div>
             </div>

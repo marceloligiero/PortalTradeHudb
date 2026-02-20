@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, Save, X, Users, Building2, Package, CheckCircle2, AlertCircle, Check } from 'lucide-react';
+import { BookOpen, Save, X, Users, Building2, Package, CheckCircle2, AlertCircle, Check, GraduationCap } from 'lucide-react';
 import api from '../../lib/axios';
 import { getTranslatedProductName } from '../../utils/productTranslation';
 
@@ -37,6 +37,7 @@ export default function CourseForm() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    level: 'BEGINNER' as string,
     bank_ids: [] as number[],
     product_ids: [] as number[],
   });
@@ -113,6 +114,7 @@ export default function CourseForm() {
       await api.post('/api/admin/courses', {
         title: formData.title,
         description: formData.description,
+        level: formData.level,
         bank_ids: formData.bank_ids,
         product_ids: formData.product_ids,
       });
@@ -244,6 +246,37 @@ export default function CourseForm() {
                       placeholder={t('admin.courseDescriptionPlaceholder')}
                     />
                     {errors.description && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.description}</p>}
+                  </div>
+
+                  {/* Course Level */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      <GraduationCap className="w-4 h-4" />
+                      {t('admin.courseLevel', 'Nível do Curso')} *
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { value: 'BEGINNER', label: t('admin.levelBeginner', 'Principiante'), icon: '🟢', color: 'green' },
+                        { value: 'INTERMEDIATE', label: t('admin.levelIntermediate', 'Intermédio'), icon: '🟡', color: 'amber' },
+                        { value: 'EXPERT', label: t('admin.levelExpert', 'Experto'), icon: '🔴', color: 'red' },
+                      ].map((level) => (
+                        <button
+                          key={level.value}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, level: level.value })}
+                          className={`p-4 rounded-xl border-2 text-center transition-all ${
+                            formData.level === level.value
+                              ? level.color === 'green' ? 'border-green-500 bg-green-500/10 dark:bg-green-500/20' :
+                                level.color === 'amber' ? 'border-amber-500 bg-amber-500/10 dark:bg-amber-500/20' :
+                                'border-red-500 bg-red-500/10 dark:bg-red-500/20'
+                              : 'border-gray-200 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/30'
+                          }`}
+                        >
+                          <div className="text-2xl mb-1">{level.icon}</div>
+                          <p className="font-medium text-gray-900 dark:text-white text-sm">{level.label}</p>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}

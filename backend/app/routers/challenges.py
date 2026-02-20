@@ -614,7 +614,7 @@ async def submit_challenge_summary(
         error_procedure=submission.error_procedure,
         operation_reference=submission.operation_reference,
         started_at=now,
-        completed_at=now if status == "COMPLETED" else None,
+        completed_at=now if status in ("COMPLETED", "APPROVED", "REJECTED") else None,
         calculated_mpu=calculated_mpu,
         mpu_vs_target=mpu_vs_target,
         is_approved=is_approved,
@@ -1130,10 +1130,26 @@ async def list_pending_review_submissions(
     """
     Listar todas as submissions pendentes de revisão
     Ordenadas por data de submissão (mais antigas primeiro)
+    Inclui submissions IN_PROGRESS que têm operações concluídas prontas para correção
     """
     submissions = db.query(models.ChallengeSubmission).filter(
-        models.ChallengeSubmission.status == "PENDING_REVIEW"
+        models.ChallengeSubmission.status.in_(["PENDING_REVIEW", "IN_PROGRESS"])
     ).order_by(models.ChallengeSubmission.updated_at.asc()).all()
+    
+    # Filtrar: só incluir IN_PROGRESS se tiver pelo menos 1 operação concluída
+    filtered_submissions = []
+    for sub in submissions:
+        if sub.status == "PENDING_REVIEW":
+            filtered_submissions.append(sub)
+        elif sub.status == "IN_PROGRESS":
+            completed_ops = db.query(models.ChallengeOperation).filter(
+                models.ChallengeOperation.submission_id == sub.id,
+                models.ChallengeOperation.completed_at.isnot(None)
+            ).count()
+            if completed_ops > 0:
+                filtered_submissions.append(sub)
+    
+    submissions = filtered_submissions
     
     # Enriquecer com dados de challenge e user
     result = []
@@ -1467,6 +1483,7 @@ class FinishOperationInput(BaseModel):
     has_error: bool = False
     errors: List[OperationErrorInput] = []
     operation_reference: Optional[str] = None
+    actual_duration_seconds: Optional[int] = None  # Frontend-calculated duration excluding pauses
 
 @router.post("/operations/{operation_id}/finish", response_model=schemas.ChallengeOperation)
 async def finish_operation(
@@ -1500,8 +1517,10 @@ async def finish_operation(
     now = datetime.now()
     operation.completed_at = now
     
-    # Calcular duração
-    if operation.started_at:
+    # Calcular duração - usar duração do frontend (exclui pausas) se disponível
+    if data and data.actual_duration_seconds is not None and data.actual_duration_seconds >= 0:
+        operation.duration_seconds = data.actual_duration_seconds
+    elif operation.started_at:
         duration = (now - operation.started_at).total_seconds()
         operation.duration_seconds = int(duration)
     
@@ -1526,9 +1545,20 @@ async def finish_operation(
             )
             db.add(op_error)
     
-    # Auto-submit for review when operation is finished (Desafio Completo)
+    # Auto-submit for review when ALL required operations are completed
     # This allows the trainer to review each operation as it's completed
-    if submission.status == "IN_PROGRESS":
+    # but the submission only goes to PENDING_REVIEW when all ops are done
+    completed_count = db.query(models.ChallengeOperation).filter(
+        models.ChallengeOperation.submission_id == submission.id,
+        models.ChallengeOperation.completed_at.isnot(None)
+    ).count()
+    
+    challenge_obj = db.query(models.Challenge).filter(
+        models.Challenge.id == submission.challenge_id
+    ).first()
+    required_count = challenge_obj.operations_required if challenge_obj else 0
+    
+    if submission.status == "IN_PROGRESS" and completed_count >= required_count:
         submission.status = "PENDING_REVIEW"
         submission.updated_at = datetime.now()
     
@@ -1655,6 +1685,109 @@ async def classify_operation(
     operation.errors = db.query(models.OperationError).filter(
         models.OperationError.operation_id == operation_id
     ).all()
+    
+    # ===== AUTO-FINALIZE: Verificar se todas as operações foram corrigidas =====
+    # Se sim, finalizar automaticamente o desafio (calcular KPIs, MPU, APPROVED/REJECTED)
+    submission = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.id == operation.submission_id
+    ).first()
+    
+    if submission and submission.status in ("PENDING_REVIEW", "IN_PROGRESS"):
+        challenge = db.query(models.Challenge).filter(
+            models.Challenge.id == submission.challenge_id
+        ).first()
+        
+        if challenge:
+            all_ops = db.query(models.ChallengeOperation).filter(
+                models.ChallengeOperation.submission_id == submission.id
+            ).all()
+            
+            completed_ops = [op for op in all_ops if op.completed_at]
+            required_ops = challenge.operations_required or 0
+            
+            # Verificar se todas as operações requeridas foram completadas
+            all_completed = len(completed_ops) >= required_ops
+            
+            # Verificar se todas as operações completadas foram classificadas (is_approved != None)
+            all_reviewed = all(op.is_approved is not None for op in completed_ops) if completed_ops else False
+            
+            if all_completed and all_reviewed:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.info(f"[AUTO-FINALIZE] All {len(completed_ops)} operations reviewed for submission {submission.id}. Auto-finalizing...")
+                
+                # Calcular estatísticas
+                total_ops = len(completed_ops)
+                correct_ops = len([op for op in completed_ops if op.is_approved == True and not op.has_error])
+                error_ops = len([op for op in completed_ops if op.has_error])
+                
+                # Calcular erros por tipo
+                error_methodology = 0
+                error_knowledge = 0
+                error_detail = 0
+                error_procedure = 0
+                
+                for op_item in completed_ops:
+                    if op_item.has_error:
+                        op_errors = db.query(models.OperationError).filter(
+                            models.OperationError.operation_id == op_item.id
+                        ).all()
+                        for err in op_errors:
+                            etype = (err.error_type or '').upper()
+                            if etype in ('METHODOLOGY', 'METODOLOGIA'):
+                                error_methodology += 1
+                            elif etype in ('KNOWLEDGE', 'CONHECIMENTO'):
+                                error_knowledge += 1
+                            elif etype in ('DETAIL', 'DETALHE'):
+                                error_detail += 1
+                            elif etype in ('PROCEDURE', 'PROCEDIMENTO'):
+                                error_procedure += 1
+                
+                # Calcular tempo total e MPU
+                total_duration_seconds = sum(op.duration_seconds or 0 for op in completed_ops)
+                total_time_minutes = total_duration_seconds / 60.0 if total_duration_seconds > 0 else 0
+                
+                calculated_mpu = 0.0
+                if total_ops > 0 and total_time_minutes > 0:
+                    calculated_mpu = round(total_time_minutes / total_ops, 2)
+                
+                target_mpu = challenge.target_mpu or 0
+                mpu_vs_target = round((target_mpu / calculated_mpu * 100) if calculated_mpu > 0 else 0, 1)
+                
+                # Determinar aprovação
+                kpi_mode = getattr(challenge, 'kpi_mode', 'AUTO') or 'AUTO'
+                if kpi_mode == 'AUTO':
+                    is_approved, _ = calculate_kpi_approval(challenge, total_ops, calculated_mpu, error_ops)
+                    if is_approved is None:
+                        is_approved = True  # Default if KPIs not configured
+                else:
+                    # MANUAL mode - keep as PENDING_REVIEW for trainer to decide
+                    is_approved = None
+                
+                # Atualizar submission
+                submission.total_operations = total_ops
+                submission.total_time_minutes = int(total_time_minutes)
+                submission.errors_count = error_ops
+                submission.error_methodology = error_methodology
+                submission.error_knowledge = error_knowledge
+                submission.error_detail = error_detail
+                submission.error_procedure = error_procedure
+                submission.calculated_mpu = calculated_mpu
+                submission.mpu_vs_target = mpu_vs_target
+                submission.reviewed_by = current_user.id
+                submission.completed_at = datetime.now()
+                submission.updated_at = datetime.now()
+                
+                if kpi_mode == 'AUTO':
+                    submission.is_approved = is_approved
+                    submission.status = "APPROVED" if is_approved else "REJECTED"
+                    logger.info(f"[AUTO-FINALIZE] Submission {submission.id} auto-finalized: {'APPROVED' if is_approved else 'REJECTED'}")
+                else:
+                    # Manual mode: all ops reviewed but trainer needs to manually approve/reject
+                    submission.status = "PENDING_REVIEW"
+                    logger.info(f"[AUTO-FINALIZE] Submission {submission.id}: All ops reviewed, awaiting manual approval (KPI_MODE=MANUAL)")
+                
+                db.commit()
     
     return operation
 
@@ -2264,7 +2397,9 @@ async def finalize_summary_submission(
     submission.mpu_vs_target = round((challenge.target_mpu / calculated_mpu * 100) if calculated_mpu > 0 else 0, 1)
     submission.is_approved = is_approved
     submission.status = status
-    submission.completed_at = datetime.now()
+    submission.reviewed_by = current_user.id
+    if not submission.completed_at:
+        submission.completed_at = datetime.now()
     submission.updated_at = datetime.now()
     
     db.commit()

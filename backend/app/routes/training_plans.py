@@ -105,15 +105,16 @@ def calculate_plan_status(db: Session, plan: models.TrainingPlan, student_id: in
         plan_status = "COMPLETED"
     elif completed_lessons > 0 or completed_courses > 0:
         plan_status = "IN_PROGRESS"
-        # Verificar atraso - só está atrasado se a data de fim já passou
-        if effective_end and now > effective_end:
-            plan_status = "DELAYED"
+        # Verificar atraso - só está atrasado se a data de fim já passou (comparar datas, não datetimes)
+        if effective_end and now.date() > effective_end.date():
+            # For student: DELAYED (atrasado), for plan-level (admin/trainer): FINALIZED
+            plan_status = "FINALIZED" if not student_id else "DELAYED"
     else:
         # Sem progresso
-        if effective_end and now > effective_end:
+        if effective_end and now.date() > effective_end.date():
             # A data de fim já passou sem qualquer progresso
-            plan_status = "DELAYED"
-        elif effective_start and now >= effective_start:
+            plan_status = "FINALIZED" if not student_id else "DELAYED"
+        elif effective_start and now.date() >= effective_start.date():
             # Já começou mas não há progresso ainda - não está atrasado, está pendente/não iniciado
             plan_status = "NOT_STARTED"
         else:
@@ -227,6 +228,16 @@ async def list_training_plans(
             else:
                 plans = []
 
+        # Auto-renew permanent plans: update end_date to 31/12 of current year if year changed
+        from datetime import datetime as dt_cls
+        current_year = dt_cls.now().year
+        for plan in plans:
+            if plan.is_permanent and plan.end_date:
+                if plan.end_date.year < current_year:
+                    plan.end_date = dt_cls(current_year, 12, 31, 23, 59, 59)
+                    db.add(plan)
+        db.commit()
+
         result = []
         for plan in plans:
             # count courses in plan
@@ -281,8 +292,11 @@ async def list_training_plans(
 
             total_hours = round(total_minutes / 60)
             
-            # Calcular status do plano
-            plan_status = calculate_plan_status(db, plan)
+            # Calcular status do plano - per student for TRAINEE users
+            if current_user.role in ["TRAINEE", "STUDENT"]:
+                plan_status = calculate_plan_status(db, plan, student_id=current_user.id)
+            else:
+                plan_status = calculate_plan_status(db, plan)
 
             # Buscar todos os formadores do plano
             plan_trainers = db.query(models.TrainingPlanTrainer).filter(
@@ -353,6 +367,7 @@ async def list_training_plans(
                 "total_duration_hours": total_hours,
                 "start_date": plan.start_date.isoformat() if plan.start_date else None,
                 "end_date": plan.end_date.isoformat() if plan.end_date else None,
+                "is_permanent": bool(plan.is_permanent) if plan.is_permanent else False,
                 "created_at": plan.created_at.isoformat() if plan.created_at else None,
                 # Bank and Product info (legacy single, fallback to N:N)
                 "bank_id": plan.bank_id or (banks_list[0]["id"] if banks_list else None),
@@ -493,6 +508,12 @@ async def create_training_plan(
             except Exception:
                 end_date_dt = datetime.strptime(plan.end_date, '%Y-%m-%d')
     
+    # Se plano permanente, definir end_date como 31/12 do ano corrente
+    is_permanent = getattr(plan, 'is_permanent', False) or False
+    if is_permanent:
+        current_year = datetime.now().year
+        end_date_dt = datetime(current_year, 12, 31, 23, 59, 59)
+    
     # Criar plano de formação
     try:
         # For backward compatibility, set student_id to first student if any
@@ -511,6 +532,7 @@ async def create_training_plan(
             product_id=primary_product_id,
             start_date=start_date_dt,
             end_date=end_date_dt,
+            is_permanent=is_permanent,
             created_by=current_user.id,
             is_active=True
         )
@@ -603,6 +625,7 @@ async def create_training_plan(
             "product_ids": product_ids,
             "start_date": db_plan.start_date.isoformat() if db_plan.start_date else None,
             "end_date": db_plan.end_date.isoformat() if db_plan.end_date else None,
+            "is_permanent": bool(db_plan.is_permanent) if db_plan.is_permanent else False,
             "created_by": db_plan.created_by,
             "is_active": db_plan.is_active,
             "created_at": db_plan.created_at.isoformat() if db_plan.created_at else None,
@@ -640,6 +663,16 @@ async def get_training_plan(
     
     if not plan:
         raise HTTPException(status_code=404, detail="Training plan not found")
+
+    # Auto-renew permanent plan: update end_date to 31/12 of current year if year changed
+    from datetime import datetime as dt_renew
+    if plan.is_permanent and plan.end_date:
+        current_year = dt_renew.now().year
+        if plan.end_date.year < current_year:
+            plan.end_date = dt_renew(current_year, 12, 31, 23, 59, 59)
+            db.add(plan)
+            db.commit()
+            db.refresh(plan)
 
     # Verificar permissões
     if current_user.role == "TRAINEE":
@@ -712,6 +745,7 @@ async def get_training_plan(
                     "id": course.id,
                     "title": course.title,
                     "description": course.description,
+                    "level": course.level,
                     "order_index": pc.order_index,
                     "use_custom": pc.use_custom,
                     "custom_title": pc.custom_title,
@@ -736,11 +770,11 @@ async def get_training_plan(
                 days_total = delta_total if delta_total >= 0 else 0
                 days_remaining = delta_remaining if delta_remaining >= 0 else 0
 
-                # Plan is a catalog - status based on dates, never COMPLETED at plan level
+                # Plan is a catalog - status based on dates only (for admin/trainer)
                 if today.date() < start.date():
                     status_str = "UPCOMING"
                 elif today.date() > end.date():
-                    status_str = "DELAYED"
+                    status_str = "FINALIZED"
                 else:
                     status_str = "ONGOING"
             except Exception:
@@ -748,6 +782,15 @@ async def get_training_plan(
                 days_remaining = None
                 if not status_str:
                     status_str = None
+
+        # For TRAINEE users, override status with per-student calculation
+        if current_user.role in ["TRAINEE", "STUDENT"]:
+            student_plan_status = calculate_plan_status(db, plan, student_id=current_user.id)
+            status_str = student_plan_status["status"]
+            if student_plan_status["days_remaining"] is not None:
+                days_remaining = student_plan_status["days_remaining"]
+            if student_plan_status["days_total"] is not None:
+                days_total = student_plan_status["days_total"]
 
         # Get student info (catalog model - multiple enrollments)
         enrolled_students = db.query(models.TrainingPlanAssignment).filter(
@@ -824,6 +867,7 @@ async def get_training_plan(
             "product_id": plan.product_id,
             "start_date": plan.start_date.isoformat() if plan.start_date else None,
             "end_date": plan.end_date.isoformat() if plan.end_date else None,
+            "is_permanent": bool(plan.is_permanent) if plan.is_permanent else False,
             "created_by": plan.created_by,
             "is_active": plan.is_active,
             "created_at": plan.created_at.isoformat() if plan.created_at else None,
@@ -882,6 +926,12 @@ async def update_training_plan(
     for key, value in update_data.items():
         if key not in ["course_ids", "trainer_ids"]:
             setattr(db_plan, key, value)
+    
+    # Se plano permanente, definir end_date como 31/12 do ano corrente
+    if db_plan.is_permanent:
+        from datetime import datetime as dt_upd
+        current_year = dt_upd.now().year
+        db_plan.end_date = dt_upd(current_year, 12, 31, 23, 59, 59)
     
     # Determinar student_id efetivo (pode vir do update ou já existir no plano)
     effective_student_id = plan_update.student_id if hasattr(plan_update, 'student_id') and plan_update.student_id is not None else db_plan.student_id
@@ -1063,6 +1113,10 @@ async def assign_student_to_plan(
     plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == plan_id).first()
     if not plan:
         raise HTTPException(status_code=404, detail="Training plan not found")
+    
+    # Bloquear se o plano já passou da data de fim (finalizado)
+    if plan.end_date and datetime.now().date() > plan.end_date.date():
+        raise HTTPException(status_code=400, detail="Não é possível inscrever formandos num plano finalizado")
     
     # Verificar permissões do TRAINER
     if current_user.role == "TRAINER":
@@ -1256,6 +1310,10 @@ async def add_trainer_to_plan(
     if not plan:
         raise HTTPException(status_code=404, detail="Plano não encontrado")
     
+    # Bloquear se o plano já passou da data de fim (finalizado)
+    if plan.end_date and datetime.now().date() > plan.end_date.date():
+        raise HTTPException(status_code=400, detail="Não é possível adicionar formadores a um plano finalizado")
+    
     # Verificar permissões
     if current_user.role == "TRAINER":
         is_plan_trainer = plan.trainer_id == current_user.id
@@ -1336,6 +1394,11 @@ async def remove_trainer_from_plan(
     if current_user.role == "TRAINER":
         if plan.trainer_id != current_user.id:
             raise HTTPException(status_code=403, detail="Apenas o formador principal ou admin pode remover formadores")
+    
+    # Não pode remover formadores depois do plano iniciar
+    from datetime import date as date_type
+    if plan.start_date and plan.start_date <= date_type.today():
+        raise HTTPException(status_code=400, detail="Não é possível remover formadores após o início do plano de formação")
     
     # Não pode remover o trainer_id legacy do plano
     if plan.trainer_id == trainer_id:
@@ -1685,6 +1748,8 @@ def check_plan_completion(db: Session, plan: models.TrainingPlan, student_id: in
         return {
             "can_finalize": False,
             "reason": "Plano não tem formando atribuído",
+            "total_courses": 0,
+            "completed_courses": 0,
             "courses_status": []
         }
     
@@ -1696,6 +1761,8 @@ def check_plan_completion(db: Session, plan: models.TrainingPlan, student_id: in
         return {
             "can_finalize": False,
             "reason": "Plano não tem cursos",
+            "total_courses": 0,
+            "completed_courses": 0,
             "courses_status": []
         }
     

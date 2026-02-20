@@ -269,7 +269,11 @@
     "newLesson": "Nuevo Módulo",
     "searchCourses": "Buscar cursos por nombre, banco o servicio...",
     "searchStudents": "Buscar estudiantes por nombre o email...",
-    "selectStudents": "Seleccionar Estudiantes"
+    "selectStudents": "Seleccionar Estudiantes",
+    "permanentPlan": "Plan de Formación Permanente",
+    "permanentPlanDescription": "Sin fecha de fin fija. La fecha de fin se define automáticamente como 31/12 del año actual y se renueva automáticamente cada año.",
+    "permanentEndDateAuto": "31/12 del año actual (renovación automática)",
+    "permanent": "Permanente"
   },
   "trainingPlans": {
     "selectStudent": "Seleccionar Estudiante",
@@ -535,6 +539,7 @@
     "inProgress": "En Curso",
     "completed": "Completado",
     "delayed": "Atrasado",
+    "finalized": "Finalizado",
     "daysRemaining": "días restantes",
     "daysDelayed": "días de atraso",
     "canFinalize": "Listo para finalizar"
@@ -550,6 +555,7 @@
     "courses": "Cursos",
     "duration": "Duración",
     "startDate": "Inicio",
+    "endDate": "Fin",
     "daysRemaining": "Días Restantes",
     "trainer": "Formador",
     "trainers": "Formadores",
@@ -790,6 +796,8 @@
     "monthlyEvolution": "Evolución Mensual"
   },
   "admin": {
+    "catalogInfo": "Información del Catálogo",
+    "catalogDescription": "Este desafío forma parte del catálogo de cursos. Para ejecutar o ver resultados, acceda a través de un Plan de Formación.",
     "pendingTrainerValidations": "Validaciones de Formadores Pendientes",
     "trainersPendingValidation": "Formadores esperando validación",
     "noTrainersPending": "Ningún formador esperando validación",
@@ -869,6 +877,10 @@
     "courseTitlePlaceholder": "Ej: Introducción al Trading",
     "courseDescription": "Descripción del Curso",
     "courseDescriptionPlaceholder": "Describe el contenido y objetivos del curso...",
+    "courseLevel": "Nivel del Curso",
+    "levelBeginner": "Principiante",
+    "levelIntermediate": "Intermedio",
+    "levelExpert": "Experto",
     "planTitle": "Título del Plan",
     "planTitlePlaceholder": "Ej: Formación Completa en Trading",
     "planDescription": "Descripción del Plan",
@@ -1008,7 +1020,7 @@
     "seeSubmissions": "Ver envíos",
     "performance": "Rendimiento",
     "totalSubmissions": "Total de Envíos",
-    "avgScore": "Puntuación Media",
+    "avgScore": "MPU Medio",
     "completionRate": "Tasa de Finalización",
     "requirements": "Requisitos",
     "minOperations": "Mín. Operaciones",
@@ -1142,7 +1154,11 @@
     "cannotSelectSelf": "No puede seleccionarse como alumno en su propio plan de formación",
     "searchCourses": "Buscar cursos por nombre, banco o servicio...",
     "searchStudents": "Buscar estudiantes por nombre o email...",
-    "selectStudents": "Seleccionar Estudiantes"
+    "selectStudents": "Seleccionar Estudiantes",
+    "permanentPlan": "Plan de Formación Permanente",
+    "permanentPlanDescription": "Sin fecha de fin fija. La fecha de fin se define automáticamente como 31/12 del año actual y se renueva automáticamente cada año.",
+    "permanentEndDateAuto": "31/12 del año actual (renovación automática)",
+    "permanent": "Permanente"
   },
   "errors": {
     "loadData": "Error al cargar datos",
@@ -1549,7 +1565,13 @@
     "timeUsed": "Tiempo Utilizado",
     "operationDetails": "Detalles de la Operación",
     "errorBreakdown": "Distribución de Errores",
-    "submittedBy": "Enviado por"
+    "submittedBy": "Enviado por",
+    "challengeApproved": "Desafío Aprobado",
+    "challengeRejected": "Desafío Reprobado",
+    "autoFinalized": "Desafío finalizado automáticamente tras la corrección de todas las operaciones.",
+    "backToList": "Volver",
+    "allClassifiedAutoFinalize": "Todas las operaciones clasificadas. El desafío se finalizará automáticamente.",
+    "autoFinalizing": "Finalizando..."
   },
   "myChallenges": {
     "title": "Mis Desafíos",
@@ -1690,7 +1712,11 @@
     "finalizeBtn": "Finalizar Desafío",
     "completeAllOps": "Complete todas las operaciones antes de finalizar.",
     "finishInProgress": "Finalice la operación en progreso antes de finalizar.",
-    "awaitReview": "Espere a que todas las operaciones sean corregidas por el formador."
+    "awaitReview": "Espere a que todas las operaciones sean corregidas por el formador.",
+    "challengeStatus": "Estado del Desafío",
+    "autoFinalizing": "Todas las operaciones corregidas. El desafío se finalizará automáticamente...",
+    "allReviewedAutoFinalize": "Finalizado automáticamente",
+    "awaitingCorrections": "Esperando correcciones"
   },
   "trainingPlanDetail": {
     "back": "Atrás",
@@ -1717,6 +1743,8 @@
     "courses": "Cursos",
     "totalDays": "Días totales",
     "remainingDays": "Días restantes",
+    "startDate": "Fecha de Inicio",
+    "endDate": "Fecha de Fin",
     "status": "Estado",
     "inProgress": "En Progreso",
     "pending": "Pendiente",
@@ -1782,6 +1810,9 @@
     "allStudentsEnrolled": "Todos los estudiantes ya están inscritos",
     "noStudentsEnrolled": "Ningún estudiante inscrito",
     "clickAddStudentToEnroll": "Haga clic en \"Inscribir Estudiante\" para agregar",
+    "activeStudents": "Estudiantes en Formación",
+    "completedStudents": "Estudiantes que Completaron",
+    "noStudentsMatchFilter": "Ningún estudiante coincide con el filtro",
     "viewing": "Viendo",
     "progress": "Progreso",
     "removeStudent": "Eliminar estudiante",
@@ -1937,7 +1968,7 @@
     "rejected": "Reprobados",
     "pendingReview": "Pendientes de Revisión",
     "inProgressLabel": "En Curso",
-    "avgScore": "Nota Media",
+    "avgScore": "MPU Medio",
     "errorAnalysis": "Análisis de Errores",
     "methodology": "Metodología",
     "knowledge": "Conocimiento",
@@ -1994,8 +2025,8 @@
     "certifications": "Certificaciones",
     "mpuAnalytics": "Análisis MPU",
     "totalStudents": "Total Estudiantes",
-    "totalTrainers": "Formadores",
-    "totalCourses": "Cursos",
+    "totalTrainers": "Total Formadores",
+    "totalCourses": "Total de Cursos",
     "certificates": "Certificados",
     "activeLast30Days": "activos últimos 30 días",
     "pendingValidation": "pendientes validación",
@@ -2008,6 +2039,7 @@
     "topBank": "Mejor Banco",
     "highestPerformance": "Mayor desempeño promedio",
     "popularProduct": "Producto Popular",
+    "popularService": "Servicio Popular",
     "mostEnrolled": "Más matriculados",
     "studentPerformanceTable": "Desempeño de los Estudiantes",
     "student": "Estudiante",
@@ -2036,7 +2068,9 @@
     "issued": "Emitidos",
     "avgDays": "Promedio Días",
     "mpuByBank": "MPU por Banco",
-    "mpuDetails": "Detalles MPU por Banco",
+    "mpuByService": "MPU por Servicio",
+    "mpuByPlan": "MPU por Plan de Formación",
+    "mpuDetails": "Detalles MPU",
     "category": "Categoría",
     "performance": "Desempeño"
   },
@@ -2113,7 +2147,10 @@
     "groupByBank": "Agrupar por Banco",
     "groupByService": "Agrupar por Servicio",
     "noCourses": "Sin cursos en este grupo",
-    "allCourses": "Todos"
+    "allCourses": "Todos",
+    "expert": "Experto",
+    "intermediate": "Intermedio",
+    "beginner": "Principiante"
   }
 }
 

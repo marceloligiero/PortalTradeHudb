@@ -4,7 +4,7 @@ import {
   Brain, Users, BookOpen, Target, Award, Clock, AlertTriangle,
   TrendingUp, ChevronDown, ChevronRight,
   Search, Download, RefreshCw,
-  Minus, Star, Zap, Shield, X,
+  Minus, Star, Shield, X,
   Activity, Layers, Eye, EyeOff,
   Building2, Package, Filter
 } from 'lucide-react';
@@ -45,6 +45,7 @@ interface StudentRow {
 interface CourseColumn {
   course_id: number;
   course_title: string;
+  course_level: string | null;
   bank_name: string | null;
   product_name: string | null;
   total_lessons: number;
@@ -57,7 +58,6 @@ interface KnowledgeMatrixSummary {
   avg_completion: number;
   avg_mpu: number | null;
   students_expert: number;
-  students_advanced: number;
   students_intermediate: number;
   students_beginner: number;
   students_not_started: number;
@@ -97,18 +97,6 @@ const levelConfigBase: Record<string, {
     icon: Star,
     score: 5,
   },
-  ADVANCED: {
-    translationKey: 'levelAdvanced',
-    shortLabel: 'AVN',
-    color: '#3b82f6',
-    textColor: 'text-blue-400',
-    bgGlow: 'shadow-blue-500/30',
-    dotColor: 'bg-blue-500',
-    ringColor: 'ring-blue-500/40',
-    gradient: 'from-blue-500 to-cyan-400',
-    icon: Zap,
-    score: 4,
-  },
   INTERMEDIATE: {
     translationKey: 'levelIntermediate',
     shortLabel: 'INT',
@@ -147,7 +135,7 @@ const levelConfigBase: Record<string, {
   },
 };
 
-const levelKeys = ['EXPERT', 'ADVANCED', 'INTERMEDIATE', 'BEGINNER', 'NOT_STARTED'] as const;
+const levelKeys = ['EXPERT', 'INTERMEDIATE', 'BEGINNER', 'NOT_STARTED'] as const;
 
 // ============ CIRCULAR PROGRESS ============
 
@@ -364,7 +352,6 @@ export default function KnowledgeMatrix() {
 
   const levelDistribution = [
     { key: 'EXPERT', count: summary.students_expert },
-    { key: 'ADVANCED', count: summary.students_advanced },
     { key: 'INTERMEDIATE', count: summary.students_intermediate },
     { key: 'BEGINNER', count: summary.students_beginner },
     { key: 'NOT_STARTED', count: summary.students_not_started },
@@ -766,6 +753,17 @@ export default function KnowledgeMatrix() {
                                         <h4 className="text-white font-bold text-sm truncate" title={col.course_title}>
                                           {col.course_title}
                                         </h4>
+                                        {col.course_level && (
+                                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold mt-0.5 ${
+                                            col.course_level === 'EXPERT' ? 'bg-red-500/20 text-red-400' :
+                                            col.course_level === 'INTERMEDIATE' ? 'bg-amber-500/20 text-amber-400' :
+                                            'bg-green-500/20 text-green-400'
+                                          }`}>
+                                            {col.course_level === 'EXPERT' ? t('knowledgeMatrix.expert', 'Experto') :
+                                             col.course_level === 'INTERMEDIATE' ? t('knowledgeMatrix.intermediate', 'Intermédio') :
+                                             t('knowledgeMatrix.beginner', 'Principiante')}
+                                          </span>
+                                        )}
                                         {col.bank_name && (
                                           <p className="text-[11px] text-gray-500 mt-0.5 truncate">
                                             {col.bank_name}{col.product_name ? ` · ${col.product_name}` : ''}
@@ -879,7 +877,7 @@ export default function KnowledgeMatrix() {
                 </div>
                 <span className="text-xs font-medium" style={{ color: cfg.color }}>{cfg.label}</span>
                 <span className="text-[10px] text-gray-600">
-                  {key === 'EXPERT' ? '≥85%' : key === 'ADVANCED' ? '≥65%' : key === 'INTERMEDIATE' ? '≥40%' : key === 'BEGINNER' ? '<40%' : '—'}
+                  {key === 'EXPERT' ? '≥ 85%' : key === 'INTERMEDIATE' ? '≥ 50%' : key === 'BEGINNER' ? '< 50%' : '—'}
                 </span>
               </div>
             );
@@ -922,7 +920,20 @@ export default function KnowledgeMatrix() {
             >
               <div className="p-4 pb-3" style={{ borderBottom: `1px solid ${cfg.color}20` }}>
                 <div className="flex items-center justify-between">
-                  <h4 className="text-white font-bold text-sm truncate flex-1 mr-2">{col.course_title}</h4>
+                  <div className="flex-1 min-w-0 mr-2">
+                    <h4 className="text-white font-bold text-sm truncate">{col.course_title}</h4>
+                    {col.course_level && (
+                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold mt-0.5 ${
+                        col.course_level === 'EXPERT' ? 'bg-red-500/20 text-red-400' :
+                        col.course_level === 'INTERMEDIATE' ? 'bg-amber-500/20 text-amber-400' :
+                        'bg-green-500/20 text-green-400'
+                      }`}>
+                        {col.course_level === 'EXPERT' ? t('knowledgeMatrix.expert', 'Experto') :
+                         col.course_level === 'INTERMEDIATE' ? t('knowledgeMatrix.intermediate', 'Intermédio') :
+                         t('knowledgeMatrix.beginner', 'Principiante')}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold"
                     style={{ backgroundColor: cfg.color + '20', color: cfg.color }}>
                     <SkillIcon className="w-3 h-3" />

@@ -53,6 +53,7 @@ class TokenData(BaseModel):
 class CourseBase(BaseModel):
     title: str
     description: Optional[str] = None
+    level: Optional[str] = None  # BEGINNER, INTERMEDIATE, EXPERT
     # Legacy single bank/product (for backward compatibility)
     bank_id: Optional[int] = None
     product_id: Optional[int] = None
@@ -66,6 +67,7 @@ class CourseCreate(CourseBase):
 class CourseUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
+    level: Optional[str] = None  # BEGINNER, INTERMEDIATE, EXPERT
     bank_id: Optional[int] = None
     product_id: Optional[int] = None
     bank_ids: Optional[list[int]] = None
@@ -160,6 +162,7 @@ class TrainingPlanBase(BaseModel):
     # Routes currently return ISO strings via .isoformat(), so keep schema as str
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+    is_permanent: Optional[bool] = False
 
 class TrainingPlanCreate(TrainingPlanBase):
     course_ids: Optional[list[int]] = []
@@ -175,6 +178,7 @@ class TrainingPlanUpdate(BaseModel):
     bank_ids: Optional[list[int]] = None
     product_ids: Optional[list[int]] = None
     is_active: Optional[bool] = None
+    is_permanent: Optional[bool] = None
     course_ids: Optional[list[int]] = None
 
 class TrainingPlan(TrainingPlanBase):

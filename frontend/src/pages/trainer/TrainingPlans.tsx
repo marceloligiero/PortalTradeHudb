@@ -505,10 +505,10 @@ export default function TrainingPlans() {
                                 {plan.student.full_name}
                               </span>
                             )}
-                            {plan.bank_code && (
+                            {(plan.bank_name || plan.bank_code) && (
                               <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'} flex items-center gap-1`}>
                                 <Building2 className="w-3 h-3" />
-                                {plan.bank_code}
+                                {plan.bank_name || plan.bank_code}
                               </span>
                             )}
                           </div>

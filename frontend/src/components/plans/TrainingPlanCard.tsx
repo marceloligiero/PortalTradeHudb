@@ -50,6 +50,8 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
         return { label: t('planStatus.delayed'), bg: 'bg-red-500', icon: AlertCircle, iconColor: 'text-red-500' };
       case 'COMPLETED':
         return { label: t('planStatus.completed'), bg: 'bg-blue-500', icon: CheckCircle2, iconColor: 'text-blue-500' };
+      case 'FINALIZED':
+        return { label: t('planStatus.finalized', 'Finalizado'), bg: 'bg-gray-500', icon: CheckCircle2, iconColor: 'text-gray-500' };
       default:
         return { label: t('planCard.active'), bg: 'bg-emerald-500', icon: Timer, iconColor: 'text-emerald-500' };
     }
@@ -157,7 +159,7 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
 
         {/* Stats Grid */}
         <div className="px-6 pb-4">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             <div className="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
               <BookOpen className="w-4 h-4 text-indigo-500 mx-auto mb-1" />
               <p className="text-lg font-bold text-gray-900 dark:text-white">{plan?.total_courses ?? 0}</p>
@@ -169,11 +171,20 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
               <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">{t('planCard.duration')}</p>
             </div>
             <div className="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
-              <Calendar className="w-4 h-4 text-purple-500 mx-auto mb-1" />
+              <Calendar className="w-4 h-4 text-emerald-500 mx-auto mb-1" />
               <p className="text-sm font-bold text-gray-900 dark:text-white">
                 {start ? start.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }) : '-'}
               </p>
               <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">{t('planCard.startDate')}</p>
+            </div>
+            <div className="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+              <Calendar className="w-4 h-4 text-red-500 mx-auto mb-1" />
+              <p className="text-sm font-bold text-gray-900 dark:text-white">
+                {end ? end.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }) : '-'}
+              </p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">
+                {plan?.is_permanent ? `♾️ ${t('trainingPlan.permanent', 'Permanente')}` : t('planCard.endDate')}
+              </p>
             </div>
           </div>
         </div>

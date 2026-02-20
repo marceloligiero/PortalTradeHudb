@@ -128,12 +128,12 @@ export default function AdvancedReportsPage() {
   };
 
   const tabs = [
-    { id: 'dashboard', label: t('admin.dashboardSummary', 'Dashboard'), icon: BarChart3 },
-    { id: 'students', label: t('admin.studentPerformance', 'Desempenho Alunos'), icon: Users },
-    { id: 'trainers', label: t('admin.trainerProductivity', 'Produtividade Formadores'), icon: TrendingUp },
-    { id: 'courses', label: t('admin.courseAnalytics', 'Análise de Cursos'), icon: BookOpen },
-    { id: 'certifications', label: t('admin.certifications', 'Certificações'), icon: Award },
-    { id: 'mpu', label: t('admin.mpuAnalytics', 'Análise MPU'), icon: Target },
+    { id: 'dashboard', label: t('advancedReports.dashboard'), icon: BarChart3 },
+    { id: 'students', label: t('advancedReports.studentPerformance'), icon: Users },
+    { id: 'trainers', label: t('advancedReports.trainerProductivity'), icon: TrendingUp },
+    { id: 'courses', label: t('advancedReports.courseAnalytics'), icon: BookOpen },
+    { id: 'certifications', label: t('advancedReports.certifications'), icon: Award },
+    { id: 'mpu', label: t('advancedReports.mpuAnalytics'), icon: Target },
   ];
 
   return (
@@ -142,10 +142,10 @@ export default function AdvancedReportsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {t('admin.advancedReports', 'Informes Avançados')}
+            {t('advancedReports.title')}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            {t('admin.advancedReportsDescription', 'Análises detalhadas e métricas avançadas da plataforma')}
+            {t('advancedReports.description')}
           </p>
         </div>
         <button
@@ -153,7 +153,7 @@ export default function AdvancedReportsPage() {
           className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          {t('common.refresh', 'Atualizar')}
+          {t('advancedReports.refresh')}
         </button>
       </div>
 
@@ -196,7 +196,7 @@ export default function AdvancedReportsPage() {
                       <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('admin.totalStudents', 'Total Alunos')}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('advancedReports.totalStudents')}</p>
                       <p className="text-2xl font-bold text-gray-900 dark:text-white">{summary.total_students}</p>
                     </div>
                   </div>
@@ -212,7 +212,7 @@ export default function AdvancedReportsPage() {
                       <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('admin.totalTrainers', 'Formadores')}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('advancedReports.totalTrainers')}</p>
                       <p className="text-2xl font-bold text-gray-900 dark:text-white">{summary.total_trainers}</p>
                     </div>
                   </div>
@@ -228,7 +228,7 @@ export default function AdvancedReportsPage() {
                       <BookOpen className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('admin.totalCourses', 'Cursos')}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('advancedReports.totalCourses')}</p>
                       <p className="text-2xl font-bold text-gray-900 dark:text-white">{summary.total_courses}</p>
                     </div>
                   </div>
@@ -243,7 +243,7 @@ export default function AdvancedReportsPage() {
                       <Award className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('admin.certificates', 'Certificados')}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{t('advancedReports.certificates')}</p>
                       <p className="text-2xl font-bold text-gray-900 dark:text-white">{summary.certificates_issued}</p>
                     </div>
                   </div>
@@ -259,7 +259,7 @@ export default function AdvancedReportsPage() {
                 <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white">
                   <div className="flex items-center gap-3 mb-4">
                     <Clock className="w-6 h-6" />
-                    <span className="font-semibold">{t('admin.studyHours', 'Horas de Estudo')}</span>
+                    <span className="font-semibold">{t('advancedReports.studyHours')}</span>
                   </div>
                   <p className="text-3xl font-bold">{summary.total_study_hours.toFixed(1)}h</p>
                   <p className="text-blue-100 text-sm mt-1">{t('advancedReports.totalAccumulated')}</p>
@@ -268,7 +268,7 @@ export default function AdvancedReportsPage() {
                 <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white">
                   <div className="flex items-center gap-3 mb-4">
                     <Building2 className="w-6 h-6" />
-                    <span className="font-semibold">{t('admin.topBank', 'Melhor Banco')}</span>
+                    <span className="font-semibold">{t('advancedReports.topBank')}</span>
                   </div>
                   <p className="text-3xl font-bold">{summary.top_performing_bank}</p>
                   <p className="text-green-100 text-sm mt-1">{t('advancedReports.highestPerformance')}</p>
@@ -277,7 +277,7 @@ export default function AdvancedReportsPage() {
                 <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white">
                   <div className="flex items-center gap-3 mb-4">
                     <Package className="w-6 h-6" />
-                    <span className="font-semibold">{t('admin.topProduct', 'Produto Popular')}</span>
+                    <span className="font-semibold">{t('advancedReports.popularService')}</span>
                   </div>
                   <p className="text-3xl font-bold">{summary.most_popular_product}</p>
                   <p className="text-purple-100 text-sm mt-1">{t('advancedReports.mostEnrolled')}</p>
@@ -295,7 +295,7 @@ export default function AdvancedReportsPage() {
             >
               <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {t('admin.studentPerformanceTable', 'Desempenho dos Alunos')}
+                  {t('advancedReports.studentPerformanceTable')}
                 </h2>
               </div>
               <div className="overflow-x-auto">
@@ -313,7 +313,7 @@ export default function AdvancedReportsPage() {
                     {studentPerformance.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                          {t('common.noData', 'Nenhum dado disponível')}
+                          {t('advancedReports.noData')}
                         </td>
                       </tr>
                     ) : (
@@ -361,7 +361,7 @@ export default function AdvancedReportsPage() {
             >
               <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {t('admin.trainerProductivityTable', 'Produtividade dos Formadores')}
+                  {t('advancedReports.trainerProductivityTable')}
                 </h2>
               </div>
               <div className="overflow-x-auto">
@@ -379,7 +379,7 @@ export default function AdvancedReportsPage() {
                     {trainerProductivity.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                          {t('common.noData', 'Nenhum dado disponível')}
+                          {t('advancedReports.noData')}
                         </td>
                       </tr>
                     ) : (
@@ -421,7 +421,7 @@ export default function AdvancedReportsPage() {
             >
               <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {t('admin.courseAnalyticsTable', 'Análise de Cursos')}
+                  {t('advancedReports.courseAnalyticsTable')}
                 </h2>
               </div>
               <div className="overflow-x-auto">
@@ -441,7 +441,7 @@ export default function AdvancedReportsPage() {
                     {courseAnalytics.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                          {t('common.noData', 'Nenhum dado disponível')}
+                          {t('advancedReports.noData')}
                         </td>
                       </tr>
                     ) : (
@@ -492,7 +492,7 @@ export default function AdvancedReportsPage() {
             >
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-                  {t('admin.certificationsOverTime', 'Certificações ao Longo do Tempo')}
+                  {t('advancedReports.certificationsOverTime')}
                 </h2>
                 {certifications.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
@@ -506,7 +506,7 @@ export default function AdvancedReportsPage() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-64 flex items-center justify-center text-gray-500">
-                    {t('common.noData', 'Nenhum dado disponível')}
+                    {t('advancedReports.noData')}
                   </div>
                 )}
               </div>
@@ -523,7 +523,7 @@ export default function AdvancedReportsPage() {
               {/* MPU by Bank */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-                  {t('admin.mpuByBank', 'MPU por Banco')}
+                  {t('advancedReports.mpuByBank')}
                 </h2>
                 {mpuData.by_bank.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
@@ -537,7 +537,7 @@ export default function AdvancedReportsPage() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-32 flex items-center justify-center text-gray-500">
-                    {t('common.noData', 'Nenhum dado disponível')}
+                    {t('advancedReports.noData')}
                   </div>
                 )}
               </div>
@@ -545,7 +545,7 @@ export default function AdvancedReportsPage() {
               {/* MPU by Service */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-                  {t('admin.mpuByService', 'MPU por Serviço')}
+                  {t('advancedReports.mpuByService')}
                 </h2>
                 {mpuData.by_service.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
@@ -559,7 +559,7 @@ export default function AdvancedReportsPage() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-32 flex items-center justify-center text-gray-500">
-                    {t('common.noData', 'Nenhum dado disponível')}
+                    {t('advancedReports.noData')}
                   </div>
                 )}
               </div>
@@ -567,7 +567,7 @@ export default function AdvancedReportsPage() {
               {/* MPU by Training Plan */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
-                  {t('admin.mpuByPlan', 'MPU por Plano de Formação')}
+                  {t('advancedReports.mpuByPlan')}
                 </h2>
                 {mpuData.by_plan.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
@@ -581,7 +581,7 @@ export default function AdvancedReportsPage() {
                   </ResponsiveContainer>
                 ) : (
                   <div className="h-32 flex items-center justify-center text-gray-500">
-                    {t('common.noData', 'Nenhum dado disponível')}
+                    {t('advancedReports.noData')}
                   </div>
                 )}
               </div>
@@ -590,7 +590,7 @@ export default function AdvancedReportsPage() {
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {t('admin.mpuDetails', 'Detalhes MPU')}
+                    {t('advancedReports.mpuDetails')}
                   </h2>
                 </div>
                 <div className="overflow-x-auto">
@@ -612,7 +612,7 @@ export default function AdvancedReportsPage() {
                       ].length === 0 ? (
                         <tr>
                           <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                            {t('common.noData', 'Nenhum dado disponível')}
+                            {t('advancedReports.noData')}
                           </td>
                         </tr>
                       ) : (

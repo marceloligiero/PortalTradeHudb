@@ -23,6 +23,7 @@ interface PlanReport {
   title: string;
   description: string;
   bank_code: string;
+  bank_name?: string;
   students_assigned: number;
   start_date: string | null;
   end_date: string | null;
@@ -381,7 +382,7 @@ export default function TrainerReportsPage() {
                       <td className="py-4 px-4">
                         {plan.bank_code ? (
                           <span className="px-2.5 py-1 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 rounded-lg text-sm border border-indigo-200 dark:border-indigo-500/30">
-                            {plan.bank_code}
+                            {plan.bank_name || plan.bank_code}
                           </span>
                         ) : (
                           <span className="text-gray-400">—</span>
