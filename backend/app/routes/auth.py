@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 from app.database import get_db
 from app import models, schemas, auth
 from app.audit import log_audit
@@ -42,13 +43,31 @@ async def login(request: Request, db: Session = Depends(get_db)):
         username = form.get("username")
         password = form.get("password")
     else:
-        body = await request.json()
+        body = {}
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
         username = body.get("username")
         password = body.get("password")
 
+    if not username or not password:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="username and password are required"
+        )
+
     logger.info(f"Login attempt - username: '{username}'")
-    
-    user = auth.authenticate_user(db, username, password)
+
+    try:
+        user = auth.authenticate_user(db, username, password)
+    except SQLAlchemyError as exc:
+        logger.error(f"Database error during login for '{username}': {exc}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Serviço temporariamente indisponível"
+        )
+
     if not user:
         logger.warning(f"Authentication failed for user: {username}")
         raise HTTPException(

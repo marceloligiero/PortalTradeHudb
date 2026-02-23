@@ -10,28 +10,74 @@ Write-Host " TradeHub - Service Installation" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 
 # 1. Configure MySQL for auto-start
-Write-Host "`n[1/3] Configuring MySQL for auto-start..." -ForegroundColor Yellow
+Write-Host "`n[1/4] Configuring MySQL for auto-start..." -ForegroundColor Yellow
 
-# Check if wampmysqld64 service exists and reconfigure
-$mysqlSvc = Get-Service -Name "wampmysqld64" -ErrorAction SilentlyContinue
+# Detect MySQL service (standard installer registers as MySQL80, MySQL81, MySQL90, etc.)
+$mysqlSvc = Get-Service -Name "MySQL*" -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($mysqlSvc) {
-    Set-Service -Name "wampmysqld64" -StartupType Automatic
-    Write-Host "      MySQL service 'wampmysqld64' set to Automatic start." -ForegroundColor Green
+    Set-Service -Name $mysqlSvc.Name -StartupType Automatic
+    if ($mysqlSvc.Status -ne 'Running') {
+        Start-Service -Name $mysqlSvc.Name
+        Write-Host "      MySQL service '$($mysqlSvc.Name)' started and set to Automatic." -ForegroundColor Green
+    } else {
+        Write-Host "      MySQL service '$($mysqlSvc.Name)' already running, set to Automatic start." -ForegroundColor Green
+    }
 } else {
-    # Create MySQL service
-    $mysqlBin = "C:\wamp64\bin\mysql\mysql9.1.0\bin\mysqld.exe"
-    $mysqlIni = "C:\wamp64\bin\mysql\mysql9.1.0\my.ini"
-    & $mysqlBin --install TradeHubMySQL --defaults-file="$mysqlIni"
-    Set-Service -Name "TradeHubMySQL" -StartupType Automatic
-    Write-Host "      MySQL service 'TradeHubMySQL' created and set to Automatic." -ForegroundColor Green
+    # Try to find MySQL in default install location and register as service
+    $mysqlBase = Get-ChildItem "C:\Program Files\MySQL" -Directory -ErrorAction SilentlyContinue | 
+                 Where-Object { $_.Name -like "MySQL Server*" } | 
+                 Sort-Object Name -Descending | Select-Object -First 1
+    if ($mysqlBase) {
+        $mysqlBin = Join-Path $mysqlBase.FullName "bin\mysqld.exe"
+        $mysqlIni = Join-Path $mysqlBase.FullName "my.ini"
+        # Fallback: my.ini may be in ProgramData
+        if (-not (Test-Path $mysqlIni)) {
+            $mysqlIni = "C:\ProgramData\MySQL\$($mysqlBase.Name)\my.ini"
+        }
+        if (Test-Path $mysqlBin) {
+            & $mysqlBin --install TradeHubMySQL --defaults-file="$mysqlIni"
+            Set-Service -Name "TradeHubMySQL" -StartupType Automatic
+            Start-Service -Name "TradeHubMySQL"
+            Write-Host "      MySQL service 'TradeHubMySQL' created, started and set to Automatic." -ForegroundColor Green
+        } else {
+            Write-Host "      ERROR: mysqld.exe not found at $mysqlBin" -ForegroundColor Red
+            Write-Host "      Please install MySQL or adjust the path manually." -ForegroundColor Red
+            exit 1
+        }
+    } else {
+        Write-Host "      ERROR: MySQL not found in 'C:\Program Files\MySQL\'" -ForegroundColor Red
+        Write-Host "      Please install MySQL Server first." -ForegroundColor Red
+        exit 1
+    }
 }
 
-# 2. Create Windows Task for TradeHub Backend auto-start
-Write-Host "`n[2/3] Creating scheduled task for TradeHub Backend..." -ForegroundColor Yellow
+# 2. Ensure mysql CLI is in PATH
+Write-Host "`n[2/4] Checking MySQL CLI in PATH..." -ForegroundColor Yellow
 
+$mysqlCli = Get-Command mysql -ErrorAction SilentlyContinue
+if (-not $mysqlCli) {
+    $mysqlBinDir = Get-ChildItem "C:\Program Files\MySQL" -Directory -ErrorAction SilentlyContinue |
+                   Where-Object { $_.Name -like "MySQL Server*" } |
+                   Sort-Object Name -Descending | Select-Object -First 1
+    if ($mysqlBinDir) {
+        $binPath = Join-Path $mysqlBinDir.FullName "bin"
+        [System.Environment]::SetEnvironmentVariable("Path", "$env:Path;$binPath", [System.EnvironmentVariableTarget]::Machine)
+        $env:Path += ";$binPath"
+        Write-Host "      Added '$binPath' to system PATH." -ForegroundColor Green
+    } else {
+        Write-Host "      WARNING: Could not find MySQL bin directory to add to PATH." -ForegroundColor Yellow
+    }
+} else {
+    Write-Host "      mysql CLI already available in PATH." -ForegroundColor Green
+}
+
+# 3. Create Windows Task for TradeHub Backend auto-start
+Write-Host "`n[3/4] Creating scheduled task for TradeHub Backend..." -ForegroundColor Yellow
+
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $taskName = "TradeHub-Backend"
-$backendDir = "C:\PortalFormações\PortalTradeHudb\backend"
-$pythonExe = "$backendDir\venv\Scripts\python.exe"
+$backendDir = Join-Path $scriptRoot "backend"
+$pythonExe = Join-Path $backendDir "venv\Scripts\python.exe"
 $arguments = "-m uvicorn main:app --host 0.0.0.0 --port 8000 --workers 4"
 
 # Remove existing task if present
@@ -45,8 +91,8 @@ $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Days
 Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Description "TradeHub Backend API Server" | Out-Null
 Write-Host "      Scheduled task '$taskName' created for auto-start." -ForegroundColor Green
 
-# 3. Configure Windows Firewall
-Write-Host "`n[3/3] Configuring Windows Firewall..." -ForegroundColor Yellow
+# 4. Configure Windows Firewall
+Write-Host "`n[4/4] Configuring Windows Firewall..." -ForegroundColor Yellow
 
 # Allow port 8000 inbound
 $rule = Get-NetFirewallRule -DisplayName "TradeHub Application" -ErrorAction SilentlyContinue
