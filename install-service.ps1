@@ -201,13 +201,48 @@ if (-not (Test-Path $pythonExe)) {
 Write-Host "`n[6/8] Database tables & initial data..." -ForegroundColor Yellow
 
 # Create tables via SQLAlchemy
-& $pythonExe -c "import sys; sys.path.insert(0, r'$backendDir'); from app.models import *; from app.database import init_db; init_db(); print('      Tables created.')" 2>&1
+$initScript = Join-Path $backendDir "_init_tables.py"
+@"
+import sys, os
+os.chdir(r'$backendDir')
+sys.path.insert(0, r'$backendDir')
+from app.models import *
+from app.database import init_db
+init_db()
+print('OK')
+"@ | Set-Content -Path $initScript -Encoding UTF8
+
+try {
+    $ErrorActionPreference = "Continue"
+    Push-Location $backendDir
+    $initResult = & $pythonExe $initScript 2>&1
+    Pop-Location
+    Remove-Item $initScript -Force -ErrorAction SilentlyContinue
+    $ErrorActionPreference = "Stop"
+    if ($initResult -match "OK") {
+        Write-Host "      Tables created." -ForegroundColor Green
+    } else {
+        Write-Host "      WARNING: Table creation output: $initResult" -ForegroundColor Yellow
+    }
+} catch {
+    Pop-Location -ErrorAction SilentlyContinue
+    Remove-Item $initScript -Force -ErrorAction SilentlyContinue
+    $ErrorActionPreference = "Stop"
+    Write-Host "      WARNING: Table creation error: $_" -ForegroundColor Yellow
+}
 
 # Insert initial data (admin user, banks, products)
 $initSql = Join-Path $scriptRoot "database\init_mysql.sql"
 if (Test-Path $initSql) {
-    Get-Content $initSql | & $mysqlExe -u root tradehub 2>&1 | Out-Null
-    Write-Host "      Initial data inserted (admin@tradehub.com / admin123)." -ForegroundColor Green
+    try {
+        $ErrorActionPreference = "Continue"
+        & $mysqlExe -u root tradehub -e "source $($initSql -replace '\\','/')" 2>&1 | Out-Null
+        $ErrorActionPreference = "Stop"
+        Write-Host "      Initial data inserted (admin@tradehub.com / admin123)." -ForegroundColor Green
+    } catch {
+        $ErrorActionPreference = "Stop"
+        Write-Host "      WARNING: Data insertion error (may already exist): $_" -ForegroundColor Yellow
+    }
 }
 
 # --------------------------------------------------------
