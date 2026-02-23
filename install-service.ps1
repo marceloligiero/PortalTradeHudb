@@ -180,20 +180,24 @@ if (-not (Test-Path $pythonExe)) {
 if (-not (Test-Path $pythonExe)) {
     Write-Host "      Creating Python venv..." -ForegroundColor Yellow
     $sysPython = Get-Command python -ErrorAction SilentlyContinue
-    if ($sysPython) {
-        & python -m venv (Join-Path $scriptRoot ".venv")
-        $pythonExe = Join-Path $scriptRoot ".venv\Scripts\python.exe"
-        & $pythonExe -m pip install --upgrade pip 2>&1 | Out-Null
-        & $pythonExe -m pip install -r (Join-Path $backendDir "requirements.txt") 2>&1 | Out-Null
-        Write-Host "      Venv created and dependencies installed." -ForegroundColor Green
-    } else {
+    if (-not $sysPython) {
         Write-Host "      ERROR: Python not found. Install Python 3.10+ first." -ForegroundColor Red
         Read-Host "Press Enter to exit"
         exit 1
     }
+    & python -m venv (Join-Path $scriptRoot ".venv")
+    $pythonExe = Join-Path $scriptRoot ".venv\Scripts\python.exe"
+    Write-Host "      Venv created." -ForegroundColor Green
 } else {
     Write-Host "      Python venv found: $pythonExe" -ForegroundColor Green
 }
+
+# Always ensure dependencies are installed
+$reqFile = Join-Path $backendDir "requirements.txt"
+Write-Host "      Installing/updating dependencies..." -ForegroundColor Yellow
+& $pythonExe -m pip install --upgrade pip 2>&1 | Out-Null
+& $pythonExe -m pip install -r $reqFile 2>&1 | Out-Null
+Write-Host "      Dependencies installed." -ForegroundColor Green
 
 # --------------------------------------------------------
 # 6. Create database tables & insert initial data
