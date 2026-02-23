@@ -232,7 +232,7 @@ export default function ResetPassword() {
             variant="primary"
             size="lg"
             className="w-full"
-            loading={loading}
+            isLoading={loading}
             disabled={!password || !confirmPassword || password !== confirmPassword}
             icon={<ArrowRight className="w-5 h-5" />}
           >

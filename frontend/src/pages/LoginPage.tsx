@@ -235,7 +235,7 @@ export default function LoginPage() {
                 variant="primary"
                 size="lg"
                 className="w-full"
-                loading={loginMutation.isPending}
+                isLoading={loginMutation.isPending}
                 icon={<ArrowRight className="w-5 h-5" />}
               >
                 {t('auth.login')}

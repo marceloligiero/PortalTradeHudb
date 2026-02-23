@@ -276,7 +276,7 @@ const RegisterPage = () => {
                 variant="primary"
                 size="lg"
                 className="w-full"
-                loading={loading}
+                isLoading={loading}
                 icon={<ArrowRight className="w-5 h-5" />}
               >
                 {t('auth.register')}
