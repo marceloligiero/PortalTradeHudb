@@ -396,6 +396,48 @@ class ChallengeSubmission(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     training_plan_id = Column(Integer, ForeignKey("training_plans.id"), nullable=True)  # Plano associado
     submission_type = Column(String(50), nullable=False)  # COMPLETE or SUMMARY
+
+
+# =================== Tutoria (tutoring) tables ===================
+class TutoriaError(Base):
+    __tablename__ = "tutoria_errors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text)
+    reported_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    status = Column(String(50), default="OPEN")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    action_plans = relationship("TutoriaActionPlan", back_populates="error", cascade="all, delete-orphan")
+
+
+class TutoriaActionPlan(Base):
+    __tablename__ = "tutoria_action_plans"
+
+    id = Column(Integer, primary_key=True, index=True)
+    error_id = Column(Integer, ForeignKey("tutoria_errors.id", ondelete="CASCADE"), nullable=False)
+    title = Column(String(255), nullable=False)
+    description = Column(Text)
+    assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
+    due_date = Column(DateTime(timezone=True), nullable=True)
+    status = Column(String(50), default="PENDING")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    error = relationship("TutoriaError", back_populates="action_plans")
+
+
+class TutoriaPlan(Base):
+    __tablename__ = "tutoria_plans"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
     
     # Status do desafio: IN_PROGRESS, PENDING_REVIEW, REVIEWED, APPROVED, REJECTED
     status = Column(String(50), default="IN_PROGRESS")

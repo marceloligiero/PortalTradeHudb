@@ -399,6 +399,7 @@ export default function TradeDatahubLanding() {
               className="cursor-pointer flex items-center gap-4"
               onClick={() => navigate('/')}
             >
+                <button className="ml-4 px-3 py-1 bg-red-600 text-white rounded" onClick={(e) => { e.stopPropagation(); navigate('/portal-tutoria'); }}>Portal de Tutoria</button>
               <img 
                 src="/logo-sds.png"
                 alt="Santander Digital Services"

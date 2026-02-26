@@ -25,6 +25,8 @@ import AdminTrainingPlanForm from './pages/admin/TrainingPlanForm';
 import AdminTrainingPlans from './pages/admin/TrainingPlans';
 import AdminReportsPage from './pages/admin/Reports';
 import AdminAdvancedReportsPage from './pages/admin/AdvancedReports';
+import PortalTutoria from './pages/admin/PortalTutoria';
+import PortalTutoriaPublic from './pages/PortalTutoriaPublic';
 import AdminRatingsPage from './pages/admin/Ratings';
 import KnowledgeMatrixPage from './pages/admin/KnowledgeMatrix';
 import AdminSettingsPage from './pages/admin/Settings';
@@ -56,6 +58,7 @@ function App() {
     return (
       <Routes>
         <Route path="/" element={<TradeDatahubLanding />} />
+        <Route path="/portal-tutoria" element={<PortalTutoriaPublic />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -144,6 +147,7 @@ function App() {
             <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="banks" element={<AdminBanksPage />} />
             <Route path="products" element={<AdminProductsPage />} />
+            <Route path="tutoria" element={<PortalTutoria />} />
           </>
         )}
         <Route path="*" element={<Navigate to="/" replace />} />

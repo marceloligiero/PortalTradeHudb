@@ -6,6 +6,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.routes import auth, admin, student, trainer, training_plans, advanced_reports, certificates, student_reports, ratings, password_reset, knowledge_matrix, public
 from app.routers import challenges, stats, lessons, finalization
+from app.routers import tutoria
 
 # Rate limiter (shared instance used by route modules)
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
@@ -113,6 +114,8 @@ app.include_router(advanced_reports.router, tags=["advanced_reports"])
 app.include_router(lessons.router, tags=["lessons"])
 # Mount finalization router for course/plan finalization
 app.include_router(finalization.router, tags=["finalization"])
+# Tutoria (tutoring portal) API
+app.include_router(tutoria.router, prefix="/api/tutoria", tags=["tutoria"])
 # Mount certificates router for certificate management and PDF download
 app.include_router(certificates.router, prefix="/api/certificates", tags=["certificates"])
 # Mount student reports router
