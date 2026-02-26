@@ -36,3 +36,4 @@ backend/exception_trace.txt
 *.backup
 *_dump*
 *.dump.sql
+install-service-output.txt
