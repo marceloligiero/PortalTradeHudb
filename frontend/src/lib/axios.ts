@@ -2,21 +2,64 @@ import axios from 'axios';
 import { useAuthStore } from '../stores/authStore';
 
 const getBaseURL = () => {
-  const envBase = import.meta.env.VITE_API_BASE_URL;
-  if (envBase) return envBase;
-  
-  // Use the same host as the frontend, but port 8001
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  return `${protocol}//${hostname}:8001`;
+  // In development prefer the relative `/api` so Vite's proxy handles host/port.
+  // This avoids hardwired env values blocking requests when opening the app
+  // by IP (e.g. http://192.168.x.x:5173).
+  if (import.meta.env.DEV) {
+    return '/api';
+  }
+
+  // 1) explicit full base (recommended): VITE_API_BASE_URL
+  let envBase = import.meta.env.VITE_API_BASE_URL;
+  if (envBase) {
+    // ensure it points to the API prefix (ends with /api)
+    if (!envBase.endsWith('/api')) {
+      envBase = envBase.replace(/\/$/, '') + '/api';
+    }
+    return envBase;
+  }
+
+  // 2) explicit port only (VITE_API_PORT) -> same host as frontend
+  const envPort = import.meta.env.VITE_API_PORT;
+  if (envPort) {
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    return `${protocol}//${hostname}:${envPort}/api`;
+  }
+
+  // fallback: use relative path (works with Nginx proxy)
+  return '/api';
 };
 
 const api = axios.create({
-  baseURL: getBaseURL(),
+  // baseURL will be set dynamically
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: false,  // Disabled for CORS with wildcard
+});
+
+// Set baseURL dynamically in request interceptor
+api.interceptors.request.use((config) => {
+  if (!config.baseURL) {
+    config.baseURL = getBaseURL();
+  }
+  // Normalize duplicate '/api' when baseURL already contains the '/api'
+  // prefix (production full URL like 'http://host:8000/api') or when
+  // dev proxy uses '/api'. If baseURL ends with '/api' and the request
+  // url also starts with '/api', strip the leading '/api' from url to
+  // avoid composing '/api/api/...'. This covers both dev and prod cases.
+  if (config.baseURL && config.baseURL.replace(/\/$/, '').endsWith('/api') && config.url?.startsWith('/api')) {
+    config.url = config.url.replace(/^\/api/, '');
+  }
+  // Debug: show how requests are being composed in dev
+  if (import.meta.env.DEV) {
+    try {
+      // eslint-disable-next-line no-console
+      console.debug(`[api] baseURL=${config.baseURL} url=${config.url}`);
+    } catch (e) {}
+  }
+  return config;
 });
 
 // Request interceptor to add token
@@ -25,6 +68,12 @@ api.interceptors.request.use(
     const token = useAuthStore.getState().token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    if (import.meta.env.DEV) {
+      try {
+        // eslint-disable-next-line no-console
+        console.debug('[api] Authorization header set:', config.headers.Authorization ? 'YES' : 'NO');
+      } catch (e) {}
     }
     return config;
   },
@@ -37,6 +86,14 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       useAuthStore.getState().logout();
+      // Mark as auth error so components can skip showing alert
+      error._isAuthError = true;
+    }
+    if (import.meta.env.DEV) {
+      try {
+        // eslint-disable-next-line no-console
+        console.debug('[api] response error status:', error.response?.status, 'url:', error.config?.url);
+      } catch (e) {}
     }
     return Promise.reject(error);
   }

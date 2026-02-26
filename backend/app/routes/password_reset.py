@@ -1,0 +1,200 @@
+"""
+Rotas para recuperação de senha
+"""
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from sqlalchemy.orm import Session
+from pydantic import BaseModel, EmailStr
+from datetime import datetime, timedelta, timezone
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+import secrets
+import logging
+
+from app.database import get_db
+from app.models import User, PasswordResetToken
+from app.auth import get_password_hash
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
+limiter = Limiter(key_func=get_remote_address)
+
+# Token válido por 1 hora
+TOKEN_EXPIRY_HOURS = 1
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class VerifyEmailRequest(BaseModel):
+    email: EmailStr
+
+
+class DirectResetPasswordRequest(BaseModel):
+    email: EmailStr
+    new_password: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+class MessageResponse(BaseModel):
+    message: str
+
+
+@router.post("/verify-email", response_model=MessageResponse)
+def verify_email(request: VerifyEmailRequest, db: Session = Depends(get_db)):
+    """
+    Verifica se um email existe no sistema.
+    Retorna sempre a mesma resposta para não permitir enumeração de emails.
+    """
+    user = db.query(User).filter(User.email == request.email.lower()).first()
+    
+    if not user or not user.is_active:
+        # Retorna mesma mensagem para não revelar se o email existe
+        logger.info(f"Tentativa de verificação para email inexistente/inativo: {request.email}")
+    else:
+        logger.info(f"Email verificado para redefinição: {request.email}")
+    
+    # Sempre retorna sucesso - não revelar se email existe
+    return MessageResponse(message="Se o email estiver registado, receberá instruções de redefinição.")
+
+
+# REMOVED: /direct-reset-password endpoint
+# This endpoint was a critical security vulnerability - it allowed
+# anyone to reset any user's password without authentication or token.
+# Password resets must go through /forgot-password (email with token) or
+# /reset-password (requires valid token).
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+@limiter.limit("3/minute")
+def forgot_password(request: Request, reset_req: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    """
+    Solicita recuperação de senha.
+    Envia um email com link para redefinir a senha.
+    
+    Sempre retorna sucesso para não revelar se o email existe.
+    """
+    # Busca o usuário pelo email
+    user = db.query(User).filter(User.email == reset_req.email.lower()).first()
+    
+    if user and user.is_active:
+        # Invalida tokens anteriores não utilizados
+        db.query(PasswordResetToken).filter(
+            PasswordResetToken.user_id == user.id,
+            PasswordResetToken.used == False
+        ).update({"used": True})
+        
+        # Gera novo token
+        token = secrets.token_urlsafe(32)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=TOKEN_EXPIRY_HOURS)
+        
+        # Salva o token
+        reset_token = PasswordResetToken(
+            user_id=user.id,
+            token=token,
+            expires_at=expires_at,
+            used=False
+        )
+        db.add(reset_token)
+        db.commit()
+        
+        # Envia o email
+        email_sent = send_password_reset_email(
+            to_email=user.email,
+            user_name=user.full_name,
+            reset_token=token
+        )
+        
+        if email_sent:
+            logger.info(f"Email de recuperação enviado para {user.email}")
+        else:
+            logger.warning(f"Falha ao enviar email de recuperação para {user.email}")
+    else:
+        logger.info(f"Tentativa de recuperação para email inexistente/inativo: {reset_req.email}")
+    
+    # Sempre retorna sucesso para segurança
+    return MessageResponse(
+        message="Se o email estiver cadastrado, você receberá um link para redefinir sua senha."
+    )
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    """
+    Redefine a senha usando o token de recuperação.
+    """
+    # Valida a nova senha
+    from app.routes.auth import validate_password_strength
+    validate_password_strength(request.new_password)
+    
+    # Busca o token
+    reset_token = db.query(PasswordResetToken).filter(
+        PasswordResetToken.token == request.token,
+        PasswordResetToken.used == False
+    ).first()
+    
+    if not reset_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token inválido ou já utilizado"
+        )
+    
+    # Verifica expiração
+    if datetime.now(timezone.utc) > reset_token.expires_at.replace(tzinfo=timezone.utc):
+        reset_token.used = True
+        db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token expirado. Solicite uma nova recuperação de senha."
+        )
+    
+    # Busca o usuário
+    user = db.query(User).filter(User.id == reset_token.user_id).first()
+    
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Usuário não encontrado ou inativo"
+        )
+    
+    # Atualiza a senha
+    user.hashed_password = get_password_hash(request.new_password)
+    
+    # Marca o token como usado
+    reset_token.used = True
+    
+    db.commit()
+    
+    logger.info(f"Senha redefinida com sucesso para usuário {user.email}")
+    
+    return MessageResponse(message="Senha redefinida com sucesso! Você já pode fazer login.")
+
+
+@router.get("/validate-reset-token/{token}", response_model=MessageResponse)
+def validate_reset_token(token: str, db: Session = Depends(get_db)):
+    """
+    Valida se um token de recuperação é válido.
+    Usado para verificar antes de mostrar o formulário de nova senha.
+    """
+    reset_token = db.query(PasswordResetToken).filter(
+        PasswordResetToken.token == token,
+        PasswordResetToken.used == False
+    ).first()
+    
+    if not reset_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token inválido ou já utilizado"
+        )
+    
+    if datetime.now(timezone.utc) > reset_token.expires_at.replace(tzinfo=timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token expirado"
+        )
+    
+    return MessageResponse(message="Token válido")

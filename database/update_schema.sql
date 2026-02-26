@@ -238,6 +238,22 @@ BEGIN
 END
 GO
 
+-- Adicionar coluna max_errors em challenges se não existir
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[challenges]') AND name = 'max_errors')
+BEGIN
+    ALTER TABLE challenges ADD max_errors INT NOT NULL DEFAULT 0;
+    PRINT 'Coluna max_errors adicionada à tabela challenges';
+END
+GO
+
+-- Adicionar coluna errors_count em challenge_submissions se não existir
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[challenge_submissions]') AND name = 'errors_count')
+BEGIN
+    ALTER TABLE challenge_submissions ADD errors_count INT NOT NULL DEFAULT 0;
+    PRINT 'Coluna errors_count adicionada à tabela challenge_submissions';
+END
+GO
+
 -- Criar tabela certificates
 IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[certificates]') AND type in (N'U'))
 BEGIN

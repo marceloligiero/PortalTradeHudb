@@ -1,13 +1,13 @@
 # Build stage
-FROM node:20-alpine AS build
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copiar arquivos de dependências
+# Copiar package files
 COPY package*.json ./
 
 # Instalar dependências
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 # Copiar código fonte
 COPY . .
@@ -15,19 +15,17 @@ COPY . .
 # Build da aplicação
 RUN npm run build
 
-# Runtime stage
-FROM node:20-alpine
+# Production stage
+FROM nginx:alpine
 
-WORKDIR /app
+# Copiar build do Vite
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Instalar servidor estático
-RUN npm install -g serve
+# Copiar configuração customizada do Nginx
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copiar arquivos buildados do estágio anterior
-COPY --from=build /app/dist ./dist
+# Expor porta 80
+EXPOSE 80
 
-# Expor porta
-EXPOSE 3000
-
-# Comando para iniciar a aplicação
-CMD ["serve", "-s", "dist", "-l", "3000"]
+# Iniciar Nginx
+CMD ["nginx", "-g", "daemon off;"]

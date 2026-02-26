@@ -1,0 +1,16 @@
+[Unit]
+Description=PortalTrade DataHub (start-all)
+After=network.target
+
+[Service]
+Type=simple
+User=marcelo
+WorkingDirectory=/home/marcelo/Área de trabalho/PortalTradeDataHub/PortalTradeHudb
+ExecStart=/home/marcelo/Área de trabalho/PortalTradeDataHub/PortalTradeHudb/start-all.sh
+Restart=on-failure
+RestartSec=5s
+StandardOutput=append:/var/log/portaltrade/start-all.log
+StandardError=append:/var/log/portaltrade/start-all.err
+
+[Install]
+WantedBy=multi-user.target

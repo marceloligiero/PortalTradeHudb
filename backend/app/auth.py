@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
 import bcrypt
@@ -47,24 +47,22 @@ def get_password_hash(password: str) -> str:
         raise
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
-    logger.info(f"🔍 Tentando autenticar: {email}")
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        logger.warning(f"❌ Usuário não encontrado: {email}")
+        logger.warning(f"Authentication failed: user not found")
         return None
-    logger.info(f"✅ Usuário encontrado: {user.email}, ativo={user.is_active}, pending={user.is_pending}")
     
     password_ok = verify_password(password, user.hashed_password)
-    logger.info(f"🔐 Verificação de senha: {'✅ OK' if password_ok else '❌ FALHOU'}")
-    logger.info(f"   Password length: {len(password)}, Hash: {user.hashed_password[:20]}...")
-    
     if not password_ok:
+        logger.warning(f"Authentication failed: invalid password for {email}")
         return None
+    
+    logger.info(f"Authentication successful for {email}")
     return user
 
 def create_access_token(data: dict) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt

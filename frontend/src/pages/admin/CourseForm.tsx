@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, Save, X, Users, Building2, Package, CheckCircle2, AlertCircle } from 'lucide-react';
+import { BookOpen, Save, X, Users, Building2, Package, CheckCircle2, AlertCircle, Check, GraduationCap, TrendingUp, Shield, Star } from 'lucide-react';
 import api from '../../lib/axios';
+import { getTranslatedProductName } from '../../utils/productTranslation';
 
 interface Trainer {
   id: number;
@@ -36,8 +37,9 @@ export default function CourseForm() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    bank_id: '',
-    product_id: '',
+    level: 'BEGINNER' as string,
+    bank_ids: [] as number[],
+    product_ids: [] as number[],
   });
 
   useEffect(() => {
@@ -66,8 +68,8 @@ export default function CourseForm() {
       if (!formData.title.trim()) newErrors.title = t('admin.titleRequired');
       if (!formData.description.trim()) newErrors.description = t('admin.descriptionRequired');
     } else if (step === 2) {
-      if (!formData.bank_id) newErrors.bank_id = t('admin.bankRequired');
-      if (!formData.product_id) newErrors.product_id = t('admin.productTypeRequired');
+      if (formData.bank_ids.length === 0) newErrors.bank_ids = t('admin.bankRequired');
+      if (formData.product_ids.length === 0) newErrors.product_ids = t('admin.productTypeRequired');
     }
     
     setErrors(newErrors);
@@ -84,6 +86,24 @@ export default function CourseForm() {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
+  const toggleBank = (bankId: number) => {
+    setFormData(prev => ({
+      ...prev,
+      bank_ids: prev.bank_ids.includes(bankId)
+        ? prev.bank_ids.filter(id => id !== bankId)
+        : [...prev.bank_ids, bankId]
+    }));
+  };
+
+  const toggleProduct = (productId: number) => {
+    setFormData(prev => ({
+      ...prev,
+      product_ids: prev.product_ids.includes(productId)
+        ? prev.product_ids.filter(id => id !== productId)
+        : [...prev.product_ids, productId]
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -94,8 +114,9 @@ export default function CourseForm() {
       await api.post('/api/admin/courses', {
         title: formData.title,
         description: formData.description,
-        bank_id: parseInt(formData.bank_id),
-        product_id: parseInt(formData.product_id),
+        level: formData.level,
+        bank_ids: formData.bank_ids,
+        product_ids: formData.product_ids,
       });
       
       // Success animation
@@ -117,7 +138,7 @@ export default function CourseForm() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-black p-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -135,7 +156,7 @@ export default function CourseForm() {
             </div>
             <button
               onClick={() => navigate('/courses')}
-              className="flex items-center gap-2 px-5 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-all border border-white/10 hover:scale-105"
+              className="flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white rounded-xl transition-all border border-gray-200 dark:border-white/10 hover:scale-105"
             >
               <X className="w-5 h-5" />
               {t('common.cancel')}
@@ -145,7 +166,7 @@ export default function CourseForm() {
           {/* Progress Steps */}
           {currentStep < 3 && (
             <div className="flex items-center justify-between mb-8 relative max-w-md mx-auto">
-              <div className="absolute top-5 left-0 right-0 h-0.5 bg-white/10">
+              <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200 dark:bg-white/10">
                 <div 
                   className="h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-500"
                   style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
@@ -160,7 +181,7 @@ export default function CourseForm() {
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
                       isCompleted ? 'bg-gradient-to-br from-green-500 to-green-600 scale-110' :
                       isCurrent ? 'bg-gradient-to-br from-red-600 to-red-700 scale-110 shadow-lg shadow-red-900/50' :
-                      'bg-white/5 border-2 border-white/20'
+                      'bg-white border-2 border-gray-200 dark:bg-white/5 dark:border-white/20'
                     }`}>
                       {isCompleted ? (
                         <CheckCircle2 className="w-6 h-6 text-white" />
@@ -168,7 +189,7 @@ export default function CourseForm() {
                         <Icon className={`w-6 h-6 ${isCurrent ? 'text-white' : 'text-gray-400'}`} />
                       )}
                     </div>
-                    <p className={`mt-2 text-sm font-medium ${isCurrent ? 'text-white' : 'text-gray-400'}`}>
+                    <p className={`mt-2 text-sm font-medium ${isCurrent ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
                       {step.title}
                     </p>
                   </div>
@@ -180,25 +201,25 @@ export default function CourseForm() {
 
         {/* Form */}
         {currentStep === 3 ? (
-          <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-12 text-center">
+          <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 p-12 text-center">
             <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-green-500 to-green-600 mb-6 animate-bounce">
               <CheckCircle2 className="w-12 h-12 text-white" />
             </div>
-            <h2 className="text-3xl font-bold text-white mb-4">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
               {t('admin.courseCreatedSuccess')}
             </h2>
-            <p className="text-gray-400 text-lg">
+            <p className="text-gray-600 dark:text-gray-400 text-lg">
               {t('admin.redirecting')}
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 shadow-2xl">
+          <form onSubmit={handleSubmit} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 p-8 shadow-2xl">
             <div className="min-h-[400px]">
               {/* Step 1: Basic Info */}
               {currentStep === 1 && (
                 <div className="space-y-6 animate-fadeIn">
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-3">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       <BookOpen className="w-4 h-4" />
                       {t('admin.courseTitle')} *
                     </label>
@@ -206,14 +227,14 @@ export default function CourseForm() {
                       type="text"
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className={`w-full px-5 py-4 bg-white/5 border ${errors.title ? 'border-red-500' : 'border-white/10'} rounded-xl text-white placeholder-gray-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg`}
+                      className={`w-full px-5 py-4 bg-white dark:bg-white/5 border ${errors.title ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg`}
                       placeholder={t('admin.courseTitlePlaceholder')}
                     />
-                    {errors.title && <p className="text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.title}</p>}
+                    {errors.title && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.title}</p>}
                   </div>
 
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-3">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       <BookOpen className="w-4 h-4" />
                       {t('admin.courseDescription')} *
                     </label>
@@ -221,10 +242,57 @@ export default function CourseForm() {
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       rows={6}
-                      className={`w-full px-5 py-4 bg-white/5 border ${errors.description ? 'border-red-500' : 'border-white/10'} rounded-xl text-white placeholder-gray-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all resize-none text-lg`}
+                      className={`w-full px-5 py-4 bg-white dark:bg-white/5 border ${errors.description ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all resize-none text-lg`}
                       placeholder={t('admin.courseDescriptionPlaceholder')}
                     />
-                    {errors.description && <p className="text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.description}</p>}
+                    {errors.description && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.description}</p>}
+                  </div>
+
+                  {/* Course Level */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                      <GraduationCap className="w-4 h-4" />
+                      {t('admin.courseLevel', 'Nível do Curso')} *
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { value: 'BEGINNER', label: t('admin.levelBeginner', 'Iniciante'), Icon: TrendingUp, color: 'orange', desc: t('admin.levelBeginnerDesc', 'Conceitos básicos') },
+                        { value: 'INTERMEDIATE', label: t('admin.levelIntermediate', 'Intermédio'), Icon: Shield, color: 'amber', desc: t('admin.levelIntermediateDesc', 'Conhecimento prático') },
+                        { value: 'EXPERT', label: t('admin.levelExpert', 'Especialista'), Icon: Star, color: 'emerald', desc: t('admin.levelExpertDesc', 'Domínio avançado') },
+                      ].map((level) => {
+                        const isSelected = formData.level === level.value;
+                        const colorStyles = level.color === 'orange'
+                          ? { border: 'border-orange-500', bg: 'bg-orange-500/10 dark:bg-orange-500/20', iconBg: 'bg-orange-500/20', iconColor: 'text-orange-500', ring: 'ring-orange-500/30' }
+                          : level.color === 'amber'
+                          ? { border: 'border-amber-500', bg: 'bg-amber-500/10 dark:bg-amber-500/20', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-500', ring: 'ring-amber-500/30' }
+                          : { border: 'border-emerald-500', bg: 'bg-emerald-500/10 dark:bg-emerald-500/20', iconBg: 'bg-emerald-500/20', iconColor: 'text-emerald-500', ring: 'ring-emerald-500/30' };
+                        return (
+                          <button
+                            key={level.value}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, level: level.value })}
+                            className={`relative p-5 rounded-xl border-2 text-center transition-all duration-200 ${
+                              isSelected
+                                ? `${colorStyles.border} ${colorStyles.bg} ring-2 ${colorStyles.ring} scale-[1.02]`
+                                : 'border-gray-200 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/20 hover:scale-[1.01]'
+                            }`}
+                          >
+                            {isSelected && (
+                              <div className={`absolute top-2 right-2 w-5 h-5 rounded-full ${colorStyles.iconBg} flex items-center justify-center`}>
+                                <Check className={`w-3 h-3 ${colorStyles.iconColor}`} />
+                              </div>
+                            )}
+                            <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${
+                              isSelected ? colorStyles.iconBg : 'bg-gray-100 dark:bg-white/5'
+                            }`}>
+                              <level.Icon className={`w-5 h-5 ${isSelected ? colorStyles.iconColor : 'text-gray-400 dark:text-gray-500'}`} />
+                            </div>
+                            <p className="font-semibold text-gray-900 dark:text-white text-sm">{level.label}</p>
+                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{level.desc}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               )}
@@ -233,55 +301,80 @@ export default function CourseForm() {
               {currentStep === 2 && (
                 <div className="space-y-6 animate-fadeIn">
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-3">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       <Building2 className="w-4 h-4" />
-                      {t('admin.bank')} *
+                      {t('admin.banks')} * <span className="text-gray-400 text-xs">({t('admin.selectMultiple')})</span>
                     </label>
-                    <select
-                      value={formData.bank_id}
-                      onChange={(e) => setFormData({ ...formData, bank_id: e.target.value })}
-                      className={`w-full px-5 py-4 bg-white/5 border ${errors.bank_id ? 'border-red-500' : 'border-white/10'} rounded-xl text-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg`}
-                    >
-                      <option value="">{t('admin.selectBank')}</option>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {banks.map((bank) => (
-                        <option key={bank.id} value={bank.id}>
-                          {bank.code} - {bank.name} ({bank.country})
-                        </option>
+                        <button
+                          key={bank.id}
+                          type="button"
+                          onClick={() => toggleBank(bank.id)}
+                          className={`p-4 rounded-xl border-2 text-left transition-all ${
+                            formData.bank_ids.includes(bank.id)
+                              ? 'border-red-500 bg-red-500/10 dark:bg-red-500/20'
+                              : 'border-gray-200 dark:border-white/10 hover:border-red-500/50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-gray-900 dark:text-white">{bank.code}</p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">{bank.name}</p>
+                              <p className="text-xs text-gray-500">{bank.country}</p>
+                            </div>
+                            {formData.bank_ids.includes(bank.id) && (
+                              <Check className="w-5 h-5 text-red-500" />
+                            )}
+                          </div>
+                        </button>
                       ))}
-                    </select>
-                    {errors.bank_id && <p className="text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.bank_id}</p>}
+                    </div>
+                    {errors.bank_ids && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.bank_ids}</p>}
                   </div>
 
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-300 mb-3">
+                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       <Package className="w-4 h-4" />
-                      {t('admin.productType')} *
+                      {t('admin.services')} * <span className="text-gray-400 text-xs">({t('admin.selectMultiple')})</span>
                     </label>
-                    <select
-                      value={formData.product_id}
-                      onChange={(e) => setFormData({ ...formData, product_id: e.target.value })}
-                      className={`w-full px-5 py-4 bg-white/5 border ${errors.product_id ? 'border-red-500' : 'border-white/10'} rounded-xl text-white focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg`}
-                    >
-                      <option value="">{t('admin.selectProduct')}</option>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {products.map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {product.name} ({product.code})
-                        </option>
+                        <button
+                          key={product.id}
+                          type="button"
+                          onClick={() => toggleProduct(product.id)}
+                          className={`p-4 rounded-xl border-2 text-left transition-all ${
+                            formData.product_ids.includes(product.id)
+                              ? 'border-red-500 bg-red-500/10 dark:bg-red-500/20'
+                              : 'border-gray-200 dark:border-white/10 hover:border-red-500/50'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-gray-900 dark:text-white">{getTranslatedProductName(t, product.code, product.name)}</p>
+                              <p className="text-xs text-gray-500">{product.code}</p>
+                            </div>
+                            {formData.product_ids.includes(product.id) && (
+                              <Check className="w-5 h-5 text-red-500" />
+                            )}
+                          </div>
+                        </button>
                       ))}
-                    </select>
-                    {errors.product_id && <p className="text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.product_id}</p>}
+                    </div>
+                    {errors.product_ids && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.product_ids}</p>}
                   </div>
                 </div>
               )}
             </div>
 
             {/* Navigation Buttons */}
-            <div className="flex gap-4 pt-8 border-t border-white/10">
+            <div className="flex gap-4 pt-8 border-t border-gray-200 dark:border-white/10">
               {currentStep > 1 && currentStep < 3 && (
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="px-6 py-4 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-all border border-white/10 hover:scale-105"
+                  className="px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white rounded-xl font-medium transition-all border border-gray-200 dark:border-white/10 hover:scale-105"
                 >
                   {t('common.back')}
                 </button>

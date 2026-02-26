@@ -1,4 +1,6 @@
 @echo off
-cd /d "c:\Portal Trade DataHub\frontend"
-call npm run dev
-pause
+title TradeHub Frontend
+pushd "%~dp0frontend"
+npm run dev
+popd
+if "%1"=="interactive" pause
