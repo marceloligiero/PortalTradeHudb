@@ -37,3 +37,10 @@ backend/exception_trace.txt
 *_dump*
 *.dump.sql
 install-service-output.txt
+*.bak
+
+# Dev databases
+backend/*.db
+
+# Claude Code memory
+.claude/
