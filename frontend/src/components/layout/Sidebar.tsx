@@ -40,7 +40,6 @@ export default function Sidebar() {
     { to: '/knowledge-matrix', icon: Brain, label: t('navigation.knowledgeMatrix') },
     { to: '/ratings', icon: Star, label: t('navigation.ratings') },
     { to: '/teams', icon: Users, label: 'Equipas' },
-    { to: '/relatorios', icon: BarChart3, label: 'Relatórios Hub' },
   ];
 
   const links =
