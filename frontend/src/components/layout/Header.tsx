@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LogOut, User, Moon, Sun, Globe, Target, Home } from 'lucide-react';
+import { LogOut, User, Moon, Sun, Globe, Target, Home, BarChart2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -36,7 +36,10 @@ export default function Header() {
     return () => document.removeEventListener('click', close);
   }, [langOpen]);
 
-  const isTutoria = location.pathname.startsWith('/tutoria');
+  const isTutoria    = location.pathname.startsWith('/tutoria');
+  const isRelatorios = location.pathname.startsWith('/relatorios');
+  const isHome       = !isTutoria && !isRelatorios;
+  const isAdmin      = user?.role === 'ADMIN';
 
   return (
     <div className="fixed top-0 inset-x-0 z-50 px-4 sm:px-6 pt-4 pointer-events-none print:hidden">
@@ -44,7 +47,7 @@ export default function Header() {
         initial={{ y: -28, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-        className="max-w-6xl mx-auto pointer-events-auto"
+        className="max-w-7xl mx-auto pointer-events-auto"
       >
         <div
           className="rounded-2xl p-px transition-all duration-500"
@@ -88,18 +91,61 @@ export default function Header() {
 
               {/* ── Controls ── */}
               <div className="flex items-center gap-1.5">
-                {/* Portal Tutoria shortcut */}
-                <button
-                  onClick={() => navigate(isTutoria ? '/' : '/tutoria')}
-                  className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                    isDark
-                      ? 'border-white/[0.09] text-gray-400 hover:bg-white/[0.07] hover:text-white hover:border-white/15'
-                      : 'border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800'
-                  }`}
-                >
-                  {isTutoria ? <Home className="w-3.5 h-3.5" /> : <Target className="w-3.5 h-3.5" />}
-                  <span className="hidden lg:inline">{isTutoria ? 'Formações' : 'Tutoria'}</span>
-                </button>
+                {/* Portal nav shortcuts */}
+                <div className={`hidden md:flex items-center gap-1 p-1 rounded-xl border ${isDark ? 'border-white/[0.08] bg-white/[0.03]' : 'border-gray-200 bg-gray-100/60'}`}>
+                  {/* Formações */}
+                  <button
+                    onClick={() => navigate('/')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      isHome
+                        ? isDark
+                          ? 'bg-white/10 text-white border border-white/15'
+                          : 'bg-white text-gray-900 border border-gray-200 shadow-sm'
+                        : isDark
+                          ? 'text-gray-400 hover:text-white hover:bg-white/[0.06]'
+                          : 'text-gray-500 hover:text-gray-800 hover:bg-white/70'
+                    }`}
+                  >
+                    <Home className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="hidden lg:inline">Formações</span>
+                  </button>
+
+                  {/* Tutoria */}
+                  <button
+                    onClick={() => navigate('/tutoria')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      isTutoria
+                        ? isDark
+                          ? 'bg-white/10 text-white border border-white/15'
+                          : 'bg-white text-gray-900 border border-gray-200 shadow-sm'
+                        : isDark
+                          ? 'text-gray-400 hover:text-white hover:bg-white/[0.06]'
+                          : 'text-gray-500 hover:text-gray-800 hover:bg-white/70'
+                    }`}
+                  >
+                    <Target className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="hidden lg:inline">Tutoria</span>
+                  </button>
+
+                  {/* Relatórios — ADMIN only */}
+                  {isAdmin && (
+                    <button
+                      onClick={() => navigate('/relatorios')}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                        isRelatorios
+                          ? isDark
+                            ? 'bg-white/10 text-white border border-white/15'
+                            : 'bg-white text-gray-900 border border-gray-200 shadow-sm'
+                          : isDark
+                            ? 'text-gray-400 hover:text-white hover:bg-white/[0.06]'
+                            : 'text-gray-500 hover:text-gray-800 hover:bg-white/70'
+                      }`}
+                    >
+                      <BarChart2 className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="hidden lg:inline">Relatórios</span>
+                    </button>
+                  )}
+                </div>
 
                 {/* Language */}
                 <div className="relative" onClick={(e) => e.stopPropagation()}>
