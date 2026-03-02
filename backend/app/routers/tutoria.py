@@ -1,0 +1,1073 @@
+"""
+Portal de Gestão de Erros e Planos de Ação — Router v2
+Roles:
+  ADMIN   → acesso total
+  TRAINER → apenas seus tutorados (tutor_id = current user)
+  STUDENT/TRAINEE → apenas os seus próprios dados
+"""
+from datetime import date, datetime
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy import func
+from sqlalchemy.orm import Session, joinedload
+
+from app.database import get_db
+from app.models import (
+    ErrorCategory, TutoriaError, TutoriaErrorMotivo, TutoriaActionPlan,
+    TutoriaActionItem, TutoriaComment, User, Product,
+)
+from app.auth import get_current_user
+
+router = APIRouter()
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
+
+def is_manager(user: User) -> bool:
+    return user.role in ("ADMIN", "TRAINER")
+
+def require_manager(user: User):
+    if not is_manager(user):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+def require_admin(user: User):
+    if user.role != "ADMIN":
+        raise HTTPException(status_code=403, detail="Apenas admins")
+
+def _user_name(u) -> Optional[str]:
+    return u.full_name if u else None
+
+# ─── Pydantic schemas ─────────────────────────────────────────────────────────
+
+class CategoryIn(BaseModel):
+    name: str
+    description: Optional[str] = None
+    parent_id: Optional[int] = None
+
+class CategoryOut(BaseModel):
+    id: int
+    name: str
+    description: Optional[str]
+    parent_id: Optional[int]
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+# ── Errors ──
+
+class MotivoIn(BaseModel):
+    typology: str  # METHODOLOGY | KNOWLEDGE | DETAIL | PROCEDURE
+    description: Optional[str] = None
+
+class ErrorIn(BaseModel):
+    date_occurrence: date
+    description: str
+    tutorado_id: int
+    category_id: Optional[int] = None
+    product_id: Optional[int] = None
+    severity: str = "MEDIA"
+    tags: Optional[List[str]] = None
+    analysis_5_why: Optional[str] = None
+    motivos: Optional[List[MotivoIn]] = None
+
+class ErrorUpdate(BaseModel):
+    status: Optional[str] = None
+    analysis_5_why: Optional[str] = None
+    category_id: Optional[int] = None
+    severity: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+class DeactivateIn(BaseModel):
+    reason: str
+
+def _motivo_out(m: TutoriaErrorMotivo) -> dict:
+    return {
+        "id": m.id,
+        "typology": m.typology,
+        "description": m.description,
+        "created_at": m.created_at,
+    }
+
+def _error_out(e: TutoriaError) -> dict:
+    motivos_list = []
+    try:
+        motivos_list = [_motivo_out(m) for m in (e.motivos or [])]
+    except Exception:
+        pass
+    return {
+        "id": e.id,
+        "date_occurrence": e.date_occurrence,
+        "description": e.description,
+        "tutorado_id": e.tutorado_id,
+        "tutorado_name": _user_name(e.tutorado),
+        "created_by_id": e.created_by_id,
+        "created_by_name": _user_name(e.creator),
+        "category_id": e.category_id,
+        "category_name": e.category.name if e.category else None,
+        "product_id": e.product_id,
+        "product_name": e.product.name if hasattr(e, 'product') and e.product else None,
+        "severity": e.severity,
+        "status": e.status,
+        "tags": e.tags,
+        "analysis_5_why": e.analysis_5_why,
+        "is_recurrent": e.is_recurrent,
+        "recurrence_count": e.recurrence_count,
+        "is_active": e.is_active,
+        "inactivation_reason": e.inactivation_reason,
+        "plans_count": len(e.action_plans),
+        "motivos": motivos_list,
+        "created_at": e.created_at,
+        "updated_at": e.updated_at,
+    }
+
+# ── Action Plans ──
+
+class PlanIn(BaseModel):
+    tutorado_id: int
+    analysis_5_why: Optional[str] = None
+    immediate_correction: Optional[str] = None
+    corrective_action: Optional[str] = None
+    preventive_action: Optional[str] = None
+    what: Optional[str] = None
+    why: Optional[str] = None
+    where_field: Optional[str] = None
+    when_deadline: Optional[date] = None
+    who: Optional[str] = None
+    how: Optional[str] = None
+    how_much: Optional[str] = None
+
+class PlanUpdate(BaseModel):
+    analysis_5_why: Optional[str] = None
+    immediate_correction: Optional[str] = None
+    corrective_action: Optional[str] = None
+    preventive_action: Optional[str] = None
+    what: Optional[str] = None
+    why: Optional[str] = None
+    where_field: Optional[str] = None
+    when_deadline: Optional[date] = None
+    who: Optional[str] = None
+    how: Optional[str] = None
+    how_much: Optional[str] = None
+
+class ReturnPlanIn(BaseModel):
+    comment: str
+
+def _plan_items_summary(plan: TutoriaActionPlan) -> dict:
+    items = plan.items or []
+    total = len(items)
+    done = sum(1 for i in items if i.status == "CONCLUIDO")
+    return {"total": total, "completed": done}
+
+def _plan_out(p: TutoriaActionPlan) -> dict:
+    s = _plan_items_summary(p)
+    return {
+        "id": p.id,
+        "error_id": p.error_id,
+        "created_by_id": p.created_by_id,
+        "created_by_name": _user_name(p.creator),
+        "tutorado_id": p.tutorado_id,
+        "tutorado_name": _user_name(p.tutorado),
+        "analysis_5_why": p.analysis_5_why,
+        "immediate_correction": p.immediate_correction,
+        "corrective_action": p.corrective_action,
+        "preventive_action": p.preventive_action,
+        "what": p.what,
+        "why": p.why,
+        "where_field": p.where_field,
+        "when_deadline": p.when_deadline,
+        "who": p.who,
+        "how": p.how,
+        "how_much": p.how_much,
+        "status": p.status,
+        "approved_by_id": p.approved_by_id,
+        "approved_by_name": _user_name(p.approver),
+        "approved_at": p.approved_at,
+        "validated_by_id": p.validated_by_id,
+        "validated_by_name": _user_name(p.validator),
+        "validated_at": p.validated_at,
+        "items_total": s["total"],
+        "items_completed": s["completed"],
+        "created_at": p.created_at,
+        "updated_at": p.updated_at,
+    }
+
+# ── Action Items ──
+
+class ItemIn(BaseModel):
+    type: str = "CORRETIVA"
+    description: str
+    responsible_id: Optional[int] = None
+    due_date: Optional[date] = None
+
+class ItemUpdate(BaseModel):
+    description: Optional[str] = None
+    responsible_id: Optional[int] = None
+    due_date: Optional[date] = None
+    status: Optional[str] = None
+    evidence_text: Optional[str] = None
+    reviewer_comment: Optional[str] = None
+
+class ItemReturnIn(BaseModel):
+    comment: str
+
+# Valid item status transitions
+VALID_ITEM_TRANSITIONS = {
+    "PENDENTE": ["EM_ANDAMENTO"],
+    "EM_ANDAMENTO": ["CONCLUIDO"],
+    "CONCLUIDO": ["DEVOLVIDO"],
+    "DEVOLVIDO": ["EM_ANDAMENTO"],
+}
+
+def _item_out(i: TutoriaActionItem) -> dict:
+    is_overdue = (i.due_date and i.due_date < date.today() and i.status != "CONCLUIDO")
+    return {
+        "id": i.id,
+        "plan_id": i.plan_id,
+        "type": i.type,
+        "description": i.description,
+        "responsible_id": i.responsible_id,
+        "responsible_name": _user_name(i.responsible),
+        "due_date": i.due_date,
+        "status": i.status,
+        "evidence_text": i.evidence_text,
+        "reviewer_comment": i.reviewer_comment,
+        "is_overdue": bool(is_overdue),
+        "created_at": i.created_at,
+        "updated_at": i.updated_at,
+    }
+
+# ── Comments ──
+
+class CommentIn(BaseModel):
+    content: str
+
+def _comment_out(c: TutoriaComment) -> dict:
+    return {
+        "id": c.id,
+        "ref_type": c.ref_type,
+        "ref_id": c.ref_id,
+        "author_id": c.author_id,
+        "author_name": _user_name(c.author),
+        "content": c.content,
+        "created_at": c.created_at,
+    }
+
+# ─── DB query helpers ─────────────────────────────────────────────────────────
+
+def _errors_query(db: Session, user: User):
+    q = (
+        db.query(TutoriaError)
+        .options(
+            joinedload(TutoriaError.tutorado),
+            joinedload(TutoriaError.creator),
+            joinedload(TutoriaError.category),
+            joinedload(TutoriaError.product),
+            joinedload(TutoriaError.action_plans).joinedload(TutoriaActionPlan.items),
+            joinedload(TutoriaError.motivos),
+        )
+        .filter(TutoriaError.is_active == True)
+    )
+    if user.role == "TRAINER":
+        q = q.join(TutoriaError.tutorado).filter(User.tutor_id == user.id)
+    elif user.role in ("STUDENT", "TRAINEE"):
+        q = q.filter(TutoriaError.tutorado_id == user.id)
+    return q
+
+def _plans_query(db: Session, user: User):
+    q = (
+        db.query(TutoriaActionPlan)
+        .options(
+            joinedload(TutoriaActionPlan.creator),
+            joinedload(TutoriaActionPlan.tutorado),
+            joinedload(TutoriaActionPlan.approver),
+            joinedload(TutoriaActionPlan.validator),
+            joinedload(TutoriaActionPlan.items).joinedload(TutoriaActionItem.responsible),
+        )
+    )
+    if user.role == "TRAINER":
+        q = q.join(TutoriaActionPlan.tutorado).filter(User.tutor_id == user.id)
+    elif user.role in ("STUDENT", "TRAINEE"):
+        q = q.filter(TutoriaActionPlan.tutorado_id == user.id)
+    return q
+
+# ─── CATEGORIES ───────────────────────────────────────────────────────────────
+
+@router.get("/categories", response_model=List[CategoryOut])
+def list_categories(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return db.query(ErrorCategory).filter(ErrorCategory.is_active == True).order_by(ErrorCategory.name).all()
+
+
+@router.post("/categories", response_model=CategoryOut, status_code=201)
+def create_category(
+    body: CategoryIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_admin(current_user)
+    cat = ErrorCategory(**body.model_dump())
+    db.add(cat)
+    db.commit()
+    db.refresh(cat)
+    return cat
+
+
+@router.patch("/categories/{cat_id}", response_model=CategoryOut)
+def update_category(
+    cat_id: int,
+    body: CategoryIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_admin(current_user)
+    cat = db.get(ErrorCategory, cat_id)
+    if not cat:
+        raise HTTPException(404, "Categoria não encontrada")
+    for k, v in body.model_dump(exclude_none=True).items():
+        setattr(cat, k, v)
+    db.commit()
+    db.refresh(cat)
+    return cat
+
+
+@router.delete("/categories/{cat_id}", status_code=204)
+def deactivate_category(
+    cat_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_admin(current_user)
+    cat = db.get(ErrorCategory, cat_id)
+    if not cat:
+        raise HTTPException(404, "Categoria não encontrada")
+    cat.is_active = False
+    db.commit()
+# ─── PRODUCTS (serviços) ─────────────────────────────────────────────────────────────
+
+@router.get("/products")
+def list_products(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Active products for the error form dropdown."""
+    return [
+        {"id": p.id, "code": p.code, "name": p.name}
+        for p in db.query(Product).filter(Product.is_active == True).order_by(Product.name).all()
+    ]
+# ─── ERRORS ───────────────────────────────────────────────────────────────────
+
+@router.get("/errors")
+def list_errors(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    severity: Optional[str] = None,
+    status: Optional[str] = None,
+    category_id: Optional[int] = None,
+    tutorado_id: Optional[int] = None,
+    is_recurrent: Optional[bool] = None,
+):
+    q = _errors_query(db, current_user)
+    if severity:
+        q = q.filter(TutoriaError.severity == severity)
+    if status:
+        q = q.filter(TutoriaError.status == status)
+    if category_id:
+        q = q.filter(TutoriaError.category_id == category_id)
+    if tutorado_id and current_user.role == "ADMIN":
+        q = q.filter(TutoriaError.tutorado_id == tutorado_id)
+    if is_recurrent is not None:
+        q = q.filter(TutoriaError.is_recurrent == is_recurrent)
+    errors = q.order_by(TutoriaError.created_at.desc()).all()
+    return [_error_out(e) for e in errors]
+
+
+@router.post("/errors", status_code=201)
+def create_error(
+    body: ErrorIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_manager(current_user)
+
+    tutorado = db.get(User, body.tutorado_id)
+    if not tutorado:
+        raise HTTPException(404, "Tutorado não encontrado")
+
+    # Recurrence detection
+    count = 0
+    if body.category_id:
+        count = (
+            db.query(func.count(TutoriaError.id))
+            .filter(
+                TutoriaError.tutorado_id == body.tutorado_id,
+                TutoriaError.category_id == body.category_id,
+                TutoriaError.is_active == True,
+            )
+            .scalar()
+        ) or 0
+
+    error = TutoriaError(
+        date_occurrence=body.date_occurrence,
+        description=body.description,
+        tutorado_id=body.tutorado_id,
+        created_by_id=current_user.id,
+        category_id=body.category_id,
+        product_id=body.product_id,
+        severity=body.severity,
+        tags=body.tags,
+        analysis_5_why=body.analysis_5_why,
+        is_recurrent=(count > 0),
+        recurrence_count=count,
+    )
+    db.add(error)
+    db.flush()  # get error.id before adding motivos
+
+    # Save motivos (multiple per error)
+    if body.motivos:
+        for m in body.motivos:
+            motivo = TutoriaErrorMotivo(
+                error_id=error.id,
+                typology=m.typology,
+                description=m.description,
+            )
+            db.add(motivo)
+
+    db.commit()
+    db.refresh(error)
+
+    error = (
+        db.query(TutoriaError)
+        .options(
+            joinedload(TutoriaError.tutorado),
+            joinedload(TutoriaError.creator),
+            joinedload(TutoriaError.category),
+            joinedload(TutoriaError.product),
+            joinedload(TutoriaError.action_plans),
+            joinedload(TutoriaError.motivos),
+        )
+        .filter(TutoriaError.id == error.id)
+        .first()
+    )
+    return _error_out(error)
+
+
+@router.get("/errors/{error_id}")
+def get_error(
+    error_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    error = (
+        db.query(TutoriaError)
+        .options(
+            joinedload(TutoriaError.tutorado),
+            joinedload(TutoriaError.creator),
+            joinedload(TutoriaError.category),
+            joinedload(TutoriaError.product),
+            joinedload(TutoriaError.action_plans)
+            .joinedload(TutoriaActionPlan.items)
+            .joinedload(TutoriaActionItem.responsible),
+            joinedload(TutoriaError.action_plans).joinedload(TutoriaActionPlan.creator),
+            joinedload(TutoriaError.action_plans).joinedload(TutoriaActionPlan.tutorado),
+            joinedload(TutoriaError.motivos),
+        )
+        .filter(TutoriaError.id == error_id)
+        .first()
+    )
+    if not error:
+        raise HTTPException(404, "Erro não encontrado")
+    if current_user.role in ("STUDENT", "TRAINEE") and error.tutorado_id != current_user.id:
+        raise HTTPException(403, "Acesso negado")
+    return _error_out(error)
+
+
+@router.patch("/errors/{error_id}")
+def update_error(
+    error_id: int,
+    body: ErrorUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_manager(current_user)
+    error = db.get(TutoriaError, error_id)
+    if not error or not error.is_active:
+        raise HTTPException(404, "Erro não encontrado")
+    for k, v in body.model_dump(exclude_none=True).items():
+        setattr(error, k, v)
+    db.commit()
+
+    error = (
+        db.query(TutoriaError)
+        .options(
+            joinedload(TutoriaError.tutorado),
+            joinedload(TutoriaError.creator),
+            joinedload(TutoriaError.category),
+            joinedload(TutoriaError.product),
+            joinedload(TutoriaError.action_plans),
+            joinedload(TutoriaError.motivos),
+        )
+        .filter(TutoriaError.id == error_id)
+        .first()
+    )
+    return _error_out(error)
+
+
+@router.post("/errors/{error_id}/deactivate")
+def deactivate_error(
+    error_id: int,
+    body: DeactivateIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_admin(current_user)
+    if not body.reason or not body.reason.strip():
+        raise HTTPException(400, "Motivo de inativação é obrigatório")
+    error = db.get(TutoriaError, error_id)
+    if not error:
+        raise HTTPException(404, "Erro não encontrado")
+    error.is_active = False
+    error.inactivation_reason = body.reason.strip()
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/errors/{error_id}/verify")
+def verify_error(
+    error_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_admin(current_user)
+    error = db.get(TutoriaError, error_id)
+    if not error:
+        raise HTTPException(404, "Erro não encontrado")
+    if error.status != "CONCLUIDO":
+        raise HTTPException(400, "Erro ainda não foi concluído")
+    error.status = "VERIFICADO"
+    db.commit()
+    return {"ok": True}
+
+# ─── PLANS ────────────────────────────────────────────────────────────────────
+
+@router.get("/errors/{error_id}/plans")
+def list_plans_for_error(
+    error_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    plans = (
+        _plans_query(db, current_user)
+        .filter(TutoriaActionPlan.error_id == error_id)
+        .all()
+    )
+    return [_plan_out(p) for p in plans]
+
+
+@router.post("/errors/{error_id}/plans", status_code=201)
+def create_plan(
+    error_id: int,
+    body: PlanIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_manager(current_user)
+    error = db.get(TutoriaError, error_id)
+    if not error or not error.is_active:
+        raise HTTPException(404, "Erro não encontrado")
+
+    plan = TutoriaActionPlan(
+        error_id=error_id,
+        created_by_id=current_user.id,
+        **body.model_dump(),
+    )
+    db.add(plan)
+
+    if error.status == "ABERTO":
+        error.status = "PLANO_CRIADO"
+
+    db.commit()
+    db.refresh(plan)
+
+    plan = (
+        _plans_query(db, current_user)
+        .filter(TutoriaActionPlan.id == plan.id)
+        .first()
+    )
+    return _plan_out(plan)
+
+
+@router.get("/plans")
+def list_plans(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    plan_status: Optional[str] = None,
+):
+    q = _plans_query(db, current_user)
+    if plan_status:
+        q = q.filter(TutoriaActionPlan.status == plan_status)
+    plans = q.order_by(TutoriaActionPlan.created_at.desc()).all()
+    return [_plan_out(p) for p in plans]
+
+
+@router.get("/plans/{plan_id}")
+def get_plan(
+    plan_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    plan = _plans_query(db, current_user).filter(TutoriaActionPlan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(404, "Plano não encontrado")
+    return _plan_out(plan)
+
+
+@router.patch("/plans/{plan_id}")
+def update_plan(
+    plan_id: int,
+    body: PlanUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_manager(current_user)
+    plan = db.get(TutoriaActionPlan, plan_id)
+    if not plan:
+        raise HTTPException(404, "Plano não encontrado")
+    if plan.status not in ("RASCUNHO", "DEVOLVIDO"):
+        raise HTTPException(400, "Só é possível editar planos em rascunho ou devolvidos")
+    for k, v in body.model_dump(exclude_none=True).items():
+        setattr(plan, k, v)
+    db.commit()
+
+    plan = _plans_query(db, current_user).filter(TutoriaActionPlan.id == plan_id).first()
+    return _plan_out(plan)
+
+
+@router.post("/plans/{plan_id}/submit")
+def submit_plan(
+    plan_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not is_manager(current_user):
+        raise HTTPException(403, "Acesso negado")
+    plan = db.get(TutoriaActionPlan, plan_id)
+    if not plan:
+        raise HTTPException(404, "Plano não encontrado")
+    if plan.status not in ("RASCUNHO", "DEVOLVIDO"):
+        raise HTTPException(400, "Plano não pode ser submetido no estado atual")
+    if current_user.role == "ADMIN":
+        plan.status = "APROVADO"
+        plan.approved_by_id = current_user.id
+        plan.approved_at = datetime.utcnow()
+    else:
+        plan.status = "AGUARDANDO_APROVACAO"
+    db.commit()
+
+    plan = _plans_query(db, current_user).filter(TutoriaActionPlan.id == plan_id).first()
+    return _plan_out(plan)
+
+
+@router.post("/plans/{plan_id}/approve")
+def approve_plan(
+    plan_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_admin(current_user)
+    plan = db.get(TutoriaActionPlan, plan_id)
+    if not plan:
+        raise HTTPException(404, "Plano não encontrado")
+    if plan.status != "AGUARDANDO_APROVACAO":
+        raise HTTPException(400, "Plano não está aguardando aprovação")
+    plan.status = "APROVADO"
+    plan.approved_by_id = current_user.id
+    plan.approved_at = datetime.utcnow()
+
+    error = db.get(TutoriaError, plan.error_id)
+    if error and error.status == "PLANO_CRIADO":
+        error.status = "EM_EXECUCAO"
+
+    db.commit()
+    plan = _plans_query(db, current_user).filter(TutoriaActionPlan.id == plan_id).first()
+    return _plan_out(plan)
+
+
+@router.post("/plans/{plan_id}/return")
+def return_plan(
+    plan_id: int,
+    body: ReturnPlanIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_manager(current_user)
+    plan = db.get(TutoriaActionPlan, plan_id)
+    if not plan:
+        raise HTTPException(404, "Plano não encontrado")
+    plan.status = "DEVOLVIDO"
+    db.commit()
+    comment = TutoriaComment(
+        ref_type="PLAN", ref_id=plan_id,
+        author_id=current_user.id,
+        content=f"[DEVOLVIDO] {body.comment}",
+    )
+    db.add(comment)
+    db.commit()
+
+    plan = _plans_query(db, current_user).filter(TutoriaActionPlan.id == plan_id).first()
+    return _plan_out(plan)
+
+
+@router.post("/plans/{plan_id}/validate")
+def validate_plan(
+    plan_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_manager(current_user)
+    plan = (
+        db.query(TutoriaActionPlan)
+        .options(joinedload(TutoriaActionPlan.items))
+        .filter(TutoriaActionPlan.id == plan_id)
+        .first()
+    )
+    if not plan:
+        raise HTTPException(404, "Plano não encontrado")
+
+    items = plan.items or []
+    if items and any(i.status != "CONCLUIDO" for i in items):
+        raise HTTPException(400, "Todos os itens de ação devem estar concluídos antes de validar")
+
+    plan.status = "CONCLUIDO"
+    plan.validated_by_id = current_user.id
+    plan.validated_at = datetime.utcnow()
+
+    error = db.get(TutoriaError, plan.error_id)
+    if error:
+        error.status = "CONCLUIDO"
+
+    db.commit()
+    plan = _plans_query(db, current_user).filter(TutoriaActionPlan.id == plan_id).first()
+    return _plan_out(plan)
+
+# ─── ACTION ITEMS ──────────────────────────────────────────────────────────────
+
+@router.get("/plans/{plan_id}/items")
+def list_items(
+    plan_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    items = (
+        db.query(TutoriaActionItem)
+        .options(joinedload(TutoriaActionItem.responsible))
+        .filter(TutoriaActionItem.plan_id == plan_id)
+        .order_by(TutoriaActionItem.id)
+        .all()
+    )
+    return [_item_out(i) for i in items]
+
+
+@router.post("/plans/{plan_id}/items", status_code=201)
+def create_item(
+    plan_id: int,
+    body: ItemIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_manager(current_user)
+    plan = db.get(TutoriaActionPlan, plan_id)
+    if not plan:
+        raise HTTPException(404, "Plano não encontrado")
+
+    item = TutoriaActionItem(plan_id=plan_id, **body.model_dump())
+    db.add(item)
+
+    if plan.status == "APROVADO":
+        plan.status = "EM_EXECUCAO"
+        error = db.get(TutoriaError, plan.error_id)
+        if error:
+            error.status = "EM_EXECUCAO"
+
+    db.commit()
+    db.refresh(item)
+    item = (
+        db.query(TutoriaActionItem)
+        .options(joinedload(TutoriaActionItem.responsible))
+        .filter(TutoriaActionItem.id == item.id)
+        .first()
+    )
+    return _item_out(item)
+
+
+@router.patch("/items/{item_id}")
+def update_item(
+    item_id: int,
+    body: ItemUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    item = (
+        db.query(TutoriaActionItem)
+        .options(joinedload(TutoriaActionItem.responsible))
+        .filter(TutoriaActionItem.id == item_id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(404, "Item não encontrado")
+
+    # Block changes if parent plan is concluded
+    plan = db.get(TutoriaActionPlan, item.plan_id)
+    if plan and plan.status == "CONCLUIDO":
+        raise HTTPException(400, "Não é possível alterar ações de um plano concluído")
+
+    # Validate status transition if status is being changed
+    new_status = body.status
+    if new_status and new_status != item.status:
+        allowed_next = VALID_ITEM_TRANSITIONS.get(item.status, [])
+        if new_status not in allowed_next:
+            raise HTTPException(
+                400,
+                f"Transição inválida: {item.status} → {new_status}. "
+                f"Transições permitidas: {', '.join(allowed_next) if allowed_next else 'nenhuma'}",
+            )
+
+    if current_user.role in ("STUDENT", "TRAINEE"):
+        if item.responsible_id != current_user.id:
+            raise HTTPException(403, "Só pode atualizar os seus próprios itens")
+        allowed = {"evidence_text", "status"}
+        for k, v in body.model_dump(exclude_none=True).items():
+            if k in allowed:
+                setattr(item, k, v)
+    else:
+        for k, v in body.model_dump(exclude_none=True).items():
+            setattr(item, k, v)
+
+    db.commit()
+    item = (
+        db.query(TutoriaActionItem)
+        .options(joinedload(TutoriaActionItem.responsible))
+        .filter(TutoriaActionItem.id == item_id)
+        .first()
+    )
+    return _item_out(item)
+
+
+@router.post("/items/{item_id}/return")
+def return_item(
+    item_id: int,
+    body: ItemReturnIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Devolver uma ação para correção (manager only)"""
+    require_manager(current_user)
+    item = (
+        db.query(TutoriaActionItem)
+        .options(joinedload(TutoriaActionItem.responsible))
+        .filter(TutoriaActionItem.id == item_id)
+        .first()
+    )
+    if not item:
+        raise HTTPException(404, "Item não encontrado")
+
+    # Block changes if parent plan is concluded
+    plan = db.get(TutoriaActionPlan, item.plan_id)
+    if plan and plan.status == "CONCLUIDO":
+        raise HTTPException(400, "Não é possível devolver ações de um plano concluído")
+
+    if item.status not in ("EM_ANDAMENTO", "CONCLUIDO"):
+        raise HTTPException(400, "Só é possível devolver itens em andamento ou concluídos")
+
+    item.status = "DEVOLVIDO"
+    item.reviewer_comment = body.comment
+
+    db.commit()
+    item = (
+        db.query(TutoriaActionItem)
+        .options(joinedload(TutoriaActionItem.responsible))
+        .filter(TutoriaActionItem.id == item_id)
+        .first()
+    )
+    return _item_out(item)
+
+# ─── COMMENTS ────────────────────────────────────────────────────────────────
+
+@router.get("/errors/{error_id}/comments")
+def list_error_comments(
+    error_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    comments = (
+        db.query(TutoriaComment)
+        .options(joinedload(TutoriaComment.author))
+        .filter(TutoriaComment.ref_type == "ERROR", TutoriaComment.ref_id == error_id)
+        .order_by(TutoriaComment.created_at)
+        .all()
+    )
+    return [_comment_out(c) for c in comments]
+
+
+@router.post("/errors/{error_id}/comments", status_code=201)
+def add_error_comment(
+    error_id: int,
+    body: CommentIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    comment = TutoriaComment(
+        ref_type="ERROR", ref_id=error_id,
+        author_id=current_user.id, content=body.content,
+    )
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    comment = (
+        db.query(TutoriaComment)
+        .options(joinedload(TutoriaComment.author))
+        .filter(TutoriaComment.id == comment.id)
+        .first()
+    )
+    return _comment_out(comment)
+
+
+@router.get("/plans/{plan_id}/comments")
+def list_plan_comments(
+    plan_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    comments = (
+        db.query(TutoriaComment)
+        .options(joinedload(TutoriaComment.author))
+        .filter(TutoriaComment.ref_type == "PLAN", TutoriaComment.ref_id == plan_id)
+        .order_by(TutoriaComment.created_at)
+        .all()
+    )
+    return [_comment_out(c) for c in comments]
+
+
+@router.post("/plans/{plan_id}/comments", status_code=201)
+def add_plan_comment(
+    plan_id: int,
+    body: CommentIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    comment = TutoriaComment(
+        ref_type="PLAN", ref_id=plan_id,
+        author_id=current_user.id, content=body.content,
+    )
+    db.add(comment)
+    db.commit()
+    db.refresh(comment)
+    comment = (
+        db.query(TutoriaComment)
+        .options(joinedload(TutoriaComment.author))
+        .filter(TutoriaComment.id == comment.id)
+        .first()
+    )
+    return _comment_out(comment)
+
+# ─── UTILITY ──────────────────────────────────────────────────────────────────
+
+@router.get("/students")
+def list_students(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    require_manager(current_user)
+    q = db.query(User).filter(User.role.in_(["STUDENT", "TRAINEE"]), User.is_active == True)
+    if current_user.role == "TRAINER":
+        q = q.filter(User.tutor_id == current_user.id)
+    users = q.order_by(User.full_name).all()
+    return [{"id": u.id, "full_name": u.full_name, "email": u.email, "tutor_id": u.tutor_id} for u in users]
+
+@router.get("/team")
+def list_team(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """All active users (admins + trainers + students) — used in responsible dropdowns."""
+    require_manager(current_user)
+    users = db.query(User).filter(User.is_active == True).order_by(User.full_name).all()
+    return [{"id": u.id, "full_name": u.full_name, "role": u.role} for u in users]
+
+@router.get("/my-plans")
+def my_plans(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    plans = (
+        db.query(TutoriaActionPlan)
+        .options(
+            joinedload(TutoriaActionPlan.creator),
+            joinedload(TutoriaActionPlan.tutorado),
+            joinedload(TutoriaActionPlan.approver),
+            joinedload(TutoriaActionPlan.validator),
+            joinedload(TutoriaActionPlan.items).joinedload(TutoriaActionItem.responsible),
+        )
+        .filter(TutoriaActionPlan.tutorado_id == current_user.id)
+        .order_by(TutoriaActionPlan.created_at.desc())
+        .all()
+    )
+    return [_plan_out(p) for p in plans]
+
+
+@router.get("/dashboard")
+def dashboard(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    errors_q = _errors_query(db, current_user)
+    plans_q = _plans_query(db, current_user)
+
+    total_errors = errors_q.count()
+
+    errors_by_status: dict = {}
+    for row in (
+        errors_q.with_entities(TutoriaError.status, func.count(TutoriaError.id))
+        .group_by(TutoriaError.status)
+        .all()
+    ):
+        errors_by_status[row[0]] = row[1]
+
+    total_plans = plans_q.count()
+
+    plans_by_status: dict = {}
+    for row in (
+        plans_q.with_entities(TutoriaActionPlan.status, func.count(TutoriaActionPlan.id))
+        .group_by(TutoriaActionPlan.status)
+        .all()
+    ):
+        plans_by_status[row[0]] = row[1]
+
+    recurrent_errors = errors_q.filter(TutoriaError.is_recurrent == True).count()
+
+    today = date.today()
+    overdue_plans = plans_q.filter(
+        TutoriaActionPlan.when_deadline < today,
+        TutoriaActionPlan.status.notin_(["CONCLUIDO"]),
+    ).count()
+
+    severity_counts: dict = {}
+    for row in (
+        errors_q.with_entities(TutoriaError.severity, func.count(TutoriaError.id))
+        .group_by(TutoriaError.severity)
+        .all()
+    ):
+        severity_counts[row[0]] = row[1]
+
+    return {
+        "total_errors": total_errors,
+        "errors_by_status": errors_by_status,
+        "recurrent_errors": recurrent_errors,
+        "total_plans": total_plans,
+        "plans_by_status": plans_by_status,
+        "overdue_plans": overdue_plans,
+        "severity_counts": severity_counts,
+    }

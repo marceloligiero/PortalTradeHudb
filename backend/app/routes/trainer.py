@@ -1,15 +1,436 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, distinct
 from typing import List, Dict, Any
 from app.database import get_db
 from app import models, schemas, auth
 from app.pagination import paginate, PaginatedResponse
+from app.routers.challenges import reopen_completed_training_plans
 from datetime import datetime, timedelta
 
 router = APIRouter()
 
-# Courses
+
+# Dashboard Stats
+@router.get("/stats")
+async def get_trainer_stats(
+    current_user: models.User = Depends(auth.require_role(["TRAINER"])),
+    db: Session = Depends(get_db)
+):
+    """Get trainer dashboard statistics"""
+    trainer_id = current_user.id
+    
+    # Training plans where trainer is responsible (created_by, trainer_id, or TrainingPlanTrainer)
+    created_plan_ids = {p.id for p in db.query(models.TrainingPlan.id).filter(
+        models.TrainingPlan.created_by == trainer_id
+    ).all()}
+    
+    trainer_plan_ids = {p.id for p in db.query(models.TrainingPlan.id).filter(
+        models.TrainingPlan.trainer_id == trainer_id
+    ).all()}
+    
+    assigned_plan_ids = {t.training_plan_id for t in db.query(models.TrainingPlanTrainer.training_plan_id).filter(
+        models.TrainingPlanTrainer.trainer_id == trainer_id
+    ).all()}
+    
+    all_plan_ids = list(created_plan_ids | trainer_plan_ids | assigned_plan_ids)
+    
+    # Fetch all plans for active count
+    training_plans = []
+    if all_plan_ids:
+        training_plans = db.query(models.TrainingPlan).filter(
+            models.TrainingPlan.id.in_(all_plan_ids)
+        ).all()
+    
+    total_training_plans = len(training_plans)
+    active_training_plans = len([p for p in training_plans if p.is_active])
+    
+    # Students: unique students from assignments + direct student_id
+    total_students = 0
+    if all_plan_ids:
+        # From TrainingPlanAssignment
+        assignment_student_ids = {a.user_id for a in db.query(models.TrainingPlanAssignment.user_id).filter(
+            models.TrainingPlanAssignment.training_plan_id.in_(all_plan_ids)
+        ).all()}
+        
+        # From direct student_id on plans
+        direct_student_ids = {p.student_id for p in db.query(models.TrainingPlan.student_id).filter(
+            models.TrainingPlan.id.in_(all_plan_ids),
+            models.TrainingPlan.student_id.isnot(None)
+        ).all()}
+        
+        total_students = len(assignment_student_ids | direct_student_ids)
+    
+    # Challenges created by trainer
+    total_challenges = db.query(models.Challenge).filter(
+        models.Challenge.created_by == trainer_id
+    ).count()
+    
+    # Also count challenges from courses in trainer's plans
+    plan_course_ids = set()
+    if all_plan_ids:
+        plan_courses = db.query(models.TrainingPlanCourse.course_id).filter(
+            models.TrainingPlanCourse.training_plan_id.in_(all_plan_ids)
+        ).all()
+        plan_course_ids = {pc.course_id for pc in plan_courses}
+    
+    # Challenges from trainer's plan courses (not already counted)
+    trainer_created_challenge_ids = {c.id for c in db.query(models.Challenge.id).filter(
+        models.Challenge.created_by == trainer_id
+    ).all()}
+    
+    plan_challenge_ids = set()
+    if plan_course_ids:
+        plan_challenge_ids = {c.id for c in db.query(models.Challenge.id).filter(
+            models.Challenge.course_id.in_(list(plan_course_ids))
+        ).all()}
+    
+    all_challenge_ids = list(trainer_created_challenge_ids | plan_challenge_ids)
+    total_challenges = len(all_challenge_ids)
+    
+    # Challenge submissions for all trainer's challenges (created + plan-related)
+    total_submissions = 0
+    approved_submissions = 0
+    avg_mpu = 0
+    recent_submissions = 0
+    
+    if all_challenge_ids:
+        total_submissions = db.query(models.ChallengeSubmission).filter(
+            models.ChallengeSubmission.challenge_id.in_(all_challenge_ids)
+        ).count()
+        
+        approved_submissions = db.query(models.ChallengeSubmission).filter(
+            models.ChallengeSubmission.challenge_id.in_(all_challenge_ids),
+            models.ChallengeSubmission.is_approved == True
+        ).count()
+        
+        # Average MPU from submissions
+        avg_mpu_result = db.query(func.avg(models.ChallengeSubmission.calculated_mpu)).filter(
+            models.ChallengeSubmission.challenge_id.in_(all_challenge_ids),
+            models.ChallengeSubmission.calculated_mpu.isnot(None)
+        ).scalar()
+        avg_mpu = round(avg_mpu_result, 2) if avg_mpu_result else 0
+        
+        # Recent activity - last 7 days submissions
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        recent_submissions = db.query(models.ChallengeSubmission).filter(
+            models.ChallengeSubmission.challenge_id.in_(all_challenge_ids),
+            models.ChallengeSubmission.created_at >= seven_days_ago
+        ).count()
+    
+    # Also count submissions directly linked to trainer's plans
+    if all_plan_ids:
+        plan_submissions = db.query(models.ChallengeSubmission).filter(
+            models.ChallengeSubmission.training_plan_id.in_(all_plan_ids),
+            ~models.ChallengeSubmission.challenge_id.in_(all_challenge_ids) if all_challenge_ids else True
+        ).count()
+        total_submissions += plan_submissions
+        
+        plan_approved = db.query(models.ChallengeSubmission).filter(
+            models.ChallengeSubmission.training_plan_id.in_(all_plan_ids),
+            models.ChallengeSubmission.is_approved == True,
+            ~models.ChallengeSubmission.challenge_id.in_(all_challenge_ids) if all_challenge_ids else True
+        ).count()
+        approved_submissions += plan_approved
+    
+    # Certificates issued for trainer's plans
+    certificates_issued = 0
+    if all_plan_ids:
+        certificates_issued = db.query(models.Certificate).filter(
+            models.Certificate.training_plan_id.in_(all_plan_ids)
+        ).count()
+    
+    # Lessons count from trainer's courses + plan courses
+    all_course_ids = set()
+    
+    # Courses created by trainer
+    trainer_created_courses = {c.id for c in db.query(models.Course.id).filter(
+        models.Course.created_by == trainer_id
+    ).all()}
+    all_course_ids.update(trainer_created_courses)
+    
+    # Courses from trainer's plans
+    all_course_ids.update(plan_course_ids)
+    
+    total_lessons = 0
+    if all_course_ids:
+        total_lessons = db.query(models.Lesson).filter(
+            models.Lesson.course_id.in_(list(all_course_ids))
+        ).count()
+    
+    # Total courses includes plan courses too
+    total_courses = len(all_course_ids)
+    
+    return {
+        "total_courses": total_courses,
+        "total_lessons": total_lessons,
+        "total_training_plans": total_training_plans,
+        "active_training_plans": active_training_plans,
+        "total_students": total_students,
+        "total_challenges": total_challenges,
+        "total_submissions": total_submissions,
+        "approved_submissions": approved_submissions,
+        "approval_rate": round((approved_submissions / total_submissions * 100) if total_submissions > 0 else 0, 1),
+        "avg_mpu": avg_mpu,
+        "certificates_issued": certificates_issued,
+        "recent_submissions": recent_submissions
+    }
+
+
+# All courses available on platform (for trainers to view catalog)
+@router.get("/courses/all")
+async def list_all_courses(
+    current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
+    db: Session = Depends(get_db)
+) -> List[Dict[str, Any]]:
+    """List all courses available on platform for trainer viewing"""
+    courses = db.query(models.Course).all()
+    
+    courses_list = []
+    for course in courses:
+        # Get trainer info
+        trainer = db.query(models.User).filter(models.User.id == course.created_by).first()
+        
+        # Count students enrolled
+        total_students = db.query(models.Enrollment).filter(
+            models.Enrollment.course_id == course.id
+        ).count()
+        
+        # Get associated banks (many-to-many)
+        bank_associations = db.query(models.CourseBank).filter(
+            models.CourseBank.course_id == course.id
+        ).all()
+        banks = []
+        for ba in bank_associations:
+            bank = db.query(models.Bank).filter(models.Bank.id == ba.bank_id).first()
+            if bank:
+                banks.append({"id": bank.id, "code": bank.code, "name": bank.name})
+        if not banks and course.bank:
+            banks.append({"id": course.bank.id, "code": course.bank.code, "name": course.bank.name})
+        
+        # Get associated products (many-to-many)
+        product_associations = db.query(models.CourseProduct).filter(
+            models.CourseProduct.course_id == course.id
+        ).all()
+        products = []
+        for pa in product_associations:
+            product = db.query(models.Product).filter(models.Product.id == pa.product_id).first()
+            if product:
+                products.append({"id": product.id, "code": product.code, "name": product.name})
+        if not products and course.product:
+            products.append({"id": course.product.id, "code": course.product.code, "name": course.product.name})
+        
+        courses_list.append({
+            "id": course.id,
+            "title": course.title,
+            "description": course.description,
+            "bank_id": course.bank_id,
+            "product_id": course.product_id,
+            "bank_ids": [b["id"] for b in banks],
+            "product_ids": [p["id"] for p in products],
+            "banks": banks,
+            "products": products,
+            "bank_code": banks[0]["code"] if banks else "N/A",
+            "trainer_id": course.created_by,
+            "trainer_name": trainer.full_name if trainer else "N/A",
+            "total_students": total_students,
+            "created_at": course.created_at.isoformat() if course.created_at else None
+        })
+    
+    return courses_list
+
+
+# Course details (any course, for trainer viewing catalog)
+@router.get("/courses/details/{course_id}")
+async def get_course_details(
+    course_id: int,
+    current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Get course details with lessons and challenges (read-only for trainers)"""
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Get creator/trainer info
+    trainer = db.query(models.User).filter(models.User.id == course.created_by).first() if course.created_by else None
+    
+    # Get associated banks (from N:N table)
+    bank_associations = db.query(models.CourseBank).filter(
+        models.CourseBank.course_id == course.id
+    ).all()
+    banks = []
+    for ba in bank_associations:
+        bank = db.query(models.Bank).filter(models.Bank.id == ba.bank_id).first()
+        if bank:
+            banks.append({"id": bank.id, "code": bank.code, "name": bank.name})
+    
+    # Fallback to legacy single bank if no associations
+    if not banks and course.bank:
+        banks.append({"id": course.bank.id, "code": course.bank.code, "name": course.bank.name})
+    
+    # Get associated products (from N:N table)
+    product_associations = db.query(models.CourseProduct).filter(
+        models.CourseProduct.course_id == course.id
+    ).all()
+    products = []
+    for pa in product_associations:
+        product = db.query(models.Product).filter(models.Product.id == pa.product_id).first()
+        if product:
+            products.append({"id": product.id, "code": product.code, "name": product.name})
+    
+    # Fallback to legacy single product if no associations
+    if not products and course.product:
+        products.append({"id": course.product.id, "code": course.product.code, "name": course.product.name})
+    
+    # Get lessons
+    lessons = db.query(models.Lesson).filter(models.Lesson.course_id == course_id).order_by(models.Lesson.order_index).all()
+    
+    # Get challenges
+    challenges = db.query(models.Challenge).filter(models.Challenge.course_id == course_id).all()
+    
+    # Count enrolled students
+    total_students = db.query(models.Enrollment).filter(models.Enrollment.course_id == course_id).count()
+    
+    return {
+        "id": course.id,
+        "title": course.title,
+        "description": course.description,
+        "bank_id": course.bank_id,
+        "product_id": course.product_id,
+        "bank_ids": [b["id"] for b in banks],
+        "product_ids": [p["id"] for p in products],
+        "banks": banks,
+        "products": products,
+        "bank_code": banks[0]["code"] if banks else None,
+        "bank_name": banks[0]["name"] if banks else None,
+        "product_code": products[0]["code"] if products else None,
+        "product_name": products[0]["name"] if products else None,
+        "trainer_id": course.created_by,
+        "trainer_name": trainer.full_name if trainer else None,
+        "total_students": total_students,
+        "total_lessons": len(lessons),
+        "total_challenges": len(challenges),
+        "created_at": course.created_at.isoformat() if course.created_at else None,
+        "updated_at": course.updated_at.isoformat() if course.updated_at else None,
+        "lessons": [
+            {
+                "id": l.id,
+                "title": l.title,
+                "description": l.description,
+                "content_type": l.lesson_type,
+                "duration_minutes": l.estimated_minutes,
+                "order_index": l.order_index
+            } for l in lessons
+        ],
+        "challenges": [
+            {
+                "id": c.id,
+                "title": c.title,
+                "description": c.description,
+                "challenge_type": c.challenge_type,
+                "difficulty": "medium",
+                "max_score": c.operations_required,
+                "time_limit_minutes": c.time_limit_minutes
+            } for c in challenges
+        ]
+    }
+
+
+# Challenge details (for trainer viewing catalog)
+@router.get("/courses/{course_id}/challenges/{challenge_id}")
+async def get_challenge_details(
+    course_id: int,
+    challenge_id: int,
+    current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Get challenge details with stats (read-only for trainers)"""
+    challenge = db.query(models.Challenge).filter(
+        models.Challenge.id == challenge_id,
+        models.Challenge.course_id == course_id
+    ).first()
+    
+    if not challenge:
+        raise HTTPException(status_code=404, detail="Challenge not found")
+    
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    
+    # Get submission stats
+    total_submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id == challenge_id
+    ).count()
+    
+    from sqlalchemy import func as sql_func
+    avg_score_result = db.query(sql_func.avg(models.ChallengeSubmission.calculated_mpu)).filter(
+        models.ChallengeSubmission.challenge_id == challenge_id
+    ).scalar()
+    
+    passed_submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id == challenge_id,
+        models.ChallengeSubmission.is_approved == True
+    ).count()
+    
+    completion_rate = (passed_submissions / total_submissions * 100) if total_submissions > 0 else 0
+    
+    return {
+        "id": challenge.id,
+        "course_id": challenge.course_id,
+        "course_title": course.title if course else None,
+        "title": challenge.title,
+        "description": challenge.description,
+        "challenge_type": challenge.challenge_type,
+        "operations_required": challenge.operations_required,
+        "time_limit_minutes": challenge.time_limit_minutes,
+        "target_mpu": challenge.target_mpu,
+        "max_errors": challenge.max_errors,
+        "is_active": challenge.is_active,
+        "created_at": challenge.created_at.isoformat() if challenge.created_at else None,
+        "updated_at": challenge.updated_at.isoformat() if challenge.updated_at else None,
+        "total_submissions": total_submissions,
+        "avg_score": avg_score_result or 0,
+        "completion_rate": completion_rate
+    }
+
+
+# Lesson details (for trainer viewing catalog)
+@router.get("/courses/{course_id}/lessons/{lesson_id}")
+async def get_lesson_details(
+    course_id: int,
+    lesson_id: int,
+    current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Get lesson details (read-only for trainers)"""
+    lesson = db.query(models.Lesson).filter(
+        models.Lesson.id == lesson_id,
+        models.Lesson.course_id == course_id
+    ).first()
+    
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+    
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    
+    return {
+        "id": lesson.id,
+        "course_id": lesson.course_id,
+        "course_title": course.title if course else None,
+        "title": lesson.title,
+        "description": lesson.description,
+        "content": lesson.content,
+        "lesson_type": lesson.lesson_type,
+        "order_index": lesson.order_index,
+        "estimated_minutes": lesson.estimated_minutes,
+        "video_url": lesson.video_url,
+        "materials_url": lesson.materials_url,
+        "created_at": lesson.created_at.isoformat() if lesson.created_at else None,
+        "updated_at": lesson.updated_at.isoformat() if lesson.updated_at else None
+    }
+
+
+# Courses (trainer's own courses)
 @router.get("/courses", response_model=PaginatedResponse[schemas.Course])
 async def list_courses(
     page: int = Query(1, ge=1, description="Page number"),
@@ -128,6 +549,11 @@ async def create_lesson(
     db.commit()
     db.refresh(db_lesson)
     
+    # Reabrir planos de formação concluídos que contêm este curso
+    reopened_count = reopen_completed_training_plans(db, lesson.course_id, "new_lesson")
+    if reopened_count > 0:
+        print(f"[INFO] {reopened_count} plano(s) de formação reaberto(s) devido a nova aula no curso {lesson.course_id}")
+    
     return db_lesson
 
 
@@ -187,12 +613,19 @@ async def list_training_plans(
                     models.Enrollment.course_id.in_(course_ids)
                 ).all()
                 
-                # Sum actual time from lesson progress
+                # Sum actual time from lesson progress (filter by plan to avoid cross-plan counting)
                 for enrollment in enrollments:
                     progress_records = db.query(models.LessonProgress).filter(
                         models.LessonProgress.enrollment_id == enrollment.id,
-                        models.LessonProgress.completed_at.isnot(None)
+                        models.LessonProgress.completed_at.isnot(None),
+                        models.LessonProgress.training_plan_id == plan.id
                     ).all()
+                    # Fallback: if no records with training_plan_id, try without it (legacy data)
+                    if not progress_records:
+                        progress_records = db.query(models.LessonProgress).filter(
+                            models.LessonProgress.enrollment_id == enrollment.id,
+                            models.LessonProgress.completed_at.isnot(None)
+                        ).all()
                     total_completed += sum(p.actual_time_minutes or 0 for p in progress_records)
             
             completed_minutes = total_completed // assignments_count if assignments_count > 0 else 0
@@ -293,6 +726,166 @@ async def create_training_plan(
     }
 
 
+# ==================== STUDENTS ENDPOINTS ====================
+
+@router.get("/students")
+async def list_trainer_students(
+    current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
+    db: Session = Depends(get_db)
+) -> List[Dict[str, Any]]:
+    """List all students assigned to trainer's training plans"""
+    
+    if current_user.role == "TRAINER":
+        # Get plans where trainer is responsible (created_by, trainer_id, or assigned via TrainingPlanTrainer)
+        created_plan_ids = {p.id for p in db.query(models.TrainingPlan.id).filter(
+            models.TrainingPlan.created_by == current_user.id
+        ).all()}
+        
+        trainer_plan_ids = {p.id for p in db.query(models.TrainingPlan.id).filter(
+            models.TrainingPlan.trainer_id == current_user.id
+        ).all()}
+        
+        assigned_plan_ids = {t.training_plan_id for t in db.query(models.TrainingPlanTrainer.training_plan_id).filter(
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).all()}
+        
+        plan_ids = list(created_plan_ids | trainer_plan_ids | assigned_plan_ids)
+    else:
+        plan_ids = [p.id for p in db.query(models.TrainingPlan.id).all()]
+    
+    if not plan_ids:
+        return []
+    
+    # Get unique students from assignments
+    assignments = db.query(models.TrainingPlanAssignment).filter(
+        models.TrainingPlanAssignment.training_plan_id.in_(plan_ids)
+    ).all()
+    
+    # Also get students from student_id in plans
+    direct_students = db.query(models.TrainingPlan).filter(
+        models.TrainingPlan.id.in_(plan_ids),
+        models.TrainingPlan.student_id.isnot(None)
+    ).all()
+    
+    # Collect all unique student IDs
+    student_ids = set()
+    student_plan_map = {}  # user_id -> list of plan info
+    
+    for assignment in assignments:
+        student_ids.add(assignment.user_id)
+        if assignment.user_id not in student_plan_map:
+            student_plan_map[assignment.user_id] = []
+        plan = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == assignment.training_plan_id).first()
+        if plan:
+            student_plan_map[assignment.user_id].append({
+                "plan_id": plan.id,
+                "plan_title": plan.title,
+                "assigned_at": assignment.assigned_at.isoformat() if assignment.assigned_at else None
+            })
+    
+    for plan in direct_students:
+        student_ids.add(plan.student_id)
+        if plan.student_id not in student_plan_map:
+            student_plan_map[plan.student_id] = []
+        student_plan_map[plan.student_id].append({
+            "plan_id": plan.id,
+            "plan_title": plan.title,
+            "assigned_at": plan.created_at.isoformat() if plan.created_at else None
+        })
+    
+    if not student_ids:
+        return []
+    
+    # Get user details
+    users = db.query(models.User).filter(models.User.id.in_(student_ids)).all()
+    
+    result = []
+    for user in users:
+        plans_info_raw = student_plan_map.get(user.id, [])
+        # Deduplicate plans (same plan can come from assignments + direct student_id)
+        seen_plan_ids = set()
+        plans_info = []
+        for p in plans_info_raw:
+            if p["plan_id"] not in seen_plan_ids:
+                seen_plan_ids.add(p["plan_id"])
+                plans_info.append(p)
+        
+        # Calculate progress per plan
+        plan_progresses = []
+        for plan_info in plans_info:
+            plan_courses = db.query(models.TrainingPlanCourse).filter(
+                models.TrainingPlanCourse.training_plan_id == plan_info["plan_id"]
+            ).all()
+            plan_total_lessons = 0
+            plan_completed_lessons = 0
+            for pc in plan_courses:
+                total_lessons = db.query(models.Lesson).filter(
+                    models.Lesson.course_id == pc.course_id
+                ).count()
+                plan_total_lessons += total_lessons
+                enrollment = db.query(models.Enrollment).filter(
+                    models.Enrollment.user_id == user.id,
+                    models.Enrollment.course_id == pc.course_id
+                ).first()
+                if enrollment:
+                    # Count DISTINCT completed lessons (avoid duplicate progress records)
+                    lesson_ids_in_course = [l.id for l in db.query(models.Lesson.id).filter(
+                        models.Lesson.course_id == pc.course_id
+                    ).all()]
+                    if lesson_ids_in_course:
+                        completed_lessons = db.query(
+                            func.count(distinct(models.LessonProgress.lesson_id))
+                        ).filter(
+                            models.LessonProgress.enrollment_id == enrollment.id,
+                            models.LessonProgress.lesson_id.in_(lesson_ids_in_course),
+                            models.LessonProgress.status == "COMPLETED",
+                            models.LessonProgress.student_confirmed == True
+                        ).scalar()
+                    else:
+                        completed_lessons = 0
+                    plan_completed_lessons += completed_lessons
+            
+            plan_progress = round(plan_completed_lessons / plan_total_lessons * 100, 1) if plan_total_lessons > 0 else 0
+            plan_info["progress"] = plan_progress
+            plan_progresses.append(plan_progress)
+        
+        avg_progress = round(sum(plan_progresses) / len(plan_progresses), 1) if plan_progresses else 0
+        
+        result.append({
+            "id": user.id,
+            "full_name": user.full_name,
+            "email": user.email,
+            "is_active": user.is_active,
+            "plans_count": len(plans_info),
+            "plans": plans_info,
+            "avg_progress": avg_progress,
+            "created_at": user.created_at.isoformat() if user.created_at else None
+        })
+    
+    return result
+
+
+@router.get("/students/list")
+async def list_students_for_dropdown(
+    current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
+    db: Session = Depends(get_db)
+) -> List[Dict[str, Any]]:
+    """List all available students for trainer dropdowns (TRAINEE + TRAINER users)"""
+    students = db.query(models.User).filter(
+        models.User.role.in_(["TRAINEE", "TRAINER"]),
+        models.User.is_active == True
+    ).all()
+    return [
+        {
+            "id": s.id,
+            "email": s.email,
+            "full_name": s.full_name,
+            "role": s.role
+        }
+        for s in students
+    ]
+
+
 # ==================== REPORTS ENDPOINTS ====================
 
 @router.get("/reports/overview")
@@ -302,16 +895,26 @@ async def get_trainer_overview(
 ) -> Dict[str, Any]:
     """Get trainer overview statistics"""
     
-    # Total courses created
+    # Total courses (created + from assigned plans)
     if current_user.role == "TRAINER":
-        total_courses = db.query(models.Course).filter(
-            models.Course.created_by == current_user.id
-        ).count()
-        
-        # Get course IDs
-        course_ids = [c.id for c in db.query(models.Course.id).filter(
+        created_course_ids = [c.id for c in db.query(models.Course.id).filter(
             models.Course.created_by == current_user.id
         ).all()]
+        
+        # Courses from assigned plans
+        plan_ids_for_courses = [p.id for p in db.query(models.TrainingPlan.id).filter(
+            models.TrainingPlan.created_by == current_user.id
+        ).all()]
+        assigned_plan_ids_for_courses = [t.training_plan_id for t in db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).all()]
+        all_plan_ids = list(set(plan_ids_for_courses + assigned_plan_ids_for_courses))
+        plan_course_ids = [pc.course_id for pc in db.query(models.TrainingPlanCourse).filter(
+            models.TrainingPlanCourse.training_plan_id.in_(all_plan_ids)
+        ).all()] if all_plan_ids else []
+        
+        course_ids = list(set(created_course_ids + plan_course_ids))
+        total_courses = len(course_ids)
     else:  # ADMIN
         total_courses = db.query(models.Course).count()
         course_ids = [c.id for c in db.query(models.Course.id).all()]
@@ -321,10 +924,21 @@ async def get_trainer_overview(
         models.Enrollment.course_id.in_(course_ids) if course_ids else False
     ).distinct().count() if course_ids else 0
     
-    # Total training plans
-    total_plans = db.query(models.TrainingPlan).filter(
-        models.TrainingPlan.created_by == current_user.id
-    ).count() if current_user.role == "TRAINER" else db.query(models.TrainingPlan).count()
+    # Total training plans (created or assigned)
+    if current_user.role == "TRAINER":
+        created_count = db.query(models.TrainingPlan).filter(
+            models.TrainingPlan.created_by == current_user.id
+        ).count()
+        assigned_ids = [t.training_plan_id for t in db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).all()]
+        assigned_count = db.query(models.TrainingPlan).filter(
+            models.TrainingPlan.id.in_(assigned_ids),
+            models.TrainingPlan.created_by != current_user.id
+        ).count() if assigned_ids else 0
+        total_plans = created_count + assigned_count
+    else:
+        total_plans = db.query(models.TrainingPlan).count()
     
     # Active students (enrolled in last 30 days)
     month_ago = datetime.utcnow() - timedelta(days=30)
@@ -350,9 +964,23 @@ async def get_trainer_plans_report(
     """Get detailed report of training plans"""
     
     if current_user.role == "TRAINER":
-        plans = db.query(models.TrainingPlan).filter(
+        # Plans created by trainer OR where trainer is assigned
+        created_plans = db.query(models.TrainingPlan).filter(
             models.TrainingPlan.created_by == current_user.id
         ).all()
+        assigned_plan_ids = [t.training_plan_id for t in db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).all()]
+        assigned_plans = db.query(models.TrainingPlan).filter(
+            models.TrainingPlan.id.in_(assigned_plan_ids)
+        ).all() if assigned_plan_ids else []
+        # Merge without duplicates
+        plan_ids_seen = set()
+        plans = []
+        for p in created_plans + assigned_plans:
+            if p.id not in plan_ids_seen:
+                plan_ids_seen.add(p.id)
+                plans.append(p)
     else:
         plans = db.query(models.TrainingPlan).all()
     
@@ -363,15 +991,38 @@ async def get_trainer_plans_report(
             models.TrainingPlanAssignment.training_plan_id == plan.id
         ).count()
         
+        # Get bank name via association table
+        bank_name = None
+        plan_bank = db.query(models.TrainingPlanBank).filter(
+            models.TrainingPlanBank.training_plan_id == plan.id
+        ).first()
+        if plan_bank:
+            bank = db.query(models.Bank).filter(models.Bank.id == plan_bank.bank_id).first()
+            if bank:
+                bank_name = bank.code or bank.name
+        elif plan.bank_id:
+            bank = db.query(models.Bank).filter(models.Bank.id == plan.bank_id).first()
+            if bank:
+                bank_name = bank.code or bank.name
+        
+        # Determine status based on dates
+        now = datetime.utcnow()
+        if plan.end_date and now > plan.end_date:
+            status = "completed"
+        elif plan.start_date and now >= plan.start_date:
+            status = "active"
+        else:
+            status = "upcoming"
+        
         plans_report.append({
             "id": plan.id,
             "title": plan.title,
-            "description": plan.description,
-            "bank_code": plan.bank_code,
+            "description": plan.description or "",
+            "bank_code": bank_name or "",
             "students_assigned": assignments,
             "start_date": plan.start_date.isoformat() if plan.start_date else None,
             "end_date": plan.end_date.isoformat() if plan.end_date else None,
-            "status": "active" if plan.end_date and plan.end_date > datetime.utcnow() else "completed"
+            "status": status
         })
     
     return plans_report
@@ -384,26 +1035,31 @@ async def get_trainer_students_report(
 ) -> List[Dict[str, Any]]:
     """Get detailed report of students"""
     
-    # Get courses
+    # Get training plans for this trainer
     if current_user.role == "TRAINER":
-        course_ids = [c.id for c in db.query(models.Course.id).filter(
-            models.Course.created_by == current_user.id
+        # Plans created by or assigned to trainer
+        plan_ids_created = [p.id for p in db.query(models.TrainingPlan.id).filter(
+            models.TrainingPlan.created_by == current_user.id
         ).all()]
+        plan_ids_assigned = [t.training_plan_id for t in db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).all()]
+        plan_ids = list(set(plan_ids_created + plan_ids_assigned))
     else:
-        course_ids = [c.id for c in db.query(models.Course.id).all()]
+        plan_ids = [p.id for p in db.query(models.TrainingPlan.id).all()]
     
-    if not course_ids:
+    if not plan_ids:
         return []
     
-    # Get enrollments
-    enrollments = db.query(models.Enrollment).filter(
-        models.Enrollment.course_id.in_(course_ids)
+    # Get student assignments from plans
+    assignments = db.query(models.TrainingPlanAssignment).filter(
+        models.TrainingPlanAssignment.training_plan_id.in_(plan_ids)
     ).all()
     
     # Group by student
-    students_dict = {}
-    for enrollment in enrollments:
-        user_id = enrollment.user_id
+    students_dict: Dict[int, Dict[str, Any]] = {}
+    for assignment in assignments:
+        user_id = assignment.user_id
         if user_id not in students_dict:
             user = db.query(models.User).filter(models.User.id == user_id).first()
             students_dict[user_id] = {
@@ -411,20 +1067,44 @@ async def get_trainer_students_report(
                 "name": user.full_name if user else "Unknown",
                 "email": user.email if user else "",
                 "courses_enrolled": 0,
-                "total_progress": 0
+                "total_plans": 0,
+                "completed_lessons": 0,
+                "total_lessons": 0
             }
         
-        students_dict[user_id]["courses_enrolled"] += 1
-        students_dict[user_id]["total_progress"] += enrollment.progress
+        students_dict[user_id]["total_plans"] += 1
+        
+        # Count lessons in plan
+        plan_courses = db.query(models.TrainingPlanCourse).filter(
+            models.TrainingPlanCourse.training_plan_id == assignment.training_plan_id
+        ).all()
+        for pc in plan_courses:
+            lesson_count = db.query(models.Lesson).filter(
+                models.Lesson.course_id == pc.course_id
+            ).count()
+            students_dict[user_id]["total_lessons"] += lesson_count
+            
+            # Completed lessons (confirmed by student)
+            completed = db.query(models.LessonProgress).filter(
+                models.LessonProgress.user_id == user_id,
+                models.LessonProgress.training_plan_id == assignment.training_plan_id,
+                models.LessonProgress.status == "COMPLETED",
+                models.LessonProgress.student_confirmed == True
+            ).count()
+            students_dict[user_id]["completed_lessons"] += completed
+        
+        students_dict[user_id]["courses_enrolled"] += len(plan_courses)
     
     # Calculate average progress
     students_list = []
     for student in students_dict.values():
-        if student["courses_enrolled"] > 0:
-            student["average_progress"] = round(student["total_progress"] / student["courses_enrolled"], 1)
+        if student["total_lessons"] > 0:
+            student["average_progress"] = round((student["completed_lessons"] / student["total_lessons"]) * 100, 1)
         else:
             student["average_progress"] = 0
-        del student["total_progress"]
+        del student["total_lessons"]
+        del student["completed_lessons"]
+        del student["total_plans"]
         students_list.append(student)
     
     return students_list
@@ -435,18 +1115,34 @@ async def get_trainer_lessons_report(
     current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
-    """Get report of lessons created"""
+    """Get report of lessons from trainer's plans"""
     
-    # Get courses
+    # Get courses from trainer's plans (not just created_by)
     if current_user.role == "TRAINER":
-        course_ids = [c.id for c in db.query(models.Course.id).filter(
+        plan_ids_created = [p.id for p in db.query(models.TrainingPlan.id).filter(
+            models.TrainingPlan.created_by == current_user.id
+        ).all()]
+        plan_ids_assigned = [t.training_plan_id for t in db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).all()]
+        plan_ids = list(set(plan_ids_created + plan_ids_assigned))
+        
+        # Get course IDs from plans
+        plan_course_ids = [pc.course_id for pc in db.query(models.TrainingPlanCourse).filter(
+            models.TrainingPlanCourse.training_plan_id.in_(plan_ids)
+        ).all()] if plan_ids else []
+        
+        # Also include courses created by trainer
+        created_course_ids = [c.id for c in db.query(models.Course.id).filter(
             models.Course.created_by == current_user.id
         ).all()]
+        
+        course_ids = list(set(plan_course_ids + created_course_ids))
     else:
         course_ids = [c.id for c in db.query(models.Course.id).all()]
     
     if not course_ids:
-        return {"total_lessons": 0, "total_duration": 0, "lessons_per_course": 0}
+        return {"total_lessons": 0, "total_duration_minutes": 0, "lessons_per_course": 0}
     
     # Count lessons
     total_lessons = db.query(models.Lesson).filter(
@@ -462,4 +1158,254 @@ async def get_trainer_lessons_report(
         "total_lessons": total_lessons,
         "total_duration_minutes": int(total_duration),
         "lessons_per_course": round(total_lessons / len(course_ids), 1) if course_ids else 0
+    }
+
+
+@router.get("/reports/challenges")
+async def get_trainer_challenges_report(
+    current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
+    db: Session = Depends(get_db)
+) -> Dict[str, Any]:
+    """Relatório completo de desafios com análise de erros das operações"""
+    
+    # Get plans for this trainer
+    if current_user.role == "TRAINER":
+        plan_ids_created = [p.id for p in db.query(models.TrainingPlan.id).filter(
+            models.TrainingPlan.created_by == current_user.id
+        ).all()]
+        plan_ids_assigned = [t.training_plan_id for t in db.query(models.TrainingPlanTrainer).filter(
+            models.TrainingPlanTrainer.trainer_id == current_user.id
+        ).all()]
+        plan_ids = list(set(plan_ids_created + plan_ids_assigned))
+        
+        plan_course_ids = [pc.course_id for pc in db.query(models.TrainingPlanCourse).filter(
+            models.TrainingPlanCourse.training_plan_id.in_(plan_ids)
+        ).all()] if plan_ids else []
+        created_course_ids = [c.id for c in db.query(models.Course.id).filter(
+            models.Course.created_by == current_user.id
+        ).all()]
+        course_ids = list(set(plan_course_ids + created_course_ids))
+    else:
+        course_ids = [c.id for c in db.query(models.Course.id).all()]
+    
+    if not course_ids:
+        return {
+            "summary": {
+                "total_challenges": 0,
+                "total_submissions": 0,
+                "approved": 0,
+                "rejected": 0,
+                "pending": 0,
+                "approval_rate": 0,
+                "avg_mpu": 0,
+                "avg_score": 0,
+                "total_operations": 0,
+                "total_errors": 0,
+                "error_rate": 0,
+            },
+            "error_breakdown": {
+                "methodology": 0,
+                "knowledge": 0,
+                "detail": 0,
+                "procedure": 0,
+            },
+            "submissions_detail": [],
+        }
+    
+    # Get challenges for these courses
+    challenges = db.query(models.Challenge).filter(
+        models.Challenge.course_id.in_(course_ids)
+    ).all()
+    challenge_ids = [c.id for c in challenges]
+    challenge_map = {c.id: c for c in challenges}
+    
+    if not challenge_ids:
+        return {
+            "summary": {
+                "total_challenges": 0,
+                "total_submissions": 0,
+                "approved": 0,
+                "rejected": 0,
+                "pending": 0,
+                "approval_rate": 0,
+                "avg_mpu": 0,
+                "avg_score": 0,
+                "total_operations": 0,
+                "total_errors": 0,
+                "error_rate": 0,
+            },
+            "error_breakdown": {
+                "methodology": 0,
+                "knowledge": 0,
+                "detail": 0,
+                "procedure": 0,
+            },
+            "submissions_detail": [],
+        }
+    
+    # Get all submissions
+    submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.challenge_id.in_(challenge_ids)
+    ).all()
+    
+    total_submissions = len(submissions)
+    approved = sum(1 for s in submissions if s.status == "APPROVED")
+    rejected = sum(1 for s in submissions if s.status == "REJECTED")
+    pending = sum(1 for s in submissions if s.status in ("PENDING_REVIEW", "IN_PROGRESS"))
+    
+    # MPU and score averages (only from completed / reviewed submissions)
+    mpu_values = [s.calculated_mpu for s in submissions if s.calculated_mpu and s.status in ("APPROVED", "REJECTED")]
+    score_values = [s.score for s in submissions if s.score is not None and s.status in ("APPROVED", "REJECTED")]
+    avg_mpu = round(sum(mpu_values) / len(mpu_values), 2) if mpu_values else 0
+    avg_score = round(sum(score_values) / len(score_values), 1) if score_values else 0
+    
+    # Error totals from submission-level counters
+    total_error_methodology = sum(s.error_methodology or 0 for s in submissions)
+    total_error_knowledge = sum(s.error_knowledge or 0 for s in submissions)
+    total_error_detail = sum(s.error_detail or 0 for s in submissions)
+    total_error_procedure = sum(s.error_procedure or 0 for s in submissions)
+    
+    # Also count from operation_errors and submission_errors tables
+    submission_ids = [s.id for s in submissions]
+    
+    if submission_ids:
+        # SubmissionError (SUMMARY type)
+        se_counts = db.query(
+            models.SubmissionError.error_type,
+            func.count(models.SubmissionError.id)
+        ).filter(
+            models.SubmissionError.submission_id.in_(submission_ids)
+        ).group_by(models.SubmissionError.error_type).all()
+        
+        se_map = {row[0]: row[1] for row in se_counts}
+        
+        # OperationError (COMPLETE type) - via operations
+        operation_ids = [op.id for op in db.query(models.ChallengeOperation.id).filter(
+            models.ChallengeOperation.submission_id.in_(submission_ids)
+        ).all()]
+        
+        oe_counts = {}
+        if operation_ids:
+            oe_rows = db.query(
+                models.OperationError.error_type,
+                func.count(models.OperationError.id)
+            ).filter(
+                models.OperationError.operation_id.in_(operation_ids)
+            ).group_by(models.OperationError.error_type).all()
+            oe_counts = {row[0]: row[1] for row in oe_rows}
+        
+        # Use whichever source has data: submission columns or error tables
+        err_methodology = max(total_error_methodology, se_map.get("METHODOLOGY", 0) + oe_counts.get("METHODOLOGY", 0))
+        err_knowledge = max(total_error_knowledge, se_map.get("KNOWLEDGE", 0) + oe_counts.get("KNOWLEDGE", 0))
+        err_detail = max(total_error_detail, se_map.get("DETAIL", 0) + oe_counts.get("DETAIL", 0))
+        err_procedure = max(total_error_procedure, se_map.get("PROCEDURE", 0) + oe_counts.get("PROCEDURE", 0))
+        
+        # Total operations
+        total_operations_sum = sum(s.total_operations or 0 for s in submissions)
+        # Operations with errors
+        operations_with_errors = sum(s.errors_count or 0 for s in submissions)
+    else:
+        err_methodology = 0
+        err_knowledge = 0
+        err_detail = 0
+        err_procedure = 0
+        total_operations_sum = 0
+        operations_with_errors = 0
+    
+    total_individual_errors = err_methodology + err_knowledge + err_detail + err_procedure
+    error_rate = round((operations_with_errors / total_operations_sum * 100), 1) if total_operations_sum > 0 else 0
+    
+    # Per-submission detail (for table)
+    submissions_detail = []
+    for s in submissions:
+        ch = challenge_map.get(s.challenge_id)
+        user = db.query(models.User).filter(models.User.id == s.user_id).first()
+        
+        # Get course name
+        course_name = ""
+        if ch:
+            course = db.query(models.Course).filter(models.Course.id == ch.course_id).first()
+            if course:
+                course_name = course.title
+        
+        # Count individual errors for this submission
+        sub_errors = {
+            "methodology": s.error_methodology or 0,
+            "knowledge": s.error_knowledge or 0,
+            "detail": s.error_detail or 0,
+            "procedure": s.error_procedure or 0,
+        }
+        sub_total_errors = sum(sub_errors.values())
+        
+        # If counters are zero, check error tables
+        if sub_total_errors == 0 and s.id:
+            se_list = db.query(models.SubmissionError.error_type).filter(
+                models.SubmissionError.submission_id == s.id
+            ).all()
+            for (et,) in se_list:
+                key = et.lower()
+                if key in sub_errors:
+                    sub_errors[key] += 1
+            
+            ops = db.query(models.ChallengeOperation.id).filter(
+                models.ChallengeOperation.submission_id == s.id
+            ).all()
+            if ops:
+                op_ids = [o.id for o in ops]
+                oe_list = db.query(models.OperationError.error_type).filter(
+                    models.OperationError.operation_id.in_(op_ids)
+                ).all()
+                for (et,) in oe_list:
+                    key = et.lower()
+                    if key in sub_errors:
+                        sub_errors[key] += 1
+            sub_total_errors = sum(sub_errors.values())
+        
+        submissions_detail.append({
+            "id": s.id,
+            "challenge_title": ch.title if ch else "—",
+            "challenge_type": ch.challenge_type if ch else "",
+            "course_name": course_name,
+            "student_name": user.full_name if user else "—",
+            "student_email": user.email if user else "",
+            "status": s.status,
+            "total_operations": s.total_operations or 0,
+            "total_time_minutes": round(s.total_time_minutes or 0, 1) if s.total_time_minutes else 0,
+            "calculated_mpu": round(s.calculated_mpu, 2) if s.calculated_mpu else 0,
+            "mpu_vs_target": round(s.mpu_vs_target, 1) if s.mpu_vs_target else 0,
+            "target_mpu": ch.target_mpu if ch else 0,
+            "errors_count": s.errors_count or 0,
+            "errors": sub_errors,
+            "total_individual_errors": sub_total_errors,
+            "score": round(s.score, 1) if s.score else None,
+            "is_approved": s.is_approved,
+            "retry_count": s.retry_count or 0,
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+        })
+    
+    # Sort by most recent first
+    submissions_detail.sort(key=lambda x: x["created_at"] or "", reverse=True)
+    
+    return {
+        "summary": {
+            "total_challenges": len(challenge_ids),
+            "total_submissions": total_submissions,
+            "approved": approved,
+            "rejected": rejected,
+            "pending": pending,
+            "approval_rate": round(approved / total_submissions * 100, 1) if total_submissions > 0 else 0,
+            "avg_mpu": avg_mpu,
+            "avg_score": avg_score,
+            "total_operations": total_operations_sum,
+            "total_errors": total_individual_errors,
+            "operations_with_errors": operations_with_errors,
+            "error_rate": error_rate,
+        },
+        "error_breakdown": {
+            "methodology": err_methodology,
+            "knowledge": err_knowledge,
+            "detail": err_detail,
+            "procedure": err_procedure,
+        },
+        "submissions_detail": submissions_detail,
     }

@@ -1,0 +1,45 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /var/www/tradehub
+            
+            # Pull latest changes
+            echo "📦 Pulling latest code..."
+            git fetch origin
+            git reset --hard origin/main
+            
+            # Update backend dependencies
+            echo "🐍 Updating backend dependencies..."
+            cd backend
+            source .venv/bin/activate
+            pip install -r requirements.txt --quiet
+            
+            # Build frontend
+            echo "⚛️ Building frontend..."
+            cd ../frontend
+            npm ci --silent
+            npm run build
+            
+            # Restart backend
+            echo "🔄 Restarting backend..."
+            pm2 restart tradehub-api
+            
+            echo "✅ Deploy completed successfully at $(date)!"
+
