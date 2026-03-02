@@ -39,7 +39,6 @@ export default function Header() {
   const isTutoria    = location.pathname.startsWith('/tutoria');
   const isRelatorios = location.pathname.startsWith('/relatorios');
   const isHome       = !isTutoria && !isRelatorios;
-  const isAdmin      = user?.role === 'ADMIN';
 
   return (
     <div className="fixed top-0 inset-x-0 z-50 px-4 sm:px-6 pt-4 pointer-events-none print:hidden">
@@ -127,24 +126,22 @@ export default function Header() {
                     <span className="hidden lg:inline">Tutoria</span>
                   </button>
 
-                  {/* Relatórios — ADMIN only */}
-                  {isAdmin && (
-                    <button
-                      onClick={() => navigate('/relatorios')}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                        isRelatorios
-                          ? isDark
-                            ? 'bg-white/10 text-white border border-white/15'
-                            : 'bg-white text-gray-900 border border-gray-200 shadow-sm'
-                          : isDark
-                            ? 'text-gray-400 hover:text-white hover:bg-white/[0.06]'
-                            : 'text-gray-500 hover:text-gray-800 hover:bg-white/70'
-                      }`}
-                    >
-                      <BarChart2 className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="hidden lg:inline">Relatórios</span>
-                    </button>
-                  )}
+                  {/* Relatórios — todos os roles */}
+                  <button
+                    onClick={() => navigate('/relatorios')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      isRelatorios
+                        ? isDark
+                          ? 'bg-white/10 text-white border border-white/15'
+                          : 'bg-white text-gray-900 border border-gray-200 shadow-sm'
+                        : isDark
+                          ? 'text-gray-400 hover:text-white hover:bg-white/[0.06]'
+                          : 'text-gray-500 hover:text-gray-800 hover:bg-white/70'
+                    }`}
+                  >
+                    <BarChart2 className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="hidden lg:inline">Relatórios</span>
+                  </button>
                 </div>
 
                 {/* Language */}
