@@ -144,8 +144,8 @@ CREATE TABLE IF NOT EXISTS tutoria_error_categories (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Seed de categorias (só insere se a tabela estiver vazia)
-INSERT INTO tutoria_error_categories (name, description)
-SELECT src.name, src.description FROM (
+INSERT INTO tutoria_error_categories (name, description, is_active)
+SELECT src.name, src.description, 1 FROM (
     SELECT 'Processo'      AS name, 'Erros relacionados com processos e fluxos de trabalho' AS description UNION ALL
     SELECT 'Comunicação',           'Erros de comunicação interna ou com clientes'           UNION ALL
     SELECT 'Técnico',               'Erros técnicos ou de conhecimento especializado'        UNION ALL
