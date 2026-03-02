@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, ArrowRight, CheckCircle, XCircle, Moon, Sun } from 'lucide-react';
+import { Lock, ArrowRight, CheckCircle, XCircle, Moon, Sun, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import LanguageSwitcher from '../components/LanguageSwitcher';
 import { Button, Input, Alert } from '../components';
 import api from '../lib/axios';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const [langOpen, setLangOpen] = useState(false);
   const token = searchParams.get('token');
 
   const [password, setPassword] = useState('');
@@ -282,85 +282,58 @@ export default function ResetPassword() {
         />
       </div>
 
-      {/* Navbar */}
-      <nav className={`fixed top-0 w-full z-50 backdrop-blur-2xl border-b shadow-2xl transition-colors duration-300 ${
-        isDark 
-          ? 'bg-[#0a0a0a]/95 border-white/10 shadow-red-600/5' 
-          : 'bg-white/95 border-gray-200 shadow-gray-200/50'
-      }`}>
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            {/* Logo */}
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.98 }}
-              className="cursor-pointer relative group"
-              onClick={() => navigate('/')}
-            >
-              <img 
-                src="/logo-sds.png"
-                alt="Santander"
-                className={`h-10 w-auto transition-all duration-300 group-hover:drop-shadow-[0_0_8px_rgba(220,38,38,0.8)] ${
-                  isDark ? 'filter brightness-0 invert' : ''
-                }`}
-              />
-            </motion.div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-3">
-              {/* Theme Toggle */}
-              <motion.button
-                whileHover={{ scale: 1.1, rotate: 180 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={toggleTheme}
-                className={`flex items-center justify-center w-10 h-10 rounded-xl border transition-all duration-300 relative group ${
-                  isDark 
-                    ? 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-yellow-400/50' 
-                    : 'bg-gray-100 hover:bg-gray-200 border-gray-200 hover:border-blue-400/50'
-                }`}
-              >
-                <AnimatePresence mode="wait">
-                  {isDark ? (
-                    <motion.div
-                      key="sun"
-                      initial={{ rotate: -90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: 90, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Sun className="w-5 h-5 text-yellow-400" />
+      {/* Navbar — floating pill */}
+      <div className="fixed top-0 inset-x-0 z-50 px-4 sm:px-6 pt-4 pointer-events-none">
+        <motion.div
+          initial={{ y: -28, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+          className="max-w-5xl mx-auto pointer-events-auto"
+        >
+          <div className={`rounded-2xl p-px ${isDark ? 'bg-white/[0.06]' : 'bg-black/[0.08]'}`}>
+            <div className={`rounded-[15px] backdrop-blur-2xl px-5 h-14 flex items-center justify-between ${isDark ? 'bg-[#030307]/80' : 'bg-white/80'}`}>
+              {/* Brand */}
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
+                <img src="/logo-sds.png" alt="SDS" className={`h-8 w-auto object-contain ${isDark ? '' : 'brightness-0'}`} />
+                <div className={`h-5 w-px ${isDark ? 'bg-white/15' : 'bg-gray-300'}`} />
+                <span className={`text-sm font-black tracking-tight ${isDark ? 'text-white/90' : 'text-gray-800'}`}>Trade<span className="text-red-500">Data</span>Hub</span>
+              </motion.div>
+              {/* Controls */}
+              <div className="flex items-center gap-1.5">
+                {/* Language */}
+                <div className="relative" onClick={(e) => e.stopPropagation()}>
+                  <button onClick={() => setLangOpen(o => !o)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${isDark ? 'border-white/[0.09] text-gray-400 hover:bg-white/[0.07] hover:text-white' : 'border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800'}`}>
+                    <Globe className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">{i18n.language.startsWith('es') ? '🇪🇸 ES' : i18n.language.startsWith('en') ? '🇺🇸 EN' : '🇵🇹 PT'}</span>
+                  </button>
+                  <AnimatePresence>
+                    {langOpen && (
+                      <motion.div initial={{opacity:0,scale:.92,y:-4}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:.92,y:-4}} transition={{duration:.14}} className={`absolute right-0 top-full mt-2 rounded-xl border shadow-2xl overflow-hidden z-20 min-w-[120px] ${isDark ? 'bg-[#0c0c12] border-white/10' : 'bg-white border-gray-200'}`}>
+                        {[{code:'pt-PT',label:'🇵🇹 Português'},{code:'es',label:'🇪🇸 Español'},{code:'en',label:'🇺🇸 English'}].map(l=>(
+                          <button key={l.code} onClick={()=>{i18n.changeLanguage(l.code);localStorage.setItem('language',l.code);setLangOpen(false);}} className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${i18n.language.startsWith(l.code.slice(0,2))?'text-red-500 font-bold':isDark?'text-gray-400 hover:bg-white/5 hover:text-white':'text-gray-600 hover:bg-gray-50'}`}>{l.label}</button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                {/* Theme */}
+                <button onClick={toggleTheme} className={`p-1.5 rounded-xl border transition-all ${isDark ? 'border-white/[0.09] text-gray-400 hover:bg-white/[0.07]' : 'border-gray-200 text-gray-500 hover:bg-gray-100'}`}>
+                  <AnimatePresence mode="wait">
+                    <motion.div key={isDark?'sun':'moon'} initial={{rotate:-30,opacity:0}} animate={{rotate:0,opacity:1}} exit={{rotate:30,opacity:0}} transition={{duration:.2}}>
+                      {isDark ? <Sun className="w-4 h-4"/> : <Moon className="w-4 h-4"/>}
                     </motion.div>
-                  ) : (
-                    <motion.div
-                      key="moon"
-                      initial={{ rotate: 90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: -90, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Moon className="w-5 h-5 text-blue-400" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.button>
-
-              <LanguageSwitcher />
-              
-              <Link
-                to="/login"
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-300 font-medium group ${
-                  isDark 
-                    ? 'border-white/10 hover:border-white/20 text-white/80 hover:text-white hover:bg-white/10' 
-                    : 'border-gray-200 hover:border-gray-300 text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                <ArrowRight className="w-4 h-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
-                <span className="text-sm">{t('auth.backToLogin', 'Voltar ao Login')}</span>
-              </Link>
+                  </AnimatePresence>
+                </button>
+                <div className={`h-5 w-px mx-0.5 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                <Link to="/login" className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all ${isDark ? 'text-gray-400 hover:text-white hover:bg-white/[0.06]' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'}`}>
+                  <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+                  <span className="hidden sm:inline">{t('auth.backToLogin', 'Voltar ao Login')}</span>
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </motion.div>
+      </div>
 
       {/* Form */}
       <div className="relative z-10 min-h-screen flex items-center justify-center p-4 pt-32">

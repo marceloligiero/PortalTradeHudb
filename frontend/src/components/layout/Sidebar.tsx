@@ -39,6 +39,8 @@ export default function Sidebar() {
     { to: '/advanced-reports', icon: BarChart3, label: t('navigation.advancedReports') },
     { to: '/knowledge-matrix', icon: Brain, label: t('navigation.knowledgeMatrix') },
     { to: '/ratings', icon: Star, label: t('navigation.ratings') },
+    { to: '/teams', icon: Users, label: 'Equipas' },
+    { to: '/relatorios', icon: BarChart3, label: 'Relatórios Hub' },
   ];
 
   const links =
@@ -49,7 +51,7 @@ export default function Sidebar() {
       : adminLinks;
 
   return (
-    <aside className="w-72 bg-white/80 dark:bg-[#0a0a0a]/50 backdrop-blur-2xl border-r border-gray-200 dark:border-white/5 min-h-[calc(100vh-80px)] sticky top-20 print:hidden transition-colors duration-300">
+    <aside className="w-72 bg-white/80 dark:bg-[#0a0a0a]/50 backdrop-blur-2xl border-r border-gray-200 dark:border-white/5 min-h-[calc(100vh-72px)] sticky top-0 print:hidden transition-colors duration-300">
       <nav className="p-6 space-y-2">
         {links.map((link) => (
           <NavLink

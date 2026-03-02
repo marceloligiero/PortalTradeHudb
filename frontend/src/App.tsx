@@ -27,6 +27,23 @@ import AdminReportsPage from './pages/admin/Reports';
 import AdminAdvancedReportsPage from './pages/admin/AdvancedReports';
 import PortalTutoria from './pages/admin/PortalTutoria';
 import PortalTutoriaPublic from './pages/PortalTutoriaPublic';
+import TutoriaLayout from './pages/tutoria/TutoriaLayout';
+import TutoriaErrors from './pages/tutoria/TutoriaErrors';
+import TutoriaPlans from './pages/tutoria/TutoriaPlans';
+import TutoriaReport from './pages/tutoria/TutoriaReport';
+import RegisterErrors from './pages/tutoria/RegisterErrors';
+import CreateActionPlan from './pages/tutoria/CreateActionPlan';
+import ErrorDetail from './pages/tutoria/ErrorDetail';
+import PlanDetail from './pages/tutoria/PlanDetail';
+import TutoriaCategories from './pages/tutoria/TutoriaCategories';
+import ChatFAQAdmin from './pages/tutoria/ChatFAQAdmin';
+import AdminTeams from './pages/admin/Teams';
+import RelatoriosLayout from './pages/relatorios/RelatoriosLayout';
+import RelatoriosOverview from './pages/relatorios/Overview';
+import RelatoriosFormacoes from './pages/relatorios/FormacoesDashboard';
+import RelatoriosTutoria from './pages/relatorios/TutoriaDashboard';
+import RelatoriosTeams from './pages/relatorios/TeamsDashboard';
+import RelatoriosMembers from './pages/relatorios/MembersDashboard';
 import AdminRatingsPage from './pages/admin/Ratings';
 import KnowledgeMatrixPage from './pages/admin/KnowledgeMatrix';
 import AdminSettingsPage from './pages/admin/Settings';
@@ -70,7 +87,39 @@ function App() {
 
   return (
     <Routes>
+      {/* ── Portal de Tutoria (layout próprio, todos os roles) ── */}
+      <Route path="/tutoria" element={<TutoriaLayout />}>
+        <Route index element={<PortalTutoria />} />
+        <Route path="errors" element={<TutoriaErrors />} />
+        <Route path="errors/new" element={<RegisterErrors />} />
+        <Route path="errors/:id" element={<ErrorDetail />} />
+        <Route path="errors/:errorId/plans/new" element={<CreateActionPlan />} />
+        <Route path="report" element={<TutoriaReport />} />
+        <Route path="plans" element={<TutoriaPlans />} />
+        <Route path="plans/new" element={<CreateActionPlan />} />
+        <Route path="plans/:planId" element={<PlanDetail />} />
+        <Route path="my-errors" element={<TutoriaErrors />} />
+        <Route path="my-plans" element={<TutoriaPlans />} />
+        <Route path="categories" element={<TutoriaCategories />} />
+        <Route path="chat-faqs" element={<ChatFAQAdmin />} />
+      </Route>
+
+      {/* ── Portal de Relatórios (todos os roles autenticados) ── */}
+      <Route path="/relatorios" element={<RelatoriosLayout />}>
+        <Route index element={<RelatoriosOverview />} />
+        <Route path="formacoes" element={<RelatoriosFormacoes />} />
+        <Route path="tutoria" element={<RelatoriosTutoria />} />
+        <Route path="teams" element={<RelatoriosTeams />} />
+        <Route path="members" element={<RelatoriosMembers />} />
+      </Route>
+
+      {/* ── Portal de Formações ─────────────────────────────── */}
       <Route path="/" element={<Layout />}>
+        {user?.role === 'MANAGER' && (
+          <>
+            <Route index element={<Navigate to="/relatorios" replace />} />
+          </>
+        )}
         {(user?.role === 'STUDENT' || user?.role === 'TRAINEE') && (
           <>
             <Route index element={<StudentDashboard />} />
@@ -147,7 +196,8 @@ function App() {
             <Route path="settings" element={<AdminSettingsPage />} />
             <Route path="banks" element={<AdminBanksPage />} />
             <Route path="products" element={<AdminProductsPage />} />
-            <Route path="tutoria" element={<PortalTutoria />} />
+            <Route path="teams" element={<AdminTeams />} />
+            {/* tutoria movido para layout próprio abaixo */}
           </>
         )}
         <Route path="*" element={<Navigate to="/" replace />} />

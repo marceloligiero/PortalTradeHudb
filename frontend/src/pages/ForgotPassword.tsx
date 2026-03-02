@@ -1,41 +1,127 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, ArrowRight, CheckCircle, Moon, Sun, Lock, Eye, EyeOff, KeyRound } from 'lucide-react';
+import { Mail, ArrowRight, CheckCircle, Moon, Sun, Lock, Eye, EyeOff, Globe, ChevronLeft, KeyRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import LanguageSwitcher from '../components/LanguageSwitcher';
-import { Button, Input, Alert } from '../components';
 import api from '../lib/axios';
 
+/* ─── Navbar (same pattern) ─────────────────────────────────────────── */
+function Navbar({ isDark, setIsDark }: { isDark: boolean; setIsDark: (v: boolean) => void }) {
+  const { i18n } = useTranslation();
+  const navigate = useNavigate();
+  const [langOpen, setLangOpen] = useState(false);
+  useEffect(() => {
+    if (!langOpen) return;
+    const h = () => setLangOpen(false);
+    document.addEventListener('click', h);
+    return () => document.removeEventListener('click', h);
+  }, [langOpen]);
+  const LANGS = [{ code:'pt-PT', label:'🇵🇹 Português' }, { code:'es', label:'🇪🇸 Español' }, { code:'en', label:'🇺🇸 English' }];
+  return (
+    <div className="fixed top-0 inset-x-0 z-50 px-4 pt-4 pointer-events-none">
+      <motion.div initial={{ y:-24, opacity:0 }} animate={{ y:0, opacity:1 }} transition={{ duration:.6 }}
+        className="max-w-md mx-auto pointer-events-auto">
+        <div className={`rounded-2xl p-px ${isDark?'bg-white/[0.06]':'bg-black/[0.08]'}`}>
+          <div className={`rounded-[15px] backdrop-blur-2xl px-4 h-12 flex items-center justify-between ${isDark?'bg-[#030307]/80':'bg-white/80'}`}>
+            <motion.div whileHover={{ scale:1.04 }} whileTap={{ scale:.97 }}
+              className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+              <img src="/logo-sds.png" alt="SDS" className={`h-6 w-auto object-contain ${isDark?'':'brightness-0'}`} />
+              <div className={`h-4 w-px ${isDark?'bg-white/15':'bg-gray-300'}`} />
+              <span className={`text-xs font-black tracking-tight ${isDark?'text-white/90':'text-gray-800'}`}>
+                Trade<span className="text-red-500">Data</span>Hub
+              </span>
+            </motion.div>
+            <div className="flex items-center gap-1">
+              <div className="relative" onClick={e => e.stopPropagation()}>
+                <button onClick={() => setLangOpen(o => !o)} className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${isDark?'border-white/[0.09] text-gray-400 hover:bg-white/[0.07]':'border-gray-200 text-gray-500 hover:bg-gray-100'}`}>
+                  <Globe className="w-3 h-3" />
+                  <span className="hidden sm:inline">{i18n.language.startsWith('es')?'ES':i18n.language.startsWith('en')?'EN':'PT'}</span>
+                </button>
+                <AnimatePresence>
+                  {langOpen && (
+                    <motion.div initial={{ opacity:0, scale:.92, y:-4 }} animate={{ opacity:1, scale:1, y:0 }} exit={{ opacity:0, scale:.92, y:-4 }} transition={{ duration:.12 }}
+                      className={`absolute right-0 top-full mt-1.5 rounded-xl border shadow-2xl overflow-hidden z-20 min-w-[120px] ${isDark?'bg-[#0c0c12] border-white/10':'bg-white border-gray-200'}`}>
+                      {LANGS.map(l => (
+                        <button key={l.code} onClick={() => { i18n.changeLanguage(l.code); localStorage.setItem('language', l.code); setLangOpen(false); }}
+                          className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${i18n.language.startsWith(l.code.slice(0,2))?'text-red-500 font-bold':isDark?'text-gray-400 hover:bg-white/5 hover:text-white':'text-gray-600 hover:bg-gray-50'}`}>
+                          {l.label}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+              <button onClick={() => setIsDark(!isDark)} className={`p-1.5 rounded-lg border transition-all ${isDark?'border-white/[0.09] text-gray-400 hover:bg-white/[0.07]':'border-gray-200 text-gray-500 hover:bg-gray-100'}`}>
+                <AnimatePresence mode="wait">
+                  <motion.div key={isDark?'sun':'moon'} initial={{ rotate:-30, opacity:0 }} animate={{ rotate:0, opacity:1 }} exit={{ rotate:30, opacity:0 }} transition={{ duration:.15 }}>
+                    {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+                  </motion.div>
+                </AnimatePresence>
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+/* ─── underline input ───────────────────────────────────────────────── */
+function LineInput({ type='text', placeholder, value, onChange, onFocus, onBlur, focused, icon, right }: {
+  type?: string; placeholder: string; value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onFocus: () => void; onBlur: () => void; focused: boolean;
+  icon: React.ReactNode; right?: React.ReactNode;
+}) {
+  return (
+    <div className={`flex items-center gap-3 border-b pb-3 transition-colors duration-200 ${focused ? 'border-red-500' : 'border-white/15 hover:border-white/25'}`}>
+      <div className={`flex-shrink-0 transition-colors ${focused ? 'text-red-400' : 'text-gray-500'}`}>{icon}</div>
+      <input type={type} value={value} onChange={onChange} onFocus={onFocus} onBlur={onBlur}
+        placeholder={placeholder}
+        className="flex-1 bg-transparent text-white placeholder-gray-600 outline-none text-sm py-1" />
+      {right}
+    </div>
+  );
+}
+
+const stepMeta = {
+  email:    { icon: Mail,       title: 'Esqueceu\na senha?',     sub: 'Insira o seu email para continuar.' },
+  password: { icon: KeyRound,   title: 'Nova\npalavra-passe',   sub: '' },
+  success:  { icon: CheckCircle, title: 'Senha\nalterada!',     sub: 'Pode agora iniciar sessão com a nova senha.' },
+};
+
+const slideV = {
+  enter: (d: number) => ({ x: d > 0 ? 40 : -40, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (d: number) => ({ x: d > 0 ? -40 : 40, opacity: 0 }),
+};
+
+/* ═══════════════════════════════════════════════════════════════════════ */
 export default function ForgotPassword() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') !== 'light');
+  useEffect(() => { localStorage.setItem('theme', isDark ? 'dark' : 'light'); }, [isDark]);
+
   const [step, setStep] = useState<'email' | 'password' | 'success'>('email');
+  const [dir, setDir] = useState(1);
+  const [focused, setFocused] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [showCPw, setShowCPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    return saved ? saved === 'dark' : true;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
-
-  const toggleTheme = () => setIsDark(!isDark);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       await api.post('/api/auth/verify-email', { email });
+      setDir(1);
       setStep('password');
     } catch (err: any) {
       setError(err.response?.data?.detail || t('auth.emailNotFound'));
@@ -47,24 +133,12 @@ export default function ForgotPassword() {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (newPassword.length < 6) {
-      setError(t('auth.passwordMinLength'));
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError(t('auth.passwordsDoNotMatch'));
-      return;
-    }
-
+    if (newPassword.length < 6) { setError(t('auth.passwordMinLength')); return; }
+    if (newPassword !== confirmPassword) { setError(t('auth.passwordsDoNotMatch')); return; }
     setLoading(true);
-
     try {
-      await api.post('/api/auth/direct-reset-password', { 
-        email,
-        new_password: newPassword 
-      });
+      await api.post('/api/auth/direct-reset-password', { email, new_password: newPassword });
+      setDir(1);
       setStep('success');
     } catch (err: any) {
       setError(err.response?.data?.detail || t('auth.resetError'));
@@ -73,353 +147,185 @@ export default function ForgotPassword() {
     }
   };
 
+  const { title, sub } = stepMeta[step];
+  const IconComp = stepMeta[step].icon;
+
+  const stepDotIdx = step === 'email' ? 0 : step === 'password' ? 1 : 2;
+
   return (
-    <div className={`min-h-screen relative overflow-hidden transition-colors duration-500 ${
-      isDark ? 'bg-[#0a0a0a] text-white' : 'bg-gray-50 text-gray-900'
-    }`}>
-      {/* Animated Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute top-0 left-1/4 w-96 h-96 rounded-full blur-[120px] animate-blob ${
-          isDark ? 'bg-red-600/10' : 'bg-red-600/5'
-        }`} />
-        <div className={`absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-[120px] animate-blob animation-delay-2000 ${
-          isDark ? 'bg-blue-600/5' : 'bg-blue-600/3'
-        }`} />
+    <div className={`min-h-screen relative flex flex-col items-center justify-center transition-colors duration-700 overflow-hidden ${isDark ? 'bg-[#030307]' : 'bg-slate-100'}`}>
+      {/* aurora */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <motion.div animate={{ x:[0,60,-40,0], y:[0,-50,30,0] }} transition={{ duration:25, repeat:Infinity, ease:'easeInOut' }}
+          className={`absolute -top-[20%] -left-[10%] w-[600px] h-[600px] rounded-full blur-[160px] ${isDark?'bg-red-600/[0.07]':'bg-red-500/[0.05]'}`} />
+        <motion.div animate={{ x:[0,-50,30,0], y:[0,40,-20,0] }} transition={{ duration:30, repeat:Infinity, ease:'easeInOut', delay:5 }}
+          className={`absolute -bottom-[10%] -right-[10%] w-[500px] h-[500px] rounded-full blur-[140px] ${isDark?'bg-blue-600/[0.05]':'bg-blue-500/[0.03]'}`} />
+        <div className="absolute inset-0" style={{ backgroundImage:`radial-gradient(circle,${isDark?'rgba(255,255,255,0.025)':'rgba(0,0,0,0.025)'} 1px,transparent 1px)`, backgroundSize:'28px 28px' }} />
       </div>
 
-      {/* Background Image */}
-      <div className="absolute inset-0 z-0">
-        <img 
-          src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=1920&q=80&auto=format&fit=crop"
-          alt="Background"
-          className={`w-full h-full object-cover ${
-            isDark ? 'opacity-5' : 'opacity-[0.03]'
-          }`}
-        />
-      </div>
+      <Navbar isDark={isDark} setIsDark={setIsDark} />
 
-      {/* Navbar */}
-      <nav className={`fixed top-0 w-full z-50 backdrop-blur-2xl border-b shadow-2xl transition-colors duration-300 ${
-        isDark 
-          ? 'bg-[#0a0a0a]/95 border-white/10 shadow-red-600/5' 
-          : 'bg-white/95 border-gray-200 shadow-gray-200/50'
-      }`}>
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            {/* Logo */}
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.98 }}
-              className="cursor-pointer relative group"
-              onClick={() => navigate('/')}
-            >
-              <img 
-                src="/logo-sds.png"
-                alt="Santander"
-                className={`h-10 w-auto transition-all duration-300 group-hover:drop-shadow-[0_0_8px_rgba(220,38,38,0.8)] ${
-                  isDark ? 'filter brightness-0 invert' : ''
-                }`}
-              />
-            </motion.div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-3">
-              {/* Theme Toggle */}
-              <motion.button
-                whileHover={{ scale: 1.1, rotate: 180 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={toggleTheme}
-                className={`flex items-center justify-center w-10 h-10 rounded-xl border transition-all duration-300 relative group ${
-                  isDark 
-                    ? 'bg-white/5 hover:bg-white/10 border-white/10 hover:border-yellow-400/50' 
-                    : 'bg-gray-100 hover:bg-gray-200 border-gray-200 hover:border-blue-400/50'
-                }`}
-              >
-                <AnimatePresence mode="wait">
-                  {isDark ? (
-                    <motion.div
-                      key="sun"
-                      initial={{ rotate: -90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: 90, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Sun className="w-5 h-5 text-yellow-400" />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="moon"
-                      initial={{ rotate: 90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: -90, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <Moon className="w-5 h-5 text-blue-400" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.button>
-
-              <LanguageSwitcher />
-              
-              <Link
-                to="/login"
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-300 font-medium group ${
-                  isDark 
-                    ? 'border-white/10 hover:border-white/20 text-white/80 hover:text-white hover:bg-white/10' 
-                    : 'border-gray-200 hover:border-gray-300 text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                <ArrowRight className="w-4 h-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
-                <span className="text-sm">{t('auth.backToLogin', 'Voltar ao Login')}</span>
-              </Link>
-            </div>
+      {/* ─── Card ───────────────────────────────────────────────────── */}
+      <motion.div initial={{ opacity:0, y:28, scale:.97 }} animate={{ opacity:1, y:0, scale:1 }}
+        transition={{ duration:.7, ease:[0.22,1,0.36,1] }}
+        className="relative z-10 w-full max-w-sm mx-4 mt-20 overflow-hidden rounded-[2rem] shadow-[0_32px_80px_rgba(0,0,0,0.5)]"
+      >
+        {/* TOP */}
+        <div className={`px-8 pt-8 pb-7 ${isDark ? 'bg-[#1c1c2a]' : 'bg-white'}`}>
+          <div className="flex items-center justify-between mb-6">
+            <motion.button whileHover={{ x:-3 }}
+              onClick={() => { setError(''); if (step === 'email') navigate('/login'); else { setDir(-1); setStep('email'); } }}
+              className={`flex items-center gap-1 text-sm font-medium transition-colors ${isDark?'text-gray-500 hover:text-white':'text-gray-400 hover:text-gray-800'}`}>
+              <ChevronLeft className="w-4 h-4" />
+              <span>{step === 'email' ? 'Login' : 'Voltar'}</span>
+            </motion.button>
+            {step !== 'success' && (
+              <div className="flex gap-1.5">
+                {[0,1].map(i => (
+                  <motion.div key={i}
+                    animate={{ width: i === stepDotIdx ? 20 : 6, background: i < stepDotIdx ? '#22c55e' : i === stepDotIdx ? '#dc2626' : isDark?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.15)' }}
+                    transition={{ duration:.3 }} className="h-1.5 rounded-full" />
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      </nav>
 
-      {/* Form */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4 pt-32">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="w-full max-w-md"
-        >
-          {/* Card */}
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            transition={{ type: "spring", stiffness: 300 }}
-            className={`rounded-[32px] shadow-2xl p-10 border backdrop-blur-xl ${
-              isDark
-                ? 'bg-white/5 border-white/10'
-                : 'bg-white border-gray-200'
-            }`}
-          >
-            <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait">
+            <motion.div key={step} initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-8 }} transition={{ duration:.25 }}>
               {step === 'success' ? (
-                // Success State
-                <motion.div
-                  key="success"
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="text-center"
-                >
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 200 }}
-                    className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl mb-6 shadow-lg shadow-green-600/20"
-                  >
-                    <CheckCircle className="w-10 h-10 text-white" />
+                <div className="flex flex-col items-start gap-3">
+                  <motion.div initial={{ scale:0 }} animate={{ scale:1 }} transition={{ type:'spring', stiffness:200 }}
+                    className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-600/25">
+                    <CheckCircle className="w-6 h-6 text-white" />
                   </motion.div>
-                  <h1 className={`text-3xl font-black tracking-tight mb-3 ${
-                    isDark ? 'text-white' : 'text-gray-900'
-                  }`}>
-                    {t('auth.passwordResetSuccess')}
-                  </h1>
-                  <p className={`font-medium mb-8 ${
-                    isDark ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
-                    {t('auth.passwordResetSuccessMsg')}
-                  </p>
-                  <Link to="/login">
-                    <Button variant="primary" size="lg" className="w-full">
-                      <ArrowRight className="w-4 h-4 mr-2" />
-                      {t('auth.goToLogin')}
-                    </Button>
-                  </Link>
-                </motion.div>
-              ) : step === 'password' ? (
-                // Password Step
-                <motion.div
-                  key="password"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                >
-                  <div className="text-center mb-10">
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                      className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-red-600 to-red-700 rounded-2xl mb-6 shadow-lg shadow-red-600/20"
-                    >
-                      <KeyRound className="w-10 h-10 text-white" />
-                    </motion.div>
-                    <h1 className={`text-3xl font-black tracking-tight mb-3 ${
-                      isDark ? 'text-white' : 'text-gray-900'
-                    }`}>
-                      {t('auth.newPassword')}
-                    </h1>
-                    <p className={`font-medium ${
-                      isDark ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      {t('auth.newPasswordFor')} <strong className="text-red-500">{email}</strong>
-                    </p>
-                  </div>
-
-                  <form onSubmit={handlePasswordSubmit} className="space-y-6">
-                    {error && (
-                      <Alert type="error" message={error} />
-                    )}
-
-                    <div className="relative">
-                      <Input
-                        type={showPassword ? 'text' : 'password'}
-                        label={t('auth.newPassword')}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="••••••••"
-                        icon={<Lock className="w-5 h-5" />}
-                        theme={isDark ? 'dark' : 'light'}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className={`absolute right-4 top-[38px] ${
-                          isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                      >
-                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-
-                    <div className="relative">
-                      <Input
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        label={t('auth.confirmNewPassword')}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="••••••••"
-                        icon={<Lock className="w-5 h-5" />}
-                        theme={isDark ? 'dark' : 'light'}
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className={`absolute right-4 top-[38px] ${
-                          isDark ? 'text-gray-400 hover:text-white' : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                      >
-                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                      </button>
-                    </div>
-
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      size="lg"
-                      className="w-full"
-                      isLoading={loading}
-                      icon={<ArrowRight className="w-5 h-5" />}
-                    >
-                      {t('auth.resetPassword')}
-                    </Button>
-                  </form>
-
-                  <div className="mt-6 text-center">
-                    <button
-                      onClick={() => {
-                        setStep('email');
-                        setError('');
-                        setNewPassword('');
-                        setConfirmPassword('');
-                      }}
-                      className={`font-medium transition-colors ${
-                        isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      {t('auth.backToEmail')}
-                    </button>
-                  </div>
-                </motion.div>
+                  <h1 className={`text-3xl font-black leading-tight tracking-tight whitespace-pre-line ${isDark?'text-white':'text-gray-900'}`}>{title}</h1>
+                  <p className={`text-sm ${isDark?'text-gray-500':'text-gray-400'}`}>{sub}</p>
+                </div>
               ) : (
-                // Email Step
-                <motion.div
-                  key="email"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                >
-                  <div className="text-center mb-10">
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                      className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-red-600 to-red-700 rounded-2xl mb-6 shadow-lg shadow-red-600/20"
-                    >
-                      <Mail className="w-10 h-10 text-white" />
-                    </motion.div>
-                    <h1 className={`text-3xl font-black tracking-tight mb-3 ${
-                      isDark ? 'text-white' : 'text-gray-900'
-                    }`}>
-                      {t('auth.forgotPasswordTitle')}
-                    </h1>
-                    <p className={`font-medium ${
-                      isDark ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      {t('auth.forgotPasswordSubtitle')}
+                <>
+                  <h1 className={`text-3xl font-black leading-tight tracking-tight whitespace-pre-line ${isDark?'text-white':'text-gray-900'}`}>{title}</h1>
+                  {step === 'password' && (
+                    <p className={`mt-2 text-sm ${isDark?'text-gray-500':'text-gray-400'}`}>
+                      Para <span className="text-red-400 font-semibold">{email}</span>
                     </p>
-                  </div>
-
-                  <form onSubmit={handleEmailSubmit} className="space-y-6">
-                    {error && (
-                      <Alert type="error" message={error} />
-                    )}
-
-                    <Input
-                      type="email"
-                      label={t('auth.email')}
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="seu@email.com"
-                      icon={<Mail className="w-5 h-5" />}
-                      theme={isDark ? 'dark' : 'light'}
-                      required
-                    />
-
-                    <Button
-                      type="submit"
-                      variant="primary"
-                      size="lg"
-                      className="w-full"
-                      isLoading={loading}
-                      icon={<ArrowRight className="w-5 h-5" />}
-                    >
-                      {t('auth.continue')}
-                    </Button>
-                  </form>
-
-                  <div className="mt-10 text-center">
-                    <p className={`font-medium ${
-                      isDark ? 'text-gray-400' : 'text-gray-600'
-                    }`}>
-                      {t('auth.rememberPassword')}{' '}
-                      <Link
-                        to="/login"
-                        className="text-red-500 hover:text-red-400 font-bold transition-colors"
-                      >
-                        {t('auth.doLogin')}
-                      </Link>
-                    </p>
-                  </div>
-                </motion.div>
+                  )}
+                  {step === 'email' && (
+                    <p className={`mt-2 text-sm ${isDark?'text-gray-500':'text-gray-400'}`}>{sub}</p>
+                  )}
+                </>
               )}
-            </AnimatePresence>
-          </motion.div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
 
-          {/* Additional Info */}
-          <p className={`text-center text-sm mt-10 font-medium ${
-            isDark ? 'text-gray-600' : 'text-gray-500'
-          }`}>
-            {t('common.appName')} © 2025
-          </p>
-        </motion.div>
-      </div>
+        {/* BOTTOM: always dark */}
+        <div className="bg-[#111822] px-8 pt-7 pb-8">
+          <AnimatePresence custom={dir} mode="wait">
+
+            {step === 'email' && (
+              <motion.div key="email" custom={dir} variants={slideV} initial="enter" animate="center" exit="exit"
+                transition={{ duration:.3, ease:[0.22,1,0.36,1] }}>
+                <form onSubmit={handleEmailSubmit} className="space-y-6">
+                  <LineInput type="email" placeholder="Email" value={email}
+                    onChange={e => { setEmail(e.target.value); setError(''); }}
+                    onFocus={() => setFocused('email')} onBlur={() => setFocused(null)} focused={focused==='email'}
+                    icon={<Mail className="w-4 h-4" />}
+                  />
+                  <AnimatePresence>
+                    {error && <motion.p initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} className="text-xs text-red-400">{error}</motion.p>}
+                  </AnimatePresence>
+                  <SubmitBtn loading={loading} label={t('auth.continue')} />
+                </form>
+                <div className="mt-6 text-center">
+                  <p className="text-xs text-gray-600">
+                    {t('auth.rememberPassword')}{' '}
+                    <Link to="/login" className="text-red-400 hover:text-red-300 font-bold transition-colors">{t('auth.doLogin')}</Link>
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 'password' && (
+              <motion.div key="password" custom={dir} variants={slideV} initial="enter" animate="center" exit="exit"
+                transition={{ duration:.3, ease:[0.22,1,0.36,1] }}>
+                <form onSubmit={handlePasswordSubmit} className="space-y-6">
+                  <LineInput type={showPw?'text':'password'} placeholder={t('auth.newPassword')} value={newPassword}
+                    onChange={e => { setNewPassword(e.target.value); setError(''); }}
+                    onFocus={() => setFocused('pw')} onBlur={() => setFocused(null)} focused={focused==='pw'}
+                    icon={<Lock className="w-4 h-4" />}
+                    right={
+                      <button type="button" onClick={() => setShowPw(v=>!v)} className="text-gray-600 hover:text-gray-400 flex-shrink-0">
+                        {showPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    }
+                  />
+                  <LineInput type={showCPw?'text':'password'} placeholder={t('auth.confirmNewPassword', 'Confirmar senha')} value={confirmPassword}
+                    onChange={e => { setConfirmPassword(e.target.value); setError(''); }}
+                    onFocus={() => setFocused('cpw')} onBlur={() => setFocused(null)} focused={focused==='cpw'}
+                    icon={<Lock className="w-4 h-4" />}
+                    right={
+                      <button type="button" onClick={() => setShowCPw(v=>!v)} className="text-gray-600 hover:text-gray-400 flex-shrink-0">
+                        {showCPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    }
+                  />
+                  <AnimatePresence>
+                    {error && <motion.p initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} className="text-xs text-red-400">{error}</motion.p>}
+                  </AnimatePresence>
+                  <SubmitBtn loading={loading} label={t('auth.resetPassword')} />
+                </form>
+              </motion.div>
+            )}
+
+            {step === 'success' && (
+              <motion.div key="success" custom={dir} variants={slideV} initial="enter" animate="center" exit="exit"
+                transition={{ duration:.3, ease:[0.22,1,0.36,1] }} className="text-center space-y-6">
+                <motion.div initial={{ scale:0 }} animate={{ scale:1 }} transition={{ type:'spring', stiffness:200, delay:.1 }}
+                  className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-600/25 mx-auto">
+                  <CheckCircle className="w-8 h-8 text-white" />
+                </motion.div>
+                <p className="text-sm text-gray-500">{t('auth.passwordResetSuccessMsg')}</p>
+                <motion.button onClick={() => navigate('/login')}
+                  whileHover={{ scale:1.02, y:-1 }} whileTap={{ scale:.98 }}
+                  className="relative w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm overflow-hidden group"
+                  style={{ background:'linear-gradient(135deg,#dc2626 0%,#b91c1c 60%,#991b1b 100%)' }}
+                >
+                  <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.1] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none" />
+                  <span className="absolute inset-0 rounded-2xl shadow-[0_8px_28px_rgba(220,38,38,0.35)] group-hover:shadow-[0_12px_36px_rgba(220,38,38,0.5)] transition-shadow pointer-events-none" />
+                  <span className="relative">{t('auth.goToLogin')}</span>
+                  <ArrowRight className="w-4 h-4 relative" />
+                </motion.button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+
+      <p className={`relative z-10 text-center text-xs mt-8 ${isDark?'text-gray-800':'text-gray-400'}`}>
+        {t('common.appName')} © 2026 · Trade Data Hub
+      </p>
     </div>
+  );
+}
+
+function SubmitBtn({ loading, label }: { loading: boolean; label: string }) {
+  return (
+    <motion.button type="submit" disabled={loading}
+      whileHover={{ scale:1.02, y:-1 }} whileTap={{ scale:.98 }}
+      className="relative w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm overflow-hidden disabled:opacity-60 group"
+      style={{ background:'linear-gradient(135deg,#dc2626 0%,#b91c1c 60%,#991b1b 100%)' }}
+    >
+      <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.1] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none" />
+      <span className="absolute inset-0 rounded-2xl shadow-[0_8px_28px_rgba(220,38,38,0.35)] group-hover:shadow-[0_12px_36px_rgba(220,38,38,0.5)] transition-shadow pointer-events-none" />
+      {loading ? (
+        <motion.div animate={{ rotate:360 }} transition={{ duration:1, repeat:Infinity, ease:'linear' }}
+          className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full" />
+      ) : (
+        <>
+          <span className="relative">{label}</span>
+          <ArrowRight className="w-4 h-4 relative" />
+        </>
+      )}
+    </motion.button>
   );
 }

@@ -7,11 +7,21 @@ from slowapi.errors import RateLimitExceeded
 from app.routes import auth, admin, student, trainer, training_plans, advanced_reports, certificates, student_reports, ratings, password_reset, knowledge_matrix, public
 from app.routers import challenges, stats, lessons, finalization
 from app.routers import tutoria
+from app.routers import chat
+from app.routers import teams
+from app.routers import relatorios
+from app.database import init_db
+from contextlib import asynccontextmanager
 
 # Rate limiter (shared instance used by route modules)
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 
-app = FastAPI(title="Trade Data Hub API", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app):
+    init_db()
+    yield
+
+app = FastAPI(title="Trade Data Hub API", version="1.0.0", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -116,6 +126,12 @@ app.include_router(lessons.router, tags=["lessons"])
 app.include_router(finalization.router, tags=["finalization"])
 # Tutoria (tutoring portal) API
 app.include_router(tutoria.router, prefix="/api/tutoria", tags=["tutoria"])
+# Chatbot (rule-based + custom FAQ)
+app.include_router(chat.router, prefix="/api", tags=["chat"])
+# Teams
+app.include_router(teams.router, prefix="/api", tags=["teams"])
+# Portal de Relatórios
+app.include_router(relatorios.router, prefix="/api", tags=["relatorios"])
 # Mount certificates router for certificate management and PDF download
 app.include_router(certificates.router, prefix="/api/certificates", tags=["certificates"])
 # Mount student reports router

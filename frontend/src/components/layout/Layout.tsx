@@ -1,8 +1,14 @@
+import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import ChatBot from '../ChatBot';
 
 export default function Layout() {
+  useEffect(() => {
+    document.title = 'Portal Formações';
+  }, []);
+
   return (
     <div className="min-h-screen relative overflow-hidden transition-colors duration-300 print:bg-white bg-gray-50 dark:bg-[#0a0a0a] text-gray-900 dark:text-white">
       {/* Animated Background */}
@@ -12,7 +18,7 @@ export default function Layout() {
       </div>
 
       {/* Content */}
-      <div className="relative z-10">
+      <div className="relative z-10 pt-[72px]">
         <Header />
         <div className="flex print:block">
           <Sidebar />
@@ -21,6 +27,9 @@ export default function Layout() {
           </main>
         </div>
       </div>
+
+      {/* Chatbot widget — available on all portal pages */}
+      <ChatBot />
     </div>
   );
 }

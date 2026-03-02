@@ -1,6 +1,11 @@
 @echo off
+chcp 65001 >nul
 title TradeHub Frontend
-pushd "%~dp0frontend"
-npm run dev
-popd
-if "%1"=="interactive" pause
+cd /d "%~dp0frontend"
+echo.
+echo  Starting Vite dev server ...
+echo.
+call npm run dev
+echo.
+echo [Frontend stopped. Press any key to close.]
+pause >nul

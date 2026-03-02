@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, Text, ForeignKey, JSON, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
@@ -10,13 +10,18 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     full_name = Column(String(255), nullable=False)
     hashed_password = Column(String(255), nullable=False)
-    role = Column(String(50), nullable=False)  # STUDENT, TRAINER, ADMIN
+    role = Column(String(50), nullable=False)  # STUDENT, TRAINEE, TRAINER, ADMIN, MANAGER
     is_active = Column(Boolean, default=True, nullable=False)
     is_pending = Column(Boolean, default=False, nullable=False)  # For TRAINER validation by ADMIN
     validated_at = Column(DateTime(timezone=True), nullable=True)  # When trainer was approved
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
+    # Tutoria: FK para o tutor responsável (só para STUDENT/TRAINEE)
+    tutor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    # Equipa: FK para a equipa a que o utilizador pertence (exceto ADMIN)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
+
     # Relationships
     enrollments = relationship("Enrollment", back_populates="user")
     created_courses = relationship("Course", back_populates="creator", foreign_keys="[Course.created_by]")
@@ -24,6 +29,25 @@ class User(Base):
     assigned_training_plans = relationship("TrainingPlanAssignment", foreign_keys="[TrainingPlanAssignment.assigned_by]", back_populates="assigner")
     certificates = relationship("Certificate", back_populates="user")
     password_reset_tokens = relationship("PasswordResetToken", back_populates="user")
+    team = relationship("Team", foreign_keys=[team_id], back_populates="members")
+
+
+class Team(Base):
+    """Equipa de trabalho — associada a um produto/serviço e liderada por um MANAGER"""
+    __tablename__ = "teams"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
+    manager_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    product = relationship("Product", foreign_keys=[product_id])
+    manager = relationship("User", foreign_keys=[manager_id])
+    members = relationship("User", foreign_keys="[User.team_id]", back_populates="team")
 
 
 class PasswordResetToken(Base):
@@ -390,72 +414,30 @@ class ChallengePart(Base):
 
 class ChallengeSubmission(Base):
     __tablename__ = "challenge_submissions"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     challenge_id = Column(Integer, ForeignKey("challenges.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     training_plan_id = Column(Integer, ForeignKey("training_plans.id"), nullable=True)  # Plano associado
     submission_type = Column(String(50), nullable=False)  # COMPLETE or SUMMARY
 
-
-# =================== Tutoria (tutoring) tables ===================
-class TutoriaError(Base):
-    __tablename__ = "tutoria_errors"
-
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(255), nullable=False)
-    description = Column(Text)
-    reported_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    status = Column(String(50), default="OPEN")
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-    action_plans = relationship("TutoriaActionPlan", back_populates="error", cascade="all, delete-orphan")
-
-
-class TutoriaActionPlan(Base):
-    __tablename__ = "tutoria_action_plans"
-
-    id = Column(Integer, primary_key=True, index=True)
-    error_id = Column(Integer, ForeignKey("tutoria_errors.id", ondelete="CASCADE"), nullable=False)
-    title = Column(String(255), nullable=False)
-    description = Column(Text)
-    assigned_to = Column(Integer, ForeignKey("users.id"), nullable=True)
-    due_date = Column(DateTime(timezone=True), nullable=True)
-    status = Column(String(50), default="PENDING")
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
-    error = relationship("TutoriaError", back_populates="action_plans")
-
-
-class TutoriaPlan(Base):
-    __tablename__ = "tutoria_plans"
-
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String(255), nullable=False)
-    description = Column(Text)
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    
     # Status do desafio: IN_PROGRESS, PENDING_REVIEW, REVIEWED, APPROVED, REJECTED
     status = Column(String(50), default="IN_PROGRESS")
-    
+
     # Para tipo SUMMARY (resumido)
     total_operations = Column(Integer)  # Total de operações inseridas
     total_time_minutes = Column(Integer)  # Tempo total inserido
     errors_count = Column(Integer, default=0)  # Número de OPERAÇÕES com erro (não erros totais)
-    
+
     # Erros por conceito (totalizadores para relatório)
     error_methodology = Column(Integer, default=0)  # Total erros de Metodologia
     error_knowledge = Column(Integer, default=0)  # Total erros de Conhecimento
     error_detail = Column(Integer, default=0)  # Total erros de Detalhe
     error_procedure = Column(Integer, default=0)  # Total erros de Procedimento
-    
+
     # Referência da operação realizada pelo formando (para SUMMARY)
     operation_reference = Column(String(255), nullable=True)
-    
+
     # Campos comuns
     started_at = Column(DateTime(timezone=True))
     completed_at = Column(DateTime(timezone=True))
@@ -466,15 +448,15 @@ class TutoriaPlan(Base):
     feedback = Column(Text)
     submitted_by = Column(Integer, ForeignKey("users.id"))  # Formador que aplicou
     reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # Formador que corrigiu/reviu
-    
+
     # Controle de novas tentativas
     retry_count = Column(Integer, default=0)  # Número de tentativas realizadas
     is_retry_allowed = Column(Boolean, default=False)  # Se formador habilitou nova tentativa
     trainer_notes = Column(Text)  # Notas do formador sobre a decisão
-    
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
     challenge = relationship("Challenge", back_populates="submissions")
     user = relationship("User", foreign_keys=[user_id])
     training_plan = relationship("TrainingPlan")
@@ -483,6 +465,189 @@ class TutoriaPlan(Base):
     parts = relationship("ChallengePart", back_populates="submission", cascade="all, delete-orphan")
     operations = relationship("ChallengeOperation", back_populates="submission", cascade="all, delete-orphan")
     submission_errors = relationship("SubmissionError", back_populates="submission", cascade="all, delete-orphan")
+
+
+# =================== Tutoria v2 — Gestão de Erros e Planos de Ação ===================
+
+class ErrorCategory(Base):
+    """Categoria de erro configurável pelo Admin"""
+    __tablename__ = "tutoria_error_categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    parent_id = Column(Integer, ForeignKey("tutoria_error_categories.id"), nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    subcategories = relationship("ErrorCategory", backref="parent", remote_side="ErrorCategory.id")
+    errors = relationship("TutoriaError", back_populates="category")
+
+
+class TutoriaError(Base):
+    """Registo de um erro cometido por um tutorado"""
+    __tablename__ = "tutoria_errors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    date_occurrence = Column(Date, nullable=False)
+    description = Column(Text, nullable=False)
+    tutorado_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    category_id = Column(Integer, ForeignKey("tutoria_error_categories.id"), nullable=True)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
+    severity = Column(String(20), default="MEDIA", nullable=False)
+    # BAIXA | MEDIA | ALTA | CRITICA
+    status = Column(String(30), default="ABERTO", nullable=False)
+    # ABERTO | EM_ANALISE | PLANO_CRIADO | EM_EXECUCAO | CONCLUIDO | VERIFICADO
+    tags = Column(JSON, nullable=True)
+    analysis_5_why = Column(Text, nullable=True)
+    is_recurrent = Column(Boolean, default=False, nullable=False)
+    recurrence_count = Column(Integer, default=0, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    inactivation_reason = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    tutorado = relationship("User", foreign_keys=[tutorado_id])
+    creator = relationship("User", foreign_keys=[created_by_id])
+    category = relationship("ErrorCategory", back_populates="errors")
+    product = relationship("Product", foreign_keys=[product_id])
+    action_plans = relationship("TutoriaActionPlan", back_populates="error", cascade="all, delete-orphan")
+    motivos = relationship("TutoriaErrorMotivo", back_populates="error", cascade="all, delete-orphan")
+    comments = relationship(
+        "TutoriaComment",
+        primaryjoin="and_(TutoriaComment.ref_type=='ERROR', foreign(TutoriaComment.ref_id)==TutoriaError.id)",
+        viewonly=True,
+        overlaps="action_item_comments,plan_comments"
+    )
+
+
+class TutoriaErrorMotivo(Base):
+    """Motivos individuais de cada erro — múltiplos motivos por erro"""
+    __tablename__ = "tutoria_error_motivos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    error_id = Column(Integer, ForeignKey("tutoria_errors.id", ondelete="CASCADE"), nullable=False)
+    typology = Column(String(50), nullable=False)  # METHODOLOGY | KNOWLEDGE | DETAIL | PROCEDURE
+    description = Column(String(500), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    error = relationship("TutoriaError", back_populates="motivos")
+
+
+class TutoriaActionPlan(Base):
+    """Plano de ação 5W2H associado a um erro"""
+    __tablename__ = "tutoria_action_plans"
+
+    id = Column(Integer, primary_key=True, index=True)
+    error_id = Column(Integer, ForeignKey("tutoria_errors.id", ondelete="CASCADE"), nullable=False)
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tutorado_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Análise de Causa Raiz
+    analysis_5_why = Column(Text, nullable=True)
+
+    # Ações principais
+    immediate_correction = Column(Text, nullable=True)
+    corrective_action = Column(Text, nullable=True)
+    preventive_action = Column(Text, nullable=True)
+
+    # 5W2H
+    what = Column(Text, nullable=True)
+    why = Column(Text, nullable=True)
+    where_field = Column(Text, nullable=True)
+    when_deadline = Column(Date, nullable=True)
+    who = Column(Text, nullable=True)
+    how = Column(Text, nullable=True)
+    how_much = Column(Text, nullable=True)
+
+    # Fluxo de aprovação/validação
+    status = Column(String(30), default="RASCUNHO", nullable=False)
+    # RASCUNHO | AGUARDANDO_APROVACAO | APROVADO | EM_EXECUCAO | CONCLUIDO | DEVOLVIDO
+    approved_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    validated_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    validated_at = Column(DateTime(timezone=True), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    error = relationship("TutoriaError", back_populates="action_plans")
+    creator = relationship("User", foreign_keys=[created_by_id])
+    tutorado = relationship("User", foreign_keys=[tutorado_id])
+    approver = relationship("User", foreign_keys=[approved_by_id])
+    validator = relationship("User", foreign_keys=[validated_by_id])
+    items = relationship("TutoriaActionItem", back_populates="plan", cascade="all, delete-orphan")
+    comments = relationship(
+        "TutoriaComment",
+        primaryjoin="and_(TutoriaComment.ref_type=='PLAN', foreign(TutoriaComment.ref_id)==TutoriaActionPlan.id)",
+        viewonly=True,
+        overlaps="action_item_comments,error_comments"
+    )
+
+
+class TutoriaActionItem(Base):
+    """Ação individual dentro de um plano de ação"""
+    __tablename__ = "tutoria_action_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    plan_id = Column(Integer, ForeignKey("tutoria_action_plans.id", ondelete="CASCADE"), nullable=False)
+    type = Column(String(20), default="CORRETIVA", nullable=False)
+    # IMEDIATA | CORRETIVA | PREVENTIVA
+    description = Column(Text, nullable=False)
+    responsible_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    due_date = Column(Date, nullable=True)
+    status = Column(String(20), default="PENDENTE", nullable=False)
+    # PENDENTE | EM_ANDAMENTO | CONCLUIDO | DEVOLVIDO
+    evidence_text = Column(Text, nullable=True)
+    reviewer_comment = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    plan = relationship("TutoriaActionPlan", back_populates="items")
+    responsible = relationship("User", foreign_keys=[responsible_id])
+
+
+class TutoriaComment(Base):
+    """Comentário/feedback num erro, plano ou ação"""
+    __tablename__ = "tutoria_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ref_type = Column(String(20), nullable=False)   # ERROR | PLAN | ACTION_ITEM
+    ref_id = Column(Integer, nullable=False)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    author = relationship("User", foreign_keys=[author_id])
+
+
+class ChatFAQ(Base):
+    """Perguntas e respostas personalizadas para o chatbot, com material de apoio"""
+    __tablename__ = "chat_faqs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    # Palavras-chave para deteção (uma por linha ou separadas por vírgula)
+    keywords_pt = Column(Text, nullable=False)   # pt-PT
+    keywords_es = Column(Text, nullable=True)    # espanhol
+    keywords_en = Column(Text, nullable=True)    # inglês
+    # Respostas por idioma
+    answer_pt = Column(Text, nullable=False)
+    answer_es = Column(Text, nullable=True)
+    answer_en = Column(Text, nullable=True)
+    # Material de apoio
+    support_url = Column(String(500), nullable=True)
+    support_label = Column(String(200), nullable=True)  # texto do link
+    # Filtro por role (NULL = todos; ex: "ADMIN,TRAINER")
+    role_filter = Column(String(100), nullable=True)
+    # Ordenação (menor = maior prioridade)
+    priority = Column(Integer, default=0, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    created_by = relationship("User", foreign_keys=[created_by_id])
 
 
 class SubmissionError(Base):
