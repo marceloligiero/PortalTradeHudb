@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertTriangle, Plus, Search, Filter, ChevronDown,
@@ -32,13 +33,6 @@ interface TutoriaError {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const SEVERITY_LABEL: Record<string, string> = {
-  BAIXA: 'Baixa', MEDIA: 'Média', ALTA: 'Alta', CRITICA: 'Crítica',
-};
-const STATUS_LABEL: Record<string, string> = {
-  ABERTO: 'Aberto', EM_ANALISE: 'Em Análise', PLANO_CRIADO: 'Plano Criado',
-  EM_EXECUCAO: 'Em Execução', CONCLUIDO: 'Concluído', VERIFICADO: 'Verificado',
-};
 const STATUS_ORDER = ['ABERTO', 'EM_ANALISE', 'PLANO_CRIADO', 'EM_EXECUCAO', 'CONCLUIDO', 'VERIFICADO'];
 
 function severityClsDark(s: string) {
@@ -88,6 +82,22 @@ export default function TutoriaErrors() {
   const { user } = useAuthStore();
   const { isDark } = useTheme();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const SEVERITY_LABEL: Record<string, string> = {
+    BAIXA: t('tutoriaDetail.severity.BAIXA'),
+    MEDIA: t('tutoriaDetail.severity.MEDIA'),
+    ALTA: t('tutoriaDetail.severity.ALTA'),
+    CRITICA: t('tutoriaDetail.severity.CRITICA'),
+  };
+  const STATUS_LABEL: Record<string, string> = {
+    ABERTO: t('tutoriaDetail.status.ABERTO'),
+    EM_ANALISE: t('tutoriaDetail.status.EM_ANALISE'),
+    PLANO_CRIADO: t('tutoriaDetail.status.PLANO_CRIADO'),
+    EM_EXECUCAO: t('tutoriaDetail.status.EM_EXECUCAO'),
+    CONCLUIDO: t('tutoriaDetail.status.CONCLUIDO'),
+    VERIFICADO: t('tutoriaDetail.status.VERIFICADO'),
+  };
 
   const isManager = user?.role === 'ADMIN' || user?.role === 'TRAINER';
 
@@ -108,7 +118,7 @@ export default function TutoriaErrors() {
         const res = await axios.get('/api/tutoria/errors');
         setErrors(Array.isArray(res.data) ? res.data : []);
       } catch {
-        setLoadError('Não foi possível carregar os erros.');
+        setLoadError(t('tutoriaErrors.loadError'));
       } finally {
         setLoading(false);
       }
@@ -161,10 +171,10 @@ export default function TutoriaErrors() {
             <div>
               <span className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-red-400' : 'text-red-500'}`}>Tutoria</span>
               <h1 className={`text-4xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {isManager ? 'Erros' : 'Meus Erros'}
+                {isManager ? t('tutoriaErrors.title') : t('tutoriaErrors.myTitle')}
               </h1>
               <p className={`mt-1 text-sm ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
-                {filtered.length} erro{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}
+                {t('tutoriaErrors.errorCount', { count: filtered.length })}
               </p>
             </div>
           </div>
@@ -174,7 +184,7 @@ export default function TutoriaErrors() {
               onClick={() => navigate('/tutoria/errors/new')}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 text-white text-sm font-bold shadow-lg shadow-red-500/25"
             >
-              <Plus className="w-4 h-4" /> Registar Erro
+              <Plus className="w-4 h-4" /> {t('tutoriaErrors.registerError')}
             </motion.button>
           )}
         </div>
@@ -186,7 +196,7 @@ export default function TutoriaErrors() {
         transition={{ duration: 0.3, delay: 0.05 }}
         className="flex gap-2 flex-wrap"
       >
-        {[{ label: `Todos (${errors.length})`, value: '' }, ...STATUS_ORDER.map(s => ({ label: `${STATUS_LABEL[s]} (${statusCounts[s]})`, value: s }))].map(({ label, value }) => (
+        {[{ label: `${t('common.all')} (${errors.length})`, value: '' }, ...STATUS_ORDER.map(s => ({ label: `${STATUS_LABEL[s]} (${statusCounts[s]})`, value: s }))].map(({ label, value }) => (
           statusCounts[value as string] > 0 || value === '' ? (
             <button
               key={value}
@@ -215,7 +225,7 @@ export default function TutoriaErrors() {
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Pesquisar por descrição, tutorado ou categoria…"
+              placeholder={t('tutoriaErrors.searchPlaceholder')}
               className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${
                 isDark
                   ? 'bg-white/[0.04] border-white/10 text-white placeholder-gray-600 focus:border-red-500'
@@ -231,7 +241,7 @@ export default function TutoriaErrors() {
                 : isDark ? 'bg-white/[0.04] border-white/10 text-gray-400' : 'bg-white border-gray-200 text-gray-600'
             }`}
           >
-            <Filter className="w-4 h-4" /> Filtros
+            <Filter className="w-4 h-4" /> {t('tutoriaErrors.filters')}
             <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
           </button>
         </div>
@@ -243,17 +253,17 @@ export default function TutoriaErrors() {
               className={`grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 rounded-2xl border ${isDark ? 'bg-white/[0.02] border-white/8' : 'bg-gray-50 border-gray-200'}`}
             >
               <div className="relative">
-                <select value={filterSeverity} onChange={e => setFilterSeverity(e.target.value)} className={selectCls}>
-                  <option value="">Gravidade — Todas</option>
-                  {['CRITICA', 'ALTA', 'MEDIA', 'BAIXA'].map(s => <option key={s} value={s}>{SEVERITY_LABEL[s]}</option>)}
+                <select value={filterSeverity} onChange={e => setFilterSeverity(e.target.value)} className={selectCls} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>
+                  <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('tutoriaErrors.allSeverities')}</option>
+                  {['CRITICA', 'ALTA', 'MEDIA', 'BAIXA'].map(s => <option key={s} value={s} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{SEVERITY_LABEL[s]}</option>)}
                 </select>
                 <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
               </div>
               <div className="relative">
-                <select value={filterRecurrent} onChange={e => setFilterRecurrent(e.target.value)} className={selectCls}>
-                  <option value="">Reincidência — Todas</option>
-                  <option value="yes">Reincidentes</option>
-                  <option value="no">Sem reincidência</option>
+                <select value={filterRecurrent} onChange={e => setFilterRecurrent(e.target.value)} className={selectCls} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>
+                  <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('tutoriaErrors.allRecurrence')}</option>
+                  <option value="yes" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('tutoriaErrors.recurrent')}</option>
+                  <option value="no" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('tutoriaErrors.noRecurrence')}</option>
                 </select>
                 <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
               </div>
@@ -261,7 +271,7 @@ export default function TutoriaErrors() {
                 onClick={() => { setFilterSeverity(''); setFilterStatus(''); setFilterRecurrent(''); setSearch(''); }}
                 className={`flex items-center justify-center gap-1.5 text-xs font-semibold rounded-xl border transition-all ${isDark ? 'border-white/10 text-gray-500 hover:text-white' : 'border-gray-200 text-gray-400 hover:text-gray-900'}`}
               >
-                <XCircle className="w-3.5 h-3.5" /> Limpar filtros
+                <XCircle className="w-3.5 h-3.5" /> {t('tutoriaErrors.clearFilters')}
               </button>
             </motion.div>
           )}
@@ -284,14 +294,14 @@ export default function TutoriaErrors() {
         >
           <AlertTriangle className={`w-12 h-12 mx-auto mb-4 ${isDark ? 'text-gray-700' : 'text-gray-300'}`} />
           <p className={`text-lg font-bold ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-            {errors.length === 0 ? 'Nenhum erro registado' : 'Sem resultados para os filtros aplicados'}
+            {errors.length === 0 ? t('tutoriaErrors.noErrors') : t('tutoriaErrors.noFilterResults')}
           </p>
           {isManager && errors.length === 0 && (
             <button
               onClick={() => navigate('/tutoria/errors/new')}
               className="mt-4 inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-red-500 text-white text-sm font-bold"
             >
-              <Plus className="w-4 h-4" /> Registar primeiro erro
+              <Plus className="w-4 h-4" /> {t('tutoriaErrors.registerFirst')}
             </button>
           )}
         </motion.div>
@@ -307,11 +317,11 @@ export default function TutoriaErrors() {
             }`}
             style={{ gridTemplateColumns: '1fr 130px 110px 90px 60px 36px' }}
           >
-            <span>Erro / Tutorado</span>
-            <span>Categoria</span>
-            <span>Status</span>
-            <span>Gravidade</span>
-            <span>Planos</span>
+            <span>{t('tutoriaErrors.errorTutorado')}</span>
+            <span>{t('tutoriaErrors.category')}</span>
+            <span>{t('tutoriaErrors.status')}</span>
+            <span>{t('tutoriaErrors.severity')}</span>
+            <span>{t('tutoriaErrors.plans')}</span>
             <span />
           </div>
 
@@ -342,7 +352,7 @@ export default function TutoriaErrors() {
                             ? isDark ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-red-50 text-red-600 border-red-200'
                             : isDark ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' : 'bg-orange-50 text-orange-600 border-orange-200'
                         }`}>
-                          <RefreshCw className="w-2.5 h-2.5 inline mr-0.5" />{e.recurrence_count + 1}ª vez
+                          <RefreshCw className="w-2.5 h-2.5 inline mr-0.5" />{e.recurrence_count + 1}ª {t('tutoriaErrors.time')}
                         </span>
                       )}
                     </div>
@@ -379,10 +389,10 @@ export default function TutoriaErrors() {
           </AnimatePresence>
 
           <div className={`px-5 py-3 flex items-center justify-between ${isDark ? 'bg-white/[0.01] border-t border-white/5' : 'bg-gray-50 border-t border-gray-100'}`}>
-            <span className={`text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{filtered.length} de {errors.length} erros</span>
+            <span className={`text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{filtered.length} {t('tutoriaErrors.ofErrors', { total: errors.length })}</span>
             {isManager && (
               <button onClick={() => navigate('/tutoria/errors/new')} className={`flex items-center gap-1.5 text-xs font-semibold ${isDark ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-700'}`}>
-                <Plus className="w-3.5 h-3.5" /> Novo erro
+                <Plus className="w-3.5 h-3.5" /> {t('tutoriaErrors.newError')}
               </button>
             )}
           </div>
@@ -395,7 +405,7 @@ export default function TutoriaErrors() {
           className={`rounded-xl border p-3 flex items-center gap-3 text-xs ${isDark ? 'bg-orange-500/5 border-orange-500/10 text-orange-400/70' : 'bg-orange-50 border-orange-200 text-orange-700'}`}
         >
           <Eye className="w-4 h-4 flex-shrink-0" />
-          <span><strong>Reincidência:</strong> erros marcados com <RefreshCw className="w-3 h-3 inline" /> ocorreram mais de uma vez para o mesmo tutorado e categoria. A partir da 3ª vez o alerta é vermelho.</span>
+          <span><strong>{t('tutoriaErrors.recurrenceLabel')}</strong> {t('tutoriaErrors.recurrenceWarning')}</span>
         </motion.div>
       )}
 

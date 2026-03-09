@@ -87,7 +87,7 @@ export default function MyLessons() {
       await loadLessons();
     } catch (error: any) {
       console.error('Error confirming lesson:', error);
-      alert(error.response?.data?.detail || 'Erro ao confirmar módulo');
+      alert(error.response?.data?.detail || t('myLessons.confirmError'));
     } finally {
       setConfirmingId(null);
     }
@@ -130,7 +130,7 @@ export default function MyLessons() {
       return (
         <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
           <Play className="w-3 h-3 inline mr-1" />
-          Disponível
+          {t('myLessons.available')}
         </span>
       );
     }
@@ -138,7 +138,7 @@ export default function MyLessons() {
       return (
         <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-500/20 text-gray-600 dark:text-gray-400 border border-gray-500/30">
           <Clock className="w-3 h-3 inline mr-1" />
-          Pendente
+          {t('myLessons.pendingStatus')}
         </span>
       );
     }
@@ -181,7 +181,7 @@ export default function MyLessons() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{lessons.length}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Total de Aulas</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('myLessons.totalLessons')}</p>
             </div>
           </div>
         </div>
@@ -192,7 +192,7 @@ export default function MyLessons() {
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">{pendingLessons.length}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Pendentes</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('myLessons.pendingCount')}</p>
             </div>
           </div>
         </div>
@@ -349,7 +349,7 @@ export default function MyLessons() {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <Clock className="w-5 h-5 text-gray-400" />
-            Aulas Pendentes
+            {t('myLessons.waitingLessons')}
           </h2>
           <div className="grid gap-4">
             {pendingLessons.map((lesson, index) => (
@@ -385,7 +385,7 @@ export default function MyLessons() {
                     </div>
                     <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                       <Eye className="w-5 h-5" />
-                      <span className="text-sm font-medium">Abrir</span>
+                      <span className="text-sm font-medium">{t('myLessons.open')}</span>
                     </div>
                   </div>
                 </div>

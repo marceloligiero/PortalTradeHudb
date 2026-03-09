@@ -13,6 +13,7 @@ import {
   Shield,
   GraduationCap,
   Briefcase,
+  Crown,
   ChevronDown,
   Sparkles,
   AlertCircle,
@@ -26,7 +27,8 @@ import {
   Award,
   BookOpen,
   Timer,
-  Target
+  Target,
+  KeyRound
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -34,9 +36,12 @@ interface User {
   id: number;
   email: string;
   full_name: string;
-  role: 'TRAINEE' | 'TRAINER' | 'ADMIN';
+  role: 'TRAINEE' | 'TRAINER' | 'ADMIN' | 'MANAGER';
   is_active: boolean;
   is_pending: boolean;
+  is_trainer: boolean;
+  is_tutor: boolean;
+  is_liberador: boolean;
   created_at: string;
 }
 
@@ -153,6 +158,7 @@ const UserDetailsContent = ({ user, onClose, t }: { user: UserDetails | null; on
     switch (role) {
       case 'ADMIN': return t('usersPage.admin');
       case 'TRAINER': return t('usersPage.trainer');
+      case 'MANAGER': return t('usersPage.teamLeader');
       default: return t('usersPage.student');
     }
   };
@@ -184,6 +190,7 @@ const UserDetailsContent = ({ user, onClose, t }: { user: UserDetails | null; on
             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
               user.role === 'ADMIN' ? 'bg-purple-500/20 text-purple-300' :
               user.role === 'TRAINER' ? 'bg-blue-500/20 text-blue-300' :
+              user.role === 'MANAGER' ? 'bg-orange-500/20 text-orange-300' :
               'bg-green-500/20 text-green-300'
             }`}>
               {getRoleLabel(user.role)}
@@ -260,8 +267,11 @@ const EditUserContent = ({ user, onSave, onClose, saving, t }: { user: User | nu
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
-    role: 'TRAINEE' as 'TRAINEE' | 'TRAINER' | 'ADMIN',
-    is_active: true
+    role: 'TRAINEE' as 'TRAINEE' | 'TRAINER' | 'ADMIN' | 'MANAGER',
+    is_active: true,
+    is_trainer: false,
+    is_tutor: false,
+    is_liberador: false
   });
 
   useEffect(() => {
@@ -270,7 +280,10 @@ const EditUserContent = ({ user, onSave, onClose, saving, t }: { user: User | nu
         full_name: user.full_name,
         email: user.email,
         role: user.role,
-        is_active: user.is_active
+        is_active: user.is_active,
+        is_trainer: user.is_trainer ?? false,
+        is_tutor: user.is_tutor ?? false,
+        is_liberador: user.is_liberador ?? false
       });
     }
   }, [user]);
@@ -308,17 +321,68 @@ const EditUserContent = ({ user, onSave, onClose, saving, t }: { user: User | nu
         />
       </div>
 
+      {/* Competências adicionais */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('usersPage.role')}</label>
-        <select
-          value={formData.role}
-          onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
-          className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all outline-none appearance-none cursor-pointer"
-        >
-          <option value="TRAINEE" className="bg-white dark:bg-gray-900">{t('usersPage.student')}</option>
-          <option value="TRAINER" className="bg-white dark:bg-gray-900">{t('usersPage.trainer')}</option>
-          <option value="ADMIN" className="bg-white dark:bg-gray-900">{t('usersPage.admin')}</option>
-        </select>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t('usersPage.additionalCapabilities', 'Competências adicionais')}</label>
+        <div className="space-y-2">
+          <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:border-blue-500/30 transition-all">
+            <input
+              type="checkbox"
+              checked={formData.is_trainer}
+              onChange={(e) => setFormData({ ...formData, is_trainer: e.target.checked })}
+              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <Briefcase className="w-4 h-4 text-blue-400" />
+            <div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">{t('usersPage.trainer', 'Formador')}</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.trainerDesc', 'Pode criar cursos e avaliar formandos')}</p>
+            </div>
+          </label>
+          <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:border-emerald-500/30 transition-all">
+            <input
+              type="checkbox"
+              checked={formData.is_tutor}
+              onChange={(e) => setFormData({ ...formData, is_tutor: e.target.checked })}
+              className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+            />
+            <Award className="w-4 h-4 text-emerald-400" />
+            <div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">{t('usersPage.tutor', 'Tutor')}</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.tutorDesc', 'Pode supervisionar e orientar colaboradores')}</p>
+            </div>
+          </label>
+          <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:border-orange-500/30 transition-all">
+            <input
+              type="checkbox"
+              checked={formData.role === 'MANAGER' || formData.role === 'ADMIN'}
+              onChange={(e) => {
+                if (formData.role !== 'ADMIN') {
+                  setFormData({ ...formData, role: e.target.checked ? 'MANAGER' : 'TRAINEE' });
+                }
+              }}
+              disabled={formData.role === 'ADMIN'}
+              className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500 disabled:opacity-50"
+            />
+            <Crown className="w-4 h-4 text-orange-400" />
+            <div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">{t('usersPage.teamLeader', 'Chefe de Equipa')}</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.teamLeaderDesc', 'Pode gerir equipas e aprovar planos')}</p>
+            </div>
+          </label>
+          <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:border-cyan-500/30 transition-all">
+            <input
+              type="checkbox"
+              checked={formData.is_liberador}
+              onChange={(e) => setFormData({ ...formData, is_liberador: e.target.checked })}
+              className="w-4 h-4 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
+            />
+            <KeyRound className="w-4 h-4 text-cyan-400" />
+            <div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">{t('usersPage.liberador', 'Liberador')}</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.liberadorDesc', 'Pode aprovar operações e registar erros internos')}</p>
+            </div>
+          </label>
+        </div>
       </div>
 
       <div className="flex gap-3 pt-2">
@@ -489,6 +553,7 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
     switch (role) {
       case 'ADMIN': return Shield;
       case 'TRAINER': return Briefcase;
+      case 'MANAGER': return Crown;
       default: return GraduationCap;
     }
   };
@@ -504,6 +569,11 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
         bg: 'from-blue-500/20 to-blue-600/20', 
         border: 'border-blue-500/30',
         text: 'text-blue-300'
+      };
+      case 'MANAGER': return { 
+        bg: 'from-orange-500/20 to-orange-600/20', 
+        border: 'border-orange-500/30',
+        text: 'text-orange-300'
       };
       default: return { 
         bg: 'from-green-500/20 to-green-600/20', 
@@ -540,8 +610,26 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
               <h3 className="text-gray-900 dark:text-white font-medium">{user.full_name}</h3>
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r ${roleConfig.bg} ${roleConfig.border} border ${roleConfig.text}`}>
                 <RoleIcon className="w-3 h-3 inline mr-1" />
-                {user.role === 'ADMIN' ? t('usersPage.admin') : user.role === 'TRAINER' ? t('usersPage.trainer') : t('usersPage.student')}
+                {user.role === 'ADMIN' ? t('usersPage.admin') : user.role === 'MANAGER' ? t('usersPage.teamLeader') : t('usersPage.student')}
               </span>
+              {user.is_trainer && (
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500/20 to-blue-600/20 border-blue-500/30 border text-blue-300">
+                  <Briefcase className="w-3 h-3 inline mr-1" />
+                  {t('usersPage.trainer', 'Formador')}
+                </span>
+              )}
+              {user.is_tutor && (
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 border-emerald-500/30 border text-emerald-300">
+                  <Award className="w-3 h-3 inline mr-1" />
+                  {t('usersPage.tutor', 'Tutor')}
+                </span>
+              )}
+              {user.is_liberador && (
+                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 border-cyan-500/30 border text-cyan-300">
+                  <KeyRound className="w-3 h-3 inline mr-1" />
+                  {t('usersPage.liberador', 'Liberador')}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2 mt-1">
               <Mail className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
@@ -551,7 +639,7 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
         </div>
         
         <div className="flex items-center gap-2">
-          {user.is_pending && user.role === 'TRAINER' ? (
+          {user.is_pending && (user.is_trainer || user.is_tutor || user.is_liberador || user.role === 'MANAGER') ? (
             <div className="flex items-center gap-2">
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -770,7 +858,7 @@ export default function UsersPage() {
     total: users.length,
     active: users.filter(u => u.is_active && !u.is_pending).length,
     pending: users.filter(u => u.is_pending).length,
-    trainers: users.filter(u => u.role === 'TRAINER').length
+    trainers: users.filter(u => u.is_trainer || u.role === 'TRAINER').length
   };
 
   return (

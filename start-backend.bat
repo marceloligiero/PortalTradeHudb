@@ -9,6 +9,9 @@ if not exist "%~dp0.venv\Scripts\activate.bat" (
 )
 call "%~dp0.venv\Scripts\activate.bat"
 echo.
+echo  [Migration] Checking for pending database migrations...
+python -c "from app.migrate import run_migrations; count = run_migrations(); print(f'  Applied {count} migration(s).' if count else '  No pending migrations.')" 2>nul || echo  [WARN] Migration check failed, continuing...
+echo.
 echo  Starting uvicorn on http://0.0.0.0:8000 ...
 echo.
 python -m uvicorn main:app --host 0.0.0.0 --port 8000

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../contexts/ThemeContext';
 import { motion } from 'framer-motion';
 import {
   Users,
@@ -38,6 +39,7 @@ interface Student {
 export default function TrainerStudentsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -176,10 +178,11 @@ export default function TrainerStudentsPage() {
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+              style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}
             >
-              <option value="ALL">{t('trainerStudents.allStatuses')}</option>
-              <option value="ACTIVE">{t('trainerStudents.active')}</option>
-              <option value="INACTIVE">{t('trainerStudents.inactive')}</option>
+              <option value="ALL" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('trainerStudents.allStatuses')}</option>
+              <option value="ACTIVE" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('trainerStudents.active')}</option>
+              <option value="INACTIVE" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('trainerStudents.inactive')}</option>
             </select>
           </div>
         </div>

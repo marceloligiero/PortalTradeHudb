@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Operation {
   id: number;
@@ -112,6 +113,7 @@ export default function SubmissionReview() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { token } = useAuthStore();
+  const { isDark } = useTheme();
   
   const ERROR_TYPES = [
     { value: 'METODOLOGIA', label: t('submissionReview.methodology'), description: t('submissionReview.methodologyDesc') },
@@ -817,9 +819,10 @@ export default function SubmissionReview() {
                                     value={err.error_type}
                                     onChange={(e) => handleErrorChange(errIndex, 'error_type', e.target.value)}
                                     className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-red-500"
+                                    style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}
                                   >
                                     {ERROR_TYPES.map(type => (
-                                      <option key={type.value} value={type.value} className="bg-gray-800">
+                                      <option key={type.value} value={type.value} className="bg-gray-800" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>
                                         {type.label}
                                       </option>
                                     ))}

@@ -1,933 +1,1018 @@
+/**
+ * TradeDatahubLanding — Santander Premium Landing Page
+ *
+ * Brand palette: Santander Red #EC0000, Black #000, White #FFF
+ * Techniques:
+ *  · Magnetic particle background (canvas GPU-accelerated)
+ *  · Scroll progress bar (useScroll + useSpring)
+ *  · 3D tilt hero card (useMotionValue + useSpring + perspective)
+ *  · Word-by-word headline stagger (framer-motion)
+ *  · Live activity notifications (AnimatePresence social proof)
+ *  · Infinite marquee ticker
+ *  · Bento grid portal layout (5 portals)
+ *  · Animated counters (RAF + quartic easing)
+ *  · PremiumNavbar integration
+ */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence, useMotionValue, useTransform, useInView, useSpring, useMotionTemplate } from 'framer-motion';
 import {
-  GraduationCap, Shield, BarChart3, LogIn, UserPlus, Sun, Moon,
-  ArrowRight, Globe, Sparkles, Users, TrendingUp,
-  Check, Zap, Lock, Award, Bot, ChevronDown, Star,
-  Target, Eye, Layers, Clock, AlertTriangle, FileCheck,
-  LineChart, Gauge, BrainCircuit, Workflow, Trophy,
+  motion, AnimatePresence, useScroll, useMotionValue, useSpring,
+} from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
+import {
+  ArrowRight, BookOpen, CheckCircle, Shield,
+  UserPlus, Receipt,
+  BarChart3, Zap, GraduationCap, Layers,
+  MessageSquare, TrendingUp, Award, AlertTriangle,
+  FileText, Settings, Database,
+  type LucideIcon,
 } from 'lucide-react';
+import PremiumNavbar from '../components/PremiumNavbar';
 
-// ── CSS keyframes injected globally ───────────────────────────────────────────
-const CSS = `
-@keyframes shimmer-lr {
-  0%   { background-position: 0%   center; }
-  100% { background-position: 300% center; }
-}
-.text-shimmer {
-  background: linear-gradient(90deg,#f87171 0%,#fb923c 18%,#fbbf24 36%,#34d399 54%,#60a5fa 72%,#a78bfa 90%,#f87171 100%);
-  background-size: 300% auto;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  animation: shimmer-lr 5s linear infinite;
-}
-
-@keyframes marquee-x {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-.marquee-track { animation: marquee-x 28s linear infinite; }
-.marquee-track:hover { animation-play-state: paused; }
-
-@property --card-angle {
-  syntax: '<angle>';
-  initial-value: 0deg;
-  inherits: false;
-}
-@keyframes card-border-spin {
-  to { --card-angle: 360deg; }
-}
-.card-glow-border { position: relative; isolation: isolate; }
-.card-glow-border::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: 24px;
-  background: conic-gradient(from var(--card-angle), transparent 70%, var(--glow-c,#ef4444) 85%, transparent 100%);
-  animation: card-border-spin 5s linear infinite;
-  opacity: 0;
-  transition: opacity .5s ease;
-  z-index: -1;
-}
-.card-glow-border:hover::before { opacity: 1; }
-
-@keyframes float-badge {
-  0%,100% { transform: translateY(0px) rotate(-1deg); }
-  50%      { transform: translateY(-10px) rotate(1deg); }
-}
-.badge-float { animation: float-badge 3.5s ease-in-out infinite; }
-.badge-float-slow { animation: float-badge 4.8s ease-in-out infinite; animation-delay: -1.5s; }
-
-@keyframes glow-breathe {
-  0%,100% { opacity:.35; transform:scale(1); }
-  50%     { opacity:.65; transform:scale(1.06); }
-}
-.glow-breathe { animation: glow-breathe 4s ease-in-out infinite; }
-
-@keyframes img-ken-burns {
-  0%   { transform: scale(1) translate(0,0); }
-  100% { transform: scale(1.08) translate(-2%,-1%); }
-}
-.img-ken-burns { animation: img-ken-burns 12s ease-in-out infinite alternate; }
-
-/* Pixar / 3-D illustration effect */
-.img-pixar {
-  filter: url(#pixar-smooth) saturate(2.2) contrast(1.22) brightness(1.09) sepia(0.07) hue-rotate(-4deg);
-  image-rendering: auto;
-  transition: filter .6s ease;
-}
-.img-pixar:hover {
-  filter: url(#pixar-smooth) saturate(2.6) contrast(1.28) brightness(1.13) sepia(0.08) hue-rotate(-4deg);
-}
-`;
-
-// ── i18n ──────────────────────────────────────────────────────────────────────
-const LANGS = [
-  { code: 'pt', label: '🇵🇹 PT' },
-  { code: 'es', label: '🇪🇸 ES' },
-  { code: 'en', label: '🇺🇸 EN' },
-] as const;
+// ─── i18n ──────────────────────────────────────────────────────────────────────
 type LC = 'pt' | 'es' | 'en';
 
+const LANG_OPTIONS = [
+  { code: 'pt' as LC, label: '🇵🇹 Português', short: 'PT' },
+  { code: 'es' as LC, label: '🇪🇸 Español',   short: 'ES' },
+  { code: 'en' as LC, label: '🇺🇸 English',   short: 'EN' },
+];
+
 const T = {
-  login:    { pt: 'Entrar',    es: 'Entrar',      en: 'Sign In'  },
-  register: { pt: 'Registar', es: 'Registrarse',  en: 'Register' },
-  hero_pre: { pt: 'A plataforma que centraliza', es: 'La plataforma que centraliza', en: 'The platform that centralises' },
-  hero_post:{ pt: 'nas suas Operações',          es: 'en sus Operaciones',           en: 'across your Operations'        },
-  hero_sub: {
-    pt: 'Centralize formações, tutoria e relatórios numa única plataforma. Insights em tempo real para cada equipa operacional.',
-    es: 'Centralice formaciones, tutoría e informes en una única plataforma. Insights en tiempo real para cada equipo.',
-    en: 'Centralise training, tutoring and reporting in one platform. Real-time insights for every operational team.',
+  login:    { pt: 'Entrar',    es: 'Entrar',     en: 'Sign In'  },
+  register: { pt: 'Registar', es: 'Registrarse', en: 'Register' },
+
+  badge:    { pt: 'Santander Digital Services · Shared Services', es: 'Santander Digital Services · Shared Services', en: 'Santander Digital Services · Shared Services' },
+  h1pre:    { pt: 'Trade',         es: 'Trade',        en: 'Trade'       },
+  h1main:   { pt: 'DataHub',       es: 'DataHub',      en: 'DataHub'     },
+  h1grad:   { pt: 'Formações',     es: 'Formaciones',  en: 'Training'    },
+  h1cycle: [
+    { pt: 'Formações',    es: 'Formaciones',    en: 'Training'    },
+    { pt: 'Tutoria',      es: 'Tutoría',        en: 'Tutoring'    },
+    { pt: 'Relatórios',    es: 'Informes',       en: 'Reports'     },
+    { pt: 'Dados Mestres', es: 'Datos Maestros', en: 'Master Data' },
+    { pt: 'Chamados',     es: 'Incidencias',    en: 'Incidents'   },
+  ],
+  sub:      {
+    pt: 'A plataforma integrada de formação, tutoria e relatórios para as equipas de Trade Finance do Santander. Tudo o que precisas, num só lugar.',
+    es: 'La plataforma integrada de formación, tutoría e informes para los equipos de Trade Finance del Santander.',
+    en: 'The integrated platform for training, tutoring and reporting for Santander Trade Finance teams. Everything you need, in one place.',
   },
-  scroll:        { pt: 'Explorar', es: 'Explorar', en: 'Explore' },
-  portals_title: { pt: 'Os Nossos Portais',           es: 'Nuestros Portales',        en: 'Our Portals'         },
-  portals_sub:   { pt: 'Cada portal desenhado para o seu papel na operação', es: 'Cada portal diseñado para su rol operacional', en: 'Each portal designed for your operational role' },
-  features_title:{ pt: 'Porquê o Trade Data Hub?',   es: '¿Por qué Trade Data Hub?', en: 'Why Trade Data Hub?' },
-  features_sub: {
-    pt: 'Argumentos que convencem qualquer gestor de operações',
-    es: 'Argumentos que convencen a cualquier gestor de operaciones',
-    en: 'Arguments that convince any operations manager',
+  cta1:  { pt: 'Começar Agora',     es: 'Empezar Ahora',   en: 'Get Started'      },
+  cta2:  { pt: 'Explorar Portais',  es: 'Explorar Portales', en: 'Explore Portals' },
+
+  trust1: { pt: 'Certificação Oficial', es: 'Certificación Oficial', en: 'Official Certification' },
+  trust2: { pt: 'Seguro & Privado',     es: 'Seguro & Privado',      en: 'Secure & Private'       },
+  trust3: { pt: 'Santander Group',      es: 'Santander Group',       en: 'Santander Group'        },
+
+  previewWelcome:  { pt: 'Bom dia, Ana! 👋',       es: '¡Buenos días, Ana! 👋',    en: 'Good morning, Ana! 👋' },
+  previewProgress: { pt: '5 portais disponíveis',  es: '5 portales disponibles',   en: '5 portals available'   },
+  previewStatus:   { pt: 'Ativo',                  es: 'Activo',                   en: 'Active'                },
+  previewComplete: { pt: 'completo',               es: 'completo',                 en: 'complete'              },
+  previewOnline:   { pt: 'online',                  es: 'en línea',                  en: 'online'                },
+
+  actName1: { pt: 'Ana S.',  es: 'Ana S.',  en: 'Ana S.'  },
+  actMsg1:  { pt: 'completou Remessas de Importação', es: 'completó Remesas de Importación', en: 'completed Import Remittances' },
+  actAgo1:  { pt: '2 min atrás', es: 'hace 2 min', en: '2 min ago' },
+  actName2: { pt: 'João C.', es: 'Juan C.', en: 'John C.' },
+  actMsg2:  { pt: 'criou plano de ação em Tutoria', es: 'creó plan de acción en Tutoría', en: 'created action plan in Tutoring' },
+  actAgo2:  { pt: '5 min atrás', es: 'hace 5 min', en: '5 min ago' },
+  actName3: { pt: 'Maria R.', es: 'María R.', en: 'Maria R.' },
+  actMsg3:  { pt: 'abriu chamado de incidência', es: 'abrió incidencia en Chamados', en: 'opened incident in Chamados' },
+  actAgo3:  { pt: '8 min atrás', es: 'hace 8 min', en: '8 min ago' },
+
+  portTag:      { pt: 'Três Portais Integrados',   es: 'Tres Portales Integrados',   en: 'Three Integrated Portals'  },
+  portTitle:    { pt: 'Os Nossos Portais',          es: 'Nuestros Portales',          en: 'Our Portals'               },
+  portSub:      {
+    pt: 'Acede a três portais especializados que trabalham em conjunto para uma formação operacional de excelência.',
+    es: 'Accede a tres portales especializados que trabajan juntos para una formación operacional de excelencia.',
+    en: 'Access three specialised portals working together for operational excellence training.',
   },
-  access:        { pt: 'Aceder', es: 'Acceder', en: 'Access' },
-  cta_title: {
-    pt: 'Pronto para transformar as suas Operações?',
-    es: '¿Listo para transformar sus Operaciones?',
-    en: 'Ready to transform your Operations?',
+  portAccess:   { pt: 'Aceder ao Portal', es: 'Acceder al Portal', en: 'Access Portal' },
+
+  p1Title: { pt: 'Portal de Formações', es: 'Portal de Formaciones', en: 'Training Portal' },
+  p1Sub:   { pt: 'Hub de Aprendizagem', es: 'Hub de Aprendizaje',    en: 'Learning Hub'    },
+  p1Desc:  {
+    pt: 'Trilhas de formação estruturadas por área operacional, desafios práticos, banco de questões e certificados de conclusão.',
+    es: 'Rutas de formación estructuradas por área operacional, desafíos prácticos y certificados de conclusión.',
+    en: 'Structured training tracks by operational area, practical challenges, question banks and completion certificates.',
   },
-  cta_sub: {
-    pt: 'Registe-se gratuitamente e comece a usar hoje.',
-    es: 'Regístrese gratis y empiece hoy.',
-    en: 'Sign up for free and start today.',
+  p1f1: { pt: 'Cursos por área operacional', es: 'Cursos por área operacional', en: 'Courses by operational area' },
+  p1f2: { pt: 'Desafios e avaliações',       es: 'Desafíos y evaluaciones',     en: 'Challenges and assessments' },
+  p1f3: { pt: 'Certificados de conclusão',   es: 'Certificados de conclusión',  en: 'Completion certificates'   },
+  p1f4: { pt: 'Banco de questões',           es: 'Banco de preguntas',          en: 'Question bank'             },
+  p1f5: { pt: 'Planos de formação',          es: 'Planes de formación',         en: 'Training plans'            },
+
+  p2Title: { pt: 'Portal de Tutoria', es: 'Portal de Tutoría', en: 'Tutoring Portal' },
+  p2Sub:   { pt: 'Gestão de Erros',   es: 'Gestión de Errores', en: 'Error Management' },
+  p2Desc:  {
+    pt: 'Registo e acompanhamento de erros operacionais, planos de ação, tutoria personalizada e folhas de aprendizagem.',
+    es: 'Registro y seguimiento de errores operacionales, planes de acción y tutoría personalizada.',
+    en: 'Registration and tracking of operational errors, action plans, personalised tutoring and learning sheets.',
   },
-  cta_btn: { pt: 'Começar agora', es: 'Empezar ahora', en: 'Get started' },
-  footer: {
-    pt: 'Trade Data Hub © 2025 · Todos os direitos reservados',
-    es: 'Trade Data Hub © 2025 · Todos los derechos reservados',
-    en: 'Trade Data Hub © 2025 · All rights reserved',
+  p2f1: { pt: 'Registo de erros operacionais', es: 'Registro de errores', en: 'Operational error registration' },
+  p2f2: { pt: 'Planos de ação',                es: 'Planes de acción',    en: 'Action plans'                   },
+  p2f3: { pt: 'Tutoria personalizada',          es: 'Tutoría personalizada', en: 'Personalised tutoring'        },
+  p2f4: { pt: 'Folhas de aprendizagem',         es: 'Hojas de aprendizaje', en: 'Learning sheets'               },
+  p2f5: { pt: 'Senso de anomalias',             es: 'Senso de anomalías',  en: 'Anomaly tracking'               },
+
+  p3Title: { pt: 'Portal de Relatórios', es: 'Portal de Informes', en: 'Reports Portal' },
+  p3Sub:   { pt: 'Analytics & KPIs',     es: 'Analytics & KPIs',   en: 'Analytics & KPIs' },
+  p3Desc:  {
+    pt: 'Dashboards interativos com métricas de formação, desempenho por equipa, progresso individual e relatórios exportáveis.',
+    es: 'Dashboards interactivos con métricas de formación, rendimiento por equipo y progreso individual.',
+    en: 'Interactive dashboards with training metrics, team performance, individual progress and exportable reports.',
   },
+  p3f1: { pt: 'Dashboard de formações',   es: 'Dashboard de formaciones', en: 'Training dashboard'  },
+  p3f2: { pt: 'Métricas por equipa',      es: 'Métricas por equipo',      en: 'Team metrics'        },
+  p3f3: { pt: 'Progresso individual',     es: 'Progreso individual',      en: 'Individual progress' },
+  p3f4: { pt: 'Relatório de tutoria',     es: 'Informe de tutoría',       en: 'Tutoring report'     },
+  p3f5: { pt: 'Exportação PDF/Excel',     es: 'Exportación PDF/Excel',    en: 'PDF/Excel export'    },
+
+  p4Title: { pt: 'Dados Mestres', es: 'Datos Maestros', en: 'Master Data' },
+  p4Sub:   { pt: 'Gestão de Referências', es: 'Gestión de Referencias', en: 'Reference Management' },
+  p4Desc:  {
+    pt: 'Gestão centralizada de dados de referência operacionais: dependências de campos, hierarquias e configurações de processo.',
+    es: 'Gestión centralizada de datos de referencia operacionales: dependencias, jerarquías y configuraciones.',
+    en: 'Centralised management of operational reference data: field dependencies, hierarchies and process configurations.',
+  },
+  p4f1: { pt: 'Dependências de campos',  es: 'Dependencias de campos',  en: 'Field dependencies'   },
+  p4f2: { pt: 'Hierarquias de dados',    es: 'Jerarquías de datos',     en: 'Data hierarchies'     },
+  p4f3: { pt: 'Configuração de processos', es: 'Configuración de procesos', en: 'Process configuration' },
+  p4f4: { pt: 'Auditoria de alterações', es: 'Auditoría de cambios',    en: 'Change auditing'      },
+  p4f5: { pt: 'Importação de dados',     es: 'Importación de datos',    en: 'Data import'          },
+
+  p5Title: { pt: 'Portal de Chamados', es: 'Portal de Incidencias', en: 'Incidents Portal' },
+  p5Sub:   { pt: 'Gestão de Incidências', es: 'Gestión de Incidencias', en: 'Incident Management' },
+  p5Desc:  {
+    pt: 'Registo, acompanhamento e resolução de chamados operacionais com priorização, SLAs e comunicação integrada.',
+    es: 'Registro, seguimiento y resolución de incidencias operacionales con priorización y SLAs.',
+    en: 'Registration, tracking and resolution of operational incidents with prioritisation, SLAs and integrated communication.',
+  },
+  p5f1: { pt: 'Abertura de chamados',    es: 'Apertura de incidencias', en: 'Incident creation'    },
+  p5f2: { pt: 'Priorização e SLAs',      es: 'Priorización y SLAs',     en: 'Prioritisation & SLAs'},
+  p5f3: { pt: 'Acompanhamento em tempo real', es: 'Seguimiento en tiempo real', en: 'Real-time tracking' },
+  p5f4: { pt: 'Histórico de chamados',   es: 'Historial de incidencias', en: 'Incident history'    },
+  p5f5: { pt: 'Relatórios de incidências', es: 'Informes de incidencias', en: 'Incident reports'   },
+
+
+
+  howTag:   { pt: 'Como Funciona',   es: 'Cómo Funciona', en: 'How It Works'   },
+  howTitle: { pt: 'A Sua Jornada',   es: 'Su Camino',     en: 'Your Journey'   },
+  s1t: { pt: 'Criar Conta',    es: 'Crear Cuenta',   en: 'Create Account'  },
+  s1d: { pt: 'Registe-se e selecione o seu perfil operacional em segundos.', es: 'Regístrese y seleccione su perfil en segundos.', en: 'Register and select your operational profile in seconds.' },
+  s2t: { pt: 'Aceder aos Portais', es: 'Acceder a los Portales', en: 'Access the Portals' },
+  s2d: { pt: 'Navega entre os portais de Formações, Tutoria e Relatórios conforme o teu perfil.', es: 'Navega entre los portales según tu perfil.', en: 'Navigate between the Training, Tutoring and Reports portals according to your profile.' },
+  s3t: { pt: 'Evoluir e Certificar', es: 'Evolucionar y Certificar', en: 'Grow and Get Certified' },
+  s3d: { pt: 'Complete formações, receba tutoria personalizada e acompanhe o seu progresso com relatórios detalhados.', es: 'Complete formaciones, reciba tutoría y siga su progreso.', en: 'Complete training, receive tutoring and track your progress with detailed reports.' },
+
+  ctaTag:   { pt: 'Pronto para começar?',         es: '¿Listo para empezar?',   en: 'Ready to start?'           },
+  ctaTitle: { pt: 'Acede à plataforma de Trade Finance do Santander', es: 'Accede a la plataforma de Trade Finance del Santander', en: 'Access the Santander Trade Finance platform' },
+  ctaSub:   { pt: 'Formação, tutoria e relatórios numa única plataforma integrada. Acesso imediato para todas as equipas.', es: 'Formación, tutoría e informes en una única plataforma integrada.', en: 'Training, tutoring and reporting in one integrated platform. Immediate access for all teams.' },
+  ctaB1:    { pt: 'Criar Conta Gratuita', es: 'Crear Cuenta Gratis', en: 'Create Free Account' },
+  ctaB2:    { pt: 'Iniciar Sessão',       es: 'Iniciar Sesión',      en: 'Sign In'             },
+
+  copy: { pt: '© 2026 Santander Digital Services', es: '© 2026 Santander Digital Services', en: '© 2026 Santander Digital Services' },
 } as const;
 
-const CYCLE_WORDS = {
-  pt: ['Formações', 'Tutoria', 'Relatórios'],
-  es: ['Formación', 'Tutoría', 'Informes'],
-  en: ['Training', 'Tutoring', 'Reporting'],
+const tr = (key: keyof typeof T, lang: LC): string => T[key][lang];
+
+// ─── Portal Definitions ────────────────────────────────────────────────────────
+interface PortalDef {
+  id: string;
+  titleKey: keyof typeof T;
+  subKey: keyof typeof T;
+  descKey: keyof typeof T;
+  featureKeys: (keyof typeof T)[];
+  icon: LucideIcon;
+  subIcon: LucideIcon;
+  color: string;
+  gradient: string;
+  route: string;
+  span: 1 | 2;
+}
+
+const PORTALS: PortalDef[] = [
+  {
+    id: 'formacoes',
+    titleKey: 'p1Title', subKey: 'p1Sub', descKey: 'p1Desc',
+    featureKeys: ['p1f1', 'p1f2', 'p1f3', 'p1f4', 'p1f5'],
+    icon: GraduationCap, subIcon: BookOpen,
+    color: '#EC0000',
+    gradient: 'from-red-600/20 via-red-500/5 to-transparent',
+    route: '/login',
+    span: 2,
+  },
+  {
+    id: 'tutoria',
+    titleKey: 'p2Title', subKey: 'p2Sub', descKey: 'p2Desc',
+    featureKeys: ['p2f1', 'p2f2', 'p2f3', 'p2f4', 'p2f5'],
+    icon: MessageSquare, subIcon: AlertTriangle,
+    color: '#CC0000',
+    gradient: 'from-red-700/20 via-red-600/5 to-transparent',
+    route: '/login',
+    span: 1,
+  },
+  {
+    id: 'relatorios',
+    titleKey: 'p3Title', subKey: 'p3Sub', descKey: 'p3Desc',
+    featureKeys: ['p3f1', 'p3f2', 'p3f3', 'p3f4', 'p3f5'],
+    icon: BarChart3, subIcon: TrendingUp,
+    color: '#FF2D2D',
+    gradient: 'from-red-500/20 via-red-400/5 to-transparent',
+    route: '/login',
+    span: 1,
+  },
+  {
+    id: 'dados-mestres',
+    titleKey: 'p4Title', subKey: 'p4Sub', descKey: 'p4Desc',
+    featureKeys: ['p4f1', 'p4f2', 'p4f3', 'p4f4', 'p4f5'],
+    icon: Database, subIcon: Settings,
+    color: '#B30000',
+    gradient: 'from-red-800/20 via-red-700/5 to-transparent',
+    route: '/login',
+    span: 1,
+  },
+  {
+    id: 'chamados',
+    titleKey: 'p5Title', subKey: 'p5Sub', descKey: 'p5Desc',
+    featureKeys: ['p5f1', 'p5f2', 'p5f3', 'p5f4', 'p5f5'],
+    icon: Receipt, subIcon: FileText,
+    color: '#FF4D4D',
+    gradient: 'from-red-400/20 via-red-300/5 to-transparent',
+    route: '/login',
+    span: 1,
+  },
+];
+
+// ─── Marquee ────────────────────────────────────────────────────────────────────
+const MARQUEE: Record<LC, string[]> = {
+  pt: ['Portal de Formações', 'Portal de Tutoria', 'Portal de Relatórios', 'Dados Mestres', 'Portal de Chamados', 'Trade Finance', 'SWIFT', 'UCP 600', 'Santander Digital Services', 'Shared Services', 'Créditos Importação', 'Remessas', 'Garantias', 'Eurocobros'],
+  es: ['Portal de Formaciones', 'Portal de Tutoría', 'Portal de Informes', 'Datos Maestros', 'Portal de Incidencias', 'Trade Finance', 'SWIFT', 'UCP 600', 'Santander Digital Services', 'Shared Services', 'Créditos Importación', 'Remesas', 'Garantías', 'Eurocobros'],
+  en: ['Training Portal', 'Tutoring Portal', 'Reports Portal', 'Master Data', 'Incidents Portal', 'Trade Finance', 'SWIFT', 'UCP 600', 'Santander Digital Services', 'Shared Services', 'Import Credits', 'Remittances', 'Guarantees', 'Eurocollections'],
 };
 
-const MARQUEE_ITEMS = [
-  '🎓 Portal de Formações', '🛡️ Portal de Tutoria', '📊 Portal de Relatórios',
-  '⚡ Análise MPU em Tempo Real', '🔐 5 Roles de Acesso', '🤖 Chatbot IA',
-  '📜 Certificados Digitais', '👥 Equipas por Serviço', '✅ Planos de Ação 5W2H',
-  '📈 KPIs Cross-Portal',
+// ─── Activity Notifications ────────────────────────────────────────────────────
+const ACTIVITIES = [
+  { nameKey: 'actName1' as const, msgKey: 'actMsg1' as const, agoKey: 'actAgo1' as const, color: '#EC0000' },
+  { nameKey: 'actName2' as const, msgKey: 'actMsg2' as const, agoKey: 'actAgo2' as const, color: '#CC0000' },
+  { nameKey: 'actName3' as const, msgKey: 'actMsg3' as const, agoKey: 'actAgo3' as const, color: '#FF2D2D' },
 ];
 
-const PORTALS = [
-  {
-    key: 'formacoes' as const,
-    icon: GraduationCap,
-    gradient: 'from-blue-600 to-indigo-600',
-    glowRgb: '59,130,246',
-    glowCss: '#3b82f6',
-    // Unsplash: people collaborating at laptops / training
-    photo: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=700&q=75&fit=crop',
-    photoGradient: 'from-indigo-950/85 via-blue-950/50 to-transparent',
-    badge: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    title:  { pt: 'Portal de Formações', es: 'Portal de Formación', en: 'Training Portal'  },
-    desc: {
-      pt: 'Cursos, planos de formação, desafios práticos e certificados para cada equipa operacional.',
-      es: 'Cursos, planes de formación, desafíos y certificados para cada equipo operacional.',
-      en: 'Courses, training plans, challenges and certificates for each operational team.',
-    },
-    features: {
-      pt: ['Cursos e lições estruturados', 'Planos de formação personalizados', 'Desafios com análise MPU', 'Certificados digitais automáticos'],
-      es: ['Cursos y lecciones estructurados', 'Planes de formación personalizados', 'Desafíos con análisis MPU', 'Certificados digitales automáticos'],
-      en: ['Structured courses & lessons', 'Personalised training plans', 'MPU challenge analysis', 'Automatic digital certificates'],
-    },
-    roles: { pt: 'Formando · Tutor · Admin', es: 'Alumno · Tutor · Admin', en: 'Trainee · Trainer · Admin' },
-  },
-  {
-    key: 'tutoria' as const,
-    icon: Shield,
-    gradient: 'from-red-600 to-rose-600',
-    glowRgb: '239,68,68',
-    glowCss: '#ef4444',
-    // Unsplash: manager coaching employee / mentoring
-    photo: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=700&q=75&fit=crop',
-    photoGradient: 'from-rose-950/85 via-red-950/50 to-transparent',
-    badge: 'bg-red-500/10 text-red-400 border-red-500/20',
-    title:  { pt: 'Portal de Tutoria',   es: 'Portal de Tutoría',  en: 'Tutoring Portal' },
-    desc: {
-      pt: 'Registo de erros operacionais, planos de ação 5W2H, análise de reincidência e fluxo de aprovação.',
-      es: 'Registro de errores operacionales, planes 5W2H, análisis de reincidencia y flujo de aprobación.',
-      en: 'Operational error logging, 5W2H action plans, recurrence analysis and approval workflow.',
-    },
-    features: {
-      pt: ['Registo e classificação de erros', 'Planos de ação com 5W2H', 'Deteção de reincidência', 'Validação por supervisor'],
-      es: ['Registro y clasificación de errores', 'Planes de acción 5W2H', 'Detección de reincidencia', 'Validación por supervisor'],
-      en: ['Error registration & tagging', '5W2H action plans', 'Recurrence detection', 'Supervisor validation'],
-    },
-    roles: { pt: 'Tutorado · Tutor · Admin', es: 'Tutorado · Tutor · Admin', en: 'Student · Tutor · Admin' },
-  },
-  {
-    key: 'relatorios' as const,
-    icon: BarChart3,
-    gradient: 'from-emerald-600 to-teal-600',
-    glowRgb: '16,185,129',
-    glowCss: '#10b981',
-    // Unsplash: analytics / financial charts on laptop
-    photo: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=700&q=75&fit=crop',
-    photoGradient: 'from-teal-950/85 via-emerald-950/50 to-transparent',
-    badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    title:  { pt: 'Portal de Relatórios', es: 'Portal de Informes', en: 'Reports Portal'  },
-    desc: {
-      pt: 'Insights cruzados de formações e tutoria. Relatórios filtrados por equipa operacional, membro ou serviço.',
-      es: 'Insights cruzados de formación y tutoría. Informes por equipo operacional, miembro o servicio.',
-      en: 'Cross-portal insights from training and tutoring. Reports by team, member or service.',
-    },
-    features: {
-      pt: ['KPIs cross-portal em tempo real', 'Análise por equipa e membro', 'Evolução de MPU e aprovações', 'Relatórios de erros e planos'],
-      es: ['KPIs cross-portal en tiempo real', 'Análisis por equipo y miembro', 'Evolución MPU y aprobaciones', 'Informes de errores y planes'],
-      en: ['Real-time cross-portal KPIs', 'Team & member analytics', 'MPU & approval trends', 'Error & plan reports'],
-    },
-    roles: { pt: 'Todos os níveis · Por serviço', es: 'Todos los niveles · Por servicio', en: 'All levels · By service' },
-  },
-] as const;
+// ─── SantanderParticles (GPU-accelerated canvas) ──────────────────────────────
+function SantanderParticles() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mouseRef = useRef({ x: 0.5, y: 0.5 });
+  const rafRef = useRef(0);
 
-const FEATURES = [
-  {
-    icon: Eye,
-    gradient: 'from-blue-500 to-cyan-500',
-    glowRgb: '59,130,246',
-    photo: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=700&q=75&fit=crop',
-    photoGradient: 'from-blue-950/80 via-cyan-950/40 to-transparent',
-    title: { pt: 'Visibilidade Total', es: 'Visibilidad Total', en: 'Total Visibility' },
-    desc: {
-      pt: 'Veja em tempo real quem está formado, quem tem erros recorrentes e que serviço precisa de ação imediata.',
-      es: 'Vea en tiempo real quién está formado, quién tiene errores recurrentes y qué servicio necesita acción.',
-      en: 'See in real-time who is trained, who has recurring errors and which service needs immediate action.',
-    },
-    metric: { pt: '100% dos KPIs num só Dashboard', es: '100% de KPIs en un Dashboard', en: '100% of KPIs in one Dashboard' },
-  },
-  {
-    icon: AlertTriangle,
-    gradient: 'from-red-500 to-rose-500',
-    glowRgb: '239,68,68',
-    photo: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=700&q=75&fit=crop',
-    photoGradient: 'from-rose-950/80 via-red-950/40 to-transparent',
-    title: { pt: 'Redução de Erros Operacionais', es: 'Reducción de Errores', en: 'Error Reduction' },
-    desc: {
-      pt: 'Identifique padrões de erro por serviço, membro e equipa. Atue antes que se tornem reincidentes.',
-      es: 'Identifique patrones de error por servicio, miembro y equipo. Actúe antes que sean reincidentes.',
-      en: 'Identify error patterns by service, member and team. Act before they become recurring.',
-    },
-    metric: { pt: 'Deteção automática de reincidência', es: 'Detección automática de reincidencia', en: 'Automatic recurrence detection' },
-  },
-  {
-    icon: Gauge,
-    gradient: 'from-emerald-500 to-teal-500',
-    glowRgb: '16,185,129',
-    photo: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=700&q=75&fit=crop',
-    photoGradient: 'from-teal-950/80 via-emerald-950/40 to-transparent',
-    title: { pt: 'MPU — Eficiência Medida', es: 'MPU — Eficiencia Medida', en: 'MPU — Measured Efficiency' },
-    desc: {
-      pt: 'Minutos por operação: saiba exatamente quanto tempo cada serviço demora e onde otimizar.',
-      es: 'Minutos por operación: sepa exactamente cuánto tiempo toma cada servicio y dónde optimizar.',
-      en: 'Minutes per operation: know exactly how long each service takes and where to optimise.',
-    },
-    metric: { pt: 'Benchmark por serviço operacional', es: 'Benchmark por servicio operacional', en: 'Benchmark per operational service' },
-  },
-  {
-    icon: Workflow,
-    gradient: 'from-purple-500 to-violet-500',
-    glowRgb: '139,92,246',
-    photo: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=700&q=75&fit=crop',
-    photoGradient: 'from-violet-950/80 via-purple-950/40 to-transparent',
-    title: { pt: 'Planos de Ação Estruturados', es: 'Planes de Acción Estructurados', en: 'Structured Action Plans' },
-    desc: {
-      pt: 'Metodologia 5W2H aplicada a cada erro. Fluxo de aprovação supervisor → gestor com rastreabilidade total.',
-      es: 'Metodología 5W2H aplicada a cada error. Flujo de aprobación supervisor → gestor con trazabilidad total.',
-      en: '5W2H methodology for every error. Supervisor → manager approval flow with full traceability.',
-    },
-    metric: { pt: 'Cada ação com responsável e prazo', es: 'Cada acción con responsable y plazo', en: 'Every action with owner & deadline' },
-  },
-  {
-    icon: BrainCircuit,
-    gradient: 'from-amber-500 to-orange-500',
-    glowRgb: '245,158,11',
-    photo: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=700&q=75&fit=crop',
-    photoGradient: 'from-orange-950/80 via-amber-950/40 to-transparent',
-    title: { pt: 'Formação Direcionada', es: 'Formación Dirigida', en: 'Targeted Training' },
-    desc: {
-      pt: 'Cursos e desafios alinhados ao serviço real do colaborador. Sem formações genéricas — cada módulo tem impacto direto.',
-      es: 'Cursos y desafíos alineados al servicio real. Sin formaciones genéricas — cada módulo tiene impacto directo.',
-      en: 'Courses and challenges aligned to real service. No generic training — every module has direct impact.',
-    },
-    metric: { pt: 'Certificação automática por serviço', es: 'Certificación automática por servicio', en: 'Automatic certification by service' },
-  },
-];
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d')!;
 
-const STATS = [
-  { value: 3,   suffix: '',   label: { pt: 'Portais',          es: 'Portales',         en: 'Portals'       } },
-  { value: 5,   suffix: '',   label: { pt: 'Roles de acesso',  es: 'Roles de acceso',  en: 'Access roles'  } },
-  { value: 100, suffix: '%',  label: { pt: 'Dados unificados', es: 'Datos unificados', en: 'Unified data'  } },
-  { value: 24,  suffix: '/7', label: { pt: 'Disponibilidade',  es: 'Disponibilidad',   en: 'Availability'  } },
-];
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    resize();
+    window.addEventListener('resize', resize);
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+    const particles: { x: number; y: number; vx: number; vy: number; r: number; a: number; pulse: number }[] = [];
+    const COUNT = 80;
+    for (let i = 0; i < COUNT; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        r: Math.random() * 2 + 0.5,
+        a: Math.random() * 0.3 + 0.05,
+        pulse: Math.random() * Math.PI * 2,
+      });
+    }
 
-/* Spotlight card — mouse-tracking radial gradient */
-function SpotlightCard({ children, className = '', dark }: { children: React.ReactNode; className?: string; dark: boolean }) {
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const mx = mouseRef.current.x * canvas.width;
+      const my = mouseRef.current.y * canvas.height;
+      const t = Date.now() * 0.001;
+
+      particles.forEach(p => {
+        // Magnetic attraction to mouse
+        const dx = mx - p.x;
+        const dy = my - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < 250) {
+          p.vx += dx * 0.00004;
+          p.vy += dy * 0.00004;
+        }
+
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Wrap edges
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
+
+        // Pulse
+        const pulseA = p.a * (0.6 + 0.4 * Math.sin(t * 1.2 + p.pulse));
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(236, 0, 0, ${pulseA})`;
+        ctx.fill();
+
+        // Glow
+        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 8);
+        grad.addColorStop(0, `rgba(236, 0, 0, ${pulseA * 0.3})`);
+        grad.addColorStop(1, 'rgba(236, 0, 0, 0)');
+        ctx.fillStyle = grad;
+        ctx.fill();
+      });
+
+      // Draw connections
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `rgba(236, 0, 0, ${0.06 * (1 - dist / 120)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+
+      rafRef.current = requestAnimationFrame(draw);
+    };
+
+    draw();
+
+    const onMouse = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight };
+    };
+    window.addEventListener('mousemove', onMouse, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('mousemove', onMouse);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none" />;
+}
+
+// ─── TiltCard ─────────────────────────────────────────────────────────────────
+function TiltCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
-  const handleMove = useCallback((e: React.MouseEvent) => {
+  const rotateX = useSpring(mx, { stiffness: 350, damping: 35 });
+  const rotateY = useSpring(my, { stiffness: 350, damping: 35 });
+
+  const onMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!ref.current) return;
-    const r = ref.current.getBoundingClientRect();
-    mx.set(e.clientX - r.left);
-    my.set(e.clientY - r.top);
+    const rect = ref.current.getBoundingClientRect();
+    const nx = (e.clientX - rect.left) / rect.width - 0.5;
+    const ny = (e.clientY - rect.top)  / rect.height - 0.5;
+    my.set(nx * 10);
+    mx.set(-ny * 10);
   }, [mx, my]);
-  const bg = useMotionTemplate`radial-gradient(400px circle at ${mx}px ${my}px, ${dark ? 'rgba(220,38,38,0.1)' : 'rgba(220,38,38,0.05)'}, transparent 70%)`;
+
+  const onLeave = useCallback(() => { mx.set(0); my.set(0); }, [mx, my]);
+
   return (
-    <div ref={ref} onMouseMove={handleMove} className={`relative group ${className}`}>
-      <motion.div className="pointer-events-none absolute -inset-px rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: bg }} />
-      {children}
+    <div ref={ref} onMouseMove={onMove} onMouseLeave={onLeave} style={{ perspective: 1200 }}>
+      <motion.div style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }} className={className}>
+        {children}
+      </motion.div>
     </div>
   );
 }
 
-function CycleWord({ words }: { words: string[] }) {
-  const [idx, setIdx] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setIdx(i => (i + 1) % words.length), 2800);
-    return () => clearInterval(t);
-  }, [words]);
+// ─── SectionHead ──────────────────────────────────────────────────────────────
+function SectionHead({ badge, badgeIcon: Icon, title, desc }: {
+  badge: string; badgeIcon: LucideIcon; title: string; desc?: string;
+}) {
   return (
-    <span className="inline-block">
-      <AnimatePresence mode="wait">
-        <motion.span
-          key={words[idx]}
-          initial={{ opacity: 0, y: 20, filter: 'blur(8px)' }}
-          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-          exit={{ opacity: 0, y: -20, filter: 'blur(8px)' }}
-          transition={{ duration: 0.38, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="inline-block text-shimmer"
-        >
-          {words[idx]}
-        </motion.span>
-      </AnimatePresence>
-    </span>
+    <div className="text-center mb-16 space-y-5">
+      <motion.div initial={{ opacity: 0, scale: 0.5 }} whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true }} transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#EC0000]/[0.08] border border-[#EC0000]/20">
+        <Icon className="w-3.5 h-3.5 text-[#EC0000]" />
+        <span className="text-[11px] font-bold uppercase tracking-wider text-[#EC0000]/80">{badge}</span>
+      </motion.div>
+      <motion.h2 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+        className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1]
+          bg-gradient-to-r from-white via-white/90 to-white/60 bg-clip-text text-transparent">
+        {title}
+      </motion.h2>
+      {desc && (
+        <motion.p initial={{ opacity: 0, y: 10 }} whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }} transition={{ delay: 0.25, duration: 0.6 }}
+          className="text-base md:text-lg text-white/40 max-w-2xl mx-auto leading-relaxed">
+          {desc}
+        </motion.p>
+      )}
+    </div>
   );
 }
 
-function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const inView = useInView(ref, { once: true });
-  const [val, setVal] = useState(0);
-  useEffect(() => {
-    if (!inView) return;
-    const start = performance.now();
-    const tick = (now: number) => {
-      const p = Math.min((now - start) / 1500, 1);
-      setVal(Math.round((1 - Math.pow(1 - p, 3)) * target));
-      if (p < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }, [inView, target]);
-  return <span ref={ref}>{val}{suffix}</span>;
-}
-
-function TiltCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  const x = useMotionValue(0), y = useMotionValue(0);
-  const rotateX = useTransform(y, [-0.5, 0.5], ['5deg', '-5deg']);
-  const rotateY = useTransform(x, [-0.5, 0.5], ['-5deg', '5deg']);
-  return (
-    <motion.div
-      style={{ rotateX, rotateY, transformStyle: 'preserve-3d', perspective: 1000 }}
-      onMouseMove={(e) => { const r = e.currentTarget.getBoundingClientRect(); x.set((e.clientX - r.left) / r.width - 0.5); y.set((e.clientY - r.top) / r.height - 0.5); }}
-      onMouseLeave={() => { x.set(0); y.set(0); }}
-      className={className}
-    >{children}</motion.div>
-  );
-}
-
-// ── Dashboard mockup ───────────────────────────────────────────────────────────
-
-function DashboardMockup({ dark }: { dark: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: '-80px' });
-  return (
-    <motion.div ref={ref} initial={{ opacity: 0, y: 32 }} animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.9, delay: 0.3, ease: [0.22, 1, 0.36, 1] }} className="relative w-full max-w-[420px] mx-auto lg:mx-0">
-      {/* Floating stat badges */}
-      <div className="badge-float absolute -top-6 -right-4 z-20">
-        <div className={`rounded-xl px-3 py-2 border text-xs font-bold shadow-2xl ${dark ? 'bg-[#0e0e18] border-emerald-500/25 text-emerald-400' : 'bg-white border-emerald-200 text-emerald-700 shadow-emerald-100/60'}`}>
-          ↑ 87% conclusão
-        </div>
-      </div>
-      <div className="badge-float-slow absolute -bottom-6 -left-4 z-20">
-        <div className={`rounded-xl px-3 py-2 border text-xs font-bold shadow-2xl ${dark ? 'bg-[#0e0e18] border-blue-500/25 text-blue-400' : 'bg-white border-blue-200 text-blue-700 shadow-blue-100/60'}`}>
-          🎓 3 certificados hoje
-        </div>
-      </div>
-
-      {/* Browser frame */}
-      <div className={`rounded-2xl overflow-hidden border ${dark ? 'border-white/[0.09] bg-[#0b0b12] shadow-[0_40px_100px_-12px_rgba(0,0,0,0.75)]' : 'border-gray-200 bg-white shadow-[0_40px_100px_-12px_rgba(0,0,0,0.18)]'}`}>
-        {/* Chrome */}
-        <div className={`flex items-center gap-3 px-4 py-3 border-b ${dark ? 'border-white/[0.06] bg-white/[0.015]' : 'border-gray-100 bg-gray-50/80'}`}>
-          <div className="flex gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-400/80" /><div className="w-2.5 h-2.5 rounded-full bg-amber-400/80" /><div className="w-2.5 h-2.5 rounded-full bg-emerald-400/80" /></div>
-          <div className={`flex-1 flex items-center justify-center gap-1 text-[10px] rounded-md px-2 py-1 max-w-[190px] mx-auto ${dark ? 'bg-white/[0.04] text-gray-500' : 'bg-gray-100 text-gray-400'}`}>🔒 tradedatahub.pt</div>
-        </div>
-        {/* Content */}
-        <div className="p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div><div className={`text-[11px] font-black ${dark ? 'text-white' : 'text-gray-900'}`}>Dashboard</div><div className={`text-[9px] ${dark ? 'text-gray-600' : 'text-gray-400'}`}>Operações · Março 2025</div></div>
-            <div className="flex -space-x-1.5">{['J','A','C','M'].map((l,i)=><div key={i} className={`w-5 h-5 rounded-full text-[7px] font-bold text-white flex items-center justify-center ring-[1.5px] ${dark?'ring-[#0b0b12]':'ring-white'} ${['bg-blue-500','bg-emerald-500','bg-red-500','bg-purple-500'][i]}`}>{l}</div>)}</div>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            {[{label:'Formandos',val:24,suffix:'',color:'text-blue-500'},{label:'Erros Abertos',val:3,suffix:'',color:'text-red-500'},{label:'Conclusão',val:87,suffix:'%',color:'text-emerald-500'}].map((k,i)=>(
-              <motion.div key={i} initial={{opacity:0,scale:0.85}} animate={inView?{opacity:1,scale:1}:{}} transition={{delay:0.45+i*0.1}} className={`rounded-lg p-2.5 ${dark?'bg-white/[0.04] border border-white/[0.06]':'bg-gray-50 border border-gray-100'}`}>
-                <div className={`text-base font-black tabular-nums ${k.color}`}>{inView?<AnimatedCounter target={k.val} suffix={k.suffix}/>:'0'}</div>
-                <div className={`text-[8px] mt-0.5 ${dark?'text-gray-500':'text-gray-400'}`}>{k.label}</div>
-              </motion.div>
-            ))}
-          </div>
-          <div className={`rounded-xl p-3 ${dark?'bg-white/[0.03] border border-white/[0.05]':'bg-gray-50/70 border border-gray-100'}`}>
-            <div className={`text-[9px] font-semibold mb-2.5 ${dark?'text-gray-500':'text-gray-400'}`}>Formações concluídas / semana</div>
-            <div className="flex items-end gap-1 h-14">
-              {[55,72,48,90,65,95,82].map((h,i)=>(
-                <motion.div key={i} initial={{scaleY:0}} animate={inView?{scaleY:1}:{}} transition={{delay:0.65+i*0.07,duration:0.5,ease:[0.34,1.56,0.64,1]}} className="flex-1 rounded-t-sm origin-bottom bg-gradient-to-t from-blue-700 to-blue-400" style={{height:`${h}%`,opacity:.88}}/>
-              ))}
-            </div>
-            <div className="flex justify-between mt-1">{['S','T','Q','Q','S','S','D'].map((d,i)=><span key={i} className={`text-[7px] flex-1 text-center ${dark?'text-gray-700':'text-gray-300'}`}>{d}</span>)}</div>
-          </div>
-          <div className="space-y-1.5">
-            {[{name:'João S.',action:'Concluiu Módulo 3 — Serviço A',dot:'bg-emerald-500'},{name:'Ana C.',action:'Erro ALTA registado',dot:'bg-red-500'},{name:'Carlos M.',action:'Plano 5W2H aprovado',dot:'bg-blue-500'}].map((item,i)=>(
-              <motion.div key={i} initial={{opacity:0,x:-8}} animate={inView?{opacity:1,x:0}:{}} transition={{delay:1.05+i*0.1}} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[9px] ${dark?'bg-white/[0.02]':'bg-white border border-gray-50'}`}>
-                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${item.dot}`}/><span className={`font-semibold flex-shrink-0 ${dark?'text-gray-300':'text-gray-700'}`}>{item.name}</span><span className={`truncate ${dark?'text-gray-600':'text-gray-400'}`}>{item.action}</span>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 w-3/4 h-20 bg-blue-600/10 blur-[40px] rounded-full pointer-events-none" />
-    </motion.div>
-  );
-}
-
-// ── Main Component ─────────────────────────────────────────────────────────────
-
+// ─── Main Component ────────────────────────────────────────────────────────────
 export default function TradeDatahubLanding() {
   const navigate = useNavigate();
-  const [lang, setLang] = useState<LC>('pt');
-  const [dark, setDark] = useState(() => localStorage.getItem('theme') !== 'light');
-  const [langOpen, setLangOpen] = useState(false);
-  const [mouse, setMouse] = useState({ x: 0, y: 0 });
-  const [scrolled, setScrolled] = useState(false);
+  const [lang, setLang] = useState<LC>(() => {
+    const l = localStorage.getItem('language') ?? 'pt-PT';
+    if (l.startsWith('es')) return 'es';
+    if (l.startsWith('en')) return 'en';
+    return 'pt';
+  });
+  const [actIdx, setActIdx] = useState(0);
+  const [hoveredPortal, setHoveredPortal] = useState<string | null>(null);
+  const [cycleIdx, setCycleIdx] = useState(0);
+  const cycleWords = (T.h1cycle as Array<Record<string, string>>).map(w => w[lang]);
 
-  useEffect(() => { document.documentElement.classList.toggle('dark', dark); localStorage.setItem('theme', dark ? 'dark' : 'light'); }, [dark]);
-  useEffect(() => { const h = (e: MouseEvent) => setMouse({ x: e.clientX, y: e.clientY }); window.addEventListener('mousemove', h); return () => window.removeEventListener('mousemove', h); }, []);
-  useEffect(() => { const h = () => setScrolled(window.scrollY > 24); window.addEventListener('scroll', h, { passive: true }); return () => window.removeEventListener('scroll', h); }, []);
+  useEffect(() => {
+    const id = setInterval(() => setCycleIdx(i => (i + 1) % cycleWords.length), 2800);
+    return () => clearInterval(id);
+  }, [cycleWords.length]);
 
-  const t = (key: keyof typeof T) => T[key][lang];
+  const changeLang = useCallback((l: LC) => {
+    setLang(l);
+    localStorage.setItem('language', l === 'pt' ? 'pt-PT' : l);
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setActIdx(i => (i + 1) % ACTIVITIES.length), 3500);
+    return () => clearInterval(id);
+  }, []);
+
+  const { data: kpis } = useQuery({
+    queryKey: ['kpis'],
+    queryFn: () => axios.get('/api/stats/kpis').then(r => r.data),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 30 });
+
+  const steps = [
+    { num: '01', titleKey: 's1t' as const, descKey: 's1d' as const, icon: UserPlus },
+    { num: '02', titleKey: 's2t' as const, descKey: 's2d' as const, icon: Layers   },
+    { num: '03', titleKey: 's3t' as const, descKey: 's3d' as const, icon: Award    },
+  ];
+
+  const marqueeItems = [...MARQUEE[lang], ...MARQUEE[lang]];
 
   return (
-    <>
-      {/* Inject CSS animations */}
-      <style>{CSS}</style>
+    <div className="min-h-screen bg-[#030307] text-white overflow-x-hidden selection:bg-[#EC0000]/30 selection:text-white">
 
-      {/* Hidden SVG filter for Pixar illustration smoothing */}
-      <svg className="absolute w-0 h-0" aria-hidden="true">
-        <defs>
-          <filter id="pixar-smooth" colorInterpolationFilters="sRGB">
-            {/* 1 — Smooth skin / surfaces like a CGI render */}
-            <feGaussianBlur in="SourceGraphic" stdDeviation="0.9" result="blur" />
-            {/* 2 — Blend: 60 % crisp + 40 % blurred → soft-render feel */}
-            <feComposite in="SourceGraphic" in2="blur" operator="arithmetic" k1="0" k2="0.60" k3="0.40" k4="0" result="smooth" />
-            {/* 3 — Posterise with 8 bands → illustrated / cel-shaded tones */}
-            <feComponentTransfer in="smooth" result="poster">
-              <feFuncR type="discrete" tableValues="0 0.12 0.25 0.40 0.55 0.70 0.84 1" />
-              <feFuncG type="discrete" tableValues="0 0.12 0.25 0.40 0.55 0.70 0.84 1" />
-              <feFuncB type="discrete" tableValues="0 0.12 0.25 0.40 0.55 0.70 0.84 1" />
-            </feComponentTransfer>
-            {/* 4 — Edge sharpen: gives the crisp 3-D-render outline */}
-            <feConvolveMatrix in="poster" order="3" preserveAlpha="true" result="sharp"
-              kernelMatrix="0 -0.2 0  -0.2 1.8 -0.2  0 -0.2 0" />
-            {/* 5 — Warm up colours (Pixar golden-hour palette) */}
-            <feColorMatrix in="sharp" type="matrix" result="warm"
-              values="1.08 0.02 0    0 0.01
-                      0.02 1.04 0.01 0 0.01
-                      0    0    0.96 0 -0.01
-                      0    0    0    1 0" />
-          </filter>
-        </defs>
-      </svg>
+      {/* Scroll progress — Santander red */}
+      <motion.div className="fixed top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-[#EC0000] via-[#FF4D4D] to-[#EC0000] origin-left z-[100]"
+        style={{ scaleX }} />
 
-      <div className={`min-h-screen overflow-x-hidden ${dark ? 'bg-[#030307]' : 'bg-slate-50'} transition-colors duration-300`}>
+      {/* Backgrounds */}
+      <SantanderParticles />
 
-        {/* ── Aurora background ─────────────────────────────────────────── */}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-          <motion.div animate={{ x:[0,50,-30,0], y:[0,-40,20,0], scale:[1,1.2,.9,1] }} transition={{ duration:22, repeat:Infinity, ease:'easeInOut' }} className={`absolute -top-[20%] -left-[5%] w-[800px] h-[800px] rounded-full blur-[180px] ${dark?'bg-red-600/[0.07]':'bg-red-500/[0.06]'} glow-breathe`} />
-          <motion.div animate={{ x:[0,-40,25,0], y:[0,30,-20,0], scale:[1,.88,1.12,1] }} transition={{ duration:28, repeat:Infinity, ease:'easeInOut', delay:4 }} className={`absolute -bottom-[15%] -right-[5%] w-[700px] h-[700px] rounded-full blur-[160px] ${dark?'bg-blue-600/[0.06]':'bg-blue-500/[0.05]'}`} />
-          <motion.div animate={{ x:[0,25,-15,0], y:[0,-25,35,0] }} transition={{ duration:19, repeat:Infinity, ease:'easeInOut', delay:8 }} className={`absolute top-[40%] right-[20%] w-[500px] h-[500px] rounded-full blur-[140px] ${dark?'bg-emerald-600/[0.04]':'bg-emerald-500/[0.04]'}`} />
-          <div className="absolute inset-0" style={{ backgroundImage:`radial-gradient(circle,${dark?'rgba(255,255,255,0.055)':'rgba(0,0,0,0.065)'} 1px,transparent 1px)`, backgroundSize:'28px 28px' }} />
-          <div className={`absolute inset-0 ${dark?'bg-[radial-gradient(ellipse_80%_60%_at_50%_50%,transparent_30%,#030307_85%)]':'bg-[radial-gradient(ellipse_80%_60%_at_50%_50%,transparent_30%,#f8fafc_85%)]'}`} />
-        </div>
+      {/* Subtle noise */}
+      <div className="fixed inset-0 z-[1] pointer-events-none opacity-[0.012]"
+        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`, backgroundSize: '256px 256px' }} />
 
-        {/* Mouse spotlight */}
-        <div className="fixed inset-0 pointer-events-none z-0" style={{ background:`radial-gradient(700px circle at ${mouse.x}px ${mouse.y}px,${dark?'rgba(239,68,68,0.045)':'rgba(239,68,68,0.03)'},transparent 60%)` }} />
+      {/* Dot grid */}
+      <div className="fixed inset-0 z-[1] pointer-events-none"
+        style={{ backgroundImage: 'radial-gradient(circle, rgba(236,0,0,0.015) 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
 
-        {/* ── Navbar — floating pill ────────────────────────────────────── */}
-        <div className="fixed top-0 inset-x-0 z-50 px-4 sm:px-6 pt-4 pointer-events-none">
-          <motion.div initial={{ y:-28, opacity:0 }} animate={{ y:0, opacity:1 }} transition={{ duration:0.6, ease:[0.25,0.46,0.45,0.94] }} className="max-w-6xl mx-auto pointer-events-auto">
-            <div className="rounded-2xl p-px transition-all duration-500" style={{ background: scrolled ? (dark?'linear-gradient(135deg,rgba(239,68,68,.35) 0%,rgba(30,30,50,.4) 50%,rgba(59,130,246,.2) 100%)':'linear-gradient(135deg,rgba(239,68,68,.25) 0%,rgba(200,200,220,.3) 50%,rgba(59,130,246,.15) 100%)') : (dark?'rgba(255,255,255,.06)':'rgba(0,0,0,.09)') }}>
-              <div className={`rounded-[15px] backdrop-blur-2xl transition-all duration-500 ${scrolled?(dark?'bg-[#030307]/92 shadow-2xl shadow-black/40':'bg-white/97 shadow-xl shadow-black/10'):(dark?'bg-[#030307]/55':'bg-white/65')}`}>
-                <div className="px-5 h-14 flex items-center justify-between gap-4">
-                  {/* Brand */}
-                  <div className="flex items-center gap-3 flex-shrink-0">
-                    <img src="/logo-sds.png" alt="SDS" className={`h-8 w-auto object-contain transition-all duration-300 ${dark?'':'brightness-0'}`} />
-                    <div className={`h-5 w-px ${dark?'bg-white/15':'bg-gray-300'}`} />
-                    <span className={`text-sm font-black tracking-tight whitespace-nowrap ${dark?'text-white/90':'text-gray-800'}`}>Trade<span className="text-red-500">Data</span>Hub</span>
-                  </div>
-                  {/* Controls */}
-                  <div className="flex items-center gap-1.5">
-                    <div className="relative">
-                      <button onClick={() => setLangOpen(o => !o)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all ${dark?'border-white/[0.09] text-gray-400 hover:bg-white/[0.07] hover:text-white hover:border-white/15':'border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-800'}`}>
-                        <Globe className="w-3.5 h-3.5" /><span className="hidden sm:inline">{LANGS.find(l=>l.code===lang)?.label}</span><span className="sm:hidden">{lang.toUpperCase()}</span>
-                      </button>
-                      <AnimatePresence>
-                        {langOpen && (
-                          <motion.div initial={{opacity:0,scale:.92,y:-4}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,scale:.92,y:-4}} transition={{duration:.14}} className={`absolute right-0 top-full mt-2 rounded-xl border shadow-2xl overflow-hidden z-20 min-w-[100px] ${dark?'bg-[#0c0c12] border-white/10':'bg-white border-gray-200'}`}>
-                            {LANGS.map(l=><button key={l.code} onClick={()=>{setLang(l.code);setLangOpen(false);}} className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors ${l.code===lang?'text-red-500 font-bold':dark?'text-gray-400 hover:bg-white/5 hover:text-white':'text-gray-600 hover:bg-gray-50'}`}>{l.label}</button>)}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                    <button onClick={() => setDark(d=>!d)} className={`p-1.5 rounded-xl border transition-all ${dark?'border-white/[0.09] text-gray-400 hover:bg-white/[0.07] hover:text-white':'border-gray-200 text-gray-500 hover:bg-gray-100'}`}>
-                      <AnimatePresence mode="wait"><motion.div key={dark?'sun':'moon'} initial={{rotate:-30,opacity:0}} animate={{rotate:0,opacity:1}} exit={{rotate:30,opacity:0}} transition={{duration:.2}}>{dark?<Sun className="w-4 h-4"/>:<Moon className="w-4 h-4"/>}</motion.div></AnimatePresence>
-                    </button>
-                    <div className={`h-5 w-px mx-0.5 ${dark?'bg-white/10':'bg-gray-200'}`} />
-                    <button onClick={()=>navigate('/login')} className={`hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold border transition-all hover:scale-[1.02] ${dark?'border-white/[0.09] text-gray-300 hover:bg-white/[0.07] hover:border-white/15':'border-gray-200 text-gray-700 hover:bg-gray-100'}`}>
-                      <LogIn className="w-3.5 h-3.5"/>{t('login')}
-                    </button>
-                    <button onClick={()=>navigate('/register')} className="relative flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all hover:scale-[1.04] overflow-hidden group" style={{background:'linear-gradient(135deg,#dc2626,#b91c1c)'}}>
-                      <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-500 pointer-events-none"/>
-                      <UserPlus className="w-3.5 h-3.5 relative"/><span className="relative">{t('register')}</span>
-                    </button>
-                  </div>
+      {/* Ambient red glow — top */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] z-0 pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse, rgba(236,0,0,0.06) 0%, transparent 70%)', filter: 'blur(100px)' }} />
+
+      {/* ══ NAV ══════════════════════════════════════════════════════════════ */}
+      <PremiumNavbar
+        showThemeToggle={false}
+        onLangChange={(code) => changeLang(code.startsWith('pt') ? 'pt' : code.startsWith('es') ? 'es' : 'en')}
+        currentLang={lang === 'pt' ? 'pt-PT' : lang}
+      />
+
+      {/* ══ HERO ══════════════════════════════════════════════════════════════ */}
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 pt-24 pb-32 z-10">
+        <div className="relative z-10 w-full max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+
+            {/* Badge */}
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full
+                bg-[#EC0000]/[0.08] border border-[#EC0000]/20 mb-8">
+              <span className="w-2 h-2 rounded-full bg-[#EC0000] animate-pulse" />
+              <span className="text-[11px] font-bold text-white/50 tracking-wide uppercase">{tr('badge', lang)}</span>
+            </motion.div>
+
+            {/* Headline — Trade DataHub */}
+            <div className="mb-4">
+              <div className="text-5xl sm:text-6xl xl:text-[90px] font-black leading-[0.95] tracking-tighter">
+                {[tr('h1pre', lang), tr('h1main', lang)].map((word, wi) => (
+                  <span key={wi} className="inline-block overflow-hidden mr-[0.12em] last:mr-0">
+                    <motion.span
+                      className={`inline-block ${wi === 1 ? 'text-[#EC0000]' : 'text-white'}`}
+                      initial={{ y: '120%', opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ duration: 0.8, delay: 0.35 + wi * 0.12, ease: [0.22, 1, 0.36, 1] }}>
+                      {word}
+                    </motion.span>
+                  </span>
+                ))}
+              </div>
+              <div className="mt-2 relative" style={{ height: 'clamp(4.2rem, 13vw, 8.5rem)' }}>
+                <div className="absolute inset-0 overflow-hidden" style={{ bottom: '-0.25em' }}>
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={cycleWords[cycleIdx]}
+                      initial={{ y: '100%', opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: '-100%', opacity: 0 }}
+                      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                      className="text-5xl sm:text-6xl xl:text-[90px] font-black leading-[1.2] tracking-tighter pb-2
+                        bg-gradient-to-r from-[#EC0000] via-[#FF4D4D] to-[#EC0000] bg-clip-text text-transparent">
+                      {cycleWords[cycleIdx]}
+                    </motion.div>
+                  </AnimatePresence>
                 </div>
               </div>
             </div>
+
+            {/* Decorative line */}
+            <motion.div initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}
+              transition={{ duration: 1, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
+              className="w-24 h-[2px] mx-auto mb-6 bg-gradient-to-r from-transparent via-[#EC0000] to-transparent origin-center" />
+
+            {/* Subtitle */}
+            <motion.p initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.75, ease: [0.22, 1, 0.36, 1] }}
+              className="text-base sm:text-lg leading-relaxed max-w-xl mx-auto mb-10 text-white/40">
+              {tr('sub', lang)}
+            </motion.p>
+
+            {/* CTAs */}
+            <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.9, ease: [0.22, 1, 0.36, 1] }}
+              className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-10">
+              <motion.button whileHover={{ scale: 1.04, boxShadow: '0 0 50px rgba(236,0,0,0.4)' }}
+                whileTap={{ scale: 0.97 }} onClick={() => navigate('/register')}
+                className="group relative flex items-center justify-center gap-2.5 w-full sm:w-auto
+                  px-9 py-4 rounded-2xl font-bold text-white text-[15px]
+                  bg-[#EC0000] hover:bg-[#D00000]
+                  shadow-[0_0_30px_rgba(236,0,0,0.25)] transition-all duration-300
+                  overflow-hidden">
+                {/* Shimmer */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.12] to-transparent
+                  -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                <span className="relative z-10">{tr('cta1', lang)}</span>
+                <ArrowRight className="relative z-10 w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              </motion.button>
+
+              <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                onClick={() => document.getElementById('portals')?.scrollIntoView({ behavior: 'smooth' })}
+                className="flex items-center justify-center gap-2 w-full sm:w-auto
+                  px-9 py-4 rounded-2xl font-semibold text-white/50 text-[15px]
+                  bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.1]
+                  hover:border-[#EC0000]/30 transition-all duration-300">
+                {tr('cta2', lang)}
+              </motion.button>
+            </motion.div>
+
+            {/* Trust badges */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              transition={{ delay: 1.1, duration: 0.7 }}
+              className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2">
+              {[
+                { icon: CheckCircle, text: tr('trust1', lang) },
+                { icon: Shield,      text: tr('trust2', lang) },
+                { icon: Zap,         text: tr('trust3', lang) },
+              ].map((item, i) => (
+                <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.1 + i * 0.1 }} className="flex items-center gap-2">
+                  <item.icon className="w-3.5 h-3.5 text-[#EC0000]/70" />
+                  <span className="text-xs font-medium text-white/35">{item.text}</span>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+
+          {/* ── 3D Portal Preview Card ── */}
+          <motion.div initial={{ opacity: 0, y: 48 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="relative max-w-4xl mx-auto">
+
+            <TiltCard>
+              {/* Red glow border */}
+              <div className="absolute -inset-px rounded-2xl bg-gradient-to-br from-[#EC0000]/15 via-transparent to-[#EC0000]/10 blur-sm" />
+
+              <div className="relative rounded-2xl border border-white/[0.1] bg-[#0a0a0f]/95 overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.7)]">
+                {/* Browser chrome */}
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06] bg-white/[0.016]">
+                  <div className="flex gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#EC0000]" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#EC0000]/50" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-[#EC0000]/25" />
+                  </div>
+                  <div className="flex-1 ml-2 h-5 rounded-md bg-white/[0.04] px-3 flex items-center">
+                    <span className="text-[10px] text-white/20 font-mono">portal.tradedatahub.com</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 mr-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[9px] font-bold text-emerald-400/80 uppercase tracking-wide">Live</span>
+                  </div>
+                </div>
+
+                {/* Dashboard body */}
+                <div className="flex h-[230px] md:h-[270px]">
+                  {/* Sidebar */}
+                  <div className="hidden sm:flex flex-col w-[140px] border-r border-white/[0.05] p-3 gap-0.5">
+                    <div className="text-[8px] font-bold uppercase tracking-widest text-white/15 px-2 mb-2">Portais</div>
+                    {[
+                      { label: 'Formações',     active: true  },
+                      { label: 'Tutoria',       active: false },
+                      { label: 'Relatórios',    active: false },
+                      { label: 'Dados Mestres', active: false },
+                      { label: 'Chamados',      active: false },
+                    ].map((item, i) => (
+                      <div key={i} className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-[10px] font-medium
+                        ${item.active ? 'bg-[#EC0000]/10 text-white/80 border border-[#EC0000]/20' : 'text-white/20'}`}>
+                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${item.active ? 'bg-[#EC0000]' : 'bg-white/20'}`} />
+                        {item.label}
+                      </div>
+                    ))}
+                    <div className="mt-auto pt-3 border-t border-white/[0.04]">
+                      <div className="flex items-center gap-2 px-2 py-1.5">
+                        <div className="w-5 h-5 rounded-full bg-[#EC0000] flex items-center justify-center text-[7px] font-bold">A</div>
+                        <div>
+                          <div className="text-[9px] text-white/50 font-semibold">Ana Silva</div>
+                          <div className="text-[7px] text-white/20">Formanda</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Main area */}
+                  <div className="flex-1 p-4 flex flex-col gap-3 overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-[11px] font-semibold text-white/70">{tr('previewWelcome', lang)}</div>
+                        <div className="text-[9px] text-white/30 mt-0.5">{tr('previewProgress', lang)}</div>
+                      </div>
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span className="text-[9px] font-bold text-emerald-400">{tr('previewStatus', lang)}</span>
+                      </div>
+                    </div>
+
+                    {/* Portal mini-cards */}
+                    <div className="grid grid-cols-3 gap-2 flex-1">
+                      {[
+                        { label: 'Formações',    pct: 68, icon: '🎓' },
+                        { label: 'Tutoria',      pct: 42, icon: '💬' },
+                        { label: 'Relatórios',   pct: 91, icon: '📊' },
+                        { label: 'Dados Mestres',pct: 55, icon: '🗄️' },
+                        { label: 'Chamados',     pct: 28, icon: '🎫' },
+                      ].map((p, i) => (
+                        <motion.div key={i}
+                          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.9 + i * 0.12 }}
+                          className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-[#EC0000]/20 transition-colors flex flex-col justify-between">
+                          <div className="text-lg mb-1">{p.icon}</div>
+                          <div className="text-[9px] font-semibold text-white/55 mb-2">{p.label}</div>
+                          <div>
+                            <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden mb-1">
+                              <motion.div className="h-full rounded-full bg-[#EC0000]"
+                                initial={{ width: 0 }} animate={{ width: `${p.pct}%` }}
+                                transition={{ delay: 1.2 + i * 0.18, duration: 1.2, ease: [0.22, 1, 0.36, 1] }} />
+                            </div>
+                            <div className="text-[8px] text-white/22">{p.pct}% {tr('previewComplete', lang)}</div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    {/* Chart bars */}
+                    <div className="flex items-end gap-0.5 h-10 opacity-50">
+                      {[30, 52, 44, 70, 48, 82, 60, 88, 65, 92, 72, 85, 68, 95].map((h, i) => (
+                        <motion.div key={i} className="flex-1 rounded-t-[2px]"
+                          style={{ height: `${h}%`, background: `linear-gradient(to top, rgba(236,0,0,0.7), rgba(236,0,0,0.08))` }}
+                          initial={{ scaleY: 0, originY: '100%' }} animate={{ scaleY: 1 }}
+                          transition={{ delay: 1.4 + i * 0.03, duration: 0.5, ease: [0.22, 1, 0.36, 1] }} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TiltCard>
+
+            {/* Activity notification */}
+            <div className="absolute -bottom-4 -left-4 md:-left-8 z-20 w-[230px]">
+              <AnimatePresence mode="wait">
+                {ACTIVITIES.map((act, i) => i === actIdx && (
+                  <motion.div key={i}
+                    initial={{ opacity: 0, x: -16, scale: 0.92 }}
+                    animate={{ opacity: 1, x: 0, scale: 1 }}
+                    exit={{ opacity: 0, x: -16, scale: 0.92 }}
+                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                    className="flex items-start gap-2.5 p-3 rounded-xl border border-[#EC0000]/15
+                      bg-[#0a0a14]/90 backdrop-blur-xl shadow-xl">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[9px] font-bold text-white bg-[#EC0000]">
+                      {tr(act.nameKey, lang)[0]}
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-semibold text-white/80 leading-tight">{tr(act.nameKey, lang)}</div>
+                      <div className="text-[9px] text-white/35 leading-tight mt-0.5">{tr(act.msgKey, lang)}</div>
+                      <div className="text-[8px] text-white/20 mt-1">{tr(act.agoKey, lang)}</div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+
+            {/* Live users pill */}
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.6 }}
+              className="absolute -top-4 -right-4 md:-right-6 z-20
+                flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#EC0000]/15
+                bg-[#0a0a14]/90 backdrop-blur-xl shadow-lg">
+              <div className="flex -space-x-1">
+                {['#EC0000','#CC0000','#FF2D2D'].map((c, i) => (
+                  <div key={i} className="w-4 h-4 rounded-full border border-[#0a0a14] flex items-center justify-center text-[6px] font-bold text-white"
+                    style={{ background: c }}>
+                    {['A','J','M'][i]}
+                  </div>
+                ))}
+              </div>
+              <span className="text-[10px] font-semibold text-white/50">
+                {(kpis?.users?.active ?? 12)}+ {tr('previewOnline', lang)}
+              </span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            </motion.div>
           </motion.div>
         </div>
 
-        {/* ── Hero — 2 colunas ──────────────────────────────────────────── */}
-        <section className="relative z-10 pt-32 pb-16 px-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-20 items-center">
-              {/* Left */}
-              <div className="text-center lg:text-left">
-                <motion.div initial={{opacity:0,y:-16}} animate={{opacity:1,y:0}} transition={{duration:.55}} className="inline-flex items-center gap-2.5 mb-7">
-                  <span className={`relative flex items-center gap-2.5 px-5 py-2 rounded-full text-xs font-bold tracking-[.14em] uppercase border ${dark?'bg-red-500/10 border-red-500/20 text-red-400':'bg-red-50 border-red-200 text-red-600'}`}>
-                    <span className="relative flex h-2 w-2 flex-shrink-0"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-60"/><span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"/></span>
-                    <Sparkles className="w-3 h-3"/> Trade Data Hub
-                  </span>
-                </motion.div>
-                <motion.h1 initial={{opacity:0,y:24}} animate={{opacity:1,y:0}} transition={{duration:.65,delay:.1}} className={`text-4xl sm:text-5xl lg:text-[3.4rem] xl:text-[3.8rem] font-black leading-[1.08] tracking-tight mb-6 ${dark?'text-white':'text-gray-900'}`}>
-                  {t('hero_pre')}<br/>
-                  <CycleWord words={CYCLE_WORDS[lang]}/><br/>
-                  <span className={dark?'text-gray-400':'text-gray-600'}>{t('hero_post')}</span>
-                </motion.h1>
-                <motion.p initial={{opacity:0}} animate={{opacity:1}} transition={{duration:.65,delay:.25}} className={`text-base sm:text-lg max-w-xl mb-10 leading-relaxed lg:mx-0 mx-auto ${dark?'text-gray-400':'text-gray-500'}`}>
-                  {t('hero_sub')}
-                </motion.p>
-                <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{duration:.5,delay:.4}} className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
-                  <button onClick={()=>navigate('/login')} className="group flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-bold text-sm shadow-2xl shadow-red-600/30 transition-all hover:scale-105 hover:shadow-red-600/45">
-                    <LogIn className="w-4 h-4"/>{t('login')}<ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1"/>
-                  </button>
-                  <button onClick={()=>navigate('/register')} className={`flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-sm border transition-all hover:scale-105 ${dark?'border-white/15 text-gray-300 hover:bg-white/5 hover:border-white/25':'border-gray-200 text-gray-700 hover:bg-white hover:shadow-xl hover:border-gray-300'}`}>
-                    <UserPlus className="w-4 h-4"/>{t('register')}
-                  </button>
-                </motion.div>
-                <motion.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:1.4,duration:.8}} className={`hidden lg:flex flex-col items-start gap-1 mt-12 text-xs ${dark?'text-gray-600':'text-gray-400'}`}>
-                  <span>{t('scroll')}</span>
-                  <motion.div animate={{y:[0,5,0]}} transition={{duration:1.5,repeat:Infinity,ease:'easeInOut'}}><ChevronDown className="w-4 h-4"/></motion.div>
-                </motion.div>
-              </div>
-              {/* Right: mockup */}
-              <div className="hidden lg:flex justify-end"><DashboardMockup dark={dark}/></div>
-            </div>
-          </div>
-        </section>
+        {/* Scroll hint */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10">
+          <motion.div animate={{ y: [0, 7, 0] }} transition={{ duration: 2, repeat: Infinity }}
+            className="w-5 h-8 rounded-full border border-[#EC0000]/20 flex items-start justify-center pt-1.5">
+            <motion.div animate={{ opacity: [1, 0], y: [0, 12] }} transition={{ duration: 2, repeat: Infinity }}
+              className="w-1 h-1 rounded-full bg-[#EC0000]/50" />
+          </motion.div>
+        </motion.div>
+      </section>
 
-        {/* ── Marquee strip ─────────────────────────────────────────────── */}
-        <div className={`relative z-10 overflow-hidden py-4 border-y ${dark?'border-white/[0.06] bg-white/[0.01]':'border-gray-100 bg-white/80'}`}>
-          <div className="marquee-track flex gap-14 w-max">
-            {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
-              <div key={i} className={`flex items-center gap-2.5 text-sm font-medium whitespace-nowrap select-none ${dark?'text-gray-400':'text-gray-500'}`}>
-                <Star className="w-3 h-3 text-red-500 fill-red-500 flex-shrink-0"/>
-                {item}
-              </div>
-            ))}
+      {/* ══ MARQUEE ══════════════════════════════════════════════════════════ */}
+      <section className="py-5 border-y border-[#EC0000]/[0.08] overflow-hidden relative z-10">
+        <motion.div className="flex gap-10 w-max"
+          animate={{ x: ['0%', '-50%'] }}
+          transition={{ duration: 45, repeat: Infinity, ease: 'linear' }}>
+          {marqueeItems.map((item, i) => (
+            <div key={i} className="flex items-center gap-3 text-white/[0.15] flex-shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#EC0000]/40" />
+              <span className="text-[13px] font-semibold tracking-wide whitespace-nowrap">{item}</span>
+            </div>
+          ))}
+        </motion.div>
+      </section>
+
+      {/* ══ PORTALS BENTO ════════════════════════════════════════════════════ */}
+      <section id="portals" className="relative py-28 px-4 sm:px-6 z-10">
+        <div className="max-w-6xl mx-auto">
+          <SectionHead
+            badge={tr('portTag', lang)}
+            badgeIcon={Layers}
+            title={tr('portTitle', lang)}
+            desc={tr('portSub', lang)}
+          />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+            {PORTALS.map((portal, i) => {
+              const isHovered = hoveredPortal === portal.id;
+              const isWide = portal.span === 2;
+              return (
+                <motion.div key={portal.id}
+                  initial={{ opacity: 0, y: 32 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-40px' }}
+                  transition={{ delay: i * 0.08, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                  onHoverStart={() => setHoveredPortal(portal.id)}
+                  onHoverEnd={() => setHoveredPortal(null)}
+                  className={`relative group rounded-2xl border overflow-hidden cursor-default transition-all duration-500
+                    ${isWide ? 'md:col-span-2 p-8 md:p-10' : 'md:col-span-1 p-7 md:p-8'}
+                    ${isHovered ? 'border-[#EC0000]/25' : 'border-white/[0.08]'} bg-white/[0.022]`}
+                  style={isHovered ? { boxShadow: `0 0 80px ${portal.color}12` } : {}}
+                >
+                  {/* Gradient fill on hover */}
+                  <motion.div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                    style={{ background: `radial-gradient(ellipse at 20% 20%, ${portal.color}09, transparent 65%)` }} />
+
+                  {/* Top gradient stripe */}
+                  <div className="absolute top-0 left-0 right-0 h-px"
+                    style={{ background: `linear-gradient(to right, transparent, ${portal.color}50, transparent)` }} />
+
+                  <div className="relative z-10">
+                    {/* Icons row */}
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <motion.div whileHover={{ scale: 1.1, rotate: 5 }}
+                          className={`inline-flex items-center justify-center rounded-2xl ${isWide ? 'w-14 h-14' : 'w-12 h-12'}`}
+                          style={{
+                            background: `linear-gradient(135deg, ${portal.color}, ${portal.color}80)`,
+                            boxShadow: `0 8px 24px ${portal.color}30`,
+                          }}>
+                          <portal.icon className={`text-white ${isWide ? 'w-7 h-7' : 'w-6 h-6'}`} />
+                        </motion.div>
+                        <div>
+                          <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5"
+                            style={{ color: portal.color }}>{tr(portal.subKey, lang)}</div>
+                          <h3 className={`font-black text-white ${isWide ? 'text-2xl md:text-3xl' : 'text-xl md:text-2xl'}`}>
+                            {tr(portal.titleKey, lang)}
+                          </h3>
+                        </div>
+                      </div>
+                      <portal.subIcon className="w-5 h-5 text-white/15 group-hover:text-white/30 transition-colors" />
+                    </div>
+
+                    {/* Description */}
+                    <p className={`text-white/40 leading-relaxed mb-6 group-hover:text-white/55 transition-colors duration-300
+                      ${isWide ? 'text-[15px] md:text-base max-w-xl' : 'text-sm'}`}>
+                      {tr(portal.descKey, lang)}
+                    </p>
+
+                    {/* Features list */}
+                    <div className={`grid gap-2 mb-7 ${isWide ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5' : 'grid-cols-2'}`}>
+                      {portal.featureKeys.map((fk, fi) => (
+                        <motion.div key={fi}
+                          initial={{ opacity: 0, x: -8 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: i * 0.1 + fi * 0.05 }}
+                          className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: portal.color }} />
+                          <span className="text-[11px] font-medium text-white/40 group-hover:text-white/55 transition-colors">
+                            {tr(fk, lang)}
+                          </span>
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    {/* CTA */}
+                    <motion.button
+                      whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                      onClick={() => navigate('/login')}
+                      className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all"
+                      style={{
+                        background: `linear-gradient(135deg, ${portal.color}30, ${portal.color}15)`,
+                        border: `1px solid ${portal.color}35`,
+                        color: portal.color,
+                      }}>
+                      {tr('portAccess', lang)}
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </motion.button>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
+      </section>
 
-        {/* ── Stats strip ───────────────────────────────────────────────── */}
-        <section className={`relative z-10 py-12 ${dark?'':'bg-white'}`}>
-          <div className="max-w-3xl mx-auto px-6">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-8">
-              {STATS.map((s,i)=>(
-                <motion.div key={i} initial={{opacity:0,y:16}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{delay:i*.08,duration:.5}} className="text-center">
-                  <p className={`text-3xl sm:text-4xl font-black tabular-nums leading-none ${dark?'text-white':'text-gray-900'}`}><AnimatedCounter target={s.value} suffix={s.suffix}/></p>
-                  <p className={`text-xs mt-2 ${dark?'text-gray-500':'text-gray-500'}`}>{s.label[lang]}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </section>
 
-        {/* ── "Porquê o Trade Data Hub?" — Premium cards para gestores ── */}
-        <section className="relative z-10 py-28 px-6 overflow-hidden">
-          {/* Section glow */}
-          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-[200px] pointer-events-none ${dark ? 'bg-red-600/[0.04]' : 'bg-red-600/[0.02]'}`} />
 
-          <div className="max-w-6xl mx-auto relative z-10">
-            {/* Header */}
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16 space-y-4">
-              <motion.div initial={{ opacity: 0, scale: 0.5 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ type: 'spring', stiffness: 200 }}>
-                <span className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold tracking-[.12em] uppercase border ${dark ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-red-50 border-red-200 text-red-600'}`}>
-                  <Target className="w-3.5 h-3.5" /> {t('features_title')}
-                </span>
-              </motion.div>
-              <h2 className={`text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight ${dark ? 'text-white' : 'text-gray-900'}`}>
-                {t('features_title')}
-              </h2>
-              <p className={`text-base max-w-2xl mx-auto ${dark ? 'text-gray-500' : 'text-gray-500'}`}>
-                {t('features_sub')}
-              </p>
-            </motion.div>
+      {/* ══ HOW IT WORKS ═════════════════════════════════════════════════════ */}
+      <section className="relative py-28 px-4 sm:px-6 z-10">
+        <div className="max-w-4xl mx-auto">
+          <SectionHead badge={tr('howTag', lang)} badgeIcon={BookOpen} title={tr('howTitle', lang)} />
 
-            {/* Cards — stacked single-column with Pixar-effect photos */}
-            <div className="flex flex-col gap-7 max-w-4xl mx-auto">
-              {FEATURES.map((f, idx) => {
-                const Icon = f.icon;
-                const isEven = idx % 2 === 0;
+          <div className="relative">
+            {/* Center line — Santander red */}
+            <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-[#EC0000]/15 to-transparent" />
+            <div className="space-y-5 md:space-y-0 md:grid md:gap-y-8">
+              {steps.map((step, i) => {
+                const isLeft = i % 2 === 0;
                 return (
-                  <SpotlightCard key={idx} dark={dark}>
-                    <motion.div
-                      initial={{ opacity: 0, y: 40 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true, margin: '-60px' }}
-                      transition={{ delay: idx * 0.08, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                      whileHover={{ y: -6 }}
-                      className={`card-glow-border group relative rounded-3xl border overflow-hidden transition-all duration-500 ${
-                        dark
-                          ? 'bg-white/[0.025] border-white/[0.07] hover:border-white/[0.18] hover:bg-white/[0.05]'
-                          : 'bg-white border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-xl'
-                      }`}
-                      style={{ '--glow-c': `rgb(${f.glowRgb})` } as React.CSSProperties}
-                    >
-                      {/* Horizontal split — photo + body side by side on md+, stacked on mobile */}
-                      <div className={`flex flex-col md:flex-row ${!isEven ? 'md:flex-row-reverse' : ''}`}>
-                        {/* ── Photo side with Pixar effect ── */}
-                        <div className="relative overflow-hidden flex-shrink-0 h-56 md:h-auto md:w-[45%] md:min-h-[260px]">
-                          <img
-                            src={f.photo}
-                            alt={f.title[lang]}
-                            loading="lazy"
-                            className="w-full h-full object-cover img-ken-burns img-pixar"
-                          />
-                          {/* Warm overlay for illustrated feel */}
-                          <div className="absolute inset-0 mix-blend-soft-light bg-gradient-to-br from-amber-300/20 via-transparent to-purple-400/10 pointer-events-none" />
-                          {/* Theme gradient overlay */}
-                          <div className={`absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r ${isEven ? '' : 'md:bg-gradient-to-l'} ${f.photoGradient}`} />
-                          {/* Icon badge floating over photo */}
-                          <div className="absolute bottom-4 left-4">
-                            <motion.div whileHover={{ scale: 1.1, rotate: [-4, 4, 0] }} transition={{ type: 'spring', stiffness: 300 }} className="relative inline-block">
-                              <div className={`inline-flex items-center justify-center rounded-2xl bg-gradient-to-br ${f.gradient} shadow-lg w-14 h-14`} style={{ boxShadow: `0 8px 24px rgba(${f.glowRgb}, 0.5)` }}>
-                                <Icon className="text-white w-7 h-7" />
-                              </div>
-                              <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${f.gradient} blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-500`} />
-                            </motion.div>
-                          </div>
+                  <motion.div key={i}
+                    initial={{ opacity: 0, x: isLeft ? -30 : 30, y: 20 }}
+                    whileInView={{ opacity: 1, x: 0, y: 0 }}
+                    viewport={{ once: true, margin: '-40px' }}
+                    transition={{ delay: i * 0.14, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                    className={`relative md:flex md:items-center md:gap-8 ${isLeft ? '' : 'md:flex-row-reverse'}`}>
+                    <div className={`md:w-[calc(50%-2.5rem)] ${isLeft ? 'md:text-right' : ''}`}>
+                      <motion.div whileHover={{ y: -4 }}
+                        className="p-6 md:p-7 rounded-2xl border bg-white/[0.022] border-white/[0.08]
+                          hover:border-[#EC0000]/20 hover:bg-white/[0.035] transition-all duration-300">
+                        <div className="text-5xl font-black mb-4 leading-none text-[#EC0000]/[0.08]">
+                          {step.num}
                         </div>
-
-                        {/* ── Card body ── */}
-                        <div className="relative flex-1 flex flex-col p-7 lg:p-9">
-                          {/* Background gradient on hover */}
-                          <div className={`absolute inset-0 bg-gradient-to-br ${f.gradient} opacity-0 group-hover:opacity-[0.04] transition-opacity duration-700`} />
-                          {/* Animated shine */}
-                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 overflow-hidden">
-                            <motion.div className="absolute -inset-full bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" animate={{ x: ['-100%', '200%'] }} transition={{ duration: 3.5, repeat: Infinity, ease: 'linear' }} />
+                        <div className={`flex items-center gap-2.5 mb-3 ${isLeft ? 'md:justify-end' : ''}`}>
+                          <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-[#EC0000]/10 text-[#EC0000]">
+                            <step.icon className="w-4 h-4" />
                           </div>
-
-                          <div className="relative z-10 flex-1 flex flex-col gap-4 justify-center">
-                            <div>
-                              <h3 className={`font-black mb-2.5 leading-tight text-xl lg:text-2xl ${dark ? 'text-white' : 'text-gray-900'}`}>
-                                {f.title[lang]}
-                              </h3>
-                              <p className={`leading-relaxed text-sm lg:text-base ${dark ? 'text-gray-400 group-hover:text-gray-300' : 'text-gray-500 group-hover:text-gray-600'} transition-colors duration-300`}>
-                                {f.desc[lang]}
-                              </p>
-                            </div>
-
-                            {/* Metric badge */}
-                            <div className="mt-auto pt-2">
-                              <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-bold ${
-                                dark
-                                  ? 'bg-white/[0.04] border-white/[0.08] text-gray-300'
-                                  : 'bg-gray-50 border-gray-200 text-gray-600'
-                              }`}>
-                                <div className={`w-1.5 h-1.5 rounded-full bg-gradient-to-br ${f.gradient} flex-shrink-0`} />
-                                {f.metric[lang]}
-                              </div>
-                            </div>
-                          </div>
+                          <h3 className="text-lg font-bold text-white">{tr(step.titleKey, lang)}</h3>
                         </div>
-                      </div>
-                    </motion.div>
-                  </SpotlightCard>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* ── Portal Cards com fotos reais ──────────────────────────────── */}
-        <section className="relative z-10 py-24 px-6">
-          <div className="max-w-6xl mx-auto">
-            <motion.div initial={{opacity:0,y:20}} whileInView={{opacity:1,y:0}} viewport={{once:true}} className="text-center mb-16">
-              <h2 className={`text-3xl sm:text-4xl font-black mb-3 ${dark?'text-white':'text-gray-900'}`}>{t('portals_title')}</h2>
-              <p className={`text-sm ${dark?'text-gray-500':'text-gray-500'}`}>{t('portals_sub')}</p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {PORTALS.map((portal, idx) => {
-                const Icon = portal.icon;
-                return (
-                  <motion.div key={portal.key} initial={{opacity:0,y:28}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{delay:idx*.1,duration:.55}}>
-                    <TiltCard className="h-full">
-                      <div
-                        onClick={()=>navigate('/login')}
-                        className={`card-glow-border relative h-full rounded-3xl border flex flex-col cursor-pointer transition-all duration-300 group overflow-hidden ${dark?'bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.055]':'bg-white border-gray-200/90 hover:border-gray-300 hover:shadow-2xl'}`}
-                        style={{ '--glow-c': portal.glowCss } as React.CSSProperties}
-                      >
-                        {/* Real photo header */}
-                        <div className="relative h-48 overflow-hidden rounded-t-3xl flex-shrink-0">
-                          <img
-                            src={portal.photo}
-                            alt={portal.title[lang]}
-                            loading="lazy"
-                            className="w-full h-full object-cover img-ken-burns img-pixar"
-                          />
-                          {/* Gradient overlay */}
-                          <div className={`absolute inset-0 bg-gradient-to-t ${portal.photoGradient}`} />
-                          {/* Icon badge over photo */}
-                          <div className="absolute bottom-4 left-4 flex items-center gap-3">
-                            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${portal.gradient} flex items-center justify-center shadow-2xl flex-shrink-0`} style={{boxShadow:`0 8px 28px rgba(${portal.glowRgb},.5)`}}>
-                              <Icon className="w-6 h-6 text-white"/>
-                            </div>
-                            <div>
-                              <h3 className="text-base font-black text-white drop-shadow-lg">{portal.title[lang]}</h3>
-                              <span className={`inline-block text-[9px] font-bold px-2 py-0.5 rounded-full border ${portal.badge}`}>{portal.roles[lang]}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Card body */}
-                        <div className="p-6 flex flex-col gap-4 flex-1">
-                          <p className={`text-sm leading-relaxed ${dark?'text-gray-400':'text-gray-500'}`}>{portal.desc[lang]}</p>
-                          <ul className="space-y-2.5 flex-1">
-                            {portal.features[lang].map((f,i)=>(
-                              <li key={i} className={`flex items-start gap-2 text-sm ${dark?'text-gray-300':'text-gray-600'}`}>
-                                <Check className="w-3.5 h-3.5 mt-0.5 text-emerald-500 flex-shrink-0"/>{f}
-                              </li>
-                            ))}
-                          </ul>
-                          <div className={`flex items-center gap-1.5 text-sm font-bold pt-1 transition-colors duration-200 ${dark?'text-gray-600 group-hover:text-white':'text-gray-400 group-hover:text-gray-900'}`}>
-                            {t('access')}<ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1.5"/>
-                          </div>
-                        </div>
-                      </div>
-                    </TiltCard>
+                        <p className="text-sm leading-relaxed text-white/35">{tr(step.descKey, lang)}</p>
+                      </motion.div>
+                    </div>
+                    <div className="hidden md:flex items-center justify-center w-5 flex-shrink-0">
+                      <motion.div
+                        initial={{ scale: 0 }} whileInView={{ scale: 1 }} viewport={{ once: true }}
+                        transition={{ delay: i * 0.14 + 0.3, type: 'spring', stiffness: 300 }}
+                        className="w-3.5 h-3.5 rounded-full bg-[#EC0000]"
+                        style={{ boxShadow: '0 0 14px rgba(236,0,0,0.6)' }} />
+                    </div>
+                    <div className="hidden md:block md:w-[calc(50%-2.5rem)]" />
                   </motion.div>
                 );
               })}
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* ── CTA Premium — split layout com foto Pixar ────────────────── */}
-        <section className="relative z-10 py-28 px-6 overflow-hidden">
-          {/* Ambient glow */}
-          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] rounded-full blur-[200px] pointer-events-none ${dark ? 'bg-red-600/[0.06]' : 'bg-red-500/[0.04]'}`} />
+      {/* ══ CTA ══════════════════════════════════════════════════════════════ */}
+      <section className="relative py-32 px-4 sm:px-6 z-10">
+        <div className="max-w-4xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            className="relative rounded-3xl border border-[#EC0000]/15 overflow-hidden">
 
-          <div className="relative z-10 max-w-6xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <SpotlightCard dark={dark}>
-                <div
-                  className={`card-glow-border group relative rounded-3xl border overflow-hidden transition-all duration-500 ${
-                    dark
-                      ? 'bg-white/[0.025] border-white/[0.07] hover:border-white/[0.18] hover:bg-white/[0.05]'
-                      : 'bg-white border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-2xl'
-                  }`}
-                  style={{ '--glow-c': '#ef4444' } as React.CSSProperties}
-                >
-                  {/* Top glow line */}
-                  <div className={`absolute top-0 inset-x-10 h-px ${dark ? 'bg-gradient-to-r from-transparent via-red-500/50 to-transparent' : 'bg-gradient-to-r from-transparent via-red-400/50 to-transparent'}`} />
+            {/* Red gradient bg */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#1a0000] via-[#0c0308] to-[#030307]" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-72 rounded-full blur-3xl opacity-20"
+              style={{ background: 'radial-gradient(ellipse, rgba(236,0,0,0.6), transparent)' }} />
 
-                  <div className="grid grid-cols-1 lg:grid-cols-2">
-                    {/* ── Left: Photo collage with Pixar effect ── */}
-                    <div className="relative h-72 lg:h-auto lg:min-h-[420px] overflow-hidden">
-                      {/* Main photo */}
-                      <img
-                        src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=900&q=75&fit=crop"
-                        alt=""
-                        loading="lazy"
-                        className="w-full h-full object-cover img-ken-burns img-pixar"
-                      />
-                      {/* Warm Pixar overlay */}
-                      <div className="absolute inset-0 mix-blend-soft-light bg-gradient-to-br from-amber-300/25 via-transparent to-purple-400/15 pointer-events-none" />
-                      {/* Theme gradient */}
-                      <div className={`absolute inset-0 bg-gradient-to-t ${dark ? 'from-[#030307]/90 via-[#030307]/30' : 'from-white/80 via-white/20'} to-transparent`} />
-                      {/* Side fade into card body on desktop */}
-                      <div className={`absolute inset-0 hidden lg:block ${dark ? 'bg-gradient-to-r from-transparent via-transparent to-[#030307]/60' : 'bg-gradient-to-r from-transparent via-transparent to-white/50'}`} />
+            <div className="relative z-10 text-center px-8 py-16 md:py-20 space-y-6">
+              <motion.div initial={{ opacity: 0, scale: 0.5 }} whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }} transition={{ type: 'spring', stiffness: 200 }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#EC0000]/10 border border-[#EC0000]/25">
+                <GraduationCap className="w-3.5 h-3.5 text-[#EC0000]" />
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#EC0000]">
+                  {tr('ctaTag', lang)}
+                </span>
+              </motion.div>
 
-                      {/* Floating stats badges over the photo */}
-                      <div className="absolute bottom-5 left-5 right-5 flex flex-wrap gap-3">
-                        {[
-                          { icon: Users, label: { pt: '3 Portais', es: '3 Portales', en: '3 Portals' }, color: 'from-blue-500 to-indigo-500', rgb: '59,130,246' },
-                          { icon: Shield, label: { pt: '5 Roles', es: '5 Roles', en: '5 Roles' }, color: 'from-red-500 to-rose-500', rgb: '239,68,68' },
-                          { icon: TrendingUp, label: { pt: 'KPIs em Tempo Real', es: 'KPIs en Tiempo Real', en: 'Real-time KPIs' }, color: 'from-emerald-500 to-teal-500', rgb: '16,185,129' },
-                        ].map((stat, i) => (
-                          <motion.div
-                            key={i}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: 0.3 + i * 0.12, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                            className={`badge-float inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border backdrop-blur-md text-xs font-bold ${
-                              dark
-                                ? 'bg-white/[0.08] border-white/[0.12] text-white'
-                                : 'bg-white/90 border-gray-200 text-gray-800 shadow-lg'
-                            }`}
-                            style={{ animationDelay: `${i * -1.2}s` }}
-                          >
-                            <div className={`w-6 h-6 rounded-lg bg-gradient-to-br ${stat.color} flex items-center justify-center flex-shrink-0`} style={{ boxShadow: `0 4px 12px rgba(${stat.rgb},.4)` }}>
-                              <stat.icon className="w-3.5 h-3.5 text-white" />
-                            </div>
-                            {stat.label[lang]}
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
+              <h2 className="text-2xl md:text-4xl lg:text-5xl font-black text-white leading-tight max-w-2xl mx-auto">
+                {tr('ctaTitle', lang)}
+              </h2>
 
-                    {/* ── Right: CTA content ── */}
-                    <div className="relative flex flex-col justify-center p-10 lg:p-14">
-                      {/* Animated shine */}
-                      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 overflow-hidden">
-                        <motion.div className="absolute -inset-full bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" animate={{ x: ['-100%', '200%'] }} transition={{ duration: 3.5, repeat: Infinity, ease: 'linear' }} />
-                      </div>
-                      {/* Background gradient on hover */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-red-500 to-rose-500 opacity-0 group-hover:opacity-[0.04] transition-opacity duration-700" />
+              <p className="text-base md:text-lg text-white/40 max-w-xl mx-auto leading-relaxed">
+                {tr('ctaSub', lang)}
+              </p>
 
-                      <div className="relative z-10 space-y-7">
-                        {/* Badge */}
-                        <motion.div initial={{ opacity: 0, scale: 0.5 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ type: 'spring', stiffness: 200 }}>
-                          <span className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold tracking-[.12em] uppercase border ${dark ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-red-50 border-red-200 text-red-600'}`}>
-                            <Sparkles className="w-3.5 h-3.5" /> Trade Data Hub
-                          </span>
-                        </motion.div>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                <motion.button whileHover={{ scale: 1.04, boxShadow: '0 0 60px rgba(236,0,0,0.4)' }}
+                  whileTap={{ scale: 0.97 }} onClick={() => navigate('/register')}
+                  className="group flex items-center justify-center gap-2.5 px-10 py-4 rounded-2xl
+                    font-bold text-white text-[15px]
+                    bg-[#EC0000] hover:bg-[#D00000]
+                    shadow-[0_0_30px_rgba(236,0,0,0.25)] transition-all duration-300">
+                  {tr('ctaB1', lang)}
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                </motion.button>
 
-                        {/* Title */}
-                        <h2 className={`text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-[1.1] ${dark ? 'text-white' : 'text-gray-900'}`}>
-                          {t('cta_title')}
-                        </h2>
+                <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                  onClick={() => navigate('/login')}
+                  className="flex items-center justify-center gap-2 px-10 py-4 rounded-2xl
+                    font-semibold text-white/50 text-[15px]
+                    bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.1]
+                    hover:border-[#EC0000]/25 transition-all duration-300">
+                  {tr('ctaB2', lang)}
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
 
-                        {/* Description */}
-                        <p className={`text-base leading-relaxed max-w-md ${dark ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {t('cta_sub')}
-                        </p>
-
-                        {/* Action buttons */}
-                        <div className="flex flex-wrap gap-4 pt-2">
-                          <motion.button
-                            onClick={() => navigate('/register')}
-                            whileHover={{ scale: 1.05, y: -2 }}
-                            whileTap={{ scale: 0.97 }}
-                            className="relative inline-flex items-center gap-2.5 px-9 py-4 rounded-2xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-bold text-sm shadow-2xl shadow-red-600/30 transition-all hover:shadow-red-600/50 overflow-hidden"
-                          >
-                            {/* Button shine */}
-                            <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent" animate={{ x: ['-200%', '200%'] }} transition={{ duration: 2.5, repeat: Infinity, ease: 'linear', repeatDelay: 3 }} />
-                            <Zap className="w-4 h-4 relative z-10" />
-                            <span className="relative z-10">{t('cta_btn')}</span>
-                            <ArrowRight className="w-4 h-4 relative z-10" />
-                          </motion.button>
-
-                          <motion.button
-                            onClick={() => navigate('/login')}
-                            whileHover={{ scale: 1.05, y: -2 }}
-                            whileTap={{ scale: 0.97 }}
-                            className={`inline-flex items-center gap-2 px-7 py-4 rounded-2xl font-bold text-sm border transition-all ${
-                              dark
-                                ? 'border-white/[0.12] text-gray-300 hover:bg-white/[0.06] hover:border-white/[0.2]'
-                                : 'border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300 shadow-sm'
-                            }`}
-                          >
-                            <LogIn className="w-4 h-4" />
-                            {t('login')}
-                          </motion.button>
-                        </div>
-
-                        {/* Trust line */}
-                        <div className={`flex items-center gap-3 pt-3 ${dark ? 'text-gray-600' : 'text-gray-400'}`}>
-                          <div className="flex -space-x-2.5">
-                            {['photo-1507003211169-0a1dd7228f2d', 'photo-1494790108377-be9c29b29330', 'photo-1472099645785-5658abf4ff4e'].map((id, i) => (
-                              <img key={i} src={`https://images.unsplash.com/${id}?w=64&h=64&fit=crop&crop=face`} alt="" className="w-8 h-8 rounded-full border-2 border-current object-cover img-pixar" style={{ borderColor: dark ? '#030307' : '#fff' }} />
-                            ))}
-                          </div>
-                          <span className="text-xs font-medium">
-                            {lang === 'pt' ? 'Equipas operacionais já utilizam' : lang === 'es' ? 'Equipos operacionales ya lo usan' : 'Operational teams already using it'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </SpotlightCard>
-            </motion.div>
+      {/* ══ FOOTER ═══════════════════════════════════════════════════════════ */}
+      <footer className="relative py-8 px-4 sm:px-6 border-t border-[#EC0000]/[0.08] z-10">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5">
+            <img src="/logo-sds.png" alt="SDS" className="h-5 w-auto opacity-25" />
+            <span className="text-xs text-white/20 font-medium">{tr('copy', lang)}</span>
           </div>
-        </section>
-
-        {/* ── Footer ────────────────────────────────────────────────────── */}
-        <footer className={`relative z-10 py-8 border-t text-center text-xs ${dark?'border-white/[0.06] text-gray-600':'border-gray-100 text-gray-400'}`}>
-          {t('footer')}
-        </footer>
-      </div>
-    </>
+          <div className="h-px bg-gradient-to-r from-transparent via-[#EC0000]/[0.08] to-transparent flex-1 mx-8 hidden md:block" />
+          <div className="flex items-center gap-4">
+            {LANG_OPTIONS.map(l => (
+              <button key={l.code} onClick={() => changeLang(l.code)}
+                className={`text-[10px] font-bold uppercase tracking-widest transition-colors
+                  ${lang === l.code ? 'text-[#EC0000]' : 'text-white/15 hover:text-white/30'}`}>
+                {l.short}
+              </button>
+            ))}
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }

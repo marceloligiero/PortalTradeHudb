@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LogOut, User, Moon, Sun, Globe, Target, Home, BarChart2 } from 'lucide-react';
+import { LogOut, User, Moon, Sun, Globe, Target, Home, BarChart2, Database, Ticket } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -38,7 +38,9 @@ export default function Header() {
 
   const isTutoria    = location.pathname.startsWith('/tutoria');
   const isRelatorios = location.pathname.startsWith('/relatorios');
-  const isHome       = !isTutoria && !isRelatorios;
+  const isMasterData = location.pathname.startsWith('/master-data');
+  const isChamados   = location.pathname.startsWith('/chamados');
+  const isHome       = !isTutoria && !isRelatorios && !isMasterData && !isChamados;
 
   return (
     <div className="fixed top-0 inset-x-0 z-50 px-4 sm:px-6 pt-4 pointer-events-none print:hidden">
@@ -106,7 +108,7 @@ export default function Header() {
                     }`}
                   >
                     <Home className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span className="hidden lg:inline">Formações</span>
+                    <span className="hidden lg:inline">{t('navigation.formacoes')}</span>
                   </button>
 
                   {/* Tutoria */}
@@ -123,7 +125,7 @@ export default function Header() {
                     }`}
                   >
                     <Target className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span className="hidden lg:inline">Tutoria</span>
+                    <span className="hidden lg:inline">{t('navigation.tutoria')}</span>
                   </button>
 
                   {/* Relatórios — todos os roles */}
@@ -140,7 +142,43 @@ export default function Header() {
                     }`}
                   >
                     <BarChart2 className="w-3.5 h-3.5 flex-shrink-0" />
-                    <span className="hidden lg:inline">Relatórios</span>
+                    <span className="hidden lg:inline">{t('navigation.reports')}</span>
+                  </button>
+
+                  {/* Dados Mestres — ADMIN & MANAGER */}
+                  {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
+                    <button
+                      onClick={() => navigate('/master-data')}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                        isMasterData
+                          ? isDark
+                            ? 'bg-white/10 text-white border border-white/15'
+                            : 'bg-white text-gray-900 border border-gray-200 shadow-sm'
+                          : isDark
+                            ? 'text-gray-400 hover:text-white hover:bg-white/[0.06]'
+                            : 'text-gray-500 hover:text-gray-800 hover:bg-white/70'
+                      }`}
+                    >
+                      <Database className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="hidden lg:inline">{t('navigation.masterData')}</span>
+                    </button>
+                  )}
+
+                  {/* Chamados */}
+                  <button
+                    onClick={() => navigate('/chamados')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                      isChamados
+                        ? isDark
+                          ? 'bg-white/10 text-white border border-white/15'
+                          : 'bg-white text-gray-900 border border-gray-200 shadow-sm'
+                        : isDark
+                          ? 'text-gray-400 hover:text-white hover:bg-white/[0.06]'
+                          : 'text-gray-500 hover:text-gray-800 hover:bg-white/70'
+                    }`}
+                  >
+                    <Ticket className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="hidden lg:inline">{t('navigation.chamados')}</span>
                   </button>
                 </div>
 

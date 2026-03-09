@@ -14,6 +14,10 @@ from app.models import (
     User, TutoriaError, TutoriaActionPlan, TutoriaActionItem,
     ErrorCategory, ChatFAQ,
 )
+import re
+import math
+import random
+from datetime import datetime, timezone
 
 # ── optional portal-of-formations models (may not exist) ──────────────────
 try:
@@ -39,6 +43,7 @@ class ChatResponse(BaseModel):
     lang: str
     support_url: Optional[str] = None
     support_label: Optional[str] = None
+    suggestions: Optional[List[str]] = None
 
 
 # ── FAQ management schemas ─────────────────────────────────────────────────
@@ -102,18 +107,65 @@ def _norm(text: str) -> str:
     )
 
 
+def _tokenize(text: str) -> set:
+    """Split normalized text into meaningful tokens (len >= 2)."""
+    return {w for w in _norm(text).split() if len(w) >= 2}
+
+
+def _faq_score(norm_msg: str, msg_tokens: set, kw_block: str) -> float:
+    """
+    Score a FAQ keyword block against the user message.
+    Uses a combination of:
+      - Exact substring match (highest score)
+      - Token overlap ratio (fuzzy matching)
+    Returns a float 0..1.
+    """
+    if not kw_block.strip():
+        return 0.0
+
+    best = 0.0
+    for kw_line in kw_block.replace("\n", ",").split(","):
+        kw = kw_line.strip()
+        if not kw:
+            continue
+        norm_kw = _norm(kw)
+
+        # Exact substring match -> high score
+        if norm_kw in norm_msg:
+            score = 0.85 + 0.15 * (len(norm_kw) / max(len(norm_msg), 1))
+            best = max(best, score)
+            continue
+
+        # Token overlap (fuzzy)
+        kw_tokens = _tokenize(kw)
+        if not kw_tokens:
+            continue
+        overlap = len(msg_tokens & kw_tokens)
+        if overlap > 0:
+            # Jaccard-like score weighted toward keyword coverage
+            coverage = overlap / len(kw_tokens)
+            relevance = overlap / max(len(msg_tokens), 1)
+            score = 0.4 * coverage + 0.3 * relevance
+            best = max(best, score)
+
+    return best
+
+
 def _faq_match(message: str, user: User, lang: str, db: Session):
     """
-    Check custom FAQs first (highest priority).
+    Smart FAQ matching with fuzzy scoring.
     Returns (reply, support_url, support_label) or None.
     """
     norm_msg = _norm(message)
+    msg_tokens = _tokenize(message)
     faqs = (
         db.query(ChatFAQ)
         .filter(ChatFAQ.is_active == True)
         .order_by(ChatFAQ.priority.asc())
         .all()
     )
+
+    scored: list[tuple[float, ChatFAQ]] = []
     for faq in faqs:
         # Role filter check
         if faq.role_filter:
@@ -121,32 +173,80 @@ def _faq_match(message: str, user: User, lang: str, db: Session):
             if user.role not in allowed:
                 continue
 
-        # Keyword matching across all language columns
+        # Score across all language keyword columns
         kw_fields = [faq.keywords_pt or "", faq.keywords_es or "", faq.keywords_en or ""]
-        matched = False
-        for kw_block in kw_fields:
-            for kw in kw_block.replace("\n", ",").split(","):
-                kw = kw.strip()
-                if kw and _norm(kw) in norm_msg:
-                    matched = True
-                    break
-            if matched:
-                break
+        best_score = max(_faq_score(norm_msg, msg_tokens, kw) for kw in kw_fields)
 
-        if not matched:
-            continue
+        if best_score >= 0.45:  # threshold for a match
+            scored.append((best_score, faq))
 
-        # Pick answer for the current language
-        if lang == "es" and faq.answer_es:
-            answer = faq.answer_es
-        elif lang == "en" and faq.answer_en:
-            answer = faq.answer_en
-        else:
-            answer = faq.answer_pt
+    if not scored:
+        return None
 
-        return answer, faq.support_url, faq.support_label
+    # Pick the best match (highest score, then lowest priority number)
+    scored.sort(key=lambda x: (-x[0], x[1].priority))
+    _, best_faq = scored[0]
 
-    return None
+    # Pick answer for the current language
+    if lang == "es" and best_faq.answer_es:
+        answer = best_faq.answer_es
+    elif lang == "en" and best_faq.answer_en:
+        answer = best_faq.answer_en
+    else:
+        answer = best_faq.answer_pt
+
+    return answer, best_faq.support_url, best_faq.support_label
+
+
+def _faq_suggestions(message: str, user: User, lang: str, db: Session, top_n: int = 3) -> list[str]:
+    """
+    Return suggested FAQ keywords that partially match the user message.
+    Used when no strong match is found.
+    """
+    norm_msg = _norm(message)
+    msg_tokens = _tokenize(message)
+    if len(msg_tokens) < 1:
+        return []
+
+    faqs = (
+        db.query(ChatFAQ)
+        .filter(ChatFAQ.is_active == True)
+        .order_by(ChatFAQ.priority.asc())
+        .all()
+    )
+    candidates: list[tuple[float, str]] = []
+    for faq in faqs:
+        if faq.role_filter:
+            allowed = [r.strip() for r in faq.role_filter.split(",")]
+            if user.role not in allowed:
+                continue
+
+        kw_field = {
+            "es": faq.keywords_es,
+            "en": faq.keywords_en,
+        }.get(lang) or faq.keywords_pt or ""
+
+        for kw_line in kw_field.replace("\n", ",").split(","):
+            kw = kw_line.strip()
+            if not kw:
+                continue
+            kw_tokens = _tokenize(kw)
+            overlap = len(msg_tokens & kw_tokens)
+            if overlap > 0:
+                score = overlap / max(len(kw_tokens), 1)
+                if score >= 0.2 and score < 0.45:  # partial match but not strong enough
+                    candidates.append((score, kw))
+
+    candidates.sort(key=lambda x: -x[0])
+    seen = set()
+    result = []
+    for _, kw in candidates:
+        if kw.lower() not in seen:
+            seen.add(kw.lower())
+            result.append(kw)
+        if len(result) >= top_n:
+            break
+    return result
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -229,6 +329,36 @@ INTENT_PATTERNS: dict[str, dict[str, list[str]]] = {
         "es": ["cursos", "formaciones", "mis cursos", "mis formaciones"],
         "en": ["courses", "trainings", "my courses", "my trainings"],
     },
+    "date_today": {
+        "pt": ["que dia e hoje", "qual e a data", "data de hoje", "dia de hoje", "que data", "hoje e dia"],
+        "es": ["que dia es hoy", "cual es la fecha", "fecha de hoy", "dia de hoy", "que fecha"],
+        "en": ["what day is today", "what is the date", "today's date", "what date", "current date"],
+    },
+    "time_now": {
+        "pt": ["que horas sao", "que horas", "hora atual", "horas agora", "sabe as horas", "diz-me as horas"],
+        "es": ["que hora es", "hora actual", "que horas son", "dime la hora"],
+        "en": ["what time is it", "current time", "what time", "tell me the time"],
+    },
+    "day_of_week": {
+        "pt": ["que dia da semana", "dia da semana", "que dia e", "hoje e que dia"],
+        "es": ["que dia de la semana", "dia de la semana"],
+        "en": ["what day of the week", "day of the week"],
+    },
+    "joke": {
+        "pt": ["conta uma piada", "piada", "conta-me uma piada", "diz uma piada", "faz-me rir"],
+        "es": ["cuenta un chiste", "chiste", "dime un chiste", "hazme reir"],
+        "en": ["tell me a joke", "joke", "make me laugh", "tell a joke"],
+    },
+    "coin_flip": {
+        "pt": ["cara ou coroa", "lanca uma moeda", "moeda ao ar", "tira cara ou coroa"],
+        "es": ["cara o cruz", "lanza una moneda", "moneda al aire"],
+        "en": ["flip a coin", "heads or tails", "coin flip", "toss a coin"],
+    },
+    "dice_roll": {
+        "pt": ["lanca um dado", "dado", "rola um dado", "tira um dado"],
+        "es": ["lanza un dado", "tira un dado", "dado"],
+        "en": ["roll a dice", "roll dice", "throw a dice"],
+    },
 }
 
 
@@ -300,6 +430,75 @@ def _status_label(s: str, lang: str) -> str:
 # Handlers
 # ════════════════════════════════════════════════════════════════════════════
 
+# ── Smalltalk patterns ─────────────────────────────────────────────────────
+SMALLTALK: dict[str, dict[str, list[str]]] = {
+    "thanks": {
+        "pt": ["obrigado", "obrigada", "agradeco", "valeu", "thanks", "brigado"],
+        "es": ["gracias", "agradezco", "thanks"],
+        "en": ["thanks", "thank you", "appreciate", "cheers"],
+    },
+    "goodbye": {
+        "pt": ["adeus", "tchau", "ate logo", "ate ja", "ate amanha", "bye"],
+        "es": ["adios", "hasta luego", "chao", "nos vemos", "bye"],
+        "en": ["bye", "goodbye", "see you", "later", "cya"],
+    },
+    "how_are_you": {
+        "pt": ["como estas", "como vai", "tudo bem", "como te sentes", "tas bem"],
+        "es": ["como estas", "que tal", "como te va", "como andas"],
+        "en": ["how are you", "how's it going", "what's up", "how do you do"],
+    },
+    "who_are_you": {
+        "pt": ["quem es tu", "quem es", "o que es", "es um bot", "es um robo", "es humano", "como te chamas"],
+        "es": ["quien eres", "que eres", "eres un bot", "eres un robot", "como te llamas"],
+        "en": ["who are you", "what are you", "are you a bot", "are you a robot", "what's your name"],
+    },
+    "compliment": {
+        "pt": ["es fixe", "es bom", "es otimo", "gosto de ti", "es util", "bem feito", "excelente", "parabens", "genial", "fantastico"],
+        "es": ["eres genial", "eres bueno", "me gustas", "eres util", "bien hecho", "excelente", "fantastico"],
+        "en": ["you're great", "you're good", "nice", "well done", "excellent", "awesome", "fantastic", "useful"],
+    },
+}
+
+SMALLTALK_REPLIES: dict[str, dict[str, str]] = {
+    "thanks": {
+        "pt": "De nada! 😊 Se precisares de mais alguma coisa, é só perguntar.",
+        "es": "¡De nada! 😊 Si necesitas algo más, solo pregunta.",
+        "en": "You're welcome! 😊 Let me know if you need anything else.",
+    },
+    "goodbye": {
+        "pt": "Até logo! 👋 Bom trabalho!",
+        "es": "¡Hasta luego! 👋 ¡Buen trabajo!",
+        "en": "See you later! 👋 Good work!",
+    },
+    "how_are_you": {
+        "pt": "Estou sempre operacional e pronto para ajudar! 🚀 Em que posso ser útil?",
+        "es": "¡Siempre operativo y listo para ayudar! 🚀 ¿En qué puedo ayudarte?",
+        "en": "Always operational and ready to help! 🚀 What can I do for you?",
+    },
+    "who_are_you": {
+        "pt": "Sou o **Assistente TradeHub** 🤖, o teu assistente virtual integrado no portal. Posso consultar os teus dados, erros, planos, estatísticas, e responder a perguntas frequentes. Escreve **ajuda** para ver tudo o que sei fazer!",
+        "es": "Soy el **Asistente TradeHub** 🤖, tu asistente virtual integrado en el portal. Puedo consultar tus datos, errores, planes, estadísticas y responder preguntas frecuentes. ¡Escribe **ayuda** para ver todo lo que sé hacer!",
+        "en": "I'm the **TradeHub Assistant** 🤖, your integrated virtual assistant. I can look up your data, errors, plans, stats, and answer FAQs. Type **help** to see everything I can do!",
+    },
+    "compliment": {
+        "pt": "Obrigado! 😊 Fico contente em poder ajudar. Continua a perguntar!",
+        "es": "¡Gracias! 😊 Me alegra poder ayudar. ¡Sigue preguntando!",
+        "en": "Thanks! 😊 Glad I can help. Keep asking!",
+    },
+}
+
+
+def _detect_smalltalk(msg: str) -> Optional[str]:
+    """Detect smalltalk intent, returns key or None."""
+    norm = _norm(msg)
+    for intent, langs in SMALLTALK.items():
+        for patterns in langs.values():
+            for p in patterns:
+                if _norm(p) in norm:
+                    return intent
+    return None
+
+
 def h_greeting(user: User, lang: str, **_) -> str:
     name = user.full_name.split()[0]
     role = _role_label(user.role, lang)
@@ -331,6 +530,16 @@ def h_help(user: User, lang: str, **_) -> str:
         lines_pt += ["• `utilizadores` — lista de utilizadores", "• `categorias` — categorias de erro"]
     if HAS_COURSES:
         lines_pt += ["• `cursos` — os teus cursos"]
+    lines_pt += [
+        "",
+        "**🧮 Também sei:**",
+        "• Fazer contas — ex: `2+2`, `100/4`, `25*3`",
+        "• `que dia é hoje` — data atual",
+        "• `que horas são` — hora atual",
+        "• `piada` — contar uma piada",
+        "• `cara ou coroa` — lançar uma moeda",
+        "• `dado` — lançar um dado",
+    ]
 
     lines_es = [
         "**Lo que puedo responder:**",
@@ -346,6 +555,16 @@ def h_help(user: User, lang: str, **_) -> str:
         lines_es += ["• `tutorados` — lista tus alumnos"]
     if is_admin:
         lines_es += ["• `usuarios` — lista de usuarios", "• `categorías` — categorías de error"]
+    lines_es += [
+        "",
+        "**🧮 También sé:**",
+        "• Hacer cálculos — ej: `2+2`, `100/4`, `25*3`",
+        "• `qué día es hoy` — fecha actual",
+        "• `qué hora es` — hora actual",
+        "• `chiste` — contar un chiste",
+        "• `cara o cruz` — lanzar una moneda",
+        "• `dado` — lanzar un dado",
+    ]
 
     lines_en = [
         "**What I can answer:**",
@@ -361,6 +580,16 @@ def h_help(user: User, lang: str, **_) -> str:
         lines_en += ["• `students` — list your trainees"]
     if is_admin:
         lines_en += ["• `users` — user list", "• `categories` — error categories"]
+    lines_en += [
+        "",
+        "**🧮 I also know how to:**",
+        "• Do math — e.g. `2+2`, `100/4`, `25*3`",
+        "• `what day is today` — current date",
+        "• `what time is it` — current time",
+        "• `joke` — tell a joke",
+        "• `flip a coin` — heads or tails",
+        "• `roll dice` — roll a dice",
+    ]
 
     return _t(lang, "\n".join(lines_pt), "\n".join(lines_es), "\n".join(lines_en))
 
@@ -639,10 +868,165 @@ def h_open_errors(user: User, lang: str, db: Session, **_) -> str:
 
 
 def h_unknown(user: User, lang: str, **_) -> str:
+    # This is the fallback — the endpoint may override this with suggestions
     return _t(lang,
-        "Não percebi a pergunta. Escreve **ajuda** para ver o que sei responder.",
-        "No entendí la pregunta. Escribe **ayuda** para ver qué sé responder.",
-        "I didn't understand the question. Type **help** to see what I can answer.",
+        "Hmm, não encontrei informação específica sobre isso. 🤔\n\nPodes tentar:\n• Reformular a pergunta com outras palavras\n• Escrever **ajuda** para ver os comandos disponíveis\n• Perguntar algo como \"meus erros\", \"estatísticas\" ou \"planos\"",
+        "Hmm, no encontré información específica sobre eso. 🤔\n\nPuedes intentar:\n• Reformular la pregunta con otras palabras\n• Escribir **ayuda** para ver los comandos disponibles\n• Preguntar algo como \"mis errores\", \"estadísticas\" o \"planes\"",
+        "Hmm, I couldn't find specific info about that. 🤔\n\nYou can try:\n• Rephrasing your question\n• Typing **help** to see available commands\n• Asking something like \"my errors\", \"stats\" or \"plans\"",
+    )
+
+
+# ── Math evaluation (safe) ─────────────────────────────────────────────────
+
+def _safe_math_eval(expr: str) -> Optional[float]:
+    """
+    Safely evaluate a math expression.
+    Only allows numbers, basic operators, parentheses, and common math functions.
+    """
+    # Clean the expression
+    expr = expr.replace(",", ".").replace("×", "*").replace("÷", "/").replace("^", "**")
+    expr = expr.replace("x", "*")  # 2x3 -> 2*3
+
+    # Only allow safe characters
+    allowed = re.compile(r'^[\d\s\+\-\*/\.\(\)\%\*]+$')
+    if not allowed.match(expr):
+        return None
+
+    # Prevent dangerous patterns
+    if "__" in expr or "import" in expr:
+        return None
+
+    try:
+        result = eval(expr, {"__builtins__": {}}, {"math": math})
+        if isinstance(result, (int, float)):
+            # Format nicely
+            if isinstance(result, float) and result == int(result):
+                return int(result)
+            return round(result, 6)
+    except Exception:
+        return None
+    return None
+
+
+def _extract_math_expr(msg: str) -> Optional[str]:
+    """Try to extract a math expression from user message."""
+    # Direct math expression (e.g., "2+3", "10*5", "100/4")
+    patterns = [
+        r'(?:quanto\s+[eé]\s+)?([\d\s\+\-\*/\.\(\)\,\%\^×÷x]+)',
+        r'(?:calcula\s+)?([\d\s\+\-\*/\.\(\)\,\%\^×÷x]+)',
+        r'([\d]+[\s]*[\+\-\*/\^×÷x][\s]*[\d][\d\s\+\-\*/\.\(\)\,\%\^×÷x]*)',
+    ]
+    for pat in patterns:
+        m = re.search(pat, msg.strip())
+        if m:
+            expr = m.group(1).strip()
+            # Must have at least an operator and two numbers
+            if re.search(r'\d', expr) and re.search(r'[\+\-\*/\%\^×÷]', expr):
+                return expr
+    return None
+
+
+def h_date_today(user: User, lang: str, **_) -> str:
+    now = datetime.now()
+    day_names = {
+        "pt": ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"],
+        "es": ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
+        "en": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    }
+    month_names = {
+        "pt": ["", "janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"],
+        "es": ["", "enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
+        "en": ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    }
+    day_name = day_names.get(lang, day_names["pt"])[now.weekday()]
+    month_name = month_names.get(lang, month_names["pt"])[now.month]
+
+    return _t(lang,
+        f"📅 Hoje é **{day_name}**, **{now.day} de {month_name} de {now.year}**.",
+        f"📅 Hoy es **{day_name}**, **{now.day} de {month_name} de {now.year}**.",
+        f"📅 Today is **{day_name}**, **{month_name} {now.day}, {now.year}**.",
+    )
+
+
+def h_time_now(user: User, lang: str, **_) -> str:
+    now = datetime.now()
+    time_str = now.strftime("%H:%M:%S")
+    return _t(lang,
+        f"🕐 Agora são **{time_str}** (hora do servidor).",
+        f"🕐 Ahora son las **{time_str}** (hora del servidor).",
+        f"🕐 It's currently **{time_str}** (server time).",
+    )
+
+
+def h_day_of_week(user: User, lang: str, **_) -> str:
+    now = datetime.now()
+    day_names = {
+        "pt": ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"],
+        "es": ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
+        "en": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    }
+    day_name = day_names.get(lang, day_names["pt"])[now.weekday()]
+    return _t(lang,
+        f"📆 Hoje é **{day_name}**.",
+        f"📆 Hoy es **{day_name}**.",
+        f"📆 Today is **{day_name}**.",
+    )
+
+
+JOKES = {
+    "pt": [
+        "Porque é que o programador usa óculos? Porque não consegue C#! 😄",
+        "O que é um algoritmo? Um programador que dançou samba! 😂",
+        "Quantos programadores são precisos para trocar uma lâmpada? Nenhum, isso é um problema de hardware! 💡",
+        "Porque é que o Python vive sozinho? Porque não precisa de ponto e vírgula! 🐍",
+        "Um bug não é um erro, é uma funcionalidade não documentada! 🐛",
+        "O wi-fi caiu. Acho que foi um 404 emocional. 📶",
+    ],
+    "es": [
+        "¿Por qué el programador usa gafas? ¡Porque no puede C#! 😄",
+        "¿Cuántos programadores se necesitan para cambiar una bombilla? Ninguno, ¡eso es un problema de hardware! 💡",
+        "Un bug no es un error, ¡es una funcionalidad no documentada! 🐛",
+        "¿Qué le dijo un bit al otro? Nos vemos en el bus. 🚌",
+    ],
+    "en": [
+        "Why do programmers wear glasses? Because they can't C#! 😄",
+        "How many programmers does it take to change a light bulb? None, that's a hardware problem! 💡",
+        "A bug is not an error, it's an undocumented feature! 🐛",
+        "There are only 10 types of people in the world: those who understand binary and those who don't. 🔢",
+        "Why did the developer go broke? Because he used up all his cache! 💰",
+    ],
+}
+
+
+def h_joke(user: User, lang: str, **_) -> str:
+    jokes = JOKES.get(lang, JOKES["pt"])
+    joke = random.choice(jokes)
+    return joke
+
+
+def h_coin_flip(user: User, lang: str, **_) -> str:
+    result = random.choice(["heads", "tails"])
+    if result == "heads":
+        return _t(lang,
+            "🪙 Lançei a moeda… **Cara!**",
+            "🪙 Lancé la moneda… **¡Cara!**",
+            "🪙 Flipped the coin… **Heads!**",
+        )
+    else:
+        return _t(lang,
+            "🪙 Lançei a moeda… **Coroa!**",
+            "🪙 Lancé la moneda… **¡Cruz!**",
+            "🪙 Flipped the coin… **Tails!**",
+        )
+
+
+def h_dice_roll(user: User, lang: str, **_) -> str:
+    result = random.randint(1, 6)
+    dice_emoji = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"]
+    return _t(lang,
+        f"🎲 Lancei o dado… **{result}** {dice_emoji[result-1]}",
+        f"🎲 Lancé el dado… **{result}** {dice_emoji[result-1]}",
+        f"🎲 Rolled the dice… **{result}** {dice_emoji[result-1]}",
     )
 
 
@@ -665,6 +1049,12 @@ HANDLERS = {
     "categories":     h_categories,
     "users":          h_users,
     "open_errors":    h_open_errors,
+    "date_today":     h_date_today,
+    "time_now":       h_time_now,
+    "day_of_week":    h_day_of_week,
+    "joke":           h_joke,
+    "coin_flip":      h_coin_flip,
+    "dice_roll":      h_dice_roll,
     "unknown":        h_unknown,
 }
 
@@ -672,6 +1062,31 @@ HANDLERS = {
 # ════════════════════════════════════════════════════════════════════════════
 # Endpoint
 # ════════════════════════════════════════════════════════════════════════════
+
+def _get_quick_suggestions(user: User, lang: str) -> list[str]:
+    """Return contextual quick-action suggestions based on user role."""
+    if lang == "es":
+        base = ["mis errores", "estadísticas", "mis planes"]
+        if user.role in ("ADMIN", "TRAINER"):
+            base += ["tutorados", "errores críticos"]
+        if user.role == "ADMIN":
+            base += ["usuarios"]
+        return base
+    elif lang == "en":
+        base = ["my errors", "stats", "my plans"]
+        if user.role in ("ADMIN", "TRAINER"):
+            base += ["students", "critical errors"]
+        if user.role == "ADMIN":
+            base += ["users"]
+        return base
+    else:  # pt
+        base = ["meus erros", "estatísticas", "meus planos"]
+        if user.role in ("ADMIN", "TRAINER"):
+            base += ["tutorados", "erros críticos"]
+        if user.role == "ADMIN":
+            base += ["utilizadores"]
+        return base
+
 
 @router.post("/chat", response_model=ChatResponse)
 def chat(
@@ -681,7 +1096,26 @@ def chat(
 ):
     lang = req.lang if req.lang in ("pt", "es", "en") else "pt"
 
-    # 1. Check custom FAQs first (admin-registered Q&A)
+    # 0. Smalltalk detection (thanks, bye, how are you, etc.)
+    smalltalk_intent = _detect_smalltalk(req.message)
+    if smalltalk_intent:
+        reply = SMALLTALK_REPLIES.get(smalltalk_intent, {}).get(lang, "")
+        if reply:
+            return ChatResponse(reply=reply, lang=lang)
+
+    # 0.5 Math expression detection (e.g., "2+3", "quanto é 10*5")
+    math_expr = _extract_math_expr(req.message)
+    if math_expr:
+        result = _safe_math_eval(math_expr)
+        if result is not None:
+            reply = _t(lang,
+                f"🧮 **{math_expr.strip()}** = **{result}**",
+                f"🧮 **{math_expr.strip()}** = **{result}**",
+                f"🧮 **{math_expr.strip()}** = **{result}**",
+            )
+            return ChatResponse(reply=reply, lang=lang)
+
+    # 1. Check custom FAQs first (admin-registered Q&A) — now with fuzzy matching
     faq_result = _faq_match(req.message, current_user, lang, db)
     if faq_result:
         reply, support_url, support_label = faq_result
@@ -691,7 +1125,27 @@ def chat(
     intent  = detect_intent(req.message)
     handler = HANDLERS.get(intent, h_unknown)
     reply   = handler(user=current_user, lang=lang, db=db)
-    return ChatResponse(reply=reply, lang=lang)
+
+    # 3. If unknown, try to find near-match FAQ suggestions
+    suggestions = None
+    if intent == "unknown":
+        faq_sugg = _faq_suggestions(req.message, current_user, lang, db)
+        if faq_sugg:
+            sugg_label = _t(lang,
+                "\n\n💡 **Talvez quisesses perguntar sobre:**",
+                "\n\n💡 **Quizás querías preguntar sobre:**",
+                "\n\n💡 **Perhaps you meant to ask about:**",
+            )
+            reply += sugg_label + "\n" + "\n".join(f"• {s}" for s in faq_sugg)
+            suggestions = faq_sugg
+        else:
+            suggestions = _get_quick_suggestions(current_user, lang)
+
+    # For greetings, also include quick suggestions
+    if intent == "greeting":
+        suggestions = _get_quick_suggestions(current_user, lang)
+
+    return ChatResponse(reply=reply, lang=lang, suggestions=suggestions)
 
 
 # ════════════════════════════════════════════════════════════════════════════

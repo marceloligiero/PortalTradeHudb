@@ -96,7 +96,11 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
 
 def require_role(allowed_roles: list[str]):
     async def role_checker(current_user: User = Depends(get_current_active_user)) -> User:
-        if current_user.role not in allowed_roles:
+        has_access = current_user.role in allowed_roles
+        # Users with is_trainer=True also have TRAINER privileges
+        if not has_access and "TRAINER" in allowed_roles and getattr(current_user, 'is_trainer', False):
+            has_access = True
+        if not has_access:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not enough permissions"

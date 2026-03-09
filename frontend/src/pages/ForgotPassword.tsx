@@ -1,70 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, ArrowRight, CheckCircle, Moon, Sun, Lock, Eye, EyeOff, Globe, ChevronLeft, KeyRound } from 'lucide-react';
+import { Mail, ArrowRight, CheckCircle, Lock, Eye, EyeOff, KeyRound, ChevronLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../lib/axios';
+import PremiumNavbar from '../components/PremiumNavbar';
 
-/* ─── Navbar (same pattern) ─────────────────────────────────────────── */
-function Navbar({ isDark, setIsDark }: { isDark: boolean; setIsDark: (v: boolean) => void }) {
-  const { i18n } = useTranslation();
-  const navigate = useNavigate();
-  const [langOpen, setLangOpen] = useState(false);
-  useEffect(() => {
-    if (!langOpen) return;
-    const h = () => setLangOpen(false);
-    document.addEventListener('click', h);
-    return () => document.removeEventListener('click', h);
-  }, [langOpen]);
-  const LANGS = [{ code:'pt-PT', label:'🇵🇹 Português' }, { code:'es', label:'🇪🇸 Español' }, { code:'en', label:'🇺🇸 English' }];
-  return (
-    <div className="fixed top-0 inset-x-0 z-50 px-4 pt-4 pointer-events-none">
-      <motion.div initial={{ y:-24, opacity:0 }} animate={{ y:0, opacity:1 }} transition={{ duration:.6 }}
-        className="max-w-md mx-auto pointer-events-auto">
-        <div className={`rounded-2xl p-px ${isDark?'bg-white/[0.06]':'bg-black/[0.08]'}`}>
-          <div className={`rounded-[15px] backdrop-blur-2xl px-4 h-12 flex items-center justify-between ${isDark?'bg-[#030307]/80':'bg-white/80'}`}>
-            <motion.div whileHover={{ scale:1.04 }} whileTap={{ scale:.97 }}
-              className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-              <img src="/logo-sds.png" alt="SDS" className={`h-6 w-auto object-contain ${isDark?'':'brightness-0'}`} />
-              <div className={`h-4 w-px ${isDark?'bg-white/15':'bg-gray-300'}`} />
-              <span className={`text-xs font-black tracking-tight ${isDark?'text-white/90':'text-gray-800'}`}>
-                Trade<span className="text-red-500">Data</span>Hub
-              </span>
-            </motion.div>
-            <div className="flex items-center gap-1">
-              <div className="relative" onClick={e => e.stopPropagation()}>
-                <button onClick={() => setLangOpen(o => !o)} className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${isDark?'border-white/[0.09] text-gray-400 hover:bg-white/[0.07]':'border-gray-200 text-gray-500 hover:bg-gray-100'}`}>
-                  <Globe className="w-3 h-3" />
-                  <span className="hidden sm:inline">{i18n.language.startsWith('es')?'ES':i18n.language.startsWith('en')?'EN':'PT'}</span>
-                </button>
-                <AnimatePresence>
-                  {langOpen && (
-                    <motion.div initial={{ opacity:0, scale:.92, y:-4 }} animate={{ opacity:1, scale:1, y:0 }} exit={{ opacity:0, scale:.92, y:-4 }} transition={{ duration:.12 }}
-                      className={`absolute right-0 top-full mt-1.5 rounded-xl border shadow-2xl overflow-hidden z-20 min-w-[120px] ${isDark?'bg-[#0c0c12] border-white/10':'bg-white border-gray-200'}`}>
-                      {LANGS.map(l => (
-                        <button key={l.code} onClick={() => { i18n.changeLanguage(l.code); localStorage.setItem('language', l.code); setLangOpen(false); }}
-                          className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${i18n.language.startsWith(l.code.slice(0,2))?'text-red-500 font-bold':isDark?'text-gray-400 hover:bg-white/5 hover:text-white':'text-gray-600 hover:bg-gray-50'}`}>
-                          {l.label}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-              <button onClick={() => setIsDark(!isDark)} className={`p-1.5 rounded-lg border transition-all ${isDark?'border-white/[0.09] text-gray-400 hover:bg-white/[0.07]':'border-gray-200 text-gray-500 hover:bg-gray-100'}`}>
-                <AnimatePresence mode="wait">
-                  <motion.div key={isDark?'sun':'moon'} initial={{ rotate:-30, opacity:0 }} animate={{ rotate:0, opacity:1 }} exit={{ rotate:30, opacity:0 }} transition={{ duration:.15 }}>
-                    {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-                  </motion.div>
-                </AnimatePresence>
-              </button>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
+
 
 /* ─── underline input ───────────────────────────────────────────────── */
 function LineInput({ type='text', placeholder, value, onChange, onFocus, onBlur, focused, icon, right }: {
@@ -84,10 +26,10 @@ function LineInput({ type='text', placeholder, value, onChange, onFocus, onBlur,
   );
 }
 
-const stepMeta = {
-  email:    { icon: Mail,       title: 'Esqueceu\na senha?',     sub: 'Insira o seu email para continuar.' },
-  password: { icon: KeyRound,   title: 'Nova\npalavra-passe',   sub: '' },
-  success:  { icon: CheckCircle, title: 'Senha\nalterada!',     sub: 'Pode agora iniciar sessão com a nova senha.' },
+const stepMetaIcons = {
+  email:    Mail,
+  password: KeyRound,
+  success:  CheckCircle,
 };
 
 const slideV = {
@@ -103,6 +45,12 @@ export default function ForgotPassword() {
 
   const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') !== 'light');
   useEffect(() => { localStorage.setItem('theme', isDark ? 'dark' : 'light'); }, [isDark]);
+
+  const stepMeta = {
+    email:    { title: t('auth.forgot.title'), sub: t('auth.forgot.sub') },
+    password: { title: t('auth.forgot.newPasswordTitle'), sub: '' },
+    success:  { title: t('auth.forgot.successTitle'), sub: t('auth.forgot.successSub') },
+  };
 
   const [step, setStep] = useState<'email' | 'password' | 'success'>('email');
   const [dir, setDir] = useState(1);
@@ -148,7 +96,7 @@ export default function ForgotPassword() {
   };
 
   const { title, sub } = stepMeta[step];
-  const IconComp = stepMeta[step].icon;
+  const IconComp = stepMetaIcons[step];
 
   const stepDotIdx = step === 'email' ? 0 : step === 'password' ? 1 : 2;
 
@@ -163,7 +111,7 @@ export default function ForgotPassword() {
         <div className="absolute inset-0" style={{ backgroundImage:`radial-gradient(circle,${isDark?'rgba(255,255,255,0.025)':'rgba(0,0,0,0.025)'} 1px,transparent 1px)`, backgroundSize:'28px 28px' }} />
       </div>
 
-      <Navbar isDark={isDark} setIsDark={setIsDark} />
+      <PremiumNavbar isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} backTo={{ path: '/login', label: t('auth.backToLogin') }} />
 
       {/* ─── Card ───────────────────────────────────────────────────── */}
       <motion.div initial={{ opacity:0, y:28, scale:.97 }} animate={{ opacity:1, y:0, scale:1 }}
@@ -177,7 +125,7 @@ export default function ForgotPassword() {
               onClick={() => { setError(''); if (step === 'email') navigate('/login'); else { setDir(-1); setStep('email'); } }}
               className={`flex items-center gap-1 text-sm font-medium transition-colors ${isDark?'text-gray-500 hover:text-white':'text-gray-400 hover:text-gray-800'}`}>
               <ChevronLeft className="w-4 h-4" />
-              <span>{step === 'email' ? 'Login' : 'Voltar'}</span>
+              <span>{step === 'email' ? t('auth.login') : t('auth.back')}</span>
             </motion.button>
             {step !== 'success' && (
               <div className="flex gap-1.5">
@@ -206,7 +154,7 @@ export default function ForgotPassword() {
                   <h1 className={`text-3xl font-black leading-tight tracking-tight whitespace-pre-line ${isDark?'text-white':'text-gray-900'}`}>{title}</h1>
                   {step === 'password' && (
                     <p className={`mt-2 text-sm ${isDark?'text-gray-500':'text-gray-400'}`}>
-                      Para <span className="text-red-400 font-semibold">{email}</span>
+                      {t('auth.forgot.forEmail')} <span className="text-red-400 font-semibold">{email}</span>
                     </p>
                   )}
                   {step === 'email' && (
@@ -226,7 +174,7 @@ export default function ForgotPassword() {
               <motion.div key="email" custom={dir} variants={slideV} initial="enter" animate="center" exit="exit"
                 transition={{ duration:.3, ease:[0.22,1,0.36,1] }}>
                 <form onSubmit={handleEmailSubmit} className="space-y-6">
-                  <LineInput type="email" placeholder="Email" value={email}
+                  <LineInput type="email" placeholder={t('auth.email')} value={email}
                     onChange={e => { setEmail(e.target.value); setError(''); }}
                     onFocus={() => setFocused('email')} onBlur={() => setFocused(null)} focused={focused==='email'}
                     icon={<Mail className="w-4 h-4" />}
@@ -259,7 +207,7 @@ export default function ForgotPassword() {
                       </button>
                     }
                   />
-                  <LineInput type={showCPw?'text':'password'} placeholder={t('auth.confirmNewPassword', 'Confirmar senha')} value={confirmPassword}
+                  <LineInput type={showCPw?'text':'password'} placeholder={t('auth.confirmNewPassword')} value={confirmPassword}
                     onChange={e => { setConfirmPassword(e.target.value); setError(''); }}
                     onFocus={() => setFocused('cpw')} onBlur={() => setFocused(null)} focused={focused==='cpw'}
                     icon={<Lock className="w-4 h-4" />}
@@ -302,7 +250,7 @@ export default function ForgotPassword() {
       </motion.div>
 
       <p className={`relative z-10 text-center text-xs mt-8 ${isDark?'text-gray-800':'text-gray-400'}`}>
-        {t('common.appName')} © 2026 · Trade Data Hub
+        {t('auth.copyright')}
       </p>
     </div>
   );

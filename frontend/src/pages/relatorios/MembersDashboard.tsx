@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Loader2, User, AlertTriangle, CheckCircle2, Award, Clock, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -17,9 +18,6 @@ interface MemberStat {
   certificates: number;
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  STUDENT: 'Estudante', TRAINEE: 'Tutorado', TRAINER: 'Tutor', MANAGER: 'Manager',
-};
 const ROLE_COLORS: Record<string, string> = {
   STUDENT: 'bg-blue-500/10 text-blue-500',
   TRAINEE: 'bg-purple-500/10 text-purple-500',
@@ -28,6 +26,7 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 export default function MembersDashboard() {
+  const { t } = useTranslation();
   const { token } = useAuthStore();
   const { isDark } = useTheme();
   const [members, setMembers] = useState<MemberStat[]>([]);
@@ -42,7 +41,7 @@ export default function MembersDashboard() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>;
+  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-red-500" /></div>;
 
   const filtered = members
     .filter(m =>
@@ -64,7 +63,7 @@ export default function MembersDashboard() {
   const SortTh = ({ col, children }: { col: keyof MemberStat; children: React.ReactNode }) => (
     <th onClick={() => toggleSort(col)}
       className={`px-4 py-3 text-center font-semibold cursor-pointer select-none transition-colors
-        ${sort === col ? isDark ? 'text-emerald-400' : 'text-emerald-600' : ''}`}>
+        ${sort === col ? isDark ? 'text-red-400' : 'text-red-600' : ''}`}>
       {children} {sort === col ? (sortAsc ? '↑' : '↓') : ''}
     </th>
   );
@@ -78,8 +77,8 @@ export default function MembersDashboard() {
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
-        <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Portal de Relatórios</p>
-        <h1 className={`text-3xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>Minha Equipa</h1>
+        <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDark ? 'text-red-400' : 'text-red-600'}`}>{t('relMembers.portalTitle')}</p>
+        <h1 className={`text-3xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('relMembers.title')}</h1>
       </div>
 
       {/* Summary KPIs */}
@@ -87,10 +86,10 @@ export default function MembersDashboard() {
         className="grid grid-cols-2 lg:grid-cols-4 gap-4"
       >
         {[
-          { icon: User, label: 'Membros', value: total, color: 'bg-gradient-to-br from-blue-600 to-blue-500' },
-          { icon: CheckCircle2, label: 'Taxa Média', value: `${avgCompletion}%`, color: 'bg-gradient-to-br from-emerald-600 to-emerald-500' },
-          { icon: AlertTriangle, label: 'Total de Erros', value: totalErrors, color: 'bg-gradient-to-br from-red-600 to-red-500' },
-          { icon: Award, label: 'Certificados', value: totalCerts, color: 'bg-gradient-to-br from-yellow-600 to-yellow-500' },
+          { icon: User, label: t('relMembers.members'), value: total, color: 'bg-gradient-to-br from-blue-600 to-blue-500' },
+          { icon: CheckCircle2, label: t('relMembers.avgRate'), value: `${avgCompletion}%`, color: 'bg-gradient-to-br from-emerald-600 to-emerald-500' },
+          { icon: AlertTriangle, label: t('relMembers.totalErrors'), value: totalErrors, color: 'bg-gradient-to-br from-red-600 to-red-500' },
+          { icon: Award, label: t('relMembers.certificates'), value: totalCerts, color: 'bg-gradient-to-br from-yellow-600 to-yellow-500' },
         ].map(({ icon: Icon, label, value, color }) => (
           <div key={label} className={`rounded-2xl border p-5 flex gap-4 ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}>
             <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
@@ -109,7 +108,7 @@ export default function MembersDashboard() {
         <Search className="w-4 h-4 text-gray-400" />
         <input
           value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Pesquisar membro…"
+          placeholder={t('relMembers.searchPlaceholder')}
           className={`flex-1 bg-transparent text-sm outline-none ${isDark ? 'text-white placeholder-gray-600' : 'text-gray-900 placeholder-gray-400'}`}
         />
       </div>
@@ -122,10 +121,10 @@ export default function MembersDashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr className={`text-xs uppercase tracking-wider ${isDark ? 'bg-white/5 text-gray-500' : 'bg-gray-50 text-gray-500'}`}>
-                <th className="px-5 py-3 text-left font-semibold">Membro</th>
-                <th className="px-5 py-3 text-left font-semibold">Role</th>
+                <th className="px-5 py-3 text-left font-semibold">{t('relMembers.member')}</th>
+                <th className="px-5 py-3 text-left font-semibold">{t('relMembers.role')}</th>
                 <SortTh col="errors_count"><AlertTriangle className="w-3.5 h-3.5 inline text-red-400" /></SortTh>
-                <SortTh col="plans_total">Planos</SortTh>
+                <SortTh col="plans_total">{t('relMembers.plans')}</SortTh>
                 <SortTh col="completion_rate"><CheckCircle2 className="w-3.5 h-3.5 inline text-emerald-400" /></SortTh>
                 <SortTh col="avg_mpu"><Clock className="w-3.5 h-3.5 inline text-blue-400" /></SortTh>
                 <SortTh col="certificates"><Award className="w-3.5 h-3.5 inline text-yellow-400" /></SortTh>
@@ -135,7 +134,7 @@ export default function MembersDashboard() {
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} className={`px-5 py-8 text-center text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                    Nenhum membro encontrado
+                    {t('relMembers.noMemberFound')}
                   </td>
                 </tr>
               ) : (
@@ -148,7 +147,7 @@ export default function MembersDashboard() {
                     </td>
                     <td className="px-5 py-4">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${ROLE_COLORS[m.role] ?? 'bg-gray-500/10 text-gray-500'}`}>
-                        {ROLE_LABELS[m.role] ?? m.role}
+                        {t(`relMembers.roles.${m.role}`) || m.role}
                       </span>
                     </td>
                     <td className="px-4 py-4 text-center">

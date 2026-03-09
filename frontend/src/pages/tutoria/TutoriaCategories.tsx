@@ -9,6 +9,7 @@ import {
   ChevronRight, AlertTriangle, Check, X, FolderOpen,
 } from 'lucide-react';
 import TutoriaPage from './TutoriaPage';
+import { useTranslation } from 'react-i18next';
 
 interface Category {
   id: number;
@@ -31,6 +32,7 @@ export default function TutoriaCategories() {
   const { user } = useAuthStore();
   const { isDark } = useTheme();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +59,7 @@ export default function TutoriaCategories() {
       const res = await axios.get('/api/tutoria/categories');
       setCategories(Array.isArray(res.data) ? res.data : []);
     } catch {
-      setError('Erro ao carregar categorias.');
+      setError(t('tutoriaCategories.loadError'));
     } finally {
       setLoading(false);
     }
@@ -96,7 +98,7 @@ export default function TutoriaCategories() {
   };
 
   const handleSave = async () => {
-    if (!form.name.trim()) { setFormError('Nome é obrigatório.'); return; }
+    if (!form.name.trim()) { setFormError(t('tutoriaCategories.nameRequired')); return; }
     setSaving(true);
     setFormError(null);
     try {
@@ -107,15 +109,15 @@ export default function TutoriaCategories() {
       };
       if (editingId) {
         await axios.patch(`/api/tutoria/categories/${editingId}`, payload);
-        flashSuccess('Categoria atualizada.');
+        flashSuccess(t('tutoriaCategories.categoryUpdated'));
       } else {
         await axios.post('/api/tutoria/categories', payload);
-        flashSuccess('Categoria criada.');
+        flashSuccess(t('tutoriaCategories.categoryCreated'));
       }
       closeForm();
       await load();
     } catch (e: any) {
-      setFormError(e?.response?.data?.detail ?? 'Erro ao guardar categoria.');
+      setFormError(e?.response?.data?.detail ?? t('tutoriaCategories.saveError'));
     } finally {
       setSaving(false);
     }
@@ -124,10 +126,10 @@ export default function TutoriaCategories() {
   const handleToggleActive = async (cat: Category) => {
     try {
       await axios.patch(`/api/tutoria/categories/${cat.id}`, { is_active: !cat.is_active });
-      flashSuccess(cat.is_active ? 'Categoria desativada.' : 'Categoria ativada.');
+      flashSuccess(cat.is_active ? t('tutoriaCategories.categoryDeactivated') : t('tutoriaCategories.categoryActivated'));
       await load();
     } catch {
-      setError('Erro ao alterar estado da categoria.');
+      setError(t('tutoriaCategories.toggleError'));
     }
   };
 
@@ -160,13 +162,13 @@ export default function TutoriaCategories() {
           </motion.div>
           <div>
             <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDark ? 'text-violet-400' : 'text-violet-500'}`}>
-              Configuração
+              {t('tutoriaCategories.headerSubtitle')}
             </p>
             <h1 className={`text-3xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              Categorias de Erros
+              {t('tutoriaCategories.title')}
             </h1>
             <p className={`text-sm mt-0.5 ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
-              {categories.filter(c => c.is_active).length} ativas · {categories.filter(c => !c.is_active).length} inativas
+              {t('tutoriaCategories.activeCount', { active: categories.filter(c => c.is_active).length, inactive: categories.filter(c => !c.is_active).length })}
             </p>
           </div>
         </div>
@@ -176,7 +178,7 @@ export default function TutoriaCategories() {
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white text-sm font-semibold shadow-lg shadow-violet-600/25 transition-all"
         >
           <Plus className="w-4 h-4" />
-          Nova Categoria
+          {t('tutoriaCategories.newCategory')}
         </motion.button>
       </motion.div>
 
@@ -221,7 +223,7 @@ export default function TutoriaCategories() {
           >
             <div className="flex items-center justify-between">
               <h2 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {editingId ? 'Editar Categoria' : 'Nova Categoria'}
+                {editingId ? t('tutoriaCategories.editCategory') : t('tutoriaCategories.newCategory')}
               </h2>
               <button onClick={closeForm} className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
                 <X className="w-5 h-5" />
@@ -237,12 +239,12 @@ export default function TutoriaCategories() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
-                  Nome <span className="text-red-500">*</span>
+                  {t('tutoriaCategories.nameLabel')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder="Ex: Técnico, Processo…"
+                  placeholder={t('tutoriaCategories.namePlaceholder')}
                   className={`w-full px-4 py-2.5 rounded-xl border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500/30 ${
                     isDark
                       ? 'bg-white/5 border-white/10 text-white placeholder-white/30 focus:border-violet-500/50'
@@ -253,20 +255,21 @@ export default function TutoriaCategories() {
 
               <div>
                 <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
-                  Categoria pai (opcional)
+                  {t('tutoriaCategories.parentLabel')}
                 </label>
                 <select
                   value={form.parent_id}
                   onChange={e => setForm(f => ({ ...f, parent_id: e.target.value }))}
+                  style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}
                   className={`w-full px-4 py-2.5 rounded-xl border text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500/30 ${
                     isDark
                       ? 'bg-white/5 border-white/10 text-white focus:border-violet-500/50'
                       : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-violet-300 focus:bg-white'
                   }`}
                 >
-                  <option value="">— Nenhuma (nível raiz) —</option>
+                  <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('tutoriaCategories.noParent')}</option>
                   {parentOptions.map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                    <option key={p.id} value={p.id} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{p.name}</option>
                   ))}
                 </select>
               </div>
@@ -274,13 +277,13 @@ export default function TutoriaCategories() {
 
             <div>
               <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
-                Descrição (opcional)
+                {t('tutoriaCategories.descriptionLabel')}
               </label>
               <textarea
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 rows={2}
-                placeholder="Breve descrição da categoria…"
+                placeholder={t('tutoriaCategories.descriptionPlaceholder')}
                 className={`w-full px-4 py-2.5 rounded-xl border text-sm resize-none transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500/30 ${
                   isDark
                     ? 'bg-white/5 border-white/10 text-white placeholder-white/30 focus:border-violet-500/50'
@@ -296,7 +299,7 @@ export default function TutoriaCategories() {
                   isDark ? 'border-white/10 text-gray-400 hover:bg-white/5' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                Cancelar
+                {t('tutoriaCategories.cancel')}
               </button>
               <motion.button
                 whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
@@ -305,7 +308,7 @@ export default function TutoriaCategories() {
                 className="flex items-center gap-2 px-5 py-2 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-violet-600/20"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                {saving ? 'A guardar…' : 'Guardar'}
+                {saving ? t('tutoriaCategories.saving') : t('tutoriaCategories.save')}
               </motion.button>
             </div>
           </motion.div>
@@ -319,12 +322,12 @@ export default function TutoriaCategories() {
           className={`rounded-2xl border p-16 text-center ${isDark ? 'bg-white/[0.02] border-white/8' : 'bg-gray-50 border-gray-200'}`}
         >
           <FolderOpen className={`w-12 h-12 mx-auto mb-4 ${isDark ? 'text-gray-700' : 'text-gray-300'}`} />
-          <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Nenhuma categoria criada.</p>
+          <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('tutoriaCategories.emptyState')}</p>
           <button
             onClick={openCreate}
             className={`mt-4 text-sm font-semibold underline ${isDark ? 'text-violet-400 hover:text-violet-300' : 'text-violet-600 hover:text-violet-700'}`}
           >
-            Criar primeira categoria
+            {t('tutoriaCategories.createFirst')}
           </button>
         </motion.div>
       ) : (
@@ -353,12 +356,12 @@ export default function TutoriaCategories() {
                       {!cat.is_active && (
                         <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
                           isDark ? 'bg-gray-500/10 border-gray-500/20 text-gray-400' : 'bg-gray-100 border-gray-200 text-gray-500'
-                        }`}>Inativa</span>
+                        }`}>{t('tutoriaCategories.inactive')}</span>
                       )}
                       {subs.length > 0 && (
                         <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
                           isDark ? 'bg-violet-500/10 border-violet-500/20 text-violet-400' : 'bg-violet-50 border-violet-200 text-violet-600'
-                        }`}>{subs.length} sub</span>
+                        }`}>{t('tutoriaCategories.subCount', { count: subs.length })}</span>
                       )}
                     </div>
                     {cat.description && (
@@ -370,7 +373,7 @@ export default function TutoriaCategories() {
                     <motion.button
                       whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                       onClick={() => openEdit(cat)}
-                      title="Editar"
+                      title={t('tutoriaCategories.editTooltip')}
                       className={`p-2 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400 hover:text-white' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-700'}`}
                     >
                       <Pencil className="w-4 h-4" />
@@ -378,7 +381,7 @@ export default function TutoriaCategories() {
                     <motion.button
                       whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                       onClick={() => handleToggleActive(cat)}
-                      title={cat.is_active ? 'Desativar' : 'Ativar'}
+                      title={cat.is_active ? t('tutoriaCategories.deactivateTooltip') : t('tutoriaCategories.activateTooltip')}
                       className={`p-2 rounded-lg transition-colors ${
                         cat.is_active
                           ? isDark ? 'hover:bg-red-500/10 text-green-400 hover:text-red-400' : 'hover:bg-red-50 text-green-600 hover:text-red-500'
@@ -411,7 +414,7 @@ export default function TutoriaCategories() {
                         {!sub.is_active && (
                           <span className={`text-xs px-1.5 py-0.5 rounded-full border ${
                             isDark ? 'bg-gray-500/10 border-gray-500/20 text-gray-500' : 'bg-gray-100 border-gray-200 text-gray-400'
-                          }`}>Inativa</span>
+                          }`}>{t('tutoriaCategories.inactive')}</span>
                         )}
                       </div>
                       {sub.description && (
@@ -423,7 +426,7 @@ export default function TutoriaCategories() {
                       <motion.button
                         whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                         onClick={() => openEdit(sub)}
-                        title="Editar"
+                        title={t('tutoriaCategories.editTooltip')}
                         className={`p-1.5 rounded-lg transition-colors ${isDark ? 'hover:bg-white/10 text-gray-500 hover:text-white' : 'hover:bg-gray-100 text-gray-400 hover:text-gray-700'}`}
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -431,7 +434,7 @@ export default function TutoriaCategories() {
                       <motion.button
                         whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                         onClick={() => handleToggleActive(sub)}
-                        title={sub.is_active ? 'Desativar' : 'Ativar'}
+                        title={sub.is_active ? t('tutoriaCategories.deactivateTooltip') : t('tutoriaCategories.activateTooltip')}
                         className={`p-1.5 rounded-lg transition-colors ${
                           sub.is_active
                             ? isDark ? 'hover:bg-red-500/10 text-green-400 hover:text-red-400' : 'hover:bg-red-50 text-green-600 hover:text-red-500'

@@ -13,7 +13,11 @@ import {
   Users,
   Shield,
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  BookOpen,
+  Award,
+  KeyRound,
+  Crown
 } from 'lucide-react';
 import api from '../../lib/axios';
 
@@ -21,7 +25,11 @@ interface PendingTrainer {
   id: number;
   email: string;
   full_name: string;
+  role: string;
   is_pending: boolean;
+  is_trainer?: boolean;
+  is_tutor?: boolean;
+  is_liberador?: boolean;
   created_at?: string;
 }
 
@@ -396,14 +404,34 @@ const TrainerValidation = () => {
                           </div>
 
                           <div className="flex flex-wrap gap-2 mt-3">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 text-yellow-700 text-xs font-semibold rounded-full border border-yellow-200">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 text-yellow-700 text-xs font-semibold rounded-full border border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20">
                               <Clock className="w-3.5 h-3.5" />
                               {t('admin.awaitingValidation')}
                             </span>
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full border border-blue-200">
-                              <GraduationCap className="w-3.5 h-3.5" />
-                              {t('roles.TRAINER')}
-                            </span>
+                            {trainer.is_trainer && (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20">
+                                <BookOpen className="w-3.5 h-3.5" />
+                                Formador
+                              </span>
+                            )}
+                            {trainer.is_tutor && (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
+                                <Award className="w-3.5 h-3.5" />
+                                Tutor
+                              </span>
+                            )}
+                            {trainer.is_liberador && (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-50 text-cyan-700 text-xs font-semibold rounded-full border border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-400 dark:border-cyan-500/20">
+                                <KeyRound className="w-3.5 h-3.5" />
+                                Liberador
+                              </span>
+                            )}
+                            {trainer.role === 'MANAGER' && (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 text-xs font-semibold rounded-full border border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20">
+                                <Crown className="w-3.5 h-3.5" />
+                                Chefe de Equipa
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>

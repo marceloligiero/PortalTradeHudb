@@ -30,6 +30,17 @@ if [ -d "$REPO_ROOT/backend" ]; then
   "$PY" -m pip install --upgrade pip setuptools wheel
   "$PIP" install --upgrade gunicorn uvicorn
 
+  # Run pending database migrations before starting the server
+  echo "Checking for pending database migrations..."
+  "$PY" -c "
+from app.migrate import run_migrations
+count = run_migrations()
+if count > 0:
+    print(f'  Applied {count} migration(s).')
+else:
+    print('  No pending migrations.')
+" 2>&1 || echo "  [WARN] Migration check failed, continuing startup..."
+
   echo "Starting Gunicorn (Uvicorn workers) on 0.0.0.0:8000"
   nohup "$GUNICORN_BIN" -k uvicorn.workers.UvicornWorker -w 4 -b 0.0.0.0:8000 main:app --chdir "$REPO_ROOT/backend" > "$LOG_DIR/prod-backend.log" 2>&1 &
   echo $! > "$LOG_DIR/prod-backend.pid"

@@ -10,8 +10,14 @@ from app.routers import tutoria
 from app.routers import chat
 from app.routers import teams
 from app.routers import relatorios
+from app.routers import chamados
+from app.routers import internal_errors
 from app.database import init_db
+from app.migrate import run_migrations
 from contextlib import asynccontextmanager
+import logging
+
+logger = logging.getLogger("app.startup")
 
 # Rate limiter (shared instance used by route modules)
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
@@ -19,6 +25,13 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 @asynccontextmanager
 async def lifespan(app):
     init_db()
+    # Run pending SQL migrations automatically
+    try:
+        count = run_migrations()
+        if count > 0:
+            logger.info("Applied %d pending migration(s).", count)
+    except Exception as e:
+        logger.error("Migration failed: %s", e)
     yield
 
 app = FastAPI(title="Trade Data Hub API", version="1.0.0", lifespan=lifespan)
@@ -126,12 +139,16 @@ app.include_router(lessons.router, tags=["lessons"])
 app.include_router(finalization.router, tags=["finalization"])
 # Tutoria (tutoring portal) API
 app.include_router(tutoria.router, prefix="/api/tutoria", tags=["tutoria"])
+# Internal Errors (sensos, erros internos, fichas de aprendizagem)
+app.include_router(internal_errors.router, tags=["internal-errors"])
 # Chatbot (rule-based + custom FAQ)
 app.include_router(chat.router, prefix="/api", tags=["chat"])
 # Teams
 app.include_router(teams.router, prefix="/api", tags=["teams"])
 # Portal de Relatórios
 app.include_router(relatorios.router, prefix="/api", tags=["relatorios"])
+# Portal de Chamados (Support Tickets / Kanban)
+app.include_router(chamados.router, prefix="/api", tags=["chamados"])
 # Mount certificates router for certificate management and PDF download
 app.include_router(certificates.router, prefix="/api/certificates", tags=["certificates"])
 # Mount student reports router

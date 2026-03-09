@@ -77,7 +77,7 @@ export default function MyPlans() {
       setPlans(response.data || []);
     } catch (error) {
       console.error('Error fetching plans:', error);
-      setError('Falha ao carregar planos de formação');
+      setError(t('myPlans.loadError'));
     } finally {
       setLoading(false);
     }
@@ -96,8 +96,8 @@ export default function MyPlans() {
       <PremiumHeader
         icon={GraduationCap}
         title={t('trainingPlan.myPlans')}
-        subtitle="Acompanhe seus planos de formação atribuídos"
-        badge="Meus Planos"
+        subtitle={t('myPlans.subtitle')}
+        badge={t('myPlans.badge')}
         iconColor="from-indigo-500 to-indigo-700"
       />
 
@@ -105,35 +105,35 @@ export default function MyPlans() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <AnimatedStatCard
           icon={GraduationCap}
-          label="Total de Planos"
+          label={t('myPlans.totalPlans')}
           value={totalPlans}
           color="from-indigo-500 to-indigo-700"
           delay={0}
         />
         <AnimatedStatCard
           icon={PlayCircle}
-          label="Em Progresso"
+          label={t('myPlans.inProgress')}
           value={inProgressPlans}
           color="from-blue-500 to-blue-600"
           delay={0.1}
         />
         <AnimatedStatCard
           icon={CheckCircle2}
-          label="Concluídos"
+          label={t('myPlans.completed')}
           value={completedPlans}
           color="from-green-500 to-emerald-600"
           delay={0.2}
         />
         <AnimatedStatCard
           icon={AlertTriangle}
-          label="Atrasados"
+          label={t('myPlans.delayed')}
           value={delayedPlans}
           color="from-red-500 to-red-600"
           delay={0.3}
         />
         <AnimatedStatCard
           icon={BookOpen}
-          label="Total de Cursos"
+          label={t('myPlans.totalCourses')}
           value={totalCourses}
           color="from-purple-500 to-purple-700"
           delay={0.4}

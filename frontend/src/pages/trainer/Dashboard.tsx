@@ -231,7 +231,7 @@ export default function TrainerDashboard() {
               onClick={() => navigate('/training-plans')}
               className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all text-sm"
             >
-              Ver Todos
+              {t('dashboard.trainer.viewAll')}
               <ChevronRight className="w-4 h-4" />
             </motion.button>
           </div>

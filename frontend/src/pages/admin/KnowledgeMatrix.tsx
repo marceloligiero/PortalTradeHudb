@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../lib/axios';
+import { useTheme } from '../../contexts/ThemeContext';
 
 // ============ TYPES ============
 
@@ -164,6 +165,7 @@ function CircularProgress({ value, size = 48, strokeWidth = 4, color = '#10b981'
 
 export default function KnowledgeMatrix() {
   const { t } = useTranslation();
+  const { isDark } = useTheme();
   const [data, setData] = useState<KnowledgeMatrixData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -515,12 +517,13 @@ export default function KnowledgeMatrix() {
               value={selectedGroup}
               onChange={(e) => setSelectedGroup(e.target.value)}
               className="bg-white/[0.03] border border-white/[0.08] rounded-xl text-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-purple-500/40"
+              style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}
             >
-              <option value="all">
+              <option value="all" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>
                 {groupBy === 'bank' ? t('knowledgeMatrix.allBanks', 'Todos os Bancos') : t('knowledgeMatrix.allServices', 'Todos os Serviços')}
               </option>
               {groupOptions.map(g => (
-                <option key={g} value={g}>{g}</option>
+                <option key={g} value={g} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{g}</option>
               ))}
             </select>
           )}
@@ -549,11 +552,12 @@ export default function KnowledgeMatrix() {
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'level' | 'completion' | 'name' | 'mpu')}
             className="bg-white/[0.03] border border-white/[0.08] rounded-xl text-gray-300 px-3 py-2.5 text-sm focus:outline-none focus:border-purple-500/40"
+            style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}
           >
-            <option value="level">{t('knowledgeMatrix.sortLevel', 'Ordenar: Nível')}</option>
-            <option value="completion">{t('knowledgeMatrix.sortCompletion', 'Ordenar: Conclusão')}</option>
-            <option value="name">{t('knowledgeMatrix.sortName', 'Ordenar: Nome')}</option>
-            <option value="mpu">{t('knowledgeMatrix.sortMPU', 'Ordenar: MPU')}</option>
+            <option value="level" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('knowledgeMatrix.sortLevel', 'Ordenar: Nível')}</option>
+            <option value="completion" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('knowledgeMatrix.sortCompletion', 'Ordenar: Conclusão')}</option>
+            <option value="name" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('knowledgeMatrix.sortName', 'Ordenar: Nome')}</option>
+            <option value="mpu" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('knowledgeMatrix.sortMPU', 'Ordenar: MPU')}</option>
           </select>
           <button
             onClick={() => setSortAsc(!sortAsc)}

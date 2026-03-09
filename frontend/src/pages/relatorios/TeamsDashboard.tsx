@@ -4,6 +4,7 @@ import { Loader2, Users, AlertTriangle, CheckCircle2, TrendingUp, Search } from 
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -23,6 +24,7 @@ interface TeamStat {
 const BAR_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316'];
 
 export default function TeamsDashboard() {
+  const { t } = useTranslation();
   const { token } = useAuthStore();
   const { isDark } = useTheme();
   const [teams, setTeams] = useState<TeamStat[]>([]);
@@ -35,7 +37,7 @@ export default function TeamsDashboard() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>;
+  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-red-500" /></div>;
 
   const filtered = teams.filter(t =>
     t.team_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -49,8 +51,8 @@ export default function TeamsDashboard() {
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
-        <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>Portal de Relatórios</p>
-        <h1 className={`text-3xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>Relatório por Equipas</h1>
+        <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDark ? 'text-red-400' : 'text-red-600'}`}>{t('relTeams.portalTitle')}</p>
+        <h1 className={`text-3xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('relTeams.title')}</h1>
       </div>
 
       {/* Search */}
@@ -58,7 +60,7 @@ export default function TeamsDashboard() {
         <Search className="w-4 h-4 text-gray-400" />
         <input
           value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Pesquisar equipa ou produto…"
+          placeholder={t('relTeams.searchPlaceholder')}
           className={`flex-1 bg-transparent text-sm outline-none ${isDark ? 'text-white placeholder-gray-600' : 'text-gray-900 placeholder-gray-400'}`}
         />
       </div>
@@ -69,14 +71,14 @@ export default function TeamsDashboard() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
             className={`rounded-2xl border p-5 ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
           >
-            <p className={`text-sm font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Taxa de Conclusão (%)</p>
+            <p className={`text-sm font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('relTeams.completionRate')}</p>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={completionData} barSize={28}>
                 <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#ffffff10' : '#f3f4f6'} />
                 <XAxis dataKey="name" tick={{ fontSize: 10, fill: axisColor }} />
                 <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: axisColor }} />
                 <Tooltip contentStyle={{ background: isDark ? '#1a1a1f' : '#fff', border: 'none', borderRadius: 12, fontSize: 12 }}
-                  formatter={(v: number) => [`${v}%`, 'Taxa']} />
+                  formatter={(v: number) => [`${v}%`, t('relTeams.rate')]} />
                 <Bar dataKey="value" radius={[6, 6, 0, 0]}>
                   {completionData.map((_, i) => <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />)}
                 </Bar>
@@ -87,7 +89,7 @@ export default function TeamsDashboard() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
             className={`rounded-2xl border p-5 ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
           >
-            <p className={`text-sm font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Erros por Equipa</p>
+            <p className={`text-sm font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('relTeams.errorsByTeam')}</p>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={errorsData} barSize={28}>
                 <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#ffffff10' : '#f3f4f6'} />
@@ -109,9 +111,9 @@ export default function TeamsDashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr className={`text-xs uppercase tracking-wider ${isDark ? 'bg-white/5 text-gray-500' : 'bg-gray-50 text-gray-500'}`}>
-                <th className="px-5 py-3 text-left font-semibold">Equipa</th>
-                <th className="px-5 py-3 text-left font-semibold">Produto</th>
-                <th className="px-5 py-3 text-left font-semibold">Manager</th>
+                <th className="px-5 py-3 text-left font-semibold">{t('relTeams.team')}</th>
+                <th className="px-5 py-3 text-left font-semibold">{t('relTeams.product')}</th>
+                <th className="px-5 py-3 text-left font-semibold">{t('relTeams.manager')}</th>
                 <th className="px-4 py-3 text-center font-semibold"><Users className="w-3.5 h-3.5 inline" /></th>
                 <th className="px-4 py-3 text-center font-semibold"><AlertTriangle className="w-3.5 h-3.5 inline text-red-500" /></th>
                 <th className="px-4 py-3 text-center font-semibold"><CheckCircle2 className="w-3.5 h-3.5 inline text-emerald-500" /></th>
@@ -122,7 +124,7 @@ export default function TeamsDashboard() {
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={7} className={`px-5 py-8 text-center text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                    Nenhuma equipa encontrada
+                    {t('relTeams.noTeamFound')}
                   </td>
                 </tr>
               ) : (

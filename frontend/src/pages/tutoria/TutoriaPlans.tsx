@@ -9,6 +9,7 @@ import {
 import axios from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,14 +28,6 @@ interface Plan {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const PLAN_STATUS_LABEL: Record<string, string> = {
-  RASCUNHO: 'Rascunho',
-  AGUARDANDO_APROVACAO: 'Ag. Aprovação',
-  APROVADO: 'Aprovado',
-  EM_EXECUCAO: 'Em Execução',
-  CONCLUIDO: 'Concluído',
-  DEVOLVIDO: 'Devolvido',
-};
 const PLAN_STATUS_ORDER = ['RASCUNHO', 'AGUARDANDO_APROVACAO', 'APROVADO', 'EM_EXECUCAO', 'CONCLUIDO', 'DEVOLVIDO'];
 
 const PLAN_STATUS_ICON: Record<string, React.ElementType> = {
@@ -89,6 +82,7 @@ export default function TutoriaPlans() {
   const navigate = useNavigate();
 
   const isManager = user?.role === 'ADMIN' || user?.role === 'TRAINER';
+  const { t } = useTranslation();
 
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,7 +98,7 @@ export default function TutoriaPlans() {
         const res = await axios.get(endpoint);
         setPlans(Array.isArray(res.data) ? res.data : []);
       } catch {
-        setLoadError('Não foi possível carregar os planos.');
+        setLoadError(t('tutoriaPlans.loadError'));
       } finally {
         setLoading(false);
       }
@@ -145,12 +139,12 @@ export default function TutoriaPlans() {
               <ClipboardList className="w-8 h-8 text-white" />
             </motion.div>
             <div>
-              <span className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-blue-400' : 'text-blue-500'}`}>Tutoria</span>
+              <span className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-blue-400' : 'text-blue-500'}`}>{t('tutoriaPlans.headerSubtitle')}</span>
               <h1 className={`text-4xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {isManager ? 'Planos de Ação' : 'Meus Planos de Ação'}
+                {isManager ? t('tutoriaPlans.title') : t('tutoriaPlans.titleMy')}
               </h1>
               <p className={`mt-1 text-sm ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
-                {filtered.length} plano{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}
+                {t('tutoriaPlans.plansFound', { count: filtered.length })}
               </p>
             </div>
           </div>
@@ -171,7 +165,7 @@ export default function TutoriaPlans() {
               : isDark ? 'bg-white/[0.03] border-white/10 text-gray-400 hover:text-white' : 'bg-white border-gray-200 text-gray-500 hover:text-gray-900'
           }`}
         >
-          Todos ({plans.length})
+          {t('tutoriaPlans.all')} ({plans.length})
         </button>
         {PLAN_STATUS_ORDER.map(s => statusCounts[s] > 0 ? (
           <button
@@ -183,7 +177,7 @@ export default function TutoriaPlans() {
                 : isDark ? 'bg-white/[0.03] border-white/10 text-gray-400 hover:text-white' : 'bg-white border-gray-200 text-gray-500 hover:text-gray-900'
             }`}
           >
-            {PLAN_STATUS_LABEL[s]} ({statusCounts[s]})
+            {t('tutoriaPlans.status.' + s)} ({statusCounts[s]})
           </button>
         ) : null)}
       </motion.div>
@@ -198,7 +192,7 @@ export default function TutoriaPlans() {
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Pesquisar por ação ou tutorado…"
+          placeholder={t('tutoriaPlans.searchPlaceholder')}
           className={`w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm outline-none transition-all ${
             isDark
               ? 'bg-white/[0.04] border-white/10 text-white placeholder-gray-600 focus:border-blue-500'
@@ -223,7 +217,7 @@ export default function TutoriaPlans() {
         >
           <ClipboardList className={`w-12 h-12 mx-auto mb-4 ${isDark ? 'text-gray-700' : 'text-gray-300'}`} />
           <p className={`text-lg font-bold ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-            {plans.length === 0 ? 'Nenhum plano de ação criado' : 'Sem resultados para os filtros aplicados'}
+            {plans.length === 0 ? t('tutoriaPlans.emptyNone') : t('tutoriaPlans.emptyFiltered')}
           </p>
         </motion.div>
       ) : (
@@ -255,18 +249,18 @@ export default function TutoriaPlans() {
                     <div className="flex items-center justify-between mb-3">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${isDark ? planStatusClsDark(p.status) : planStatusClsLight(p.status)}`}>
                         <StatusIcon className="w-3 h-3" />
-                        {PLAN_STATUS_LABEL[p.status]}
+                        {t('tutoriaPlans.status.' + p.status)}
                       </span>
                       {isOverdue && (
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isDark ? 'bg-red-500/15 text-red-400' : 'bg-red-50 text-red-600'}`}>
-                          Vencido
+                          {t('tutoriaPlans.overdue')}
                         </span>
                       )}
                     </div>
 
                     {/* Title */}
                     <p className={`text-sm font-bold mb-3 line-clamp-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                      {p.what ?? `Plano de Ação #${p.id}`}
+                      {p.what ?? t('tutoriaPlans.defaultTitle', { id: p.id })}
                     </p>
 
                     {/* Meta */}
@@ -279,7 +273,7 @@ export default function TutoriaPlans() {
                       {p.when_deadline && (
                         <div className={`flex items-center gap-1.5 ${isOverdue ? isDark ? 'text-red-400' : 'text-red-500' : ''}`}>
                           <Calendar className="w-3.5 h-3.5" />
-                          Prazo: {new Date(p.when_deadline).toLocaleDateString('pt-PT')}
+                          {t('tutoriaPlans.deadline')}: {new Date(p.when_deadline).toLocaleDateString('pt-PT')}
                         </div>
                       )}
                     </div>
@@ -289,7 +283,7 @@ export default function TutoriaPlans() {
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <span className={`text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                            {p.items_completed}/{p.items_total} ações
+                            {t('tutoriaPlans.actionsProgress', { completed: p.items_completed, total: p.items_total })}
                           </span>
                           <span className={`text-[10px] font-bold ${pct === 100 ? isDark ? 'text-green-400' : 'text-green-600' : isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                             {pct}%
@@ -307,7 +301,7 @@ export default function TutoriaPlans() {
                     {/* Footer */}
                     <div className={`mt-4 pt-3 border-t flex items-center justify-between ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
                       <span className={`text-[10px] ${isDark ? 'text-gray-700' : 'text-gray-300'}`}>
-                        #{p.id} · Erro #{p.error_id}
+                        #{p.id} · {t('tutoriaPlans.errorLabel')} #{p.error_id}
                       </span>
                       <ArrowRight className={`w-4 h-4 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
                     </div>

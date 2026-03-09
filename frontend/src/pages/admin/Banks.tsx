@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Building2, Plus, Globe, CheckCircle2, XCircle, X, Sparkles, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import api from '../../lib/axios';
 import { PremiumHeader, AnimatedStatCard, FloatingOrbs, GridBackground } from '../../components/premium';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Bank {
   id: number;
@@ -32,6 +33,7 @@ const rowVariants = {
 export default function BanksPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [banks, setBanks] = useState<Bank[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -371,7 +373,7 @@ export default function BanksPage() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    placeholder="Nome completo do banco"
+                    placeholder={t('admin.bankNamePlaceholder')}
                     required
                   />
                 </div>
@@ -383,11 +385,12 @@ export default function BanksPage() {
                     value={formData.country}
                     onChange={(e) => setFormData({ ...formData, country: e.target.value })}
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}
                     required
                   >
-                    <option value="PT" className="bg-white dark:bg-gray-800">🇵🇹 Portugal</option>
-                    <option value="ES" className="bg-white dark:bg-gray-800">🇪🇸 Espanha</option>
-                    <option value="DE" className="bg-white dark:bg-gray-800">🇩🇪 Alemanha</option>
+                    <option value="PT" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>🇵🇹 Portugal</option>
+                    <option value="ES" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>🇪🇸 {t('admin.countrySpain')}</option>
+                    <option value="DE" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>🇩🇪 {t('admin.countryGermany')}</option>
                   </select>
                 </div>
                 {editingBank && (

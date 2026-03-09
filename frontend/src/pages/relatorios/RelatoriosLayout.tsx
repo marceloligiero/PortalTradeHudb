@@ -5,14 +5,15 @@ import { useTheme } from '../../contexts/ThemeContext';
 import ChatBot from '../../components/ChatBot';
 import Header from '../../components/layout/Header';
 import {
-  LayoutDashboard, GraduationCap, Shield, Users, UserCircle,
+  LayoutDashboard, GraduationCap, Shield, Users, UserCircle, AlertTriangle,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 function navClass(isActive: boolean, isDark: boolean) {
   return `flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group text-sm font-medium tracking-wide ${
     isActive
-      ? 'bg-emerald-600 text-white font-bold shadow-xl shadow-emerald-600/20'
+      ? 'bg-red-600 text-white font-bold shadow-xl shadow-red-600/20'
       : isDark
       ? 'text-gray-400 hover:bg-white/5 hover:text-white'
       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -22,6 +23,7 @@ function navClass(isActive: boolean, isDark: boolean) {
 export default function RelatoriosLayout() {
   const { user } = useAuthStore();
   const { isDark } = useTheme();
+  const { t } = useTranslation();
   const location = useLocation();
 
   const isAdmin   = user?.role === 'ADMIN';
@@ -36,8 +38,8 @@ export default function RelatoriosLayout() {
     <div className={`min-h-screen relative overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#0a0a0a] text-white' : 'bg-gray-50 text-gray-900'}`}>
       {/* Animated Background */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full blur-[120px] animate-blob ${isDark ? 'bg-emerald-600/5' : 'bg-emerald-600/10'}`} />
-        <div className={`absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full blur-[120px] animate-blob animation-delay-2000 ${isDark ? 'bg-blue-600/5' : 'bg-blue-600/10'}`} />
+        <div className={`absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full blur-[120px] ${isDark ? 'bg-red-600/5' : 'bg-red-600/10'}`} />
+        <div className={`absolute bottom-0 right-1/4 w-[500px] h-[500px] rounded-full blur-[120px] ${isDark ? 'bg-blue-600/5' : 'bg-blue-600/10'}`} />
       </div>
 
       {/* Floating pill Header */}
@@ -53,26 +55,26 @@ export default function RelatoriosLayout() {
             {/* Overview — todos os roles */}
             <NavLink to="/relatorios" end className={({ isActive }) => navClass(isActive, isDark)}>
               <LayoutDashboard className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-              <span className="tracking-wide">Overview</span>
+              <span className="tracking-wide">{t('relatoriosSidebar.overview')}</span>
             </NavLink>
 
             {/* Portal de Formações — todos os roles */}
             <NavLink to="/relatorios/formacoes" className={({ isActive }) => navClass(isActive, isDark)}>
               <GraduationCap className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-              <span className="tracking-wide">Portal de Formações</span>
+              <span className="tracking-wide">{t('relatoriosSidebar.formacoes')}</span>
             </NavLink>
 
             {/* Portal de Tutoria — todos os roles */}
             <NavLink to="/relatorios/tutoria" className={({ isActive }) => navClass(isActive, isDark)}>
               <Shield className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-              <span className="tracking-wide">Portal de Tutoria</span>
+              <span className="tracking-wide">{t('relatoriosSidebar.tutoria')}</span>
             </NavLink>
 
             {/* Equipas — ADMIN only */}
             {isAdmin && (
               <NavLink to="/relatorios/teams" className={({ isActive }) => navClass(isActive, isDark)}>
                 <Users className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-                <span className="tracking-wide">Equipas</span>
+                <span className="tracking-wide">{t('relatoriosSidebar.teams')}</span>
               </NavLink>
             )}
 
@@ -80,7 +82,22 @@ export default function RelatoriosLayout() {
             {isManager && (
               <NavLink to="/relatorios/members" className={({ isActive }) => navClass(isActive, isDark)}>
                 <UserCircle className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-                <span className="tracking-wide">Minha Equipa</span>
+                <span className="tracking-wide">{t('relatoriosSidebar.myTeam')}</span>
+              </NavLink>
+            )}
+
+            {/* Separador */}
+            {(isAdmin || isManager) && (
+              <div className={`mt-4 pt-4 border-t ${isDark ? 'border-white/5' : 'border-gray-200'}`}>
+                <p className={`text-[10px] font-bold uppercase tracking-[0.2em] mb-3 px-5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{t('relatoriosSidebar.exports')}</p>
+              </div>
+            )}
+
+            {/* Relatório de Incidências — ADMIN + MANAGER */}
+            {(isAdmin || isManager) && (
+              <NavLink to="/relatorios/incidents" className={({ isActive }) => navClass(isActive, isDark)}>
+                <AlertTriangle className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                <span className="tracking-wide">{t('relatoriosSidebar.incidents')}</span>
               </NavLink>
             )}
           </nav>

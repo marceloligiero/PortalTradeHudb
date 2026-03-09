@@ -97,7 +97,7 @@ class MPUAnalyticsResponse(BaseModel):
 
 @router.get("/dashboard-summary")
 async def get_dashboard_summary(
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ) -> DashboardSummary:
     """Complete dashboard summary with all key metrics"""
@@ -189,7 +189,7 @@ async def get_dashboard_summary(
 
 @router.get("/student-performance")
 async def get_student_performance_report(
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ) -> StudentPerformanceResponse:
     """Detailed student performance analytics - MPU = minutos por operação"""
@@ -259,7 +259,7 @@ async def get_student_performance_report(
 
 @router.get("/trainer-productivity")
 async def get_trainer_productivity_report(
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ) -> TrainerProductivityResponse:
     """Trainer productivity and effectiveness analysis"""
@@ -360,7 +360,7 @@ async def get_trainer_productivity_report(
 
 @router.get("/course-analytics")
 async def get_course_analytics_report(
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ) -> CourseAnalyticsResponse:
     """Detailed analytics for each course - MPU = minutos por operação"""
@@ -466,7 +466,7 @@ async def get_course_analytics_report(
 
 @router.get("/certifications")
 async def get_certification_report(
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ) -> CertificationResponse:
     """Certification report with monthly breakdown"""
@@ -514,7 +514,7 @@ async def get_certification_report(
 
 @router.get("/mpu-analytics")
 async def get_mpu_analytics(
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ):
     """MPU performance analytics by bank, service and training plan"""

@@ -8,12 +8,10 @@ import {
   BarChart3, RefreshCw, CheckCircle2, TrendingUp,
 } from 'lucide-react';
 import TutoriaPage from './TutoriaPage';
+import { useTranslation } from 'react-i18next';
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
-const SEVERITY_LABEL: Record<string, string> = {
-  BAIXA: 'Baixa', MEDIA: 'Média', ALTA: 'Alta', CRITICA: 'Crítica',
-};
 const SEVERITY_GRADIENT: Record<string, string> = {
   BAIXA: 'from-green-500 to-green-600',
   MEDIA: 'from-amber-500 to-amber-600',
@@ -27,14 +25,8 @@ const SEVERITY_BAR: Record<string, string> = {
   CRITICA: 'bg-gradient-to-r from-red-500 to-red-400',
 };
 
-const PLAN_STATUS_LABEL: Record<string, string> = {
-  RASCUNHO: 'Rascunho',
-  AGUARDANDO_APROVACAO: 'Ag. Aprovação',
-  APROVADO: 'Aprovado',
-  EM_EXECUCAO: 'Em Execução',
-  CONCLUIDO: 'Concluído',
-  DEVOLVIDO: 'Devolvido',
-};
+const PLAN_STATUS_ORDER = ['RASCUNHO', 'AGUARDANDO_APROVACAO', 'APROVADO', 'EM_EXECUCAO', 'CONCLUIDO', 'DEVOLVIDO'];
+
 const PLAN_STATUS_COLOR: Record<string, string> = {
   RASCUNHO: 'text-gray-400 border-gray-500/20 bg-gray-500/10',
   AGUARDANDO_APROVACAO: 'text-amber-400 border-amber-500/20 bg-amber-500/10',
@@ -107,6 +99,7 @@ export default function TutoriaReport() {
   const [students, setStudents] = useState<any[]>([]);
 
   const isManager = user?.role === 'ADMIN' || user?.role === 'TRAINER';
+  const { t } = useTranslation();
 
   useEffect(() => {
     (async () => {
@@ -122,7 +115,7 @@ export default function TutoriaReport() {
         if (pRes.status === 'fulfilled') setPlans(Array.isArray(pRes.value.data) ? pRes.value.data : []);
         if (stRes.status === 'fulfilled') setStudents(Array.isArray(stRes.value.data) ? stRes.value.data : []);
       } catch {
-        setFetchError('Erro ao carregar dados do relatório.');
+        setFetchError(t('tutoriaReport.fetchError'));
       } finally {
         setLoading(false);
       }
@@ -148,7 +141,7 @@ export default function TutoriaReport() {
   const categoryCounts = useMemo(() => {
     const map: Record<string, number> = {};
     for (const e of errors) {
-      const label = e.category?.name ?? 'Sem categoria';
+      const label = e.category?.name ?? t('tutoriaReport.noCategory');
       map[label] = (map[label] || 0) + 1;
     }
     return Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 8);
@@ -202,10 +195,10 @@ export default function TutoriaReport() {
               <BarChart3 className="w-8 h-8 text-white" />
             </motion.div>
             <div>
-              <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDark ? 'text-indigo-400' : 'text-indigo-500'}`}>Análise</p>
-              <h1 className={`text-4xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>Relatório</h1>
+              <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDark ? 'text-indigo-400' : 'text-indigo-500'}`}>{t('tutoriaReport.headerSubtitle')}</p>
+              <h1 className={`text-4xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('tutoriaReport.title')}</h1>
               <p className={`text-sm mt-1 ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
-                {isManager ? 'Visão agregada — erros, planos e formandos' : 'Os meus erros e planos de ação'}
+                {isManager ? t('tutoriaReport.descriptionManager') : t('tutoriaReport.descriptionStudent')}
               </p>
             </div>
           </div>
@@ -221,7 +214,7 @@ export default function TutoriaReport() {
               }`}
             >
               <Download className="w-4 h-4" />
-              Erros CSV
+              {t('tutoriaReport.errorsCsv')}
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
@@ -229,7 +222,7 @@ export default function TutoriaReport() {
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-semibold shadow-lg shadow-indigo-600/20 transition-all"
             >
               <Download className="w-4 h-4" />
-              Planos CSV
+              {t('tutoriaReport.plansCsv')}
             </motion.button>
           </div>
         </div>
@@ -238,28 +231,28 @@ export default function TutoriaReport() {
       {/* ── Stat cards ────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <StatCard icon={AlertTriangle} label="Total de erros" value={errors.length}
+          <StatCard icon={AlertTriangle} label={t('tutoriaReport.totalErrors')} value={errors.length}
             gradient="from-red-500 to-red-600" shadowColor="shadow-red-500/20" isDark={isDark} />
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <StatCard icon={RefreshCw} label="Reincidentes" value={recurrentErrors.length}
-            sub={`${recurrenceRate}% do total`}
+          <StatCard icon={RefreshCw} label={t('tutoriaReport.recurrents')} value={recurrentErrors.length}
+            sub={t('tutoriaReport.recurrentsOfTotal', { rate: recurrenceRate })}
             gradient="from-orange-500 to-orange-600" shadowColor="shadow-orange-500/20" isDark={isDark} />
         </motion.div>
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <StatCard icon={ClipboardList} label="Planos de ação" value={plans.length}
-            sub={`${concludedPlans.length} concluídos`}
+          <StatCard icon={ClipboardList} label={t('tutoriaReport.actionPlans')} value={plans.length}
+            sub={t('tutoriaReport.completedSub', { count: concludedPlans.length })}
             gradient="from-purple-500 to-purple-600" shadowColor="shadow-purple-500/20" isDark={isDark} />
         </motion.div>
         {isManager ? (
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-            <StatCard icon={Users} label="Tutorados" value={students.length}
+            <StatCard icon={Users} label={t('tutoriaReport.students')} value={students.length}
               gradient="from-green-500 to-green-600" shadowColor="shadow-green-500/20" isDark={isDark} />
           </motion.div>
         ) : (
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-            <StatCard icon={CheckCircle2} label="Concluídos" value={concludedPlans.length}
-              sub={plans.length > 0 ? `${Math.round((concludedPlans.length / plans.length) * 100)}% dos planos` : undefined}
+            <StatCard icon={CheckCircle2} label={t('tutoriaReport.completed')} value={concludedPlans.length}
+              sub={plans.length > 0 ? t('tutoriaReport.completedOfPlans', { rate: Math.round((concludedPlans.length / plans.length) * 100) }) : undefined}
               gradient="from-green-500 to-green-600" shadowColor="shadow-green-500/20" isDark={isDark} />
           </motion.div>
         )}
@@ -270,7 +263,7 @@ export default function TutoriaReport() {
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
         className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3"
       >
-        {Object.entries(PLAN_STATUS_LABEL).map(([status, label]) => {
+        {PLAN_STATUS_ORDER.map((status) => {
           const count = planStatusCounts[status] ?? 0;
           return (
             <div
@@ -280,7 +273,7 @@ export default function TutoriaReport() {
               <p className={`text-2xl font-black mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>{count}</p>
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
                 isDark ? PLAN_STATUS_COLOR[status] : PLAN_STATUS_COLOR[status].replace('/10', '/20').replace('/20', '/30')
-              }`}>{label}</span>
+              }`}>{t('tutoriaReport.planStatus.' + status)}</span>
             </div>
           );
         })}
@@ -300,8 +293,8 @@ export default function TutoriaReport() {
                 <AlertTriangle className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Erros por Gravidade</h2>
-                <p className={`text-xs ${isDark ? 'text-white/40' : 'text-gray-400'}`}>{errors.length} erros no total</p>
+                <h2 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('tutoriaReport.errorsPerSeverity')}</h2>
+                <p className={`text-xs ${isDark ? 'text-white/40' : 'text-gray-400'}`}>{t('tutoriaReport.totalErrorsLabel', { count: errors.length })}</p>
               </div>
             </div>
           </div>
@@ -321,7 +314,7 @@ export default function TutoriaReport() {
                         ? isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-600'
                         : isDark ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-green-50 border-green-200 text-green-600'
                     }`}>
-                      {SEVERITY_LABEL[sev]}
+                      {t('tutoriaReport.severity.' + sev)}
                     </span>
                     <span className={`text-sm font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>
                       {count} <span className={`text-xs font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>({pct}%)</span>
@@ -352,14 +345,14 @@ export default function TutoriaReport() {
                 <TrendingUp className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Erros por Categoria</h2>
-                <p className={`text-xs ${isDark ? 'text-white/40' : 'text-gray-400'}`}>Top {categoryCounts.length} categorias</p>
+                <h2 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('tutoriaReport.errorsPerCategory')}</h2>
+                <p className={`text-xs ${isDark ? 'text-white/40' : 'text-gray-400'}`}>{t('tutoriaReport.topCategories', { count: categoryCounts.length })}</p>
               </div>
             </div>
           </div>
           <div className="p-6 space-y-4">
             {categoryCounts.length === 0 ? (
-              <p className={`text-sm text-center py-8 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>Sem dados</p>
+              <p className={`text-sm text-center py-8 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{t('tutoriaReport.noData')}</p>
             ) : categoryCounts.map(([cat, count], i) => {
               const maxCount = categoryCounts[0]?.[1] ?? 1;
               const pct = Math.round((count / maxCount) * 100);
@@ -396,8 +389,8 @@ export default function TutoriaReport() {
                 <Users className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Tutorados com mais erros</h2>
-                <p className={`text-xs ${isDark ? 'text-white/40' : 'text-gray-400'}`}>Top {topStudents.length} formandos</p>
+                <h2 className={`font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('tutoriaReport.studentsWithMostErrors')}</h2>
+                <p className={`text-xs ${isDark ? 'text-white/40' : 'text-gray-400'}`}>{t('tutoriaReport.topStudents', { count: topStudents.length })}</p>
               </div>
             </div>
           </div>
@@ -417,10 +410,10 @@ export default function TutoriaReport() {
                       {st.recurrent > 0 && (
                         <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
                           isDark ? 'bg-orange-500/10 border-orange-500/20 text-orange-400' : 'bg-orange-50 border-orange-200 text-orange-600'
-                        }`}>{st.recurrent} reinc.</span>
+                        }`}>{st.recurrent} {t('tutoriaReport.reincLabel')}</span>
                       )}
                     </div>
-                    <span className={`text-sm font-black ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>{st.count} erros</span>
+                    <span className={`text-sm font-black ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>{t('tutoriaReport.errorsCount', { count: st.count })}</span>
                   </div>
                   <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-white/5' : 'bg-gray-100'}`}>
                     <motion.div
@@ -448,10 +441,10 @@ export default function TutoriaReport() {
           <RefreshCw className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isDark ? 'text-orange-400' : 'text-orange-500'}`} />
           <div>
             <p className={`text-sm font-bold ${isDark ? 'text-orange-300' : 'text-orange-800'}`}>
-              {recurrentErrors.length} erro{recurrentErrors.length > 1 ? 's' : ''} reincidente{recurrentErrors.length > 1 ? 's' : ''}
+              {t('tutoriaReport.reincidentErrors', { count: recurrentErrors.length })}
             </p>
             <p className={`text-xs mt-0.5 ${isDark ? 'text-orange-400/70' : 'text-orange-600'}`}>
-              Existem erros com ocorrências repetidas na mesma categoria. Consulta os teus planos de ação para prevenir reincidências.
+              {t('tutoriaReport.reincidentNotice')}
             </p>
           </div>
         </motion.div>

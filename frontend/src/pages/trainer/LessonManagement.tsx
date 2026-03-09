@@ -189,7 +189,7 @@ export default function LessonManagement() {
 
   const handleBulkStart = async () => {
     if (selectedStudents.length === 0) {
-      alert('Selecione pelo menos um aluno');
+      alert(t('lessonManagement.selectAtLeastOne'));
       return;
     }
     
@@ -201,7 +201,7 @@ export default function LessonManagement() {
 
   const handleBulkFinish = async () => {
     if (selectedStudents.length === 0) {
-      alert('Selecione pelo menos um aluno');
+      alert(t('lessonManagement.selectAtLeastOne'));
       return;
     }
     

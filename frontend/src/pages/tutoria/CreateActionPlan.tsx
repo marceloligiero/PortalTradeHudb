@@ -9,6 +9,7 @@ import {
 import axios from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -69,14 +70,6 @@ function Input({ value, onChange, placeholder, type = 'text', isDark }: {
   );
 }
 
-// ─── Steps ────────────────────────────────────────────────────────────────────
-
-const STEPS = [
-  { label: 'Análise', icon: Lightbulb },
-  { label: 'Ações',   icon: Wrench },
-  { label: '5W2H',   icon: Target },
-];
-
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function CreateActionPlan() {
@@ -84,6 +77,13 @@ export default function CreateActionPlan() {
   const { user } = useAuthStore();
   const { isDark } = useTheme();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const STEPS = [
+    { label: t('createPlan.stepAnalysis'), icon: Lightbulb },
+    { label: t('createPlan.stepActions'), icon: Wrench },
+    { label: t('createPlan.step5W2H'), icon: Target },
+  ];
 
   const [step, setStep] = useState(0);
 
@@ -136,7 +136,7 @@ export default function CreateActionPlan() {
         setStudents(Array.isArray(sRes.data) ? sRes.data : []);
         setTeam(Array.isArray(tRes.data) ? tRes.data : []);
       } catch {
-        setError('Não foi possível carregar o erro.');
+        setError(t('createPlan.loadError'));
       } finally {
         setLoading(false);
       }
@@ -149,11 +149,11 @@ export default function CreateActionPlan() {
 
   const handleNext = () => {
     if (step === 0 && !canNextStep0) {
-      setError('Preencha a análise de causa raiz (5 Porquês).');
+      setError(t('createPlan.validationAnalysis'));
       return;
     }
     if (step === 1 && !canNextStep1) {
-      setError('Preencha pelo menos uma das ações (imediata, corretiva ou preventiva).');
+      setError(t('createPlan.validationActions'));
       return;
     }
     setError('');
@@ -162,7 +162,7 @@ export default function CreateActionPlan() {
 
   const handleSave = async () => {
     if (!canSave) {
-      setError('Preencha o campo "O quê" e o tutorado.');
+      setError(t('createPlan.validationWhat'));
       return;
     }
     if (!errorId) return;
@@ -186,7 +186,7 @@ export default function CreateActionPlan() {
       setSaved(true);
       setTimeout(() => navigate(`/tutoria/errors/${errorId}`), 1200);
     } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Erro ao guardar. Tente novamente.');
+      setError(e?.response?.data?.detail || t('createPlan.saveError'));
     } finally {
       setSaving(false);
     }
@@ -200,8 +200,8 @@ export default function CreateActionPlan() {
           <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-500/30">
             <CheckCircle2 className="w-10 h-10 text-white" />
           </div>
-          <h2 className={`text-2xl font-black mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Plano criado!</h2>
-          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>A redirecionar…</p>
+          <h2 className={`text-2xl font-black mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('createPlan.successTitle')}</h2>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('createPlan.redirecting')}</p>
         </motion.div>
       </div>
     );
@@ -226,11 +226,11 @@ export default function CreateActionPlan() {
             <ClipboardList className="w-8 h-8 text-white" />
           </div>
           <div>
-            <span className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-blue-400' : 'text-blue-500'}`}>Tutoria</span>
-            <h1 className={`text-4xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>Plano de Ação</h1>
+            <span className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-blue-400' : 'text-blue-500'}`}>{t('createPlan.portalLabel')}</span>
+            <h1 className={`text-4xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('createPlan.pageTitle')}</h1>
             {errorInfo && (
               <p className={`mt-1 text-sm ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
-                Erro #{errorInfo.id} · {errorInfo.tutorado_name}
+                {`${t('createPlan.errorLabel')} #${errorInfo.id} · ${errorInfo.tutorado_name}`}
               </p>
             )}
           </div>
@@ -245,7 +245,7 @@ export default function CreateActionPlan() {
         >
           <AlertTriangle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isDark ? 'text-red-400' : 'text-red-500'}`} />
           <div>
-            <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-red-400/70' : 'text-red-600/70'}`}>Erro em análise</p>
+            <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-red-400/70' : 'text-red-600/70'}`}>{t('createPlan.errorUnderAnalysis')}</p>
             <p className={`text-sm font-semibold ${isDark ? 'text-red-300' : 'text-red-800'}`}>{errorInfo.description}</p>
             {errorInfo.category_name && <p className={`text-xs mt-0.5 ${isDark ? 'text-red-400/50' : 'text-red-600/60'}`}>{errorInfo.category_name} · {errorInfo.severity}</p>}
           </div>
@@ -289,21 +289,21 @@ export default function CreateActionPlan() {
             <div className={`px-6 py-4 border-b flex items-center gap-3 ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
               <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-amber-500 rounded-lg flex items-center justify-center"><Lightbulb className="w-4 h-4 text-white" /></div>
               <div>
-                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Análise de Causa Raiz</p>
-                <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Técnica dos 5 Porquês — pergunte "porquê" repetidamente até encontrar a causa raiz</p>
+                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('createPlan.rootCauseTitle')}</p>
+                <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('createPlan.rootCauseSubtitle')}</p>
               </div>
             </div>
             <div className="p-6">
-              <Label isDark={isDark} required>Análise dos 5 Porquês</Label>
+              <Label isDark={isDark} required>{t('createPlan.analysis5Why')}</Label>
               <Textarea
                 value={analysis5Why}
                 onChange={setAnalysis5Why}
-                placeholder={`Por que ocorreu o erro?\nPor que esse motivo aconteceu?\nPor que esse segundo motivo aconteceu?\nPor que esse terceiro motivo aconteceu?\nPor que esse quarto motivo aconteceu?\n\n→ Causa raiz: [resposta ao 5º porquê]`}
+                placeholder={t('createPlan.analysis5WhyPlaceholder')}
                 rows={9}
                 isDark={isDark}
               />
               <p className={`text-xs mt-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                Registe a cadeia de causas até chegar à causa raiz real
+                {t('createPlan.analysisHint')}
               </p>
             </div>
           </motion.div>
@@ -319,31 +319,31 @@ export default function CreateActionPlan() {
             <div className={`px-6 py-4 border-b flex items-center gap-3 ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
               <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-lg flex items-center justify-center"><Wrench className="w-4 h-4 text-white" /></div>
               <div>
-                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Ações do Plano</p>
-                <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Defina as três dimensões de resposta ao erro</p>
+                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('createPlan.planActionsTitle')}</p>
+                <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('createPlan.planActionsSubtitle')}</p>
               </div>
             </div>
             <div className="p-6 space-y-5">
               <div className={`rounded-xl border p-4 space-y-3 ${isDark ? 'border-yellow-500/20 bg-yellow-500/5' : 'border-yellow-200 bg-yellow-50'}`}>
-                <Label isDark={isDark}>Correção Imediata</Label>
+                <Label isDark={isDark}>{t('createPlan.immediateCorrection')}</Label>
                 <Textarea value={immediateCorrection} onChange={setImmediate}
-                  placeholder="O que foi feito imediatamente para conter o impacto do erro?"
+                  placeholder={t('createPlan.immediateHint')}
                   rows={3} isDark={isDark} />
-                <p className={`text-xs ${isDark ? 'text-yellow-400/60' : 'text-yellow-700/60'}`}>Ação de contenção — resolve o sintoma imediato</p>
+                <p className={`text-xs ${isDark ? 'text-yellow-400/60' : 'text-yellow-700/60'}`}>{t('createPlan.immediateNote')}</p>
               </div>
               <div className={`rounded-xl border p-4 space-y-3 ${isDark ? 'border-blue-500/20 bg-blue-500/5' : 'border-blue-200 bg-blue-50'}`}>
-                <Label isDark={isDark}>Ação Corretiva</Label>
+                <Label isDark={isDark}>{t('createPlan.correctiveAction')}</Label>
                 <Textarea value={correctiveAction} onChange={setCorrective}
-                  placeholder="O que será feito para corrigir a causa raiz do erro?"
+                  placeholder={t('createPlan.correctiveHint')}
                   rows={3} isDark={isDark} />
-                <p className={`text-xs ${isDark ? 'text-blue-400/60' : 'text-blue-700/60'}`}>Resolve a causa raiz identificada nos 5 Porquês</p>
+                <p className={`text-xs ${isDark ? 'text-blue-400/60' : 'text-blue-700/60'}`}>{t('createPlan.correctiveNote')}</p>
               </div>
               <div className={`rounded-xl border p-4 space-y-3 ${isDark ? 'border-green-500/20 bg-green-500/5' : 'border-green-200 bg-green-50'}`}>
-                <Label isDark={isDark}>Ação Preventiva</Label>
+                <Label isDark={isDark}>{t('createPlan.preventiveAction')}</Label>
                 <Textarea value={preventiveAction} onChange={setPreventive}
-                  placeholder="O que será feito para prevenir que este erro se repita no futuro?"
+                  placeholder={t('createPlan.preventiveHint')}
                   rows={3} isDark={isDark} />
-                <p className={`text-xs ${isDark ? 'text-green-400/60' : 'text-green-700/60'}`}>Evita recorrência — cria salvaguardas sistémicas</p>
+                <p className={`text-xs ${isDark ? 'text-green-400/60' : 'text-green-700/60'}`}>{t('createPlan.preventiveNote')}</p>
               </div>
             </div>
           </motion.div>
@@ -359,28 +359,28 @@ export default function CreateActionPlan() {
             <div className={`px-6 py-4 border-b flex items-center gap-3 ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center"><Target className="w-4 h-4 text-white" /></div>
               <div>
-                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Metodologia 5W2H</p>
-                <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Estrutura completa do plano de ação</p>
+                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('createPlan.methodology5W2H')}</p>
+                <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('createPlan.methodology5W2HSubtitle')}</p>
               </div>
             </div>
             <div className="p-6 space-y-5">
               <div>
-                <Label isDark={isDark} required>O quê? (What)</Label>
-                <Input value={what} onChange={setWhat} placeholder="Qual ação específica será realizada?" isDark={isDark} />
+                <Label isDark={isDark} required>{t('createPlan.what')}</Label>
+                <Input value={what} onChange={setWhat} placeholder={t('createPlan.whatHint')} isDark={isDark} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <Label isDark={isDark}>Por quê? (Why)</Label>
-                  <Textarea value={why} onChange={setWhy} placeholder="Por que esta ação é necessária?" rows={3} isDark={isDark} />
+                  <Label isDark={isDark}>{t('createPlan.why')}</Label>
+                  <Textarea value={why} onChange={setWhy} placeholder={t('createPlan.whyHint')} rows={3} isDark={isDark} />
                 </div>
                 <div>
-                  <Label isDark={isDark}>Onde? (Where)</Label>
-                  <Textarea value={whereField} onChange={setWhere} placeholder="Área/processo onde a ação ocorrerá" rows={3} isDark={isDark} />
+                  <Label isDark={isDark}>{t('createPlan.where')}</Label>
+                  <Textarea value={whereField} onChange={setWhere} placeholder={t('createPlan.whereHint')} rows={3} isDark={isDark} />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
-                  <Label isDark={isDark}>Tutorado (quem recebe a tutoria)</Label>
+                  <Label isDark={isDark}>{t('createPlan.tutorado')}</Label>
                   <div className="relative">
                     <select
                       value={tutoradoId}
@@ -388,14 +388,14 @@ export default function CreateActionPlan() {
                       className={`w-full appearance-none px-3 py-2.5 pr-9 rounded-xl border text-sm outline-none ${isDark ? 'bg-white/[0.04] border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
                       style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : undefined }}
                     >
-                      <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>Seleccionar tutorado</option>
+                      <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.selectTutorado')}</option>
                       {students.map(u => <option key={u.id} value={String(u.id)} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{u.full_name}</option>)}
                     </select>
                     <User className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
                   </div>
                 </div>
                 <div>
-                  <Label isDark={isDark}>Responsável pela Ação (Who)</Label>
+                  <Label isDark={isDark}>{t('createPlan.who')}</Label>
                   <div className="relative">
                     <select
                       value={who}
@@ -403,7 +403,7 @@ export default function CreateActionPlan() {
                       className={`w-full appearance-none px-3 py-2.5 pr-9 rounded-xl border text-sm outline-none ${isDark ? 'bg-white/[0.04] border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
                       style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : undefined }}
                     >
-                      <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>Seleccionar responsável</option>
+                      <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.selectResponsible')}</option>
                       {team.map(u => <option key={u.id} value={u.full_name} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{u.full_name}</option>)}
                     </select>
                     <User className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
@@ -411,19 +411,19 @@ export default function CreateActionPlan() {
                 </div>
               </div>
               <div>
-                <Label isDark={isDark}>Prazo (When)</Label>
+                <Label isDark={isDark}>{t('createPlan.when')}</Label>
                 <div className="relative">
                   <Input type="date" value={whenDeadline} onChange={setWhen} isDark={isDark} />
                   <Calendar className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
                 </div>
               </div>
               <div>
-                <Label isDark={isDark}>Como? (How)</Label>
-                <Textarea value={how} onChange={setHow} placeholder="Passo a passo detalhado de como a ação será executada…" rows={4} isDark={isDark} />
+                <Label isDark={isDark}>{t('createPlan.how')}</Label>
+                <Textarea value={how} onChange={setHow} placeholder={t('createPlan.howHint')} rows={4} isDark={isDark} />
               </div>
               <div>
-                <Label isDark={isDark}>Quanto custa? (How much)</Label>
-                <Input value={howMuch} onChange={setHowMuch} placeholder="Recursos necessários (tempo, material, formação…) — opcional" isDark={isDark} />
+                <Label isDark={isDark}>{t('createPlan.howMuch')}</Label>
+                <Input value={howMuch} onChange={setHowMuch} placeholder={t('createPlan.howMuchHint')} isDark={isDark} />
               </div>
             </div>
           </motion.div>
@@ -455,7 +455,7 @@ export default function CreateActionPlan() {
               : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
           }`}
         >
-          {step === 0 ? <><X className="w-4 h-4" /> Cancelar</> : <><ChevronLeft className="w-4 h-4" /> Anterior</>}
+          {step === 0 ? <><X className="w-4 h-4" /> {t('common.cancel')}</> : <><ChevronLeft className="w-4 h-4" /> {t('createPlan.previous')}</>}
         </button>
 
         <div className="flex items-center gap-2">
@@ -465,7 +465,7 @@ export default function CreateActionPlan() {
               onClick={handleNext}
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-bold shadow-lg shadow-blue-500/25"
             >
-              Próximo <ChevronRight className="w-4 h-4" />
+              {t('createPlan.next')} <ChevronRight className="w-4 h-4" />
             </motion.button>
           ) : (
             <motion.button
@@ -475,7 +475,7 @@ export default function CreateActionPlan() {
               disabled={saving || !canSave}
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 text-white text-sm font-bold shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> A guardar…</> : <><Save className="w-4 h-4" /> Criar Plano</>}
+              {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('createPlan.saving')}</> : <><Save className="w-4 h-4" /> {t('createPlan.createPlan')}</>}
             </motion.button>
           )}
         </div>

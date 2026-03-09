@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertTriangle, ArrowLeft, Plus, ChevronDown, User, Calendar,
   Tag, Shield, RefreshCw, MessageSquare, Send, Loader2,
   ClipboardList, CheckCircle2, Clock, ArrowRight, Package,
+  Building2, Building, Activity, Globe, Zap, Eye, UserCheck,
+  MapPin, Banknote, Hash,
 } from 'lucide-react';
 import axios from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -15,20 +18,51 @@ import { useTheme } from '../../contexts/ThemeContext';
 interface ErrorDetail {
   id: number;
   date_occurrence: string;
+  date_detection?: string;
+  date_solution?: string;
   description: string;
+  solution?: string;
+  action_plan_text?: string;
+  // Pessoas
   tutorado_id: number;
   tutorado_name?: string;
+  created_by_id?: number;
   created_by_name?: string;
+  approver_id?: number;
+  approver_name?: string;
+  // Transação
+  bank_id?: number;
+  bank_name?: string;
+  office?: string;
+  reference_code?: string;
+  currency?: string;
+  amount?: number;
+  final_client?: string;
+  // Classificação
   category_id?: number;
   category_name?: string;
   product_id?: number;
   product_name?: string;
+  impact_id?: number;
+  impact_name?: string;
+  origin_id?: number;
+  origin_name?: string;
+  detected_by_id?: number;
+  detected_by_name?: string;
+  department_id?: number;
+  department_name?: string;
+  activity_id?: number;
+  activity_name?: string;
+  error_type_id?: number;
+  error_type_name?: string;
+  // Estado
   severity: string;
   status: string;
   tags?: string[];
   analysis_5_why?: string;
   is_recurrent: boolean;
   recurrence_count: number;
+  recurrence_type?: string;
   is_active: boolean;
   inactivation_reason?: string;
   plans_count: number;
@@ -58,23 +92,6 @@ interface Comment {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const SEVERITY_LABEL: Record<string, string> = {
-  BAIXA: 'Baixa', MEDIA: 'Média', ALTA: 'Alta', CRITICA: 'Crítica',
-};
-const STATUS_LABEL: Record<string, string> = {
-  ABERTO: 'Aberto', EM_ANALISE: 'Em Análise', PLANO_CRIADO: 'Plano Criado',
-  EM_EXECUCAO: 'Em Execução', CONCLUIDO: 'Concluído', VERIFICADO: 'Verificado',
-};
-const PLAN_STATUS_LABEL: Record<string, string> = {
-  RASCUNHO: 'Rascunho', AGUARDANDO_APROVACAO: 'Ag. Aprovação',
-  APROVADO: 'Aprovado', EM_EXECUCAO: 'Em Execução',
-  CONCLUIDO: 'Concluído', DEVOLVIDO: 'Devolvido',
-};
-
-const TYPOLOGY_LABEL: Record<string, string> = {
-  METHODOLOGY: 'Metodologia', KNOWLEDGE: 'Conhecimento',
-  DETAIL: 'Detalhe', PROCEDURE: 'Procedimento',
-};
 const TYPOLOGY_CLR_DARK: Record<string, string> = {
   METHODOLOGY: 'bg-purple-500/15 text-purple-400 border-purple-500/25',
   KNOWLEDGE:   'bg-blue-500/15 text-blue-400 border-blue-500/25',
@@ -128,6 +145,15 @@ function statusCls(s: string, isDark: boolean) {
 const STATUS_STEPS = ['ABERTO', 'EM_ANALISE', 'PLANO_CRIADO', 'EM_EXECUCAO', 'CONCLUIDO', 'VERIFICADO'];
 
 function StatusStepper({ status, isDark }: { status: string; isDark: boolean }) {
+  const { t } = useTranslation();
+  const STATUS_LABEL: Record<string, string> = {
+    ABERTO: t('tutoriaDetail.status.ABERTO'),
+    EM_ANALISE: t('tutoriaDetail.status.EM_ANALISE'),
+    PLANO_CRIADO: t('tutoriaDetail.status.PLANO_CRIADO'),
+    EM_EXECUCAO: t('tutoriaDetail.status.EM_EXECUCAO'),
+    CONCLUIDO: t('tutoriaDetail.status.CONCLUIDO'),
+    VERIFICADO: t('tutoriaDetail.status.VERIFICADO'),
+  };
   const idx = STATUS_STEPS.indexOf(status);
   return (
     <div className="flex items-center gap-0">
@@ -160,6 +186,36 @@ export default function ErrorDetail() {
   const { user } = useAuthStore();
   const { isDark } = useTheme();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const SEVERITY_LABEL: Record<string, string> = {
+    BAIXA: t('tutoriaDetail.severity.BAIXA'),
+    MEDIA: t('tutoriaDetail.severity.MEDIA'),
+    ALTA: t('tutoriaDetail.severity.ALTA'),
+    CRITICA: t('tutoriaDetail.severity.CRITICA'),
+  };
+  const STATUS_LABEL: Record<string, string> = {
+    ABERTO: t('tutoriaDetail.status.ABERTO'),
+    EM_ANALISE: t('tutoriaDetail.status.EM_ANALISE'),
+    PLANO_CRIADO: t('tutoriaDetail.status.PLANO_CRIADO'),
+    EM_EXECUCAO: t('tutoriaDetail.status.EM_EXECUCAO'),
+    CONCLUIDO: t('tutoriaDetail.status.CONCLUIDO'),
+    VERIFICADO: t('tutoriaDetail.status.VERIFICADO'),
+  };
+  const PLAN_STATUS_LABEL: Record<string, string> = {
+    RASCUNHO: t('tutoriaDetail.planStatus.RASCUNHO'),
+    AGUARDANDO_APROVACAO: t('tutoriaDetail.planStatus.AGUARDANDO_APROVACAO'),
+    APROVADO: t('tutoriaDetail.planStatus.APROVADO'),
+    EM_EXECUCAO: t('tutoriaDetail.planStatus.EM_EXECUCAO'),
+    CONCLUIDO: t('tutoriaDetail.planStatus.CONCLUIDO'),
+    DEVOLVIDO: t('tutoriaDetail.planStatus.DEVOLVIDO'),
+  };
+  const TYPOLOGY_LABEL: Record<string, string> = {
+    METHODOLOGY: t('tutoriaDetail.typology.METHODOLOGY'),
+    KNOWLEDGE: t('tutoriaDetail.typology.KNOWLEDGE'),
+    DETAIL: t('tutoriaDetail.typology.DETAIL'),
+    PROCEDURE: t('tutoriaDetail.typology.PROCEDURE'),
+  };
 
   const isManager = user?.role === 'ADMIN' || user?.role === 'TRAINER';
   const isAdmin   = user?.role === 'ADMIN';
@@ -213,7 +269,7 @@ export default function ErrorDetail() {
       await axios.post(`/api/tutoria/errors/${id}/verify`);
       setError(prev => prev ? { ...prev, status: 'VERIFICADO' } : prev);
     } catch (e: any) {
-      alert(e?.response?.data?.detail || 'Erro ao verificar');
+      alert(e?.response?.data?.detail || t('tutoriaDetail.verifyError'));
     }
   };
 
@@ -238,9 +294,9 @@ export default function ErrorDetail() {
   if (notFound || !error) return (
     <div className={`rounded-2xl border p-12 text-center ${isDark ? 'bg-white/[0.02] border-white/8' : 'bg-white border-gray-200'}`}>
       <AlertTriangle className={`w-12 h-12 mx-auto mb-4 ${isDark ? 'text-gray-700' : 'text-gray-300'}`} />
-      <p className={`font-bold ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Erro não encontrado</p>
+      <p className={`font-bold ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('tutoriaDetail.errorNotFound')}</p>
       <button onClick={() => navigate('/tutoria/errors')} className="mt-4 inline-flex items-center gap-2 text-sm text-red-500 font-semibold">
-        <ArrowLeft className="w-4 h-4" /> Voltar
+        <ArrowLeft className="w-4 h-4" /> {t('common.back')}
       </button>
     </div>
   );
@@ -267,7 +323,7 @@ export default function ErrorDetail() {
           onClick={() => navigate('/tutoria/errors')}
           className={`flex items-center gap-1.5 text-xs font-semibold mb-5 ${isDark ? 'text-gray-500 hover:text-white' : 'text-gray-400 hover:text-gray-700'}`}
         >
-          <ArrowLeft className="w-3.5 h-3.5" /> Voltar aos Erros
+          <ArrowLeft className="w-3.5 h-3.5" /> {t('tutoriaDetail.backToErrors')}
         </button>
 
         <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -281,7 +337,7 @@ export default function ErrorDetail() {
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-red-400' : 'text-red-500'}`}>Erro #{error.id}</span>
+                <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-red-400' : 'text-red-500'}`}>{t('tutoriaDetail.errorLabel')} #{error.id}</span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusCls(error.status, isDark)}`}>
                   {STATUS_LABEL[error.status]}
                 </span>
@@ -290,7 +346,7 @@ export default function ErrorDetail() {
                 </span>
                 {error.is_recurrent && (
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${isDark ? 'bg-orange-500/15 text-orange-400 border-orange-500/20' : 'bg-orange-50 text-orange-700 border-orange-200'}`}>
-                    <RefreshCw className="w-2.5 h-2.5" /> {error.recurrence_count + 1}ª ocorrência
+                    <RefreshCw className="w-2.5 h-2.5" /> {error.recurrence_count + 1}ª {t('tutoriaDetail.occurrence')}
                   </span>
                 )}
               </div>
@@ -309,7 +365,7 @@ export default function ErrorDetail() {
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${isDark ? 'bg-white/[0.04] border-white/10 text-gray-300 hover:text-white' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                   >
                     {updatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                    Mudar Status <ChevronDown className={`w-4 h-4 transition-transform ${showStatusDrop ? 'rotate-180' : ''}`} />
+                    {t('tutoriaDetail.changeStatus')} <ChevronDown className={`w-4 h-4 transition-transform ${showStatusDrop ? 'rotate-180' : ''}`} />
                   </button>
                   <AnimatePresence>
                     {showStatusDrop && (
@@ -338,14 +394,14 @@ export default function ErrorDetail() {
                   onClick={handleVerify}
                   className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white text-sm font-bold"
                 >
-                  <CheckCircle2 className="w-4 h-4" /> Verificar e Encerrar
+                  <CheckCircle2 className="w-4 h-4" /> {t('tutoriaDetail.verifyAndClose')}
                 </button>
               )}
               <button
                 onClick={() => navigate(`/tutoria/errors/${error.id}/plans/new`)}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-bold shadow-lg shadow-blue-500/20"
               >
-                <Plus className="w-4 h-4" /> Plano de Ação
+                <Plus className="w-4 h-4" /> {t('tutoriaDetail.actionPlan')}
               </button>
             </div>
           )}
@@ -365,19 +421,20 @@ export default function ErrorDetail() {
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
         className={`rounded-2xl border overflow-hidden ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
       >
+        {/* ── Pessoas & Datas ── */}
         <div className={`px-5 py-3 border-b text-xs font-bold uppercase tracking-wider ${isDark ? 'border-white/8 bg-white/[0.02] text-gray-600' : 'border-gray-100 bg-gray-50 text-gray-400'}`}>
-          Detalhes da Ocorrência
+          {t('tutoriaDetail.peopleDates')}
         </div>
         <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-5">
           {[
-            { icon: User,      label: 'Tutorado',     value: error.tutorado_name ?? '—' },
-            { icon: User,      label: 'Registado por', value: error.created_by_name ?? '—' },
-            { icon: Calendar,  label: 'Data',          value: new Date(error.date_occurrence).toLocaleDateString('pt-PT') },
-            { icon: Tag,       label: 'Categoria',     value: error.category_name ?? '—' },
-            { icon: Package,   label: 'Serviço',       value: error.product_name ?? '—' },
-            { icon: Shield,    label: 'Gravidade',     value: SEVERITY_LABEL[error.severity] ?? error.severity },
-            { icon: ClipboardList, label: 'Planos',    value: `${plans.length} criado${plans.length !== 1 ? 's' : ''}` },
-          ].map(({ icon: Icon, label, value }) => (
+            { icon: User,      label: t('tutoriaDetail.tutorado'),       value: error.tutorado_name ?? '—' },
+            { icon: User,      label: t('tutoriaDetail.registeredBy'),   value: error.created_by_name ?? '—' },
+            error.approver_name ? { icon: UserCheck, label: t('tutoriaDetail.approver'), value: error.approver_name } : null,
+            error.detected_by_name ? { icon: Eye, label: t('tutoriaDetail.detectedBy'), value: error.detected_by_name } : null,
+            { icon: Calendar,  label: t('tutoriaDetail.dateOccurrence'), value: new Date(error.date_occurrence).toLocaleDateString('pt-PT') },
+            error.date_detection ? { icon: Calendar, label: t('tutoriaDetail.dateDetection'), value: new Date(error.date_detection).toLocaleDateString('pt-PT') } : null,
+            error.date_solution ? { icon: Calendar, label: t('tutoriaDetail.dateSolution'), value: new Date(error.date_solution).toLocaleDateString('pt-PT') } : null,
+          ].filter(Boolean).map(({ icon: Icon, label, value }: any) => (
             <div key={label}>
               <p className={`text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
                 <Icon className="w-3.5 h-3.5" />{label}
@@ -386,14 +443,90 @@ export default function ErrorDetail() {
             </div>
           ))}
         </div>
-        {error.analysis_5_why && (
+
+        {/* ── Classificação ── */}
+        <div className={`px-5 py-3 border-b border-t text-xs font-bold uppercase tracking-wider ${isDark ? 'border-white/8 bg-white/[0.02] text-gray-600' : 'border-gray-100 bg-gray-50 text-gray-400'}`}>
+          {t('tutoriaDetail.classification')}
+        </div>
+        <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-5">
+          {[
+            { icon: Shield,        label: t('tutoriaDetail.severity_label'),     value: SEVERITY_LABEL[error.severity] ?? error.severity },
+            { icon: Tag,           label: t('tutoriaDetail.category'),     value: error.category_name ?? '—' },
+            { icon: Package,       label: t('tutoriaDetail.service'),       value: error.product_name ?? '—' },
+            error.activity_name    ? { icon: Activity,      label: t('tutoriaDetail.activity'),     value: error.activity_name } : null,
+            error.error_type_name  ? { icon: AlertTriangle, label: t('tutoriaDetail.errorType'),  value: error.error_type_name } : null,
+            error.origin_name      ? { icon: Globe,         label: t('tutoriaDetail.origin'),        value: error.origin_name } : null,
+            error.impact_name      ? { icon: Zap,           label: t('tutoriaDetail.impact'),       value: error.impact_name } : null,
+            error.department_name  ? { icon: Building,      label: t('tutoriaDetail.department'),  value: error.department_name } : null,
+            { icon: ClipboardList, label: t('tutoriaDetail.plans'),        value: t('tutoriaDetail.plansCreated', { count: plans.length }) },
+          ].filter(Boolean).map(({ icon: Icon, label, value }: any) => (
+            <div key={label}>
+              <p className={`text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                <Icon className="w-3.5 h-3.5" />{label}
+              </p>
+              <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* ── Transação (only if any transaction field exists) ── */}
+        {(error.bank_name || error.office || error.reference_code || error.currency || error.amount != null || error.final_client) && (
+          <>
+            <div className={`px-5 py-3 border-b border-t text-xs font-bold uppercase tracking-wider ${isDark ? 'border-white/8 bg-white/[0.02] text-gray-600' : 'border-gray-100 bg-gray-50 text-gray-400'}`}>
+              {t('tutoriaDetail.transactionData')}
+            </div>
+            <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-5">
+              {[
+                error.bank_name      ? { icon: Building2, label: t('tutoriaDetail.bank'),         value: error.bank_name } : null,
+                error.office         ? { icon: MapPin,     label: t('tutoriaDetail.office'),    value: error.office } : null,
+                error.reference_code ? { icon: Hash,       label: t('tutoriaDetail.reference'),    value: error.reference_code } : null,
+                error.currency       ? { icon: Banknote,   label: t('tutoriaDetail.currency'),         value: error.currency } : null,
+                error.amount != null ? { icon: Banknote,   label: t('tutoriaDetail.amount'),      value: error.amount.toLocaleString('pt-PT', { minimumFractionDigits: 2 }) } : null,
+                error.final_client   ? { icon: User,       label: t('tutoriaDetail.finalClient'), value: error.final_client } : null,
+              ].filter(Boolean).map(({ icon: Icon, label, value }: any) => (
+                <div key={label}>
+                  <p className={`text-xs font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                    <Icon className="w-3.5 h-3.5" />{label}
+                  </p>
+                  <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{value}</p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+        {/* ── Solução / Análise ── */}
+        {(error.solution || error.action_plan_text || error.analysis_5_why) && (
           <div className={`px-5 pb-5 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
-            <p className={`text-xs font-bold uppercase tracking-wider mt-4 mb-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-              Análise de Causa Raiz (5 Porquês)
-            </p>
-            <p className={`text-sm whitespace-pre-wrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-              {error.analysis_5_why}
-            </p>
+            {error.analysis_5_why && (
+              <>
+                <p className={`text-xs font-bold uppercase tracking-wider mt-4 mb-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                  {t('tutoriaDetail.rootCauseAnalysis')}
+                </p>
+                <p className={`text-sm whitespace-pre-wrap mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {error.analysis_5_why}
+                </p>
+              </>
+            )}
+            {error.solution && (
+              <>
+                <p className={`text-xs font-bold uppercase tracking-wider mt-4 mb-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                  {t('tutoriaDetail.solution')}
+                </p>
+                <p className={`text-sm whitespace-pre-wrap mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {error.solution}
+                </p>
+              </>
+            )}
+            {error.action_plan_text && (
+              <>
+                <p className={`text-xs font-bold uppercase tracking-wider mt-4 mb-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                  {t('tutoriaDetail.actionPlanText')}
+                </p>
+                <p className={`text-sm whitespace-pre-wrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  {error.action_plan_text}
+                </p>
+              </>
+            )}
           </div>
         )}
 
@@ -401,7 +534,7 @@ export default function ErrorDetail() {
         {error.motivos && error.motivos.length > 0 && (
           <div className={`px-5 pb-5 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
             <p className={`text-xs font-bold uppercase tracking-wider mt-4 mb-3 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-              Motivos do Erro ({error.motivos.length})
+              {t('tutoriaDetail.errorReasons')} ({error.motivos.length})
             </p>
             <div className="space-y-2">
               {error.motivos.map(m => (
@@ -435,7 +568,7 @@ export default function ErrorDetail() {
               <ClipboardList className="w-3.5 h-3.5 text-white" />
             </div>
             <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              Planos de Ação ({plans.length})
+              {t('tutoriaDetail.actionPlans')} ({plans.length})
             </p>
           </div>
           {isManager && (
@@ -443,21 +576,21 @@ export default function ErrorDetail() {
               onClick={() => navigate(`/tutoria/errors/${error.id}/plans/new`)}
               className={`flex items-center gap-1.5 text-xs font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}
             >
-              <Plus className="w-3.5 h-3.5" /> Novo Plano
+              <Plus className="w-3.5 h-3.5" /> {t('tutoriaDetail.newPlan')}
             </button>
           )}
         </div>
 
         {plans.length === 0 ? (
           <div className={`p-8 text-center text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-            Nenhum plano de ação criado ainda
+            {t('tutoriaDetail.noPlans')}
             {isManager && (
               <div className="mt-3">
                 <button
                   onClick={() => navigate(`/tutoria/errors/${error.id}/plans/new`)}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500 text-white text-xs font-bold"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Criar plano de ação
+                  <Plus className="w-3.5 h-3.5" /> {t('tutoriaDetail.createPlan')}
                 </button>
               </div>
             )}
@@ -475,10 +608,10 @@ export default function ErrorDetail() {
                 >
                   <div className="flex items-center justify-between gap-3 mb-2">
                     <p className={`text-sm font-semibold flex-1 truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                      {p.what ?? `Plano #${p.id}`}
+                      {p.what ?? `${t('tutoriaDetail.planLabel')} #${p.id}`}
                     </p>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {isOverdue && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isDark ? 'bg-red-500/15 text-red-400' : 'bg-red-50 text-red-600'}`}>Vencido</span>}
+                      {isOverdue && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isDark ? 'bg-red-500/15 text-red-400' : 'bg-red-50 text-red-600'}`}>{t('tutoriaDetail.overdue')}</span>}
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${isDark ? 'bg-blue-500/15 text-blue-400 border-blue-500/20' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
                         {PLAN_STATUS_LABEL[p.status] ?? p.status}
                       </span>
@@ -491,7 +624,7 @@ export default function ErrorDetail() {
                         <div className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full" style={{ width: `${pct}%` }} />
                       </div>
                       <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                        {p.items_completed}/{p.items_total} ações · {pct}%
+                        {p.items_completed}/{p.items_total} {t('tutoriaDetail.actions')} · {pct}%
                       </p>
                     </div>
                   )}
@@ -512,14 +645,14 @@ export default function ErrorDetail() {
             <MessageSquare className="w-3.5 h-3.5 text-white" />
           </div>
           <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            Comentários ({comments.length})
+            {t('tutoriaDetail.comments')} ({comments.length})
           </p>
         </div>
 
         <div className="p-5 space-y-4">
           {comments.length === 0 && (
             <p className={`text-sm text-center py-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-              Sem comentários ainda
+              {t('tutoriaDetail.noComments')}
             </p>
           )}
           {comments.map(c => (
@@ -528,7 +661,7 @@ export default function ErrorDetail() {
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${isDark ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-700'}`}>
                   {(c.author_name ?? '?')[0].toUpperCase()}
                 </div>
-                <span className={`text-xs font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{c.author_name ?? 'Anónimo'}</span>
+                <span className={`text-xs font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{c.author_name ?? t('tutoriaDetail.anonymous')}</span>
                 <span className={`text-[10px] ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
                   {new Date(c.created_at).toLocaleString('pt-PT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                 </span>
@@ -542,7 +675,7 @@ export default function ErrorDetail() {
             <textarea
               value={commentText}
               onChange={e => setCommentText(e.target.value)}
-              placeholder="Adicionar comentário…"
+              placeholder={t('tutoriaDetail.addComment')}
               rows={2}
               className={`flex-1 px-3 py-2.5 rounded-xl border text-sm outline-none resize-none transition-all ${
                 isDark

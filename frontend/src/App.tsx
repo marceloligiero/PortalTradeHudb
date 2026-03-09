@@ -37,6 +37,12 @@ import ErrorDetail from './pages/tutoria/ErrorDetail';
 import PlanDetail from './pages/tutoria/PlanDetail';
 import TutoriaCategories from './pages/tutoria/TutoriaCategories';
 import ChatFAQAdmin from './pages/tutoria/ChatFAQAdmin';
+import InternalErrors from './pages/tutoria/InternalErrors';
+import RegisterInternalError from './pages/tutoria/RegisterInternalError';
+import InternalErrorDetail from './pages/tutoria/InternalErrorDetail';
+import SensoManagement from './pages/tutoria/SensoManagement';
+import LearningSheets from './pages/tutoria/LearningSheets';
+import MyLearningSheets from './pages/tutoria/MyLearningSheets';
 import AdminTeams from './pages/admin/Teams';
 import RelatoriosLayout from './pages/relatorios/RelatoriosLayout';
 import RelatoriosOverview from './pages/relatorios/Overview';
@@ -44,11 +50,16 @@ import RelatoriosFormacoes from './pages/relatorios/FormacoesDashboard';
 import RelatoriosTutoria from './pages/relatorios/TutoriaDashboard';
 import RelatoriosTeams from './pages/relatorios/TeamsDashboard';
 import RelatoriosMembers from './pages/relatorios/MembersDashboard';
+import RelatoriosIncidents from './pages/relatorios/IncidentsReport';
 import AdminRatingsPage from './pages/admin/Ratings';
 import KnowledgeMatrixPage from './pages/admin/KnowledgeMatrix';
 import AdminSettingsPage from './pages/admin/Settings';
 import AdminBanksPage from './pages/admin/Banks';
 import AdminProductsPage from './pages/admin/Products';
+import MasterDataPage from './pages/admin/MasterData';
+import MasterDataLayout from './pages/admin/MasterDataLayout';
+import ChamadosLayout from './pages/chamados/ChamadosLayout';
+import ChamadosKanban from './pages/chamados/ChamadosKanban';
 import AdminTrainerValidation from './pages/admin/TrainerValidation';
 import StudentReportsPage from './pages/student/Reports';
 import ChallengeForm from './pages/admin/ChallengeForm';
@@ -102,6 +113,12 @@ function App() {
         <Route path="my-plans" element={<TutoriaPlans />} />
         <Route path="categories" element={<TutoriaCategories />} />
         <Route path="chat-faqs" element={<ChatFAQAdmin />} />
+        <Route path="internal-errors" element={<InternalErrors />} />
+        <Route path="internal-errors/new" element={<RegisterInternalError />} />
+        <Route path="internal-errors/:id" element={<InternalErrorDetail />} />
+        <Route path="censos" element={<SensoManagement />} />
+        <Route path="learning-sheets" element={<LearningSheets />} />
+        <Route path="my-learning-sheets" element={<MyLearningSheets />} />
       </Route>
 
       {/* ── Portal de Relatórios (todos os roles autenticados) ── */}
@@ -111,13 +128,51 @@ function App() {
         <Route path="tutoria" element={<RelatoriosTutoria />} />
         <Route path="teams" element={<RelatoriosTeams />} />
         <Route path="members" element={<RelatoriosMembers />} />
+        <Route path="incidents" element={<RelatoriosIncidents />} />
+      </Route>
+
+      {/* ── Portal de Dados Mestres (ADMIN only, layout próprio) ── */}
+      <Route path="/master-data" element={<MasterDataLayout />}>
+        <Route index element={<MasterDataPage tab="banks" />} />
+        <Route path="products" element={<MasterDataPage tab="products" />} />
+        <Route path="teams" element={<MasterDataPage tab="teams" />} />
+        <Route path="categories" element={<MasterDataPage tab="categories" />} />
+        <Route path="impacts" element={<MasterDataPage tab="impacts" />} />
+        <Route path="origins" element={<MasterDataPage tab="origins" />} />
+        <Route path="detected-by" element={<MasterDataPage tab="detected_by" />} />
+        <Route path="departments" element={<MasterDataPage tab="departments" />} />
+        <Route path="activities" element={<MasterDataPage tab="activities" />} />
+        <Route path="error-types" element={<MasterDataPage tab="error_types" />} />
+        <Route path="faqs" element={<MasterDataPage tab="faqs" />} />
+        <Route path="users" element={<AdminUsersPage />} />
+      </Route>
+
+      {/* ── Portal de Chamados (todos os roles autenticados) ── */}
+      <Route path="/chamados" element={<ChamadosLayout />}>
+        <Route index element={<ChamadosKanban />} />
       </Route>
 
       {/* ── Portal de Formações ─────────────────────────────── */}
       <Route path="/" element={<Layout />}>
         {user?.role === 'MANAGER' && (
           <>
-            <Route index element={<Navigate to="/relatorios" replace />} />
+            <Route index element={<AdminDashboard />} />
+            <Route path="courses" element={<AdminCoursesPage />} />
+            <Route path="courses/:courseId" element={<AdminCourseDetail />} />
+            <Route path="training-plans" element={<AdminTrainingPlans />} />
+            <Route path="training-plan/:id" element={<TrainingPlanDetail />} />
+            <Route path="reports" element={<AdminReportsPage />} />
+            <Route path="advanced-reports" element={<AdminAdvancedReportsPage />} />
+            <Route path="pending-reviews" element={<PendingReviews />} />
+            <Route path="courses/:courseId/challenges/:challengeId" element={<ChallengeDetail />} />
+            <Route path="courses/:courseId/challenges/:challengeId/results" element={<ChallengeResult />} />
+            <Route path="courses/:courseId/lessons/:lessonId" element={<LessonDetail />} />
+            <Route path="lessons/:lessonId/manage" element={<LessonManagement />} />
+            <Route path="submissions/:submissionId/review" element={<SubmissionReview />} />
+            <Route path="challenges/:challengeId/execute/summary" element={<ChallengeExecutionSummary />} />
+            <Route path="challenges/:challengeId/execute/complete" element={<ChallengeExecutionComplete />} />
+            <Route path="knowledge-matrix" element={<KnowledgeMatrixPage />} />
+            <Route path="ratings" element={<AdminRatingsPage />} />
           </>
         )}
         {(user?.role === 'STUDENT' || user?.role === 'TRAINEE') && (
@@ -169,7 +224,6 @@ function App() {
         {user?.role === 'ADMIN' && (
           <>
             <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<AdminUsersPage />} />
             <Route path="trainer-validation" element={<AdminTrainerValidation />} />
             <Route path="courses" element={<AdminCoursesPage />} />
             <Route path="courses/:courseId" element={<AdminCourseDetail />} />

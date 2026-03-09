@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,15 +38,16 @@ const EMPTY: FormData = {
 // ─── Emoji Picker ─────────────────────────────────────────────────────────────
 
 const EMOJI_GROUPS: { label: string; emojis: string[] }[] = [
-  { label: 'Frequentes', emojis: ['👋','✅','❌','⚠️','📌','🔑','💡','📊','🎯','🔗','📝','📚','🚀','💬','👍','👎','❓','❗','🔒','🔓'] },
-  { label: 'Rostos', emojis: ['😀','😃','😄','😁','😅','🤔','😊','🙂','😉','😎','🤩','😍','🥳','😏','😶','😬','😮','😯','😲','🤯'] },
-  { label: 'Mãos', emojis: ['👋','👍','👎','👏','🤝','🙏','✋','🤚','🖐️','✌️','🤞','🫶','💪','☝️','👆','👇','👈','👉','🫵','✍️'] },
-  { label: 'Objectos', emojis: ['📄','📋','📊','📈','📉','🗂️','📁','📎','🔍','🔎','💻','🖥️','📱','⌨️','🖨️','📞','📧','🏷️','📌','📍'] },
-  { label: 'Símbolos', emojis: ['✅','❌','⚠️','❓','❗','💯','🔴','🟢','🟡','🔵','⭐','💎','🏆','🎖️','🔔','🔕','♻️','⚡','🔥','💥'] },
+  { label: 'chatFAQ.emojiFrequent', emojis: ['👋','✅','❌','⚠️','📌','🔑','💡','📊','🎯','🔗','📝','📚','🚀','💬','👍','👎','❓','❗','🔒','🔓'] },
+  { label: 'chatFAQ.emojiFaces', emojis: ['😀','😃','😄','😁','😅','🤔','😊','🙂','😉','😎','🤩','😍','🥳','😏','😶','😬','😮','😯','😲','🤯'] },
+  { label: 'chatFAQ.emojiHands', emojis: ['👋','👍','👎','👏','🤝','🙏','✋','🤚','🖐️','✌️','🤞','🫶','💪','☝️','👆','👇','👈','👉','🫵','✍️'] },
+  { label: 'chatFAQ.emojiObjects', emojis: ['📄','📋','📊','📈','📉','🗂️','📁','📎','🔍','🔎','💻','🖥️','📱','⌨️','🖨️','📞','📧','🏷️','📌','📍'] },
+  { label: 'chatFAQ.emojiSymbols', emojis: ['✅','❌','⚠️','❓','❗','💯','🔴','🟢','🟡','🔵','⭐','💎','🏆','🎖️','🔔','🔕','♻️','⚡','🔥','💥'] },
 ];
 
 function EmojiPicker({ onSelect, isDark }: { onSelect: (e: string) => void; isDark: boolean }) {
   const [tab, setTab] = useState(0);
+  const { t } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, y: 8, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8, scale: 0.95 }}
@@ -58,7 +60,7 @@ function EmojiPicker({ onSelect, isDark }: { onSelect: (e: string) => void; isDa
               i === tab
                 ? 'bg-[#EC0000] text-white'
                 : isDark ? 'text-gray-400 hover:bg-white/5' : 'text-gray-500 hover:bg-gray-50'
-            }`}>{g.label}</button>
+            }`}>{t(g.label)}</button>
         ))}
       </div>
       <div className="grid grid-cols-10 gap-0.5 p-3 max-h-[180px] overflow-y-auto">
@@ -75,9 +77,9 @@ function EmojiPicker({ onSelect, isDark }: { onSelect: (e: string) => void; isDa
 // ─── Wizard Steps ─────────────────────────────────────────────────────────────
 
 const STEPS = [
-  { label: 'Palavras-chave', icon: Hash, desc: 'Termos de busca que ativam esta FAQ' },
-  { label: 'Respostas',      icon: MessageSquare, desc: 'Texto de resposta em cada idioma' },
-  { label: 'Configurações',  icon: Settings, desc: 'Links, filtros e prioridade' },
+  { label: 'chatFAQ.stepKeywords', icon: Hash },
+  { label: 'chatFAQ.stepAnswers', icon: MessageSquare },
+  { label: 'chatFAQ.stepSettings', icon: Settings },
 ];
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -85,6 +87,7 @@ const STEPS = [
 export default function ChatFAQAdmin() {
   const { token } = useAuthStore();
   const { isDark } = useTheme();
+  const { t } = useTranslation();
 
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,7 +116,7 @@ export default function ChatFAQAdmin() {
       const res = await fetch('/api/chat/faqs', { headers });
       if (!res.ok) throw new Error();
       setFaqs(await res.json());
-    } catch { setError('Erro ao carregar FAQs'); }
+    } catch { setError(t('chatFAQ.loadError')); }
     finally { setLoading(false); }
   };
 
@@ -150,8 +153,8 @@ export default function ChatFAQAdmin() {
   };
 
   const validateStep = (): boolean => {
-    if (step === 0 && !form.keywords_pt.trim()) { setError('Palavras-chave (PT) são obrigatórias'); return false; }
-    if (step === 1 && !form.answer_pt.trim()) { setError('Resposta (PT) é obrigatória'); return false; }
+    if (step === 0 && !form.keywords_pt.trim()) { setError(t('chatFAQ.keywordsRequired')); return false; }
+    if (step === 1 && !form.answer_pt.trim()) { setError(t('chatFAQ.answerRequired')); return false; }
     setError(''); return true;
   };
 
@@ -174,7 +177,7 @@ export default function ChatFAQAdmin() {
       if (!res.ok) throw new Error();
       setSaved(true);
       setTimeout(() => { closeWizard(); fetchFaqs(); }, 1000);
-    } catch { setError('Erro ao guardar.'); }
+    } catch { setError(t('chatFAQ.saveError')); }
     finally { setSaving(false); }
   };
 
@@ -184,7 +187,7 @@ export default function ChatFAQAdmin() {
   };
 
   const deleteFaq = async (id: number) => {
-    if (!confirm('Eliminar esta FAQ permanentemente?')) return;
+    if (!confirm(t('chatFAQ.deleteConfirm'))) return;
     await fetch(`/api/chat/faqs/${id}`, { method: 'DELETE', headers });
     fetchFaqs();
   };
@@ -225,12 +228,12 @@ export default function ChatFAQAdmin() {
               <Bot className="w-8 h-8 text-white" />
             </motion.div>
             <div>
-              <span className="text-sm font-bold uppercase tracking-widest text-[#EC0000]">Chatbot</span>
+              <span className="text-sm font-bold uppercase tracking-widest text-[#EC0000]">{t('chatFAQ.headerSubtitle')}</span>
               <h1 className={`text-3xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                Perguntas Frequentes
+                {t('chatFAQ.title')}
               </h1>
               <p className={`mt-1 text-sm ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
-                Gere as respostas automáticas do assistente virtual
+                {t('chatFAQ.description')}
               </p>
             </div>
           </div>
@@ -238,7 +241,7 @@ export default function ChatFAQAdmin() {
             onClick={openNew}
             className="flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-[#EC0000] to-[#CC0000] hover:from-[#D60000] hover:to-[#B80000] text-white rounded-xl text-sm font-bold shadow-lg shadow-[#EC0000]/25 transition-all"
           >
-            <Plus className="w-4 h-4" /> Nova FAQ
+            <Plus className="w-4 h-4" /> {t('chatFAQ.newFaq')}
           </motion.button>
         </div>
       </motion.div>
@@ -250,7 +253,7 @@ export default function ChatFAQAdmin() {
         <Search className={`w-4 h-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
         <input
           type="text" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Pesquisar FAQs…"
+          placeholder={t('chatFAQ.searchPlaceholder')}
           className={`flex-1 bg-transparent text-sm outline-none ${isDark ? 'text-white placeholder:text-gray-600' : 'text-gray-900 placeholder:text-gray-400'}`}
         />
         {search && (
@@ -258,7 +261,7 @@ export default function ChatFAQAdmin() {
             <X className="w-3.5 h-3.5" />
           </button>
         )}
-        <span className={`text-xs font-semibold ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{filtered.length} resultado{filtered.length !== 1 ? 's' : ''}</span>
+        <span className={`text-xs font-semibold ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{t('chatFAQ.resultsCount', { count: filtered.length })}</span>
       </motion.div>
 
       {/* ── FAQ list ───────────────────────────────────────────────────────── */}
@@ -270,10 +273,10 @@ export default function ChatFAQAdmin() {
         >
           <Bot className={`w-16 h-16 mx-auto mb-4 ${isDark ? 'text-gray-700' : 'text-gray-300'}`} />
           <p className={`font-bold text-lg ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-            {search ? 'Nenhuma FAQ encontrada' : 'Ainda não há FAQs'}
+            {search ? t('chatFAQ.emptySearch') : t('chatFAQ.emptyNoFaqs')}
           </p>
           <p className={`text-sm mt-1 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-            {search ? 'Tenta outro termo de busca' : 'Clica em Nova FAQ para começar'}
+            {search ? t('chatFAQ.emptySearchHint') : t('chatFAQ.emptyHint')}
           </p>
         </motion.div>
       ) : (
@@ -303,7 +306,7 @@ export default function ChatFAQAdmin() {
                       </span>
                     )}
                     {!faq.is_active && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/20">Inativa</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-500 border border-amber-500/20">{t('chatFAQ.inactive')}</span>
                     )}
                     {faq.support_url && (
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${isDark ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-600'}`}>
@@ -329,18 +332,18 @@ export default function ChatFAQAdmin() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => toggleActive(faq)} title={faq.is_active ? 'Desativar' : 'Ativar'}
+                  <button onClick={() => toggleActive(faq)} title={faq.is_active ? t('chatFAQ.deactivateTooltip') : t('chatFAQ.activateTooltip')}
                     className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}>
                     {faq.is_active
                       ? <ToggleRight className="w-5 h-5 text-green-500" />
                       : <ToggleLeft className={`w-5 h-5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
                     }
                   </button>
-                  <button onClick={() => openEdit(faq)} title="Editar"
+                  <button onClick={() => openEdit(faq)} title={t('chatFAQ.editTooltip')}
                     className={`p-2 rounded-xl transition-colors ${isDark ? 'hover:bg-white/10 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}>
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button onClick={() => deleteFaq(faq.id)} title="Eliminar"
+                  <button onClick={() => deleteFaq(faq.id)} title={t('chatFAQ.deleteTooltip')}
                     className="p-2 rounded-xl hover:bg-red-500/10 text-red-400 transition-colors">
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -377,8 +380,8 @@ export default function ChatFAQAdmin() {
                 <div className="flex items-center gap-3">
                   <Sparkles className="w-5 h-5 text-white/80" />
                   <div>
-                    <h2 className="text-white font-bold text-sm">{editingId ? 'Editar FAQ' : 'Nova FAQ'}</h2>
-                    <p className="text-white/60 text-xs">Passo {step + 1} de {STEPS.length} — {STEPS[step].label}</p>
+                    <h2 className="text-white font-bold text-sm">{editingId ? t('chatFAQ.editFaq') : t('chatFAQ.newFaq')}</h2>
+                    <p className="text-white/60 text-xs">{t('chatFAQ.wizardStep', { step: step + 1, total: STEPS.length, label: t(STEPS[step].label) })}</p>
                   </div>
                 </div>
                 <button onClick={closeWizard} className="p-2 rounded-xl text-white/70 hover:text-white hover:bg-white/10 transition-colors">
@@ -400,7 +403,7 @@ export default function ChatFAQAdmin() {
                             : isDark ? 'bg-white/[0.02] border-white/5 text-gray-700' : 'bg-gray-50 border-gray-200 text-gray-300'
                       }`}>
                         {i < step ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Icon className="w-3.5 h-3.5" />}
-                        <span className="hidden sm:inline">{s.label}</span>
+                        <span className="hidden sm:inline">{t(s.label)}</span>
                       </div>
                       {i < STEPS.length - 1 && <div className={`w-6 h-px flex-shrink-0 ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />}
                     </div>
@@ -415,8 +418,8 @@ export default function ChatFAQAdmin() {
                     <div className="w-20 h-20 bg-gradient-to-br from-[#EC0000] to-[#CC0000] rounded-full flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-[#EC0000]/30">
                       <CheckCircle2 className="w-10 h-10 text-white" />
                     </div>
-                    <h3 className={`text-xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>FAQ guardada!</h3>
-                    <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>A fechar…</p>
+                    <h3 className={`text-xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('chatFAQ.faqSaved')}</h3>
+                    <p className={`text-sm mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('chatFAQ.closing')}</p>
                   </motion.div>
                 </div>
               ) : (
@@ -430,14 +433,14 @@ export default function ChatFAQAdmin() {
                         <motion.div key="s0" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="space-y-5">
                           <div className={`rounded-xl border p-4 ${isDark ? 'bg-[#EC0000]/5 border-[#EC0000]/15' : 'bg-red-50 border-red-100'}`}>
                             <p className={`text-xs font-semibold ${isDark ? 'text-[#EC0000]/80' : 'text-[#EC0000]'}`}>
-                              💡 Escreva uma palavra-chave por linha. Quanto mais específicas, melhor o chatbot identifica a pergunta.
+                              {t('chatFAQ.keywordsTip')}
                             </p>
                           </div>
 
                           {[
-                            { key: 'keywords_pt', label: 'Palavras-chave PT', flag: '🇵🇹', required: true, placeholder: 'erros criticos\ncritico\ngrave' },
-                            { key: 'keywords_es', label: 'Palavras-chave ES', flag: '🇪🇸', placeholder: 'errores criticos\ncritico' },
-                            { key: 'keywords_en', label: 'Palavras-chave EN', flag: '🇺🇸', placeholder: 'critical errors\ncritical' },
+                            { key: 'keywords_pt', label: t('chatFAQ.keywordsPt'), flag: '🇵🇹', required: true, placeholder: 'erros criticos\ncritico\ngrave' },
+                            { key: 'keywords_es', label: t('chatFAQ.keywordsEs'), flag: '🇪🇸', placeholder: 'errores criticos\ncritico' },
+                            { key: 'keywords_en', label: t('chatFAQ.keywordsEn'), flag: '🇺🇸', placeholder: 'critical errors\ncritical' },
                           ].map(f => (
                             <div key={f.key}>
                               <label className={labelCls}>{f.flag} {f.label} {f.required && <span className="text-[#EC0000]">*</span>}</label>
@@ -465,14 +468,14 @@ export default function ChatFAQAdmin() {
                         <motion.div key="s1" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="space-y-5">
                           <div className={`rounded-xl border p-4 ${isDark ? 'bg-[#EC0000]/5 border-[#EC0000]/15' : 'bg-red-50 border-red-100'}`}>
                             <p className={`text-xs font-semibold ${isDark ? 'text-[#EC0000]/80' : 'text-[#EC0000]'}`}>
-                              💬 Use **negrito** com asteriscos e • para listas. O bot renderiza markdown simples.
+                              {t('chatFAQ.answersTip')}
                             </p>
                           </div>
 
                           {[
-                            { key: 'answer_pt', label: 'Resposta PT', flag: '🇵🇹', required: true, placeholder: 'Resposta em português…\n\nPode usar:\n• **negrito** para destaque\n• Listas com •' },
-                            { key: 'answer_es', label: 'Resposta ES', flag: '🇪🇸', placeholder: 'Respuesta en español…' },
-                            { key: 'answer_en', label: 'Resposta EN', flag: '🇺🇸', placeholder: 'Answer in English…' },
+                            { key: 'answer_pt', label: t('chatFAQ.answerPt'), flag: '🇵🇹', required: true, placeholder: 'Resposta em português…\n\nPode usar:\n• **negrito** para destaque\n• Listas com •' },
+                            { key: 'answer_es', label: t('chatFAQ.answerEs'), flag: '🇪🇸', placeholder: 'Respuesta en español…' },
+                            { key: 'answer_en', label: t('chatFAQ.answerEn'), flag: '🇺🇸', placeholder: 'Answer in English…' },
                           ].map(f => (
                             <div key={f.key}>
                               <label className={labelCls}>{f.flag} {f.label} {f.required && <span className="text-[#EC0000]">*</span>}</label>
@@ -500,28 +503,28 @@ export default function ChatFAQAdmin() {
                         <motion.div key="s2" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="space-y-5">
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                             <div>
-                              <label className={labelCls}><Link className="w-3 h-3 inline mr-1 -mt-px" />URL do material</label>
+                              <label className={labelCls}><Link className="w-3 h-3 inline mr-1 -mt-px" />{t('chatFAQ.supportUrl')}</label>
                               <input type="url" value={form.support_url || ''} onChange={e => setForm({ ...form, support_url: e.target.value })}
-                                placeholder="https://…" className={inputCls} />
+                                placeholder={t('chatFAQ.supportUrlPlaceholder')} className={inputCls} />
                             </div>
                             <div>
-                              <label className={labelCls}>Texto do link</label>
+                              <label className={labelCls}>{t('chatFAQ.supportLabel')}</label>
                               <input type="text" value={form.support_label || ''} onChange={e => setForm({ ...form, support_label: e.target.value })}
-                                placeholder="Ver material de apoio" className={inputCls} />
+                                placeholder={t('chatFAQ.supportLabelPlaceholder')} className={inputCls} />
                             </div>
                           </div>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                             <div>
-                              <label className={labelCls}>Filtro por role</label>
+                              <label className={labelCls}>{t('chatFAQ.roleFilter')}</label>
                               <input type="text" value={form.role_filter || ''} onChange={e => setForm({ ...form, role_filter: e.target.value })}
-                                placeholder="ADMIN,TRAINER (vazio = todos)" className={inputCls} />
-                              <p className={`text-xs mt-1.5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>Deixe vazio para todos ou separe por vírgula</p>
+                                placeholder={t('chatFAQ.roleFilterPlaceholder')} className={inputCls} />
+                              <p className={`text-xs mt-1.5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{t('chatFAQ.roleFilterHint')}</p>
                             </div>
                             <div>
-                              <label className={labelCls}><GripVertical className="w-3 h-3 inline mr-1 -mt-px" />Prioridade</label>
+                              <label className={labelCls}><GripVertical className="w-3 h-3 inline mr-1 -mt-px" />{t('chatFAQ.priority')}</label>
                               <input type="number" value={form.priority} onChange={e => setForm({ ...form, priority: Number(e.target.value) })}
                                 className={inputCls} />
-                              <p className={`text-xs mt-1.5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>Menor número = mais prioritário</p>
+                              <p className={`text-xs mt-1.5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{t('chatFAQ.priorityHint')}</p>
                             </div>
                           </div>
                         </motion.div>
@@ -542,7 +545,7 @@ export default function ChatFAQAdmin() {
                     <button onClick={step === 0 ? closeWizard : prevStep}
                       className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${isDark ? 'bg-white/5 border-white/10 text-gray-300 hover:text-white' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                     >
-                      {step === 0 ? <><X className="w-4 h-4" /> Cancelar</> : <><ChevronLeft className="w-4 h-4" /> Anterior</>}
+                      {step === 0 ? <><X className="w-4 h-4" /> {t('chatFAQ.cancel')}</> : <><ChevronLeft className="w-4 h-4" /> {t('chatFAQ.previous')}</>}
                     </button>
 
                     {step < STEPS.length - 1 ? (
@@ -550,14 +553,14 @@ export default function ChatFAQAdmin() {
                         onClick={nextStep}
                         className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#EC0000] to-[#CC0000] text-white text-sm font-bold shadow-lg shadow-[#EC0000]/25"
                       >
-                        Próximo <ChevronRight className="w-4 h-4" />
+                        {t('chatFAQ.next')} <ChevronRight className="w-4 h-4" />
                       </motion.button>
                     ) : (
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                         onClick={saveFaq} disabled={saving}
                         className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#EC0000] to-[#CC0000] text-white text-sm font-bold shadow-lg shadow-[#EC0000]/25 disabled:opacity-50"
                       >
-                        {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> A guardar…</> : <><Save className="w-4 h-4" /> Guardar FAQ</>}
+                        {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('chatFAQ.saving')}</> : <><Save className="w-4 h-4" /> {t('chatFAQ.saveFaq')}</>}
                       </motion.button>
                     )}
                   </div>

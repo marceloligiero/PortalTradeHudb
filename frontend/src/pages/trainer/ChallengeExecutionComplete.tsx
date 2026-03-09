@@ -20,6 +20,7 @@ import {
   Pause
 } from 'lucide-react';
 import api from '../../lib/axios';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Challenge {
   id: number;
@@ -59,6 +60,7 @@ interface Operation {
 const ChallengeExecutionComplete: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const { challengeId } = useParams<{ challengeId: string }>();
   const [searchParams] = useSearchParams();
   const planId = searchParams.get('planId');
@@ -240,7 +242,7 @@ const ChallengeExecutionComplete: React.FC = () => {
 
   const startSubmission = async () => {
     if (!selectedStudentId) {
-      setError('Selecione um estudante');
+      setError(t('challenges.selectStudent'));
       return;
     }
 
@@ -265,7 +267,7 @@ const ChallengeExecutionComplete: React.FC = () => {
   const startOperation = (index: number) => {
     // Verificar se há outra operação em progresso
     if (activeOperationIndex !== null) {
-      setError('Termine a operação em progresso antes de iniciar outra');
+      setError(t('challengeExecution.finishInProgressFirst', 'Termine a operação em progresso antes de iniciar outra'));
       return;
     }
 
@@ -370,7 +372,7 @@ const ChallengeExecutionComplete: React.FC = () => {
   const finishSubmission = async () => {
     const completedOps = operations.filter(op => op.status === 'completed');
     if (completedOps.length === 0) {
-      setError('Complete pelo menos uma operação antes de finalizar');
+      setError(t('challengeExecution.completeAtLeastOne', 'Complete pelo menos uma operação antes de finalizar'));
       return;
     }
 
@@ -441,7 +443,7 @@ const ChallengeExecutionComplete: React.FC = () => {
   if (!challenge) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-100 via-red-50/20 to-gray-100 dark:from-gray-900 dark:via-red-900/20 dark:to-gray-900 flex items-center justify-center">
-        <div className="text-gray-900 dark:text-white">Desafio não encontrado</div>
+        <div className="text-gray-900 dark:text-white">{t('submissionReview.challengeNotFound', 'Desafio não encontrado')}</div>
       </div>
     );
   }
@@ -469,7 +471,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                 {challenge.title}
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
-                {challenge.description} • Tipo: {challenge.challenge_type}
+                {challenge.description} • {t('challenges.typeLabel', 'Tipo')}: {challenge.challenge_type}
               </p>
             </div>
           </div>
@@ -488,7 +490,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                 {completedCount}/{challenge.operations_required}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Operações {challenge.use_volume_kpi && <span className="text-blue-500 dark:text-blue-400">(KPI)</span>}
+                {t('challengeExecution.operations', 'Operações')} {challenge.use_volume_kpi && <span className="text-blue-500 dark:text-blue-400">(KPI)</span>}
               </p>
             </div>
           </div>
@@ -504,7 +506,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                 {calculateMPU().toFixed(2)}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                MPU Atual {challenge.use_mpu_kpi && <span className="text-green-500 dark:text-green-400">(Alvo: {challenge.target_mpu})</span>}
+                {t('challengeExecution.currentMPU', 'MPU Atual')} {challenge.use_mpu_kpi && <span className="text-green-500 dark:text-green-400">({t('challengeExecution.target', 'Alvo')}: {challenge.target_mpu})</span>}
               </p>
             </div>
           </div>
@@ -520,7 +522,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                 {operations.reduce((sum, op) => sum + (op.errors?.length || 0), 0)}/{challenge.max_errors || 0}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
-                Erros Max {challenge.use_errors_kpi && <span className="text-red-500 dark:text-red-400">(KPI)</span>}
+                {t('challengeExecution.maxErrors', 'Erros Max')} {challenge.use_errors_kpi && <span className="text-red-500 dark:text-red-400">(KPI)</span>}
               </p>
             </div>
           </div>
@@ -535,7 +537,7 @@ const ChallengeExecutionComplete: React.FC = () => {
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {formatTime(calculateTotalTime())}
               </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Tempo Total (Limite: {challenge.time_limit_minutes} min)</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeExecution.totalTime', 'Tempo Total')} ({t('challengeExecution.limit', 'Limite')}: {challenge.time_limit_minutes} min)</p>
             </div>
           </div>
         </div>
@@ -544,7 +546,7 @@ const ChallengeExecutionComplete: React.FC = () => {
       {/* Barra de progresso */}
       <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm dark:shadow-none">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Progresso do Desafio</span>
+          <span className="text-sm text-gray-600 dark:text-gray-400">{t('challengeExecution.challengeProgress', 'Progresso do Desafio')}</span>
           <span className="text-sm font-bold text-gray-900 dark:text-white">{Math.round(progressPercent)}%</span>
         </div>
         <div className="h-3 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
@@ -567,7 +569,7 @@ const ChallengeExecutionComplete: React.FC = () => {
         <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-6 shadow-sm dark:shadow-none">
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <User className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-            Formando
+            {t('submissionReview.student', 'Formando')}
           </h3>
           {planStudent ? (
             <div className="flex items-center justify-between">
@@ -583,7 +585,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                 className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-colors"
               >
                 <Play className="w-5 h-5" />
-                Iniciar Desafio
+                {t('challengeExecution.startChallenge', 'Iniciar Desafio')}
               </button>
             </div>
           ) : (
@@ -595,10 +597,11 @@ const ChallengeExecutionComplete: React.FC = () => {
                   setSelectedStudentId(v ? parseInt(v, 10) : null);
                 }}
                 className="px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}
               >
-                <option value="">Selecione um formando</option>
+                <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('challenges.selectStudent', 'Selecione um formando')}</option>
                 {students.map((student) => (
-                  <option key={student.id} value={student.id} className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+                  <option key={student.id} value={student.id} className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>
                     {student.full_name} ({student.email})
                   </option>
                 ))}
@@ -609,7 +612,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                 className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors"
               >
                 <Play className="w-5 h-5" />
-                Iniciar Desafio
+                {t('challengeExecution.startChallenge', 'Iniciar Desafio')}
               </button>
             </div>
           )}
@@ -621,7 +624,7 @@ const ChallengeExecutionComplete: React.FC = () => {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <Target className="w-5 h-5 text-green-500 dark:text-green-400" />
-            Operações ({completedCount}/{challenge.operations_required})
+            {t('challengeExecution.operations', 'Operações')} ({completedCount}/{challenge.operations_required})
           </h2>
 
           <div className="grid gap-3">
@@ -655,7 +658,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                       value={op.reference}
                       onChange={(e) => updateOperationReference(index, e.target.value)}
                       disabled={op.status === 'completed'}
-                      placeholder="Referência da operação (ex: 4060ILC0001111)"
+                      placeholder={t('challengeExecution.referencePlaceholder', 'Referência da operação (ex: 4060ILC0001111)')}
                       className="w-full px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
@@ -678,7 +681,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                       </div>
                       {op.status === 'in_progress' && isPaused && (
                         <div className="text-xs text-yellow-600 dark:text-yellow-400 font-medium mt-1">
-                          PAUSADO
+                          {t('challengeExecution.paused', 'PAUSADO')}
                         </div>
                       )}
                     </div>
@@ -693,7 +696,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                         className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
                       >
                         <Play className="w-4 h-4" />
-                        Iniciar
+                        {t('challengeExecution.start', 'Iniciar')}
                       </button>
                     )}
 
@@ -705,7 +708,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                             className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
                           >
                             <Play className="w-4 h-4" />
-                            Retomar
+                            {t('challengeExecution.resume', 'Retomar')}
                           </button>
                         ) : (
                           <button
@@ -713,7 +716,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                             className="flex items-center gap-2 px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-medium transition-colors"
                           >
                             <Pause className="w-4 h-4" />
-                            Pausar
+                            {t('challengeExecution.pause', 'Pausar')}
                           </button>
                         )}
                         <button
@@ -721,7 +724,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                           className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
                         >
                           <Square className="w-4 h-4" />
-                          Terminar
+                          {t('challengeExecution.finishOperationBtn', 'Terminar')}
                         </button>
                       </div>
                     )}
@@ -729,10 +732,10 @@ const ChallengeExecutionComplete: React.FC = () => {
                     {op.status === 'completed' && (
                       <div className="flex items-center gap-2 px-4 py-2 bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 rounded-lg">
                         <Check className="w-4 h-4" />
-                        Concluída
+                        {t('challengeExecution.completed', 'Concluída')}
                         {op.errors && op.errors.length > 0 && (
                           <span className="ml-2 px-2 py-0.5 bg-red-100 dark:bg-red-500/30 text-red-600 dark:text-red-400 text-xs rounded-full">
-                            {op.errors.length} erro(s)
+                            {op.errors.length} {t('challengeComplete.errors', 'erro(s)')}
                           </span>
                         )}
                       </div>
@@ -749,14 +752,14 @@ const ChallengeExecutionComplete: React.FC = () => {
               <div className="flex items-center gap-4">
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
-                    Total de Erros Classificados
+                    {t('challengeExecution.totalClassifiedErrors', 'Total de Erros Classificados')}
                   </p>
                   <div className="flex items-center gap-2">
                     <span className="px-4 py-2 bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 rounded-lg text-xl font-bold">
                       {operations.reduce((sum, op) => sum + (op.errors?.length || 0), 0)}
                     </span>
                     <span className="text-gray-500 text-sm">
-                      / Máximo permitido: {challenge.max_errors ?? 0}
+                      / {t('challengeExecution.maxAllowed', 'Máximo permitido')}: {challenge.max_errors ?? 0}
                     </span>
                   </div>
                 </div>
@@ -768,7 +771,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                 className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-700 hover:to-orange-700 disabled:from-gray-600 disabled:to-gray-600 disabled:cursor-not-allowed text-white rounded-xl font-bold text-lg transition-all"
               >
                 <Check className="w-6 h-6" />
-                Finalizar Desafio
+                {t('challengeComplete.finalizeChallenge', 'Finalizar Desafio')}
               </button>
             </div>
           </div>
@@ -780,7 +783,7 @@ const ChallengeExecutionComplete: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/20 rounded-2xl p-6 w-full max-w-lg mx-4 shadow-xl">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Classificação da Operação</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">{t('challengeExecution.operationClassification', 'Classificação da Operação')}</h3>
               <button
                 onClick={() => {
                   setShowErrorModal(false);
@@ -796,7 +799,7 @@ const ChallengeExecutionComplete: React.FC = () => {
 
             {/* Pergunta se teve erro */}
             <div className="mb-6">
-              <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Esta operação teve algum erro?</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{t('challengeExecution.operationHadError', 'Esta operação teve algum erro?')}</p>
               <div className="flex gap-3">
                 <button
                   onClick={() => {
@@ -809,7 +812,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                       : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/20'
                   }`}
                 >
-                  Não, sem erros
+                  {t('challengeExecution.noErrors', 'Não, sem erros')}
                 </button>
                 <button
                   onClick={() => setOperationHasError(true)}
@@ -819,7 +822,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                       : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/20'
                   }`}
                 >
-                  Sim, teve erro(s)
+                  {t('challengeExecution.yesHadErrors', 'Sim, teve erro(s)')}
                 </button>
               </div>
             </div>
@@ -828,35 +831,35 @@ const ChallengeExecutionComplete: React.FC = () => {
             {operationHasError && (
               <>
               <div className="mb-4">
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Adicionar erro por tipo:</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{t('submissionReview.addErrorByType', 'Adicionar erro por tipo')}:</p>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => addPendingError('METHODOLOGY')}
                     className="flex items-center gap-2 px-3 py-2 bg-purple-100 dark:bg-purple-500/20 hover:bg-purple-200 dark:hover:bg-purple-500/30 text-purple-600 dark:text-purple-400 rounded-lg transition-colors text-sm"
                   >
                     <Plus className="w-4 h-4" />
-                    Metodologia
+                    {t('submissionReview.methodology', 'Metodologia')}
                   </button>
                   <button
                   onClick={() => addPendingError('KNOWLEDGE')}
                   className="flex items-center gap-2 px-3 py-2 bg-blue-100 dark:bg-blue-500/20 hover:bg-blue-200 dark:hover:bg-blue-500/30 text-blue-600 dark:text-blue-400 rounded-lg transition-colors text-sm"
                 >
                   <Plus className="w-4 h-4" />
-                  Conhecimento
+                  {t('submissionReview.knowledge', 'Conhecimento')}
                 </button>
                 <button
                   onClick={() => addPendingError('DETAIL')}
                   className="flex items-center gap-2 px-3 py-2 bg-yellow-100 dark:bg-yellow-500/20 hover:bg-yellow-200 dark:hover:bg-yellow-500/30 text-yellow-600 dark:text-yellow-400 rounded-lg transition-colors text-sm"
                 >
                   <Plus className="w-4 h-4" />
-                  Detalhe
+                  {t('submissionReview.detail', 'Detalhe')}
                 </button>
                 <button
                   onClick={() => addPendingError('PROCEDURE')}
                   className="flex items-center gap-2 px-3 py-2 bg-orange-100 dark:bg-orange-500/20 hover:bg-orange-200 dark:hover:bg-orange-500/30 text-orange-600 dark:text-orange-400 rounded-lg transition-colors text-sm"
                 >
                   <Plus className="w-4 h-4" />
-                  Procedimento
+                  {t('submissionReview.procedure', 'Procedimento')}
                 </button>
               </div>
             </div>
@@ -864,7 +867,7 @@ const ChallengeExecutionComplete: React.FC = () => {
             {/* Lista de erros pendentes - só mostra se teve erro */}
             <div className="mb-6 max-h-60 overflow-y-auto">
               {pendingErrors.length === 0 ? (
-                <p className="text-gray-400 dark:text-gray-500 text-center py-4">Adicione pelo menos um erro acima</p>
+                <p className="text-gray-400 dark:text-gray-500 text-center py-4">{t('challengeExecution.addAtLeastOneError', 'Adicione pelo menos um erro acima')}</p>
               ) : (
                 <div className="space-y-2">
                   {pendingErrors.map((error) => (
@@ -878,9 +881,9 @@ const ChallengeExecutionComplete: React.FC = () => {
                       }`}
                     >
                       <span className="text-sm font-medium">
-                        {error.type === 'METHODOLOGY' ? 'Metodologia' :
-                         error.type === 'KNOWLEDGE' ? 'Conhecimento' :
-                         error.type === 'DETAIL' ? 'Detalhe' : 'Procedimento'}
+                        {error.type === 'METHODOLOGY' ? t('submissionReview.methodology', 'Metodologia') :
+                         error.type === 'KNOWLEDGE' ? t('submissionReview.knowledge', 'Conhecimento') :
+                         error.type === 'DETAIL' ? t('submissionReview.detail', 'Detalhe') : t('submissionReview.procedure', 'Procedimento')}
                       </span>
                       <button
                         onClick={() => removePendingError(error.id)}
@@ -907,7 +910,7 @@ const ChallengeExecutionComplete: React.FC = () => {
                 }}
                 className="flex-1 px-4 py-3 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-white rounded-lg transition-colors"
               >
-                Cancelar
+                {t('submissionReview.cancel', 'Cancelar')}
               </button>
               <button
                 onClick={confirmFinishOperation}
@@ -919,8 +922,8 @@ const ChallengeExecutionComplete: React.FC = () => {
                 }`}
               >
                 {operationHasError 
-                  ? `Confirmar (${pendingErrors.length} erro${pendingErrors.length !== 1 ? 's' : ''})`
-                  : 'Confirmar - Sem erros'}
+                  ? `${t('challengeExecution.confirm', 'Confirmar')} (${pendingErrors.length} ${t('challengeComplete.errors', 'erro(s)')})`
+                  : t('challengeExecution.confirmNoErrors', 'Confirmar - Sem erros')}
               </button>
             </div>
           </div>

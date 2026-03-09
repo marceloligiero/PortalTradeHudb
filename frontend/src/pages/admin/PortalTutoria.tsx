@@ -9,6 +9,7 @@ import {
 import axios from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,9 +49,6 @@ interface RecentPlan {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const SEVERITY_LABEL: Record<string, string> = {
-  BAIXA: 'Baixa', MEDIA: 'Média', ALTA: 'Alta', CRITICA: 'Crítica',
-};
 const SEVERITY_COLOR: Record<string, string> = {
   BAIXA: 'bg-green-500/15 text-green-400 border-green-500/20',
   MEDIA: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20',
@@ -62,16 +60,6 @@ const SEVERITY_COLOR_LIGHT: Record<string, string> = {
   MEDIA: 'bg-yellow-50 text-yellow-700 border-yellow-200',
   ALTA: 'bg-orange-50 text-orange-700 border-orange-200',
   CRITICA: 'bg-red-50 text-red-700 border-red-200',
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  ABERTO: 'Aberto', EM_ANALISE: 'Em Análise', PLANO_CRIADO: 'Plano Criado',
-  EM_EXECUCAO: 'Em Execução', CONCLUIDO: 'Concluído', VERIFICADO: 'Verificado',
-};
-const PLAN_STATUS_LABEL: Record<string, string> = {
-  RASCUNHO: 'Rascunho', AGUARDANDO_APROVACAO: 'Ag. Aprovação',
-  APROVADO: 'Aprovado', EM_EXECUCAO: 'Em Execução',
-  CONCLUIDO: 'Concluído', DEVOLVIDO: 'Devolvido',
 };
 
 function severityCls(s: string, isDark: boolean) {
@@ -119,6 +107,7 @@ function StatCard({
 export default function PortalTutoria() {
   const { user } = useAuthStore();
   const { isDark } = useTheme();
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const isManager = user?.role === 'ADMIN' || user?.role === 'TRAINER';
@@ -160,7 +149,7 @@ export default function PortalTutoria() {
       <div className="flex items-center justify-center py-32">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 rounded-full border-2 border-red-500 border-t-transparent animate-spin" />
-          <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>A carregar dashboard…</p>
+          <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('adminPortalTutoria.loading')}</p>
         </div>
       </div>
     );
@@ -192,17 +181,17 @@ export default function PortalTutoria() {
             </div>
             <div>
               <span className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-red-400' : 'text-red-500'}`}>
-                Portal de Gestão de Erros
+                {t('adminPortalTutoria.headerLabel')}
               </span>
               <h1 className={`text-4xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {isStudent ? 'Meu Painel' : 'Dashboard'}
+                {isStudent ? t('adminPortalTutoria.myPanel') : t('adminPortalTutoria.dashboard')}
               </h1>
               <p className={`mt-1 text-sm ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
                 {isStudent
-                  ? 'Os teus erros e planos de ação atribuídos'
+                  ? t('adminPortalTutoria.studentSubtitle')
                   : user?.role === 'ADMIN'
-                    ? 'Visão geral de toda a operação'
-                    : 'Visão da tua equipa de tutorados'}
+                    ? t('adminPortalTutoria.adminSubtitle')
+                    : t('adminPortalTutoria.trainerSubtitle')}
               </p>
             </div>
           </div>
@@ -214,7 +203,7 @@ export default function PortalTutoria() {
                 onClick={() => navigate('/tutoria/errors/new')}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 text-white text-sm font-bold shadow-lg shadow-red-500/25"
               >
-                <Plus className="w-4 h-4" /> Registar Erro
+                <Plus className="w-4 h-4" /> {t('adminPortalTutoria.registerError')}
               </motion.button>
             </div>
           )}
@@ -224,28 +213,28 @@ export default function PortalTutoria() {
       {/* ── Stat Cards ──────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          icon={AlertTriangle} label="Total de Erros"
+          icon={AlertTriangle} label={t('adminPortalTutoria.totalErrors')}
           value={stats?.total_errors ?? 0} isDark={isDark}
           accent="bg-gradient-to-br from-red-500 to-rose-600"
-          sub={`${openErrors} em aberto`} delay={0.05}
+          sub={t('adminPortalTutoria.openErrors', { count: openErrors })} delay={0.05}
         />
         <StatCard
-          icon={RefreshCw} label="Reincidentes"
+          icon={RefreshCw} label={t('adminPortalTutoria.recurrent')}
           value={stats?.recurrent_errors ?? 0} isDark={isDark}
           accent="bg-gradient-to-br from-orange-500 to-amber-500"
-          sub="mesmo tipo repetido" delay={0.1}
+          sub={t('adminPortalTutoria.sameTypeRepeated')} delay={0.1}
         />
         <StatCard
-          icon={ClipboardList} label="Planos de Ação"
+          icon={ClipboardList} label={t('adminPortalTutoria.actionPlans')}
           value={stats?.total_plans ?? 0} isDark={isDark}
           accent="bg-gradient-to-br from-blue-500 to-indigo-500"
-          sub={`${activePlans} em execução`} delay={0.15}
+          sub={t('adminPortalTutoria.inExecution', { count: activePlans })} delay={0.15}
         />
         <StatCard
-          icon={CheckCircle2} label="Planos Concluídos"
+          icon={CheckCircle2} label={t('adminPortalTutoria.completedPlans')}
           value={donePlans} isDark={isDark}
           accent="bg-gradient-to-br from-green-500 to-emerald-500"
-          sub={stats?.overdue_plans ? `${stats.overdue_plans} vencidos` : 'sem vencidos'}
+          sub={stats?.overdue_plans ? t('adminPortalTutoria.overdueCount', { count: stats.overdue_plans }) : t('adminPortalTutoria.noOverdue')}
           delay={0.2}
         />
       </div>
@@ -265,20 +254,20 @@ export default function PortalTutoria() {
                 <AlertTriangle className="w-3.5 h-3.5 text-white" />
               </div>
               <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {isStudent ? 'Meus Erros Recentes' : 'Erros Recentes'}
+                {isStudent ? t('adminPortalTutoria.myRecentErrors') : t('adminPortalTutoria.recentErrors')}
               </p>
             </div>
             <button
               onClick={() => navigate(isStudent ? '/tutoria/my-errors' : '/tutoria/errors')}
               className={`text-xs font-semibold flex items-center gap-1 ${isDark ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-700'}`}
             >
-              Ver todos <ArrowRight className="w-3 h-3" />
+              {t('adminPortalTutoria.viewAll')} <ArrowRight className="w-3 h-3" />
             </button>
           </div>
 
           {recentErrors.length === 0 ? (
             <div className={`p-8 text-center text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-              Nenhum erro registado
+              {t('adminPortalTutoria.noErrorsRegistered')}
             </div>
           ) : (
             <div className="divide-y divide-white/[0.04]">
@@ -294,17 +283,17 @@ export default function PortalTutoria() {
                       {e.description}
                     </p>
                     <p className={`text-xs mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                      {e.tutorado_name} · {e.category_name ?? '—'} · {STATUS_LABEL[e.status] ?? e.status}
+                      {e.tutorado_name} · {e.category_name ?? '—'} · {t('adminPortalTutoria.errorStatus.' + e.status, e.status)}
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     {e.is_recurrent && (
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/20">
-                        {e.recurrence_count}ª vez
+                        {t('adminPortalTutoria.recurrenceCount', { count: e.recurrence_count })}
                       </span>
                     )}
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${severityCls(e.severity, isDark)}`}>
-                      {SEVERITY_LABEL[e.severity] ?? e.severity}
+                      {t('adminPortalTutoria.severity.' + e.severity, e.severity)}
                     </span>
                   </div>
                 </div>
@@ -325,20 +314,20 @@ export default function PortalTutoria() {
                 <ClipboardList className="w-3.5 h-3.5 text-white" />
               </div>
               <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {isStudent ? 'Meus Planos' : 'Planos Recentes'}
+                {isStudent ? t('adminPortalTutoria.myPlans') : t('adminPortalTutoria.recentPlans')}
               </p>
             </div>
             <button
               onClick={() => navigate(isStudent ? '/tutoria/my-plans' : '/tutoria/plans')}
               className={`text-xs font-semibold flex items-center gap-1 ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
             >
-              Ver todos <ArrowRight className="w-3 h-3" />
+              {t('adminPortalTutoria.viewAll')} <ArrowRight className="w-3 h-3" />
             </button>
           </div>
 
           {recentPlans.length === 0 ? (
             <div className={`p-8 text-center text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-              Nenhum plano de ação criado
+              {t('adminPortalTutoria.noPlanCreated')}
             </div>
           ) : (
             <div className="divide-y divide-white/[0.04]">
@@ -354,7 +343,7 @@ export default function PortalTutoria() {
                   >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <p className={`text-sm font-semibold truncate flex-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        {p.what ?? `Plano #${p.id}`}
+                        {p.what ?? t('adminPortalTutoria.planFallback', { id: p.id })}
                       </p>
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${
                         isDone
@@ -363,7 +352,7 @@ export default function PortalTutoria() {
                             ? isDark ? 'bg-red-500/15 text-red-400 border-red-500/20' : 'bg-red-50 text-red-700 border-red-200'
                             : isDark ? 'bg-blue-500/15 text-blue-400 border-blue-500/20' : 'bg-blue-50 text-blue-700 border-blue-200'
                       }`}>
-                        {PLAN_STATUS_LABEL[p.status] ?? p.status}
+                        {t('adminPortalTutoria.planStatus.' + p.status, p.status)}
                         {isOverdue && ' ⚠'}
                       </span>
                     </div>
@@ -379,7 +368,7 @@ export default function PortalTutoria() {
                           />
                         </div>
                         <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                          {p.items_completed}/{p.items_total} ações concluídas
+                          {t('adminPortalTutoria.actionsCompleted', { completed: p.items_completed, total: p.items_total })}
                         </p>
                       </div>
                     )}
@@ -404,7 +393,7 @@ export default function PortalTutoria() {
             <div className="w-7 h-7 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-3.5 h-3.5 text-white" />
             </div>
-            <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Erros por Severidade</p>
+            <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('adminPortalTutoria.errorsBySeverity')}</p>
           </div>
           <div className="space-y-3">
             {(['CRITICA', 'ALTA', 'MEDIA', 'BAIXA'] as const).map(sev => {
@@ -421,7 +410,7 @@ export default function PortalTutoria() {
                 <div key={sev}>
                   <div className="flex items-center justify-between mb-1">
                     <span className={`text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {SEVERITY_LABEL[sev]}
+                      {t('adminPortalTutoria.severity.' + sev)}
                     </span>
                     <span className={`text-xs font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{count}</span>
                   </div>
@@ -447,21 +436,21 @@ export default function PortalTutoria() {
             <div className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center">
               <BarChart3 className="w-3.5 h-3.5 text-white" />
             </div>
-            <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Status dos Planos</p>
+            <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('adminPortalTutoria.planStatuses')}</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {[
-              { key: 'RASCUNHO',            label: 'Rascunho',    icon: Clock,         color: 'text-gray-400' },
-              { key: 'AGUARDANDO_APROVACAO', label: 'Ag. Aprova.', icon: Clock,         color: 'text-yellow-400' },
-              { key: 'APROVADO',             label: 'Aprovado',    icon: CheckCircle2,  color: 'text-blue-400' },
-              { key: 'EM_EXECUCAO',          label: 'Em Execução', icon: TrendingUp,    color: 'text-orange-400' },
-              { key: 'CONCLUIDO',            label: 'Concluído',   icon: CheckCircle2,  color: 'text-green-400' },
-              { key: 'DEVOLVIDO',            label: 'Devolvido',   icon: XCircle,       color: 'text-red-400' },
-            ].map(({ key, label, icon: Icon, color }) => (
+              { key: 'RASCUNHO',            icon: Clock,         color: 'text-gray-400' },
+              { key: 'AGUARDANDO_APROVACAO', icon: Clock,         color: 'text-yellow-400' },
+              { key: 'APROVADO',             icon: CheckCircle2,  color: 'text-blue-400' },
+              { key: 'EM_EXECUCAO',          icon: TrendingUp,    color: 'text-orange-400' },
+              { key: 'CONCLUIDO',            icon: CheckCircle2,  color: 'text-green-400' },
+              { key: 'DEVOLVIDO',            icon: XCircle,       color: 'text-red-400' },
+            ].map(({ key, icon: Icon, color }) => (
               <div key={key} className={`rounded-xl p-3 ${isDark ? 'bg-white/[0.03]' : 'bg-gray-50'}`}>
                 <div className="flex items-center gap-2 mb-1">
                   <Icon className={`w-4 h-4 ${color}`} />
-                  <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{label}</span>
+                  <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('adminPortalTutoria.planStatus.' + key)}</span>
                 </div>
                 <p className={`text-xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>
                   {byPlanStatus[key] ?? 0}
@@ -472,7 +461,7 @@ export default function PortalTutoria() {
           {(stats?.overdue_plans ?? 0) > 0 && (
             <div className={`mt-4 flex items-center gap-2 p-3 rounded-xl text-sm ${isDark ? 'bg-red-500/10 border border-red-500/20 text-red-400' : 'bg-red-50 border border-red-200 text-red-600'}`}>
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span className="font-semibold">{stats?.overdue_plans} plano(s) com prazo vencido</span>
+              <span className="font-semibold">{t('adminPortalTutoria.overdueWarning', { count: stats?.overdue_plans })}</span>
             </div>
           )}
         </motion.div>
@@ -486,9 +475,9 @@ export default function PortalTutoria() {
           className="grid grid-cols-1 sm:grid-cols-3 gap-4"
         >
           {[
-            { label: 'Registar Erro',     icon: AlertTriangle, path: '/tutoria/errors/new',  color: 'from-red-500 to-rose-600' },
-            { label: 'Ver todos os Erros', icon: Users,         path: '/tutoria/errors',       color: 'from-orange-500 to-amber-500' },
-            { label: 'Ver Planos',         icon: ClipboardList, path: '/tutoria/plans',        color: 'from-blue-500 to-indigo-500' },
+            { label: t('adminPortalTutoria.registerError'),   icon: AlertTriangle, path: '/tutoria/errors/new',  color: 'from-red-500 to-rose-600' },
+            { label: t('adminPortalTutoria.viewAllErrors'),   icon: Users,         path: '/tutoria/errors',       color: 'from-orange-500 to-amber-500' },
+            { label: t('adminPortalTutoria.viewPlans'),       icon: ClipboardList, path: '/tutoria/plans',        color: 'from-blue-500 to-indigo-500' },
           ].map(({ label, icon: Icon, path, color }) => (
             <motion.button
               key={path}
@@ -516,17 +505,17 @@ export default function PortalTutoria() {
           </div>
           <div className="flex-1">
             <p className={`font-bold text-sm ${isDark ? 'text-blue-300' : 'text-blue-800'}`}>
-              Tens planos em execução que precisam da tua atenção
+              {t('adminPortalTutoria.studentCtaTitle')}
             </p>
             <p className={`text-xs mt-0.5 ${isDark ? 'text-blue-400/70' : 'text-blue-600'}`}>
-              Submete evidências para concluir as tuas ações
+              {t('adminPortalTutoria.studentCtaSub')}
             </p>
           </div>
           <button
             onClick={() => navigate('/tutoria/my-plans')}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-500 text-white text-xs font-bold flex-shrink-0"
           >
-            Ver Planos <ArrowRight className="w-3.5 h-3.5" />
+            {t('adminPortalTutoria.viewPlans')} <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </motion.div>
       )}

@@ -86,7 +86,10 @@ async def login(request: Request, db: Session = Depends(get_db)):
             "full_name": user.full_name,
             "role": user.role,
             "is_active": user.is_active,
-            "is_pending": user.is_pending
+            "is_pending": user.is_pending,
+            "is_trainer": getattr(user, 'is_trainer', False),
+            "is_tutor": getattr(user, 'is_tutor', False),
+            "is_liberador": getattr(user, 'is_liberador', False),
         }
     }
 
@@ -96,19 +99,19 @@ async def register(
     db: Session = Depends(get_db)
 ):
     """
-    Register a new user (Formador or Formando).
+    Register a new user.
     
-    - **Formando (Student)**: Can immediately access the platform
-    - **Formador (Trainer)**: Marked as pending and must be validated by Admin
-      - Formadores are also created as Formando (they need to take courses)
-      - Their is_pending flag must be set to False by Admin before they can create courses
+    - Every user is a Formando (trainee) by default and can access all portals.
+    - Additional capabilities: is_trainer (Formador), is_tutor (Tutor).
+    - MANAGER role = Chefe de Equipa (team leader with approval powers).
+    - TRAINER/MANAGER accounts are marked as pending for admin validation.
     """
     try:
         # Validate role
-        if user_in.role not in ["TRAINER", "TRAINEE"]:
+        if user_in.role not in ["TRAINEE", "MANAGER"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Role must be either 'TRAINER' or 'TRAINEE'"
+                detail="Role must be 'TRAINEE' or 'MANAGER'"
             )
         
         # Check if user already exists
@@ -131,14 +134,17 @@ async def register(
                 detail="Internal server error"
             )
         
-        # If TRAINER, mark as pending for admin validation
-        is_pending = user_in.role == "TRAINER"
+        # Pending if MANAGER or has trainer/tutor capabilities
+        is_pending = user_in.role == "MANAGER" or user_in.is_trainer or user_in.is_tutor or user_in.is_liberador
         
         db_user = models.User(
             email=user_in.email,
             full_name=user_in.full_name,
             hashed_password=hashed_password,
             role=user_in.role,
+            is_trainer=user_in.is_trainer,
+            is_tutor=user_in.is_tutor,
+            is_liberador=getattr(user_in, 'is_liberador', False),
             is_active=True,
             is_pending=is_pending
         )

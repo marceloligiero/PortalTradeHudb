@@ -74,8 +74,8 @@ export default function CertificatesPage() {
       <PremiumHeader
         icon={Award}
         title={t('certificates.title')}
-        subtitle="As suas conquistas e certificações"
-        badge="Área de Certificados"
+        subtitle={t('certificates.subtitle')}
+        badge={t('certificates.badge')}
         iconColor="from-yellow-500 to-orange-600"
       />
 
@@ -83,14 +83,14 @@ export default function CertificatesPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <AnimatedStatCard
           icon={Award}
-          label="Total de Certificados"
+          label={t('certificates.totalCertificates')}
           value={certificates.length}
           color="from-yellow-500 to-orange-600"
           delay={0}
         />
         <AnimatedStatCard
           icon={Clock}
-          label="Horas de Formação"
+          label={t('certificates.trainingHours')}
           value={totalHours}
           suffix="h"
           color="from-blue-500 to-blue-700"
@@ -98,7 +98,7 @@ export default function CertificatesPage() {
         />
         <AnimatedStatCard
           icon={GraduationCap}
-          label="Cursos Concluídos"
+          label={t('certificates.coursesCompleted')}
           value={certificates.reduce((acc, c) => acc + (c.courses_completed || 0), 0)}
           color="from-green-500 to-emerald-600"
           delay={0.2}
@@ -135,10 +135,10 @@ export default function CertificatesPage() {
               <Award className="w-20 h-20 text-gray-600 mx-auto mb-4" />
             </motion.div>
             <h3 className="text-xl font-semibold text-white mb-2">
-              Ainda não tem certificados
+              {t('certificates.noCertificates')}
             </h3>
             <p className="text-gray-400 mb-2">
-              Complete os seus planos de formação para obter certificados
+              {t('certificates.noCertificatesDesc')}
             </p>
             <p className="text-gray-500 text-sm">
               {t('dashboard.student.emptyDescription')}
@@ -181,10 +181,10 @@ export default function CertificatesPage() {
                       {cert.is_valid ? (
                         <>
                           <CheckCircle2 className="w-3 h-3" />
-                          Válido
+                          {t('certificates.valid')}
                         </>
                       ) : (
-                        'Revogado'
+                        t('certificates.revoked')
                       )}
                     </span>
                   </div>
@@ -192,7 +192,7 @@ export default function CertificatesPage() {
                   <div className="mb-3">
                     <div className="flex items-center gap-2 mb-1">
                       <FileText className="w-3 h-3 text-yellow-400" />
-                      <span className="text-xs text-gray-500 uppercase tracking-wider">Nº Certificado</span>
+                      <span className="text-xs text-gray-500 uppercase tracking-wider">{t('certificates.certNumber')}</span>
                     </div>
                     <p className="font-mono text-yellow-400 font-medium text-sm">{cert.certificate_number}</p>
                   </div>
@@ -203,11 +203,11 @@ export default function CertificatesPage() {
                   
                   <div className="grid grid-cols-2 gap-3 mb-4">
                     <div className="bg-white/5 rounded-lg p-2">
-                      <div className="text-xs text-gray-500 mb-1">Horas</div>
+                      <div className="text-xs text-gray-500 mb-1">{t('certificates.hours')}</div>
                       <div className="text-sm font-semibold text-white">{cert.total_hours}h</div>
                     </div>
                     <div className="bg-white/5 rounded-lg p-2">
-                      <div className="text-xs text-gray-500 mb-1">Cursos</div>
+                      <div className="text-xs text-gray-500 mb-1">{t('certificates.courses')}</div>
                       <div className="text-sm font-semibold text-green-400">{cert.courses_completed}</div>
                     </div>
                   </div>
@@ -215,7 +215,7 @@ export default function CertificatesPage() {
                   <div className="flex items-center gap-2 text-gray-500 text-xs mb-4">
                     <Calendar className="w-3 h-3" />
                     <span>
-                      Emitido em {new Date(cert.issued_at).toLocaleDateString('pt-PT', {
+                      {t('certificates.issuedOn')} {new Date(cert.issued_at).toLocaleDateString('pt-PT', {
                         day: '2-digit',
                         month: 'long',
                         year: 'numeric'
@@ -230,7 +230,7 @@ export default function CertificatesPage() {
                     className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg text-sm font-medium hover:shadow-lg hover:shadow-red-600/30 transition-all"
                   >
                     <Award className="w-4 h-4" />
-                    Ver Certificado
+                    {t('certificates.viewCertificate')}
                   </motion.button>
                 </div>
               </motion.div>
@@ -266,7 +266,7 @@ export default function CertificatesPage() {
                       <Award className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold text-white">Certificado</h2>
+                      <h2 className="text-xl font-semibold text-white">{t('certificates.certificate')}</h2>
                       <p className="text-xs text-yellow-400 font-mono">{selectedCert.certificate_number}</p>
                     </div>
                   </div>
@@ -284,32 +284,32 @@ export default function CertificatesPage() {
                 <div className="text-center mb-6">
                   <Sparkles className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
                   <h3 className="text-2xl font-bold text-white">{selectedCert.training_plan_title}</h3>
-                  <p className="text-gray-400 mt-1">Certificamos que <strong className="text-white">{selectedCert.student_name}</strong></p>
-                  <p className="text-gray-400">concluiu com sucesso esta formação</p>
+                  <p className="text-gray-400 mt-1">{t('certificates.weCertify')} <strong className="text-white">{selectedCert.student_name}</strong></p>
+                  <p className="text-gray-400">{t('certificates.completedTraining')}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white/5 rounded-xl p-4 text-center">
                     <Clock className="w-5 h-5 text-blue-400 mx-auto mb-2" />
                     <div className="text-2xl font-bold text-white">{selectedCert.total_hours}h</div>
-                    <div className="text-xs text-gray-400">Horas de Formação</div>
+                    <div className="text-xs text-gray-400">{t('certificates.trainingHours')}</div>
                   </div>
                   <div className="bg-white/5 rounded-xl p-4 text-center">
                     <GraduationCap className="w-5 h-5 text-green-400 mx-auto mb-2" />
                     <div className="text-2xl font-bold text-green-400">100%</div>
-                    <div className="text-xs text-gray-400">Aprovação</div>
+                    <div className="text-xs text-gray-400">{t('certificates.approval')}</div>
                   </div>
                   <div className="bg-white/5 rounded-xl p-4 text-center">
                     <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto mb-2" />
                     <div className="text-2xl font-bold text-green-400">{selectedCert.courses_completed}</div>
-                    <div className="text-xs text-gray-400">Cursos Concluídos</div>
+                    <div className="text-xs text-gray-400">{t('certificates.coursesCompleted')}</div>
                   </div>
                   <div className="bg-white/5 rounded-xl p-4 text-center">
                     <Calendar className="w-5 h-5 text-yellow-400 mx-auto mb-2" />
                     <div className="text-lg font-bold text-white">
                       {new Date(selectedCert.issued_at).toLocaleDateString('pt-PT')}
                     </div>
-                    <div className="text-xs text-gray-400">Data de Emissão</div>
+                    <div className="text-xs text-gray-400">{t('certificates.issueDate')}</div>
                   </div>
                 </div>
 
@@ -321,7 +321,7 @@ export default function CertificatesPage() {
                     className="w-full px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:shadow-lg hover:shadow-red-600/30 transition-all font-medium flex items-center justify-center gap-2"
                   >
                     <Award className="w-4 h-4" />
-                    Ver Certificado Completo
+                    {t('certificates.viewFullCertificate')}
                   </motion.button>
                 </div>
               </div>

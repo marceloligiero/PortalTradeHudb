@@ -10,9 +10,12 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     full_name = Column(String(255), nullable=False)
     hashed_password = Column(String(255), nullable=False)
-    role = Column(String(50), nullable=False)  # STUDENT, TRAINEE, TRAINER, ADMIN, MANAGER
+    role = Column(String(50), nullable=False)  # TRAINEE, TRAINER, ADMIN, MANAGER
     is_active = Column(Boolean, default=True, nullable=False)
     is_pending = Column(Boolean, default=False, nullable=False)  # For TRAINER validation by ADMIN
+    is_trainer = Column(Boolean, default=False, nullable=False)  # Can create/manage courses (Formador)
+    is_tutor = Column(Boolean, default=False, nullable=False)    # Can mentor in Tutoria (Tutor)
+    is_liberador = Column(Boolean, default=False, nullable=False) # Can release/approve operations (Liberador)
     validated_at = Column(DateTime(timezone=True), nullable=True)  # When trainer was approved
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -30,16 +33,17 @@ class User(Base):
     certificates = relationship("Certificate", back_populates="user")
     password_reset_tokens = relationship("PasswordResetToken", back_populates="user")
     team = relationship("Team", foreign_keys=[team_id], back_populates="members")
+    team_memberships = relationship("TeamMember", back_populates="user", cascade="all, delete-orphan")
 
 
 class Team(Base):
-    """Equipa de trabalho — associada a um produto/serviço e liderada por um MANAGER"""
+    """Equipa de trabalho — liderada por um MANAGER, com múltiplos membros e serviços"""
     __tablename__ = "teams"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=True)
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=True)  # legacy
     manager_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -48,6 +52,36 @@ class Team(Base):
     product = relationship("Product", foreign_keys=[product_id])
     manager = relationship("User", foreign_keys=[manager_id])
     members = relationship("User", foreign_keys="[User.team_id]", back_populates="team")
+    # M2M relationships
+    team_members = relationship("TeamMember", back_populates="team", cascade="all, delete-orphan")
+    team_services = relationship("TeamService", back_populates="team", cascade="all, delete-orphan")
+
+
+class TeamMember(Base):
+    """Associação M2M utilizador ↔ equipa (um utilizador pode pertencer a várias equipas)"""
+    __tablename__ = "team_members"
+
+    id = Column(Integer, primary_key=True, index=True)
+    team_id = Column(Integer, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    role = Column(String(50), nullable=True)
+    joined_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    team = relationship("Team", back_populates="team_members")
+    user = relationship("User", back_populates="team_memberships")
+
+
+class TeamService(Base):
+    """Associação M2M equipa ↔ serviço/produto"""
+    __tablename__ = "team_services"
+
+    id = Column(Integer, primary_key=True, index=True)
+    team_id = Column(Integer, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    team = relationship("Team", back_populates="team_services")
+    product = relationship("Product")
 
 
 class PasswordResetToken(Base):
@@ -470,48 +504,170 @@ class ChallengeSubmission(Base):
 # =================== Tutoria v2 — Gestão de Erros e Planos de Ação ===================
 
 class ErrorCategory(Base):
-    """Categoria de erro configurável pelo Admin"""
+    """Categoria de erro configurável pelo Admin — Tipología Error"""
     __tablename__ = "tutoria_error_categories"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     parent_id = Column(Integer, ForeignKey("tutoria_error_categories.id"), nullable=True)
+    origin_id = Column(Integer, ForeignKey("error_origins.id", ondelete="SET NULL"), nullable=True)  # Dependência: Tipología → Origen
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     subcategories = relationship("ErrorCategory", backref="parent", remote_side="ErrorCategory.id")
+    origin = relationship("ErrorOrigin", foreign_keys=[origin_id])
     errors = relationship("TutoriaError", back_populates="category")
 
 
+# ── Novas tabelas de dados mestres para erros (espelho Access) ────────────────
+
+class ErrorImpact(Base):
+    """Tipo de impacto do erro — Dados Mestres"""
+    __tablename__ = "error_impacts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True)
+    description = Column(Text, nullable=True)
+    level = Column(String(10), nullable=True)          # ALTO | BAIXO
+    image_url = Column(String(500), nullable=True)     # URL ou Base64 da imagem ilustrativa
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ErrorOrigin(Base):
+    """Origem do erro — Dados Mestres"""
+    __tablename__ = "error_origins"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ErrorDetectedBy(Base):
+    """Quem detetou o erro — Dados Mestres"""
+    __tablename__ = "error_detected_by"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Department(Base):
+    """Departamento — Dados Mestres"""
+    __tablename__ = "departments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Activity(Base):
+    """Actividade / Evento — Dados Mestres. Depende de Banco + Depto."""
+    __tablename__ = "activities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    bank_id = Column(Integer, ForeignKey("banks.id", ondelete="SET NULL"), nullable=True)          # Dependência: Banco
+    department_id = Column(Integer, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True)  # Dependência: Depto
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    bank = relationship("Bank", foreign_keys=[bank_id])
+    department = relationship("Department", foreign_keys=[department_id])
+
+
+class ErrorType(Base):
+    """Tipo de Erro (código SWIFT / campo) — Dados Mestres. Depende de Actividad."""
+    __tablename__ = "error_types"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    activity_id = Column(Integer, ForeignKey("activities.id", ondelete="SET NULL"), nullable=True)  # Dependência: Actividad
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    activity = relationship("Activity", foreign_keys=[activity_id])
+
+
 class TutoriaError(Base):
-    """Registo de um erro cometido por um tutorado"""
+    """Registo de um erro / incidência — espelho do formulário Access"""
     __tablename__ = "tutoria_errors"
 
     id = Column(Integer, primary_key=True, index=True)
-    date_occurrence = Column(Date, nullable=False)
-    description = Column(Text, nullable=False)
-    tutorado_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    category_id = Column(Integer, ForeignKey("tutoria_error_categories.id"), nullable=True)
+
+    # ── Datas ──
+    date_occurrence = Column(Date, nullable=False)                    # Fecha Error
+    date_detection = Column(Date, nullable=True)                      # Fch Detección
+    date_solution = Column(Date, nullable=True)                       # Fch Solución
+
+    # ── Dados da transação ──
+    bank_id = Column(Integer, ForeignKey("banks.id", ondelete="SET NULL"), nullable=True)    # Banco (Cliente)
+    office = Column(String(100), nullable=True)                       # Oficina
+    reference_code = Column(String(200), nullable=True)                    # Referencia
+    currency = Column(String(10), nullable=True)                      # Div (Divisa)
+    amount = Column(Float, nullable=True)                             # Importe
+    final_client = Column(String(200), nullable=True)                 # Cliente Final
+
+    # ── Classificação (Dados Mestres) ──
+    impact_id = Column(Integer, ForeignKey("error_impacts.id", ondelete="SET NULL"), nullable=True)    # Impacto
+    origin_id = Column(Integer, ForeignKey("error_origins.id", ondelete="SET NULL"), nullable=True)    # Origen
+    category_id = Column(Integer, ForeignKey("tutoria_error_categories.id"), nullable=True)            # Tipología Error
+    detected_by_id = Column(Integer, ForeignKey("error_detected_by.id", ondelete="SET NULL"), nullable=True)  # Detectado Por
+    department_id = Column(Integer, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True)  # Depto
+    activity_id = Column(Integer, ForeignKey("activities.id", ondelete="SET NULL"), nullable=True)     # Actividad
+    error_type_id = Column(Integer, ForeignKey("error_types.id", ondelete="SET NULL"), nullable=True)  # Tipo Error
+
+    # ── Pessoas ──
+    tutorado_id = Column(Integer, ForeignKey("users.id"), nullable=False)             # Grabador
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)           # quem cria no sistema
+    approver_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)  # Liberador
+
+    # ── Descrição e solução ──
+    description = Column(Text, nullable=False)                        # Descripción incidencia
+    solution = Column(Text, nullable=True)                            # Solución
+    action_plan_text = Column(Text, nullable=True)                    # Plan de Acción (texto livre)
+
+    # ── Report-only fields (filled later / in meetings) ──
+    clasificacion = Column(String(50), nullable=True)                  # Clasificación: Externo / Interno
+    escalado = Column(Text, nullable=True)                             # Escalado
+    comentarios_reunion = Column(Text, nullable=True)                  # Comentarios vistos en la reunión
+
+    # ── Classificação legada ──
     product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
     severity = Column(String(20), default="MEDIA", nullable=False)
-    # BAIXA | MEDIA | ALTA | CRITICA
     status = Column(String(30), default="ABERTO", nullable=False)
-    # ABERTO | EM_ANALISE | PLANO_CRIADO | EM_EXECUCAO | CONCLUIDO | VERIFICADO
     tags = Column(JSON, nullable=True)
     analysis_5_why = Column(Text, nullable=True)
     is_recurrent = Column(Boolean, default=False, nullable=False)
     recurrence_count = Column(Integer, default=0, nullable=False)
+    recurrence_type = Column(String(30), nullable=True)               # Recurrencia: SI | NO | PERIODICA
     is_active = Column(Boolean, default=True, nullable=False)
     inactivation_reason = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+    # ── Relationships ──
     tutorado = relationship("User", foreign_keys=[tutorado_id])
     creator = relationship("User", foreign_keys=[created_by_id])
+    approver = relationship("User", foreign_keys=[approver_id])
+    bank = relationship("Bank", foreign_keys=[bank_id])
     category = relationship("ErrorCategory", back_populates="errors")
     product = relationship("Product", foreign_keys=[product_id])
+    impact = relationship("ErrorImpact", foreign_keys=[impact_id])
+    origin = relationship("ErrorOrigin", foreign_keys=[origin_id])
+    detected_by = relationship("ErrorDetectedBy", foreign_keys=[detected_by_id])
+    department = relationship("Department", foreign_keys=[department_id])
+    activity = relationship("Activity", foreign_keys=[activity_id])
+    error_type = relationship("ErrorType", foreign_keys=[error_type_id])
     action_plans = relationship("TutoriaActionPlan", back_populates="error", cascade="all, delete-orphan")
     motivos = relationship("TutoriaErrorMotivo", back_populates="error", cascade="all, delete-orphan")
     comments = relationship(
@@ -650,6 +806,168 @@ class ChatFAQ(Base):
     created_by = relationship("User", foreign_keys=[created_by_id])
 
 
+# =================== Erros Internos — Sensos e Fichas de Aprendizagem ===================
+
+class Senso(Base):
+    """Período de censo para registo de erros internos"""
+    __tablename__ = "sensos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
+    status = Column(String(20), default="ATIVO", nullable=False)  # ATIVO | FECHADO
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    creator = relationship("User", foreign_keys=[created_by_id])
+    internal_errors = relationship("InternalError", back_populates="senso", cascade="all, delete-orphan")
+
+
+class InternalError(Base):
+    """Erro interno identificado pelo liberador após gravação"""
+    __tablename__ = "internal_errors"
+
+    id = Column(Integer, primary_key=True, index=True)
+    senso_id = Column(Integer, ForeignKey("sensos.id", ondelete="CASCADE"), nullable=False)
+
+    # Pessoas
+    gravador_id = Column(Integer, ForeignKey("users.id"), nullable=False)      # Quem gravou (cometeu o erro)
+    liberador_id = Column(Integer, ForeignKey("users.id"), nullable=False)     # Quem identificou o erro
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)    # Quem registou no sistema
+
+    # Classificação
+    impact_id = Column(Integer, ForeignKey("error_impacts.id", ondelete="SET NULL"), nullable=True)
+    category_id = Column(Integer, ForeignKey("tutoria_error_categories.id", ondelete="SET NULL"), nullable=True)
+    error_type_id = Column(Integer, ForeignKey("error_types.id", ondelete="SET NULL"), nullable=True)
+    department_id = Column(Integer, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True)
+    activity_id = Column(Integer, ForeignKey("activities.id", ondelete="SET NULL"), nullable=True)
+    bank_id = Column(Integer, ForeignKey("banks.id", ondelete="SET NULL"), nullable=True)
+
+    # Detalhes
+    description = Column(Text, nullable=False)
+    reference_code = Column(String(200), nullable=True)
+    date_occurrence = Column(Date, nullable=False)
+
+    # Pesos / avaliação
+    peso_liberador = Column(Integer, nullable=True)    # Peso atribuído pelo liberador (1-10)
+    peso_gravador = Column(Integer, nullable=True)     # Peso atribuído pelo gravador (1-10)
+    peso_tutor = Column(Integer, nullable=True)        # Peso final atribuído pelo tutor/admin
+
+    # 5 Porquês — preenchido pelo gravador
+    why_1 = Column(Text, nullable=True)
+    why_2 = Column(Text, nullable=True)
+    why_3 = Column(Text, nullable=True)
+    why_4 = Column(Text, nullable=True)
+    why_5 = Column(Text, nullable=True)
+
+    # Avaliação do tutor
+    tutor_evaluation = Column(Text, nullable=True)
+    tutor_evaluated_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    # Status
+    status = Column(String(30), default="PENDENTE", nullable=False)
+    # PENDENTE | AGUARDANDO_GRAVADOR | AVALIADO | PLANO_CRIADO | CONCLUIDO
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    senso = relationship("Senso", back_populates="internal_errors")
+    gravador = relationship("User", foreign_keys=[gravador_id])
+    liberador = relationship("User", foreign_keys=[liberador_id])
+    creator = relationship("User", foreign_keys=[created_by_id])
+    tutor_evaluator = relationship("User", foreign_keys=[tutor_evaluated_by_id])
+    impact = relationship("ErrorImpact", foreign_keys=[impact_id])
+    category = relationship("ErrorCategory", foreign_keys=[category_id])
+    error_type = relationship("ErrorType", foreign_keys=[error_type_id])
+    department = relationship("Department", foreign_keys=[department_id])
+    activity = relationship("Activity", foreign_keys=[activity_id])
+    bank = relationship("Bank", foreign_keys=[bank_id])
+    learning_sheet = relationship("LearningSheet", back_populates="internal_error", uselist=False)
+    action_plan = relationship("InternalErrorActionPlan", back_populates="internal_error", uselist=False)
+    classifications = relationship("InternalErrorClassification", back_populates="internal_error", cascade="all, delete-orphan")
+
+
+class InternalErrorClassification(Base):
+    """Classificação individual de um erro interno (1 operação pode ter N erros)"""
+    __tablename__ = "internal_error_classifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    internal_error_id = Column(Integer, ForeignKey("internal_errors.id", ondelete="CASCADE"), nullable=False)
+    classification = Column(String(50), nullable=False)  # METHODOLOGY | KNOWLEDGE | DETAIL | PROCEDURE
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    internal_error = relationship("InternalError", back_populates="classifications")
+
+
+class InternalErrorActionPlan(Base):
+    """Plano de ação para um erro interno — criado pelo tutor/admin"""
+    __tablename__ = "internal_error_action_plans"
+
+    id = Column(Integer, primary_key=True, index=True)
+    internal_error_id = Column(Integer, ForeignKey("internal_errors.id", ondelete="CASCADE"), nullable=False, unique=True)
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(String(20), default="PENDENTE", nullable=False)  # PENDENTE | EM_EXECUCAO | CONCLUIDO
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    internal_error = relationship("InternalError", back_populates="action_plan")
+    creator = relationship("User", foreign_keys=[created_by_id])
+    items = relationship("InternalErrorActionItem", back_populates="plan", cascade="all, delete-orphan")
+
+
+class InternalErrorActionItem(Base):
+    """Ação dentro do plano de erros internos"""
+    __tablename__ = "internal_error_action_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    plan_id = Column(Integer, ForeignKey("internal_error_action_plans.id", ondelete="CASCADE"), nullable=False)
+    description = Column(Text, nullable=False)
+    type = Column(String(20), default="CORRETIVA", nullable=False)  # IMEDIATA | CORRETIVA | PREVENTIVA
+    responsible_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    due_date = Column(Date, nullable=True)
+    status = Column(String(20), default="PENDENTE", nullable=False)  # PENDENTE | EM_ANDAMENTO | CONCLUIDO
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    plan = relationship("InternalErrorActionPlan", back_populates="items")
+    responsible = relationship("User", foreign_keys=[responsible_id])
+
+
+class LearningSheet(Base):
+    """Ficha de aprendizagem do erro — visível apenas ao tutorado"""
+    __tablename__ = "learning_sheets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    internal_error_id = Column(Integer, ForeignKey("internal_errors.id", ondelete="CASCADE"), nullable=False, unique=True)
+    tutorado_id = Column(Integer, ForeignKey("users.id"), nullable=False)        # O gravador
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)      # Tutor/admin que criou
+
+    # Conteúdo da ficha
+    error_summary = Column(Text, nullable=False)           # Resumo do erro
+    impact_description = Column(Text, nullable=True)       # Onde e como impacta a operação
+    actions_taken = Column(Text, nullable=True)            # Ações realizadas
+    error_weight = Column(Integer, nullable=True)          # Peso do erro
+    tutor_evaluation = Column(Text, nullable=True)         # Avaliação do tutor
+    lessons_learned = Column(Text, nullable=True)          # Lições aprendidas
+    recommendations = Column(Text, nullable=True)          # Recomendações para evitar recorrência
+
+    is_read = Column(Boolean, default=False, nullable=False)  # Se o tutorado já leu
+    read_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    internal_error = relationship("InternalError", back_populates="learning_sheet")
+    tutorado = relationship("User", foreign_keys=[tutorado_id])
+    creator = relationship("User", foreign_keys=[created_by_id])
+
+
 class SubmissionError(Base):
     """Erros para desafios SUMMARY - ligados diretamente à submission"""
     __tablename__ = "submission_errors"
@@ -766,3 +1084,76 @@ class Rating(Base):
     challenge = relationship("Challenge", foreign_keys=[challenge_id])
     trainer = relationship("User", foreign_keys=[trainer_id])
     training_plan = relationship("TrainingPlan", foreign_keys=[training_plan_id])
+
+
+# ── Portal de Chamados (Support Tickets / Kanban) ──────────────
+class Chamado(Base):
+    """Chamado de suporte — bug ou melhoria nos portais"""
+    __tablename__ = "chamados"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(300), nullable=False)
+    description = Column(Text, nullable=False)
+    type = Column(String(20), nullable=False, default="BUG")           # BUG | MELHORIA
+    priority = Column(String(20), nullable=False, default="MEDIA")     # BAIXA | MEDIA | ALTA | CRITICA
+    status = Column(String(30), nullable=False, default="ABERTO")      # ABERTO | EM_ANDAMENTO | EM_REVISAO | CONCLUIDO
+    portal = Column(String(30), nullable=False, default="GERAL")       # FORMACOES | TUTORIA | RELATORIOS | DADOS_MESTRES | GERAL
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    assigned_to_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    admin_notes = Column(Text, nullable=True)
+    attachments = Column(JSON, nullable=True)  # List of base64-encoded screenshot strings
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    creator = relationship("User", foreign_keys=[created_by_id])
+    assignee = relationship("User", foreign_keys=[assigned_to_id])
+    comments = relationship("ChamadoComment", back_populates="chamado", cascade="all, delete-orphan", order_by="ChamadoComment.created_at")
+
+
+class ChamadoComment(Base):
+    """Comentário num chamado"""
+    __tablename__ = "chamado_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    chamado_id = Column(Integer, ForeignKey("chamados.id", ondelete="CASCADE"), nullable=False)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    chamado = relationship("Chamado", back_populates="comments")
+    author = relationship("User", foreign_keys=[author_id])
+
+
+# =================== Ficha de Aprendizagem ===================
+
+class TutoriaLearningSheet(Base):
+    """Ficha de aprendizagem gerada para o tutorado após um erro"""
+    __tablename__ = "tutoria_learning_sheets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    error_id = Column(Integer, ForeignKey("tutoria_errors.id", ondelete="CASCADE"), nullable=False)
+    tutorado_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Conteúdo
+    title = Column(String(300), nullable=False)
+    error_summary = Column(Text, nullable=False)          # Resumo do erro cometido
+    root_cause = Column(Text, nullable=True)               # Causa raiz identificada (dos 5 porquês)
+    correct_procedure = Column(Text, nullable=True)        # Procedimento correto
+    key_learnings = Column(Text, nullable=True)            # Pontos-chave de aprendizagem
+    reference_material = Column(Text, nullable=True)       # Material de referência / links
+    acknowledgment_note = Column(Text, nullable=True)      # Nota de reconhecimento pelo tutorado
+
+    # Status
+    status = Column(String(20), default="PENDENTE", nullable=False)
+    # PENDENTE | LIDA | RECONHECIDA (quando o tutorado confirma leitura)
+    read_at = Column(DateTime(timezone=True), nullable=True)
+    acknowledged_at = Column(DateTime(timezone=True), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    error = relationship("TutoriaError", foreign_keys=[error_id])
+    tutorado = relationship("User", foreign_keys=[tutorado_id])
+    creator = relationship("User", foreign_keys=[created_by_id])

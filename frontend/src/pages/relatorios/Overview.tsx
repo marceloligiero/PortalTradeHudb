@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 interface OverviewData {
   total_users: number;
@@ -46,6 +47,7 @@ const fadeUp = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, tra
 export default function RelatoriosOverview() {
   const { token, user } = useAuthStore();
   const { isDark } = useTheme();
+  const { t } = useTranslation();
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -55,15 +57,15 @@ export default function RelatoriosOverview() {
   }, [token]);
 
   const roleLabel: Record<string, string> = {
-    ADMIN: 'Visão global — todos os dados',
-    MANAGER: 'Dados da sua equipa',
-    TRAINER: 'Dados dos seus tutorados',
-    STUDENT: 'Os seus dados',
-    TRAINEE: 'Os seus dados',
+    ADMIN: t('overview.roleAdmin'),
+    MANAGER: t('overview.roleManager'),
+    TRAINER: t('overview.roleTrainer'),
+    STUDENT: t('overview.roleStudent'),
+    TRAINEE: t('overview.roleStudent'),
   };
 
   if (loading) {
-    return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>;
+    return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-red-500" /></div>;
   }
 
   if (!data) return null;
@@ -72,12 +74,12 @@ export default function RelatoriosOverview() {
     <div className="space-y-8 max-w-5xl">
       {/* Header */}
       <div>
-        <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
+        <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDark ? 'text-red-400' : 'text-red-600'}`}>
           {roleLabel[user?.role || 'STUDENT']}
         </p>
-        <h1 className={`text-3xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>Overview</h1>
+        <h1 className={`text-3xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('overview.title')}</h1>
         <p className={`text-sm mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-          KPIs cruzados dos portais de Formações e Tutoria
+          {t('overview.subtitle')}
         </p>
       </div>
 
@@ -87,42 +89,42 @@ export default function RelatoriosOverview() {
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
       >
         <motion.div variants={fadeUp}>
-          <StatCard icon={Users} label="Utilizadores" value={data.total_users}
-            sub={data.total_teams > 0 ? `${data.total_teams} equipas` : undefined}
+          <StatCard icon={Users} label={t('overview.users')} value={data.total_users}
+            sub={data.total_teams > 0 ? `${data.total_teams} ${t('overview.teams')}` : undefined}
             color="bg-gradient-to-br from-blue-600 to-blue-500" />
         </motion.div>
         <motion.div variants={fadeUp}>
-          <StatCard icon={LayoutDashboard} label="Planos de Formação" value={data.total_plans}
-            sub={`${data.active_plans} em curso`}
+          <StatCard icon={LayoutDashboard} label={t('overview.trainingPlans')} value={data.total_plans}
+            sub={`${data.active_plans} ${t('overview.inProgress')}`}
             color="bg-gradient-to-br from-emerald-600 to-emerald-500" />
         </motion.div>
         <motion.div variants={fadeUp}>
-          <StatCard icon={AlertTriangle} label="Erros Registados" value={data.total_errors}
-            sub={data.critical_errors > 0 ? `${data.critical_errors} críticos` : 'sem críticos'}
+          <StatCard icon={AlertTriangle} label={t('overview.registeredErrors')} value={data.total_errors}
+            sub={data.critical_errors > 0 ? `${data.critical_errors} ${t('overview.critical')}` : t('overview.noCritical')}
             color={data.critical_errors > 0 ? 'bg-gradient-to-br from-red-600 to-red-500' : 'bg-gradient-to-br from-amber-600 to-amber-500'} />
         </motion.div>
         <motion.div variants={fadeUp}>
-          <StatCard icon={ClipboardList} label="Planos de Ação Pendentes" value={data.pending_action_plans}
+          <StatCard icon={ClipboardList} label={t('overview.pendingPlans')} value={data.pending_action_plans}
             color="bg-gradient-to-br from-purple-600 to-purple-500" />
         </motion.div>
         <motion.div variants={fadeUp}>
-          <StatCard icon={Award} label="Certificados Emitidos" value={data.total_certificates}
+          <StatCard icon={Award} label={t('overview.certificates')} value={data.total_certificates}
             color="bg-gradient-to-br from-yellow-600 to-yellow-500" />
         </motion.div>
         <motion.div variants={fadeUp}>
-          <StatCard icon={TrendingUp} label="MPU Médio" value={data.avg_mpu > 0 ? `${data.avg_mpu}` : '—'}
-            sub={data.avg_mpu > 0 ? 'min/operação (aprovados)' : 'sem dados de MPU'}
+          <StatCard icon={TrendingUp} label={t('overview.avgMpu')} value={data.avg_mpu > 0 ? `${data.avg_mpu}` : '—'}
+            sub={data.avg_mpu > 0 ? t('overview.mpuUnit') : t('overview.noMpuData')}
             color="bg-gradient-to-br from-teal-600 to-teal-500" />
         </motion.div>
       </motion.div>
 
       {/* Quick navigation */}
       <div>
-        <p className={`text-xs font-bold uppercase tracking-wide mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Acesso rápido</p>
+        <p className={`text-xs font-bold uppercase tracking-wide mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('overview.quickAccess')}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[
-            { label: 'Ver relatório de Formações', href: '/relatorios/formacoes', color: 'text-blue-500 border-blue-500/20 hover:border-blue-400/40' },
-            { label: 'Ver relatório de Tutoria', href: '/relatorios/tutoria', color: 'text-red-500 border-red-500/20 hover:border-red-400/40' },
+            { label: t('overview.viewTrainingReport'), href: '/relatorios/formacoes', color: 'text-blue-500 border-blue-500/20 hover:border-blue-400/40' },
+            { label: t('overview.viewTutoriaReport'), href: '/relatorios/tutoria', color: 'text-red-500 border-red-500/20 hover:border-red-400/40' },
           ].map(link => (
             <motion.a key={link.href} href={link.href} whileHover={{ x: 4 }}
               className={`flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${link.color} ${isDark ? 'bg-white/[0.02]' : 'bg-white'}`}

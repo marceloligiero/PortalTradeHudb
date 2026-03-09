@@ -14,7 +14,7 @@ router = APIRouter()
 async def list_users(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ):
     """List users with simple dict response to avoid pydantic ORM serialization issues.
@@ -38,6 +38,9 @@ async def list_users(
                 "role": u.role,
                 "is_active": u.is_active,
                 "is_pending": u.is_pending,
+                "is_trainer": getattr(u, 'is_trainer', False),
+                "is_tutor": getattr(u, 'is_tutor', False),
+                "is_liberador": getattr(u, 'is_liberador', False),
                 "created_at": u.created_at.isoformat() if u.created_at else None,
             })
 
@@ -147,6 +150,9 @@ async def get_user(
         "role": db_user.role,
         "is_active": db_user.is_active,
         "is_pending": db_user.is_pending,
+        "is_trainer": getattr(db_user, 'is_trainer', False),
+        "is_tutor": getattr(db_user, 'is_tutor', False),
+        "is_liberador": getattr(db_user, 'is_liberador', False),
         "created_at": db_user.created_at.isoformat() if db_user.created_at else None,
         "stats": {
             "enrollments_count": enrollments_count,
@@ -227,18 +233,17 @@ async def delete_user(
     
     return None
 
-# Trainer (Formador) Validation Management
+# Trainer (Formador) & Manager Validation Management
 @router.get("/pending-trainers", response_model=List[schemas.UserWithPendingStatus])
 async def list_pending_trainers(
     current_user: models.User = Depends(auth.require_role(["ADMIN"])),
     db: Session = Depends(get_db)
 ):
     """
-    Get all trainers (Formadores) pending validation.
-    Only trainers with is_pending=True and role='TRAINER' are returned.
+    Get all users pending validation.
+    Any user with is_pending=True is returned (formador, tutor, liberador, chefe de equipa).
     """
     pending_trainers = db.query(models.User).filter(
-        models.User.role == "TRAINER",
         models.User.is_pending == True
     ).all()
     return pending_trainers
@@ -250,19 +255,16 @@ async def validate_trainer(
     db: Session = Depends(get_db)
 ):
     """
-    Approve a trainer (Formador) registration.
-    Sets is_pending=False, allowing the trainer to create courses.
+    Approve a trainer (Formador) or manager registration.
+    Sets is_pending=False, allowing them to access their role features.
     """
     trainer = db.query(models.User).filter(
         models.User.id == user_id,
-        models.User.role == "TRAINER"
+        models.User.is_pending == True
     ).first()
     
     if not trainer:
-        raise HTTPException(status_code=404, detail="Trainer not found")
-    
-    if not trainer.is_pending:
-        raise HTTPException(status_code=400, detail="Trainer is already validated")
+        raise HTTPException(status_code=404, detail="User not found")
     
     trainer.is_pending = False
     trainer.validated_at = datetime.utcnow()
@@ -278,19 +280,19 @@ async def reject_trainer(
     db: Session = Depends(get_db)
 ):
     """
-    Reject a trainer (Formador) registration.
-    Deletes the trainer account permanently.
+    Reject a pending user registration.
+    Deletes the account permanently.
     """
     trainer = db.query(models.User).filter(
         models.User.id == user_id,
-        models.User.role == "TRAINER"
+        models.User.is_pending == True
     ).first()
     
     if not trainer:
-        raise HTTPException(status_code=404, detail="Trainer not found")
+        raise HTTPException(status_code=404, detail="User not found")
     
     if not trainer.is_pending:
-        raise HTTPException(status_code=400, detail="Cannot reject already validated trainer")
+        raise HTTPException(status_code=400, detail="Cannot reject already validated user")
     
     db.delete(trainer)
     db.commit()
@@ -300,7 +302,7 @@ async def reject_trainer(
 # Banks Management
 @router.get("/banks", response_model=List[schemas.Bank])
 async def list_banks(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER", "MANAGER"])),
     db: Session = Depends(get_db)
 ):
     banks = db.query(models.Bank).all()
@@ -380,7 +382,7 @@ async def delete_bank(
 # Products Management
 @router.get("/products", response_model=List[schemas.Product])
 async def list_products(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER", "MANAGER"])),
     db: Session = Depends(get_db)
 ):
     products = db.query(models.Product).all()
@@ -471,7 +473,7 @@ async def delete_product(
 # Courses Management (Admin)
 @router.get("/courses")
 async def list_admin_courses(
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """List all courses with trainer and student information"""
@@ -540,7 +542,7 @@ async def list_admin_courses(
 @router.get("/courses/{course_id}")
 async def get_admin_course(
     course_id: int,
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ):
     """Get course details with lessons and challenges"""
@@ -655,7 +657,7 @@ async def delete_admin_course(
 async def get_admin_lesson(
     course_id: int,
     lesson_id: int,
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ):
     """Get lesson details"""
@@ -710,7 +712,7 @@ async def delete_admin_lesson(
 async def get_admin_challenge(
     course_id: int,
     challenge_id: int,
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ):
     """Get challenge details with stats"""
@@ -994,7 +996,7 @@ async def list_trainers(
 # Reports
 @router.get("/reports/stats")
 async def get_admin_stats(
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Get overall platform statistics"""
@@ -1006,7 +1008,7 @@ async def get_admin_stats(
         models.User.is_pending == False
     ).count()
     pending_trainers = db.query(models.User).filter(
-        models.User.role == "TRAINER",
+        models.User.role.in_(["TRAINER", "MANAGER"]),
         models.User.is_pending == True
     ).count()
     
@@ -1134,7 +1136,7 @@ async def get_admin_stats(
 
 @router.get("/reports/courses")
 async def get_admin_courses_report(
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """Get detailed report of all courses"""
@@ -1169,7 +1171,7 @@ async def get_admin_courses_report(
 
 @router.get("/reports/trainers")
 async def get_admin_trainers_report(
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """Get detailed report of all trainers"""
@@ -1208,7 +1210,7 @@ async def get_admin_trainers_report(
 
 @router.get("/reports/training-plans")
 async def get_admin_training_plans_report(
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """Get detailed report of all training plans"""
@@ -1240,7 +1242,7 @@ async def get_admin_training_plans_report(
 
 @router.get("/reports/insights")
 async def get_admin_insights(
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
@@ -1253,7 +1255,7 @@ async def get_admin_insights(
     # ═══════════════ 1. OVERVIEW KPIs ═══════════════
     total_students = db.query(models.User).filter(models.User.role == "TRAINEE", models.User.is_active == True).count()
     total_trainers = db.query(models.User).filter(models.User.role == "TRAINER", models.User.is_pending == False, models.User.is_active == True).count()
-    pending_trainers = db.query(models.User).filter(models.User.role == "TRAINER", models.User.is_pending == True).count()
+    pending_trainers = db.query(models.User).filter(models.User.role.in_(["TRAINER", "MANAGER"]), models.User.is_pending == True).count()
     total_courses = db.query(models.Course).filter(models.Course.is_active == True).count()
     total_lessons = db.query(models.Lesson).count()
     total_plans = db.query(models.TrainingPlan).count()
@@ -1550,3 +1552,369 @@ async def get_admin_insights(
             "by_type": ratings_by_type,
         },
     }
+
+
+# ============================================================================
+# Dados Mestres — Tabelas de lookup para Erros (Incidências)
+# ============================================================================
+
+_LOOKUP_MODELS = {
+    "impacts":      models.ErrorImpact,
+    "origins":      models.ErrorOrigin,
+    "detected_by":  models.ErrorDetectedBy,
+    "departments":  models.Department,
+    "activities":   models.Activity,
+    "error_types":  models.ErrorType,
+}
+
+
+def _generic_list(table_key: str, db: Session):
+    Model = _LOOKUP_MODELS[table_key]
+    rows = db.query(Model).order_by(Model.name).all()
+    result = []
+    for r in rows:
+        item = {"id": r.id, "name": r.name, "description": r.description, "is_active": r.is_active}
+        # Include dependency fields if they exist
+        if hasattr(r, 'bank_id'):
+            item["bank_id"] = r.bank_id
+            if r.bank_id:
+                bank = db.query(models.Bank).filter(models.Bank.id == r.bank_id).first()
+                item["bank_name"] = bank.name if bank else None
+        if hasattr(r, 'department_id'):
+            item["department_id"] = r.department_id
+            if r.department_id:
+                dept = db.query(models.Department).filter(models.Department.id == r.department_id).first()
+                item["department_name"] = dept.name if dept else None
+        if hasattr(r, 'activity_id'):
+            item["activity_id"] = r.activity_id
+            if r.activity_id:
+                act = db.query(models.Activity).filter(models.Activity.id == r.activity_id).first()
+                item["activity_name"] = act.name if act else None
+        if hasattr(r, 'origin_id'):
+            item["origin_id"] = r.origin_id
+            if r.origin_id:
+                org = db.query(models.ErrorOrigin).filter(models.ErrorOrigin.id == r.origin_id).first()
+                item["origin_name"] = org.name if org else None
+        result.append(item)
+    return result
+
+
+def _generic_create(table_key: str, data: dict, db: Session):
+    Model = _LOOKUP_MODELS[table_key]
+    kwargs = {"name": data["name"], "description": data.get("description")}
+    # Pass dependency fields if present
+    for fk in ("bank_id", "department_id", "activity_id", "origin_id"):
+        if fk in data and data[fk] is not None:
+            kwargs[fk] = data[fk]
+    obj = Model(**kwargs)
+    db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    item = {"id": obj.id, "name": obj.name, "description": obj.description, "is_active": obj.is_active}
+    for fk in ("bank_id", "department_id", "activity_id", "origin_id"):
+        if hasattr(obj, fk):
+            item[fk] = getattr(obj, fk)
+    return item
+
+
+def _generic_update(table_key: str, item_id: int, data: dict, db: Session):
+    Model = _LOOKUP_MODELS[table_key]
+    obj = db.query(Model).filter(Model.id == item_id).first()
+    if not obj:
+        raise HTTPException(status_code=404, detail="Registo não encontrado")
+    for k, v in data.items():
+        if hasattr(obj, k):
+            setattr(obj, k, v)
+    db.commit()
+    db.refresh(obj)
+    item = {"id": obj.id, "name": obj.name, "description": obj.description, "is_active": obj.is_active}
+    for fk in ("bank_id", "department_id", "activity_id", "origin_id"):
+        if hasattr(obj, fk):
+            item[fk] = getattr(obj, fk)
+    return item
+
+
+def _generic_delete(table_key: str, item_id: int, db: Session):
+    Model = _LOOKUP_MODELS[table_key]
+    obj = db.query(Model).filter(Model.id == item_id).first()
+    if not obj:
+        raise HTTPException(status_code=404, detail="Registo não encontrado")
+    db.delete(obj)
+    db.commit()
+
+
+# ── Impactos ────────────────────────────────────────────────────
+
+@router.get("/master/impacts")
+async def list_impacts(
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_list("impacts", db)
+
+
+@router.post("/master/impacts", status_code=201)
+async def create_impact(
+    data: dict,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_create("impacts", data, db)
+
+
+@router.put("/master/impacts/{item_id}")
+async def update_impact(
+    item_id: int, data: dict,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_update("impacts", item_id, data, db)
+
+
+@router.delete("/master/impacts/{item_id}", status_code=204)
+async def delete_impact(
+    item_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    _generic_delete("impacts", item_id, db)
+
+
+# ── Origens ─────────────────────────────────────────────────────
+
+@router.get("/master/origins")
+async def list_origins(
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_list("origins", db)
+
+
+@router.post("/master/origins", status_code=201)
+async def create_origin(
+    data: dict,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_create("origins", data, db)
+
+
+@router.put("/master/origins/{item_id}")
+async def update_origin(
+    item_id: int, data: dict,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_update("origins", item_id, data, db)
+
+
+@router.delete("/master/origins/{item_id}", status_code=204)
+async def delete_origin(
+    item_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    _generic_delete("origins", item_id, db)
+
+
+# ── Detectado Por ───────────────────────────────────────────────
+
+@router.get("/master/detected-by")
+async def list_detected_by(
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_list("detected_by", db)
+
+
+@router.post("/master/detected-by", status_code=201)
+async def create_detected_by(
+    data: dict,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_create("detected_by", data, db)
+
+
+@router.put("/master/detected-by/{item_id}")
+async def update_detected_by(
+    item_id: int, data: dict,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_update("detected_by", item_id, data, db)
+
+
+@router.delete("/master/detected-by/{item_id}", status_code=204)
+async def delete_detected_by(
+    item_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    _generic_delete("detected_by", item_id, db)
+
+
+# ── Departamentos ───────────────────────────────────────────────
+
+@router.get("/master/departments")
+async def list_departments(
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_list("departments", db)
+
+
+@router.post("/master/departments", status_code=201)
+async def create_department(
+    data: dict,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_create("departments", data, db)
+
+
+@router.put("/master/departments/{item_id}")
+async def update_department(
+    item_id: int, data: dict,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_update("departments", item_id, data, db)
+
+
+@router.delete("/master/departments/{item_id}", status_code=204)
+async def delete_department(
+    item_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    _generic_delete("departments", item_id, db)
+
+
+# ── Actividades ─────────────────────────────────────────────────
+
+@router.get("/master/activities")
+async def list_activities(
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_list("activities", db)
+
+
+@router.post("/master/activities", status_code=201)
+async def create_activity(
+    data: dict,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_create("activities", data, db)
+
+
+@router.put("/master/activities/{item_id}")
+async def update_activity(
+    item_id: int, data: dict,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_update("activities", item_id, data, db)
+
+
+@router.delete("/master/activities/{item_id}", status_code=204)
+async def delete_activity(
+    item_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    _generic_delete("activities", item_id, db)
+
+
+# ── Tipos de Erro ───────────────────────────────────────────────
+
+@router.get("/master/error-types")
+async def list_error_types(
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_list("error_types", db)
+
+
+@router.post("/master/error-types", status_code=201)
+async def create_error_type(
+    data: dict,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_create("error_types", data, db)
+
+
+@router.put("/master/error-types/{item_id}")
+async def update_error_type(
+    item_id: int, data: dict,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    return _generic_update("error_types", item_id, data, db)
+
+
+@router.delete("/master/error-types/{item_id}", status_code=204)
+async def delete_error_type(
+    item_id: int,
+    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    db: Session = Depends(get_db),
+):
+    _generic_delete("error_types", item_id, db)
+
+
+# ════════════════════════════════════════════════════════════════════════
+# Filtered endpoints for cascading dependencies
+# ════════════════════════════════════════════════════════════════════════
+
+@router.get("/master/activities/filter")
+async def list_activities_filtered(
+    bank_id: int = None,
+    department_id: int = None,
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER", "TRAINER"])),
+    db: Session = Depends(get_db),
+):
+    """Activities filtered by bank + department (cascading dependency)."""
+    q = db.query(models.Activity).filter(models.Activity.is_active == True)
+    if bank_id:
+        q = q.filter(models.Activity.bank_id == bank_id)
+    if department_id:
+        q = q.filter(models.Activity.department_id == department_id)
+    return [
+        {"id": r.id, "name": r.name, "bank_id": r.bank_id, "department_id": r.department_id}
+        for r in q.order_by(models.Activity.name).all()
+    ]
+
+
+@router.get("/master/error-types/filter")
+async def list_error_types_filtered(
+    activity_id: int = None,
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER", "TRAINER"])),
+    db: Session = Depends(get_db),
+):
+    """Error types filtered by activity (cascading dependency)."""
+    q = db.query(models.ErrorType).filter(models.ErrorType.is_active == True)
+    if activity_id:
+        q = q.filter(models.ErrorType.activity_id == activity_id)
+    return [
+        {"id": r.id, "name": r.name, "activity_id": r.activity_id}
+        for r in q.order_by(models.ErrorType.name).all()
+    ]
+
+
+@router.get("/master/categories/filter")
+async def list_categories_filtered(
+    origin_id: int = None,
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER", "TRAINER"])),
+    db: Session = Depends(get_db),
+):
+    """Categories (Tipología Error) filtered by origin (cascading dependency)."""
+    q = db.query(models.ErrorCategory).filter(models.ErrorCategory.is_active == True)
+    if origin_id:
+        q = q.filter(models.ErrorCategory.origin_id == origin_id)
+    return [
+        {"id": r.id, "name": r.name, "origin_id": r.origin_id}
+        for r in q.order_by(models.ErrorCategory.name).all()
+    ]

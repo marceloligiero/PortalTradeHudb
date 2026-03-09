@@ -16,17 +16,26 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
     full_name: str
-    role: str  # TRAINER or STUDENT
+    role: str = "TRAINEE"
+    is_trainer: bool = False
+    is_tutor: bool = False
+    is_liberador: bool = False
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
+    is_trainer: Optional[bool] = None
+    is_tutor: Optional[bool] = None
+    is_liberador: Optional[bool] = None
 
 class User(UserBase):
     id: int
     is_active: bool
     is_pending: bool
+    is_trainer: bool = False
+    is_tutor: bool = False
+    is_liberador: bool = False
     created_at: datetime
     
     model_config = {"from_attributes": True}

@@ -1,106 +1,172 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { authApi } from '../services/auth';
 import { useAuthStore } from '../stores/authStore';
 import {
-  LogIn, Mail, Lock, Moon, Sun, Eye, EyeOff,
-  Globe, UserPlus, ChevronLeft,
+  LogIn, Mail, Lock, Eye, EyeOff,
+  ArrowRight, UserPlus, Zap,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import PremiumNavbar from '../components/PremiumNavbar';
 
-/* ─── shared navbar ─────────────────────────────────────────────────── */
-function Navbar({ isDark, setIsDark }: { isDark: boolean; setIsDark: (v: boolean) => void }) {
-  const { i18n } = useTranslation();
-  const navigate = useNavigate();
-  const [langOpen, setLangOpen] = useState(false);
+/* ═══════════════════════════════════════════════════════════════════
+   Mesh Gradient Background (interactive canvas)
+   ═══════════════════════════════════════════════════════════════════ */
+function MeshBackground() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rafRef = useRef(0);
+  const mouseRef = useRef({ x: 0.5, y: 0.5 });
+  const timeRef = useRef(0);
 
   useEffect(() => {
-    if (!langOpen) return;
-    const h = () => setLangOpen(false);
-    document.addEventListener('click', h);
-    return () => document.removeEventListener('click', h);
-  }, [langOpen]);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d')!;
 
-  const LANGS = [
-    { code: 'pt-PT', label: '🇵🇹 Português' },
-    { code: 'es',    label: '🇪🇸 Español'   },
-    { code: 'en',    label: '🇺🇸 English'    },
-  ];
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    resize();
+    window.addEventListener('resize', resize);
 
+    const blobs = [
+      { x: 0.2, y: 0.3, r: 350, color: [220, 38, 38], speed: 0.0003 },
+      { x: 0.8, y: 0.7, r: 300, color: [124, 58, 237], speed: 0.0004 },
+      { x: 0.5, y: 0.2, r: 250, color: [8, 145, 178], speed: 0.0005 },
+      { x: 0.3, y: 0.8, r: 200, color: [220, 38, 38], speed: 0.0002 },
+    ];
+
+    const draw = () => {
+      timeRef.current += 1;
+      const t = timeRef.current;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (const b of blobs) {
+        const bx = (b.x + Math.sin(t * b.speed) * 0.15 + (mouseRef.current.x - 0.5) * 0.05) * canvas.width;
+        const by = (b.y + Math.cos(t * b.speed * 1.3) * 0.12 + (mouseRef.current.y - 0.5) * 0.05) * canvas.height;
+        const grd = ctx.createRadialGradient(bx, by, 0, bx, by, b.r);
+        grd.addColorStop(0, `rgba(${b.color.join(',')}, 0.08)`);
+        grd.addColorStop(1, `rgba(${b.color.join(',')}, 0)`);
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      rafRef.current = requestAnimationFrame(draw);
+    };
+    draw();
+
+    const onMove = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight };
+    };
+    window.addEventListener('mousemove', onMove);
+
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('mousemove', onMove);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="absolute inset-0 z-0" />;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Noise Texture Overlay
+   ═══════════════════════════════════════════════════════════════════ */
+function NoiseOverlay() {
   return (
-    <div className="fixed top-0 inset-x-0 z-50 px-4 pt-4 pointer-events-none">
-      <motion.div initial={{ y:-24, opacity:0 }} animate={{ y:0, opacity:1 }} transition={{ duration:.6 }}
-        className="max-w-md mx-auto pointer-events-auto">
-        <div className={`rounded-2xl p-px ${isDark ? 'bg-white/[0.06]' : 'bg-black/[0.08]'}`}>
-          <div className={`rounded-[15px] backdrop-blur-2xl px-4 h-12 flex items-center justify-between ${isDark ? 'bg-[#030307]/80' : 'bg-white/80'}`}>
-            <motion.div whileHover={{ scale:1.04 }} whileTap={{ scale:.97 }}
-              className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-              <img src="/logo-sds.png" alt="SDS" className={`h-6 w-auto object-contain ${isDark?'':'brightness-0'}`} />
-              <div className={`h-4 w-px ${isDark?'bg-white/15':'bg-gray-300'}`} />
-              <span className={`text-xs font-black tracking-tight ${isDark?'text-white/90':'text-gray-800'}`}>
-                Trade<span className="text-red-500">Data</span>Hub
-              </span>
-            </motion.div>
-            <div className="flex items-center gap-1">
-              <div className="relative" onClick={e => e.stopPropagation()}>
-                <button onClick={() => setLangOpen(o => !o)} className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${isDark?'border-white/[0.09] text-gray-400 hover:bg-white/[0.07]':'border-gray-200 text-gray-500 hover:bg-gray-100'}`}>
-                  <Globe className="w-3 h-3" />
-                  <span className="hidden sm:inline">{i18n.language.startsWith('es')?'ES':i18n.language.startsWith('en')?'EN':'PT'}</span>
-                </button>
-                <AnimatePresence>
-                  {langOpen && (
-                    <motion.div initial={{ opacity:0, scale:.92, y:-4 }} animate={{ opacity:1, scale:1, y:0 }} exit={{ opacity:0, scale:.92, y:-4 }} transition={{ duration:.12 }}
-                      className={`absolute right-0 top-full mt-1.5 rounded-xl border shadow-2xl overflow-hidden z-20 min-w-[120px] ${isDark?'bg-[#0c0c12] border-white/10':'bg-white border-gray-200'}`}>
-                      {LANGS.map(l => (
-                        <button key={l.code} onClick={() => { i18n.changeLanguage(l.code); localStorage.setItem('language', l.code); setLangOpen(false); }}
-                          className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors ${i18n.language.startsWith(l.code.slice(0,2))?'text-red-500 font-bold':isDark?'text-gray-400 hover:bg-white/5 hover:text-white':'text-gray-600 hover:bg-gray-50'}`}>
-                          {l.label}
-                        </button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-              <button onClick={() => setIsDark(!isDark)} className={`p-1.5 rounded-lg border transition-all ${isDark?'border-white/[0.09] text-gray-400 hover:bg-white/[0.07]':'border-gray-200 text-gray-500 hover:bg-gray-100'}`}>
-                <AnimatePresence mode="wait">
-                  <motion.div key={isDark?'sun':'moon'} initial={{ rotate:-30, opacity:0 }} animate={{ rotate:0, opacity:1 }} exit={{ rotate:30, opacity:0 }} transition={{ duration:.15 }}>
-                    {isDark ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-                  </motion.div>
-                </AnimatePresence>
-              </button>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-    </div>
+    <div className="absolute inset-0 z-[1] pointer-events-none opacity-[0.03]"
+      style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+        backgroundRepeat: 'repeat',
+      }}
+    />
   );
 }
 
-/* ─── underline input ───────────────────────────────────────────────── */
-function LineInput({ type='text', placeholder, value, onChange, onFocus, onBlur, focused, icon, right }: {
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   Input Component
+   ═══════════════════════════════════════════════════════════════════ */
+function FloatInput({ type = 'text', placeholder, value, onChange, icon, right, autoFocus }: {
   type?: string; placeholder: string; value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onFocus: () => void; onBlur: () => void; focused: boolean;
-  icon: React.ReactNode; right?: React.ReactNode;
+  icon: React.ReactNode; right?: React.ReactNode; autoFocus?: boolean;
 }) {
+  const [focused, setFocused] = useState(false);
   return (
-    <div className={`flex items-center gap-3 border-b pb-3 transition-colors duration-200 ${focused ? 'border-red-500' : 'border-white/15 hover:border-white/25'}`}>
-      <div className={`flex-shrink-0 transition-colors ${focused ? 'text-red-400' : 'text-gray-500'}`}>{icon}</div>
+    <div className={`group relative flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all duration-300 ${
+      focused
+        ? 'border-red-500/50 bg-white/[0.06] shadow-[0_0_0_4px_rgba(220,38,38,0.08)]'
+        : 'border-white/[0.08] bg-white/[0.025] hover:border-white/[0.15] hover:bg-white/[0.04]'
+    }`}>
+      <div className={`flex-shrink-0 transition-colors duration-200 ${focused ? 'text-red-400' : 'text-white/25'}`}>
+        {icon}
+      </div>
+      <style>{`input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus{-webkit-box-shadow:0 0 0 1000px transparent inset!important;-webkit-text-fill-color:#fff!important;caret-color:#fff!important;background-color:transparent!important;transition:background-color 5000s ease-in-out 0s}`}</style>
       <input
-        type={type} value={value} onChange={onChange} onFocus={onFocus} onBlur={onBlur}
+        type={type} value={value} onChange={onChange} autoFocus={autoFocus}
+        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
         placeholder={placeholder}
-        className="flex-1 bg-transparent text-white placeholder-gray-600 outline-none text-sm py-1"
+        className="flex-1 bg-transparent text-white placeholder-white/20 outline-none text-[15px] font-medium"
       />
       {right}
     </div>
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════
+   Brand Panel — Left side showcase
+   ═══════════════════════════════════════════════════════════════════ */
+function BrandPanel({ t }: { t: (key: string) => string }) {
+  return (
+    <div className="hidden lg:flex flex-col justify-between p-14 relative">
+      {/* Grid pattern */}
+      <div className="absolute inset-0 pointer-events-none"
+        style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+
+      {/* Large decorative arrow */}
+      <div className="absolute -right-20 top-1/2 -translate-y-1/2 text-[28rem] font-black text-white/[0.015] leading-none select-none pointer-events-none">
+        →
+      </div>
+
+      <div className="relative z-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 mb-8">
+            <Zap className="w-3 h-3 text-red-400" />
+            <span className="text-[11px] font-bold text-red-400 uppercase tracking-wider">
+              {t('auth.brandPanel.loginBadge')}
+            </span>
+          </div>
+
+          <h1 className="text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight">
+            {t('auth.brandPanel.loginTitle1')}<br />
+            {t('auth.brandPanel.loginTitle2')} <span className="bg-gradient-to-r from-red-500 via-red-400 to-orange-400 bg-clip-text text-transparent">{t('auth.brandPanel.loginHighlight')}</span><br />
+            {t('auth.brandPanel.loginTitle3')}
+          </h1>
+
+          <p className="mt-6 text-white/30 text-base leading-relaxed max-w-md">
+            {t('auth.brandPanel.loginDesc')}
+          </p>
+        </motion.div>
+      </div>
+
+      {/* Bottom accent line */}
+      <div className="relative z-10 mt-8">
+        <div className="h-px bg-gradient-to-r from-red-500/30 via-white/10 to-transparent" />
+        <p className="mt-4 text-[11px] text-white/15 font-medium">
+          {t('auth.copyrightFull')}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    LOGIN PAGE
-   ═══════════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════ */
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -111,7 +177,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [focused, setFocused] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') !== 'light');
 
   useEffect(() => { localStorage.setItem('theme', isDark ? 'dark' : 'light'); }, [isDark]);
@@ -124,120 +189,139 @@ export default function LoginPage() {
   const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); loginMutation.mutate({ email, password }); };
 
   return (
-    <div className={`min-h-screen relative flex flex-col items-center justify-center transition-colors duration-700 overflow-hidden ${isDark ? 'bg-[#030307]' : 'bg-slate-100'}`}>
+    <div className="min-h-screen bg-[#050508] relative overflow-hidden">
+      <MeshBackground />
+      <NoiseOverlay />
+      <PremiumNavbar isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} />
 
-      {/* aurora */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <motion.div animate={{ x:[0,60,-40,0], y:[0,-50,30,0] }} transition={{ duration:25, repeat:Infinity, ease:'easeInOut' }}
-          className={`absolute -top-[20%] -left-[10%] w-[600px] h-[600px] rounded-full blur-[160px] ${isDark?'bg-red-600/[0.07]':'bg-red-500/[0.05]'}`} />
-        <motion.div animate={{ x:[0,-50,30,0], y:[0,40,-20,0] }} transition={{ duration:30, repeat:Infinity, ease:'easeInOut', delay:5 }}
-          className={`absolute -bottom-[10%] -right-[10%] w-[500px] h-[500px] rounded-full blur-[140px] ${isDark?'bg-blue-600/[0.05]':'bg-blue-500/[0.03]'}`} />
-        <div className="absolute inset-0" style={{ backgroundImage:`radial-gradient(circle,${isDark?'rgba(255,255,255,0.025)':'rgba(0,0,0,0.025)'} 1px,transparent 1px)`, backgroundSize:'28px 28px' }} />
-      </div>
-
-      <Navbar isDark={isDark} setIsDark={setIsDark} />
-
-      {/* ─── Card ─────────────────────────────────────────────────────── */}
-      <motion.div initial={{ opacity:0, y:28, scale:.97 }} animate={{ opacity:1, y:0, scale:1 }}
-        transition={{ duration:.7, ease:[0.22,1,0.36,1] }}
-        className="relative z-10 w-full max-w-sm mx-4 mt-20 overflow-hidden rounded-[2rem] shadow-[0_32px_80px_rgba(0,0,0,0.5)]"
-      >
-        {/* ── TOP: header ─────────────────────────────────────── */}
-        <div className={`px-8 pt-8 pb-7 ${isDark ? 'bg-[#1c1c2a]' : 'bg-white'}`}>
-          <motion.button whileHover={{ x:-3 }} onClick={() => navigate('/')}
-            className={`flex items-center gap-1 text-sm font-medium mb-6 transition-colors ${isDark?'text-gray-500 hover:text-white':'text-gray-400 hover:text-gray-800'}`}>
-            <ChevronLeft className="w-4 h-4" />
-            <span>Trade DataHub</span>
-          </motion.button>
-          <h1 className={`text-3xl font-black leading-tight tracking-tight ${isDark?'text-white':'text-gray-900'}`}>
-            {t('common.welcome')}<br />
-            <span className="text-red-500">de volta.</span>
-          </h1>
-          <p className={`mt-2 text-sm ${isDark?'text-gray-500':'text-gray-400'}`}>
-            {t('auth.loginToContinue')}
-          </p>
+      <div className="relative z-10 min-h-screen flex items-stretch">
+        {/* LEFT: Brand Panel */}
+        <div className="hidden lg:flex lg:w-[55%]">
+          <BrandPanel t={t} />
         </div>
 
-        {/* ── BOTTOM: form (always dark) ───────────────────────── */}
-        <div className="bg-[#111822] px-8 pt-7 pb-8 space-y-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <LineInput
-              type="email" placeholder="Email" value={email}
-              onChange={e => setEmail(e.target.value)}
-              onFocus={() => setFocused('email')} onBlur={() => setFocused(null)}
-              focused={focused === 'email'} icon={<Mail className="w-4 h-4" />}
-            />
-            <LineInput
-              type={showPassword ? 'text' : 'password'} placeholder={t('auth.password')} value={password}
-              onChange={e => setPassword(e.target.value)}
-              onFocus={() => setFocused('password')} onBlur={() => setFocused(null)}
-              focused={focused === 'password'} icon={<Lock className="w-4 h-4" />}
-              right={
-                <button type="button" onClick={() => setShowPassword(v => !v)} className="text-gray-600 hover:text-gray-400 transition-colors flex-shrink-0">
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              }
-            />
+        {/* Vertical divider */}
+        <div className="hidden lg:block w-px bg-gradient-to-b from-transparent via-white/[0.06] to-transparent" />
 
-            <div className="flex justify-end -mt-2">
-              <Link to="/forgot-password" className="text-xs font-medium text-gray-600 hover:text-red-400 transition-colors">
-                {t('auth.forgotPassword', 'Esqueceu a senha?')}
-              </Link>
-            </div>
+        {/* RIGHT: Login Form */}
+        <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full max-w-[400px]">
 
-            {/* error */}
-            <AnimatePresence>
-              {loginMutation.isError && (
-                <motion.p initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}
-                  className="text-xs text-red-400 text-center">
-                  {t('auth.loginError')}
-                </motion.p>
-              )}
-            </AnimatePresence>
+            {/* Mobile brand */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="lg:hidden flex items-center gap-2.5 mb-10">
+              <img src="/logo-sds.png" alt="SDS" className="h-8 w-auto" />
+              <span className="text-base font-black text-white/80">
+                Trade<span className="text-red-500">Data</span>Hub
+              </span>
+            </motion.div>
 
-            {/* submit */}
-            <motion.button type="submit" disabled={loginMutation.isPending}
-              whileHover={{ scale:1.02, y:-1 }} whileTap={{ scale:.98 }}
-              className="relative w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-sm overflow-hidden disabled:opacity-60 group"
-              style={{ background:'linear-gradient(135deg,#dc2626 0%,#b91c1c 60%,#991b1b 100%)' }}
-            >
-              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.1] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none" />
-              <span className="absolute inset-0 rounded-2xl shadow-[0_8px_28px_rgba(220,38,38,0.35)] group-hover:shadow-[0_12px_36px_rgba(220,38,38,0.5)] transition-shadow pointer-events-none" />
-              {loginMutation.isPending ? (
-                <motion.div animate={{ rotate:360 }} transition={{ duration:1, repeat:Infinity, ease:'linear' }}
-                  className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full" />
-              ) : (
-                <>
-                  <LogIn className="w-4 h-4 relative" />
-                  <span className="relative">{t('auth.login')}</span>
-                </>
-              )}
+            {/* Header */}
+            <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}>
+              <p className="text-white/30 text-sm font-medium mb-2">{t('auth.loginToContinue')}</p>
+              <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">
+                {t('common.welcome')}<span className="text-red-500">.</span>
+              </h2>
+            </motion.div>
+
+            {/* Form */}
+            <motion.form onSubmit={handleSubmit}
+              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.25 }}
+              className="mt-10 space-y-4">
+
+              <FloatInput
+                type="email" placeholder={t('auth.emailPlaceholder')} value={email}
+                onChange={e => setEmail(e.target.value)} autoFocus
+                icon={<Mail className="w-[18px] h-[18px]" />}
+              />
+
+              <FloatInput
+                type={showPassword ? 'text' : 'password'} placeholder={t('auth.password')} value={password}
+                onChange={e => setPassword(e.target.value)}
+                icon={<Lock className="w-[18px] h-[18px]" />}
+                right={
+                  <button type="button" onClick={() => setShowPassword(v => !v)}
+                    className="text-white/20 hover:text-white/50 transition-colors flex-shrink-0 p-0.5">
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                }
+              />
+
+              <div className="flex justify-end pt-1">
+                <Link to="/forgot-password"
+                  className="text-xs font-medium text-white/25 hover:text-red-400 transition-colors">
+                  {t('auth.forgotPassword')}
+                </Link>
+              </div>
+
+              {/* Error */}
+              <AnimatePresence>
+                {loginMutation.isError && (
+                  <motion.div initial={{ opacity: 0, y: -8, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                    className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
+                    <p className="text-xs text-red-400 font-medium">{t('auth.loginError')}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Submit */}
+              <div className="pt-2">
+                <motion.button type="submit" disabled={loginMutation.isPending}
+                  whileHover={{ scale: 1.015, y: -1 }} whileTap={{ scale: 0.985 }}
+                  className="relative w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-white font-bold text-[15px] overflow-hidden disabled:opacity-50 group cursor-pointer"
+                  style={{ background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' }}>
+                  {/* Shimmer */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
+                  {/* Glow */}
+                  <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    style={{ boxShadow: '0 12px 40px rgba(220,38,38,0.4), 0 4px 12px rgba(220,38,38,0.3)' }} />
+                  {loginMutation.isPending ? (
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full" />
+                  ) : (
+                    <span className="relative flex items-center gap-2.5">
+                      <LogIn className="w-[18px] h-[18px]" />
+                      <span>{t('auth.login')}</span>
+                      <ArrowRight className="w-4 h-4 opacity-50 group-hover:translate-x-0.5 transition-transform" />
+                    </span>
+                  )}
+                </motion.button>
+              </div>
+            </motion.form>
+
+            {/* Divider */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+              className="flex items-center gap-4 my-8">
+              <div className="flex-1 h-px bg-white/[0.06]" />
+              <span className="text-[11px] text-white/15 font-medium uppercase tracking-wider">{t('common.or')}</span>
+              <div className="flex-1 h-px bg-white/[0.06]" />
+            </motion.div>
+
+            {/* Register link */}
+            <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}
+              type="button" onClick={() => navigate('/register')}
+              className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border border-white/[0.06] text-sm font-semibold text-white/30 hover:text-white/60 hover:bg-white/[0.03] hover:border-white/[0.12] transition-all duration-300 group cursor-pointer">
+              <UserPlus className="w-4 h-4" />
+              <span>{t('auth.noAccount')}</span>
+              <span className="text-red-500 font-bold">{t('auth.register')}</span>
+              <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-50 -translate-x-2 group-hover:translate-x-0 transition-all" />
             </motion.button>
-          </form>
 
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-white/[0.06]" />
-            <span className="text-xs text-gray-700">ou</span>
-            <div className="flex-1 h-px bg-white/[0.06]" />
-          </div>
-
-          <motion.button type="button" onClick={() => navigate('/register')}
-            whileHover={{ scale:1.02 }} whileTap={{ scale:.98 }}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-white/[0.08] text-sm font-semibold text-gray-400 hover:bg-white/[0.04] hover:border-white/[0.15] transition-all"
-          >
-            <UserPlus className="w-4 h-4" />
-            {t('auth.noAccount')} <span className="text-red-500 font-bold ml-1">{t('auth.register')}</span>
-          </motion.button>
+            {/* Footer (mobile) */}
+            <p className="lg:hidden text-center text-[11px] text-white/10 mt-10">
+              {t('auth.copyright')}
+            </p>
+          </motion.div>
         </div>
-      </motion.div>
-
-      <p className={`relative z-10 text-center text-xs mt-8 ${isDark?'text-gray-800':'text-gray-400'}`}>
-        {t('common.appName')} © 2026 · Trade Data Hub
-      </p>
-
-      <style>{`
-        @keyframes shimmer-lr { 0%{background-position:0% center} 100%{background-position:300% center} }
-      `}</style>
+      </div>
     </div>
   );
 }

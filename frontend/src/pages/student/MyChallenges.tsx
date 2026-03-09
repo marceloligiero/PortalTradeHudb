@@ -105,7 +105,7 @@ export default function MyChallenges() {
     const kpis = [];
     if (challenge.use_volume_kpi) kpis.push('Volume');
     if (challenge.use_mpu_kpi) kpis.push('MPU');
-    if (challenge.use_errors_kpi) kpis.push('Erros');
+    if (challenge.use_errors_kpi) kpis.push(t('myChallenges.errorsKpi'));
     return kpis.join(' • ');
   };
 
@@ -118,7 +118,7 @@ export default function MyChallenges() {
       const executionType = submission.submission_type?.toUpperCase() === 'SUMMARY' ? 'summary' : 'complete';
       navigate(`/challenges/${submission.challenge_id}/execute/${executionType}?submissionId=${newSubmission.id}`);
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Erro ao iniciar nova tentativa');
+      alert(error.response?.data?.detail || t('myChallenges.startRetryError'));
     }
   };
 

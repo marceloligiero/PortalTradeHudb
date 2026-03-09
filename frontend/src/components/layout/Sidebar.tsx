@@ -1,4 +1,4 @@
-import { Home, BookOpen, Award, Users, Settings, Building2, Package, GraduationCap, Target, Presentation, ClipboardCheck, BarChart3, Star, Brain } from 'lucide-react';
+import { Home, BookOpen, Award, Users, Settings, GraduationCap, Target, Presentation, ClipboardCheck, BarChart3, Star, Brain } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
@@ -28,18 +28,25 @@ export default function Sidebar() {
 
   const adminLinks = [
     { to: '/', icon: Home, label: t('navigation.dashboard') },
-    { to: '/users', icon: Users, label: t('navigation.users') },
     { to: '/trainer-validation', icon: GraduationCap, label: t('navigation.trainers') },
     { to: '/courses', icon: BookOpen, label: t('navigation.courses') },
     { to: '/training-plans', icon: GraduationCap, label: t('navigation.trainingPlans') },
     { to: '/pending-reviews', icon: ClipboardCheck, label: t('navigation.pendingReviews') },
-    { to: '/banks', icon: Building2, label: t('navigation.banks') },
-    { to: '/products', icon: Package, label: t('navigation.products') },
     { to: '/reports', icon: Award, label: t('navigation.reports') },
     { to: '/advanced-reports', icon: BarChart3, label: t('navigation.advancedReports') },
     { to: '/knowledge-matrix', icon: Brain, label: t('navigation.knowledgeMatrix') },
     { to: '/ratings', icon: Star, label: t('navigation.ratings') },
-    { to: '/teams', icon: Users, label: 'Equipas' },
+  ];
+
+  const managerLinks = [
+    { to: '/', icon: Home, label: t('navigation.dashboard') },
+    { to: '/courses', icon: BookOpen, label: t('navigation.courses') },
+    { to: '/training-plans', icon: GraduationCap, label: t('navigation.trainingPlans') },
+    { to: '/pending-reviews', icon: ClipboardCheck, label: t('navigation.pendingReviews') },
+    { to: '/reports', icon: Award, label: t('navigation.reports') },
+    { to: '/advanced-reports', icon: BarChart3, label: t('navigation.advancedReports') },
+    { to: '/knowledge-matrix', icon: Brain, label: t('navigation.knowledgeMatrix') },
+    { to: '/ratings', icon: Star, label: t('navigation.ratings') },
   ];
 
   const links =
@@ -47,6 +54,8 @@ export default function Sidebar() {
       ? studentLinks
       : user?.role === 'TRAINER'
       ? trainerLinks
+      : user?.role === 'MANAGER'
+      ? managerLinks
       : adminLinks;
 
   return (

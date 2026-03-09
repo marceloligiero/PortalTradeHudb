@@ -2,10 +2,11 @@
 Portal de Relatórios — analytics cross-portal filtrados por role.
 ADMIN=todos | MANAGER=equipa | TRAINER=tutorados | STUDENT/TRAINEE=próprios
 """
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, case
-from typing import Optional
+from typing import Optional, List
+from datetime import date
 from app.database import get_db
 from app.auth import get_current_user
 from app.models import (
@@ -14,6 +15,8 @@ from app.models import (
     TrainingPlan, TrainingPlanAssignment,
     ChallengeSubmission, Enrollment, LessonProgress,
     Certificate,
+    ErrorImpact, ErrorOrigin, ErrorDetectedBy, Department, Activity,
+    Bank, ErrorCategory, Product,
 )
 
 router = APIRouter()
@@ -246,10 +249,13 @@ def teams_relatorio(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if current_user.role != "ADMIN":
-        raise HTTPException(status_code=403, detail="Apenas administradores")
+    if current_user.role not in ("ADMIN", "MANAGER"):
+        raise HTTPException(status_code=403, detail="Acesso restrito")
 
-    teams = db.query(Team).filter(Team.is_active == True).all()
+    q = db.query(Team).filter(Team.is_active == True)
+    if current_user.role == "MANAGER":
+        q = q.filter(Team.manager_id == current_user.id)
+    teams = q.all()
     result = []
     for team in teams:
         member_ids = [m.id for m in db.query(User).filter(User.team_id == team.id).all()]
@@ -274,8 +280,8 @@ def teams_relatorio(
         ).scalar() or 0) if member_ids else 0
 
         result.append({
-            "id": team.id,
-            "name": team.name,
+            "team_id": team.id,
+            "team_name": team.name,
             "product_name": team.product.name if team.product else None,
             "manager_name": team.manager.full_name if team.manager else None,
             "members_count": members_count,
@@ -332,3 +338,132 @@ def members_relatorio(
         })
 
     return sorted(result, key=lambda x: x["full_name"])
+
+
+# ── Incidents Report ──────────────────────────────────────────────────────────
+
+@router.get("/relatorios/incidents")
+def incidents_report(
+    # Filters
+    date_from: Optional[date] = Query(None),
+    date_to: Optional[date] = Query(None),
+    impact_id: Optional[int] = Query(None),
+    origin_id: Optional[int] = Query(None),
+    bank_id: Optional[int] = Query(None),
+    department_id: Optional[int] = Query(None),
+    detected_by_id: Optional[int] = Query(None),
+    category_id: Optional[int] = Query(None),
+    product_id: Optional[int] = Query(None),
+    recurrence_type: Optional[str] = Query(None),
+    severity: Optional[str] = Query(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Returns incidents list for the report with optional filters, scoped by role."""
+    if current_user.role not in ("ADMIN", "MANAGER"):
+        raise HTTPException(403, "Acesso restrito")
+
+    q = (
+        db.query(TutoriaError)
+        .options(
+            joinedload(TutoriaError.tutorado),
+            joinedload(TutoriaError.creator),
+            joinedload(TutoriaError.approver),
+            joinedload(TutoriaError.bank),
+            joinedload(TutoriaError.impact),
+            joinedload(TutoriaError.origin),
+            joinedload(TutoriaError.detected_by),
+            joinedload(TutoriaError.department),
+            joinedload(TutoriaError.activity),
+            joinedload(TutoriaError.category),
+            joinedload(TutoriaError.product),
+        )
+    )
+
+    # Scope by role
+    scope_ids = _team_user_ids(current_user, db)
+    if scope_ids is not None:
+        q = q.filter(TutoriaError.tutorado_id.in_(scope_ids))
+
+    # Apply filters
+    if date_from:
+        q = q.filter(TutoriaError.date_occurrence >= date_from)
+    if date_to:
+        q = q.filter(TutoriaError.date_occurrence <= date_to)
+    if impact_id:
+        q = q.filter(TutoriaError.impact_id == impact_id)
+    if origin_id:
+        q = q.filter(TutoriaError.origin_id == origin_id)
+    if bank_id:
+        q = q.filter(TutoriaError.bank_id == bank_id)
+    if department_id:
+        q = q.filter(TutoriaError.department_id == department_id)
+    if detected_by_id:
+        q = q.filter(TutoriaError.detected_by_id == detected_by_id)
+    if category_id:
+        q = q.filter(TutoriaError.category_id == category_id)
+    if product_id:
+        q = q.filter(TutoriaError.product_id == product_id)
+    if recurrence_type:
+        q = q.filter(TutoriaError.recurrence_type == recurrence_type)
+    if severity:
+        q = q.filter(TutoriaError.severity == severity)
+
+    errors = q.order_by(TutoriaError.date_occurrence.desc()).all()
+
+    def _safe_name(obj):
+        return obj.name if obj else None
+
+    return [
+        {
+            "id": e.id,
+            "date_occurrence": str(e.date_occurrence) if e.date_occurrence else None,
+            "date_detection": str(e.date_detection) if getattr(e, 'date_detection', None) else None,
+            "date_solution": str(e.date_solution) if getattr(e, 'date_solution', None) else None,
+            "office": getattr(e, 'office', None),
+            "bank_name": _safe_name(getattr(e, 'bank', None)),
+            "product_name": _safe_name(getattr(e, 'product', None)),
+            "category_name": _safe_name(e.category) if e.category else None,
+            "reference_code": getattr(e, 'reference_code', None),
+            "final_client": getattr(e, 'final_client', None),
+            "amount": getattr(e, 'amount', None),
+            "currency": getattr(e, 'currency', None),
+            "impact_name": _safe_name(getattr(e, 'impact', None)),
+            "origin_name": _safe_name(getattr(e, 'origin', None)),
+            "clasificacion": getattr(e, 'clasificacion', None),
+            "severity": e.severity,
+            "recurrence_type": getattr(e, 'recurrence_type', None),
+            "detected_by_name": _safe_name(getattr(e, 'detected_by', None)),
+            "department_name": _safe_name(getattr(e, 'department', None)),
+            "activity_name": _safe_name(getattr(e, 'activity', None)),
+            "description": e.description,
+            "solution": getattr(e, 'solution', None),
+            "action_plan_text": getattr(e, 'action_plan_text', None),
+            "escalado": getattr(e, 'escalado', None),
+            "comentarios_reunion": getattr(e, 'comentarios_reunion', None),
+            "tutorado_name": e.tutorado.full_name if e.tutorado else None,
+            "created_by_name": e.creator.full_name if e.creator else None,
+            "approver_name": e.approver.full_name if getattr(e, 'approver', None) else None,
+            "status": e.status,
+        }
+        for e in errors
+    ]
+
+
+@router.get("/relatorios/incidents/filters")
+def incidents_filters(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Returns available filter options for the incidents report."""
+    if current_user.role not in ("ADMIN", "MANAGER"):
+        raise HTTPException(403, "Acesso restrito")
+    return {
+        "impacts": [{"id": i.id, "name": i.name} for i in db.query(ErrorImpact).filter(ErrorImpact.is_active == True).all()],
+        "origins": [{"id": i.id, "name": i.name} for i in db.query(ErrorOrigin).filter(ErrorOrigin.is_active == True).all()],
+        "banks": [{"id": b.id, "name": b.name} for b in db.query(Bank).filter(Bank.is_active == True).all()],
+        "departments": [{"id": d.id, "name": d.name} for d in db.query(Department).filter(Department.is_active == True).all()],
+        "detected_by": [{"id": d.id, "name": d.name} for d in db.query(ErrorDetectedBy).filter(ErrorDetectedBy.is_active == True).all()],
+        "categories": [{"id": c.id, "name": c.name} for c in db.query(ErrorCategory).all()],
+        "products": [{"id": p.id, "name": p.name} for p in db.query(Product).filter(Product.is_active == True).all()],
+    }

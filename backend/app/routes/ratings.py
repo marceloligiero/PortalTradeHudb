@@ -241,7 +241,7 @@ async def get_all_ratings(
     rating_type: Optional[str] = Query(None, description="Filtrar por tipo"),
     min_stars: Optional[int] = Query(None, ge=0, le=5),
     max_stars: Optional[int] = Query(None, ge=0, le=5),
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ):
     """Admin visualiza todas as avaliações"""
@@ -266,7 +266,7 @@ async def get_all_ratings(
 @router.get("/admin/summary", response_model=RatingsSummaryResponse)
 async def get_ratings_summary(
     rating_type: Optional[str] = Query(None, description="Filtrar por tipo"),
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ):
     """Admin visualiza resumo das avaliações por item"""
@@ -321,7 +321,7 @@ async def get_ratings_summary(
 async def get_ratings_for_item(
     rating_type: str,
     item_id: int,
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ):
     """Admin visualiza todas as avaliações de um item específico"""
@@ -349,7 +349,7 @@ async def get_ratings_for_item(
 
 @router.get("/admin/dashboard")
 async def get_ratings_dashboard(
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
     db: Session = Depends(get_db)
 ):
     """Dashboard com estatísticas gerais das avaliações"""

@@ -5,6 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -25,18 +26,6 @@ const SEVERITY_COLORS: Record<string, string> = {
   ALTA: '#ef4444',
   CRITICA: '#7c3aed',
 };
-const SEVERITY_LABELS: Record<string, string> = {
-  BAIXA: 'Baixa', MEDIA: 'Média', ALTA: 'Alta', CRITICA: 'Crítica',
-};
-const STATUS_LABELS: Record<string, string> = {
-  OPEN: 'Aberto', IN_PROGRESS: 'Em Curso', RESOLVED: 'Resolvido',
-  CLOSED: 'Fechado', PENDING: 'Pendente',
-};
-const PLAN_STATUS_LABELS: Record<string, string> = {
-  PENDING: 'Pendente', IN_PROGRESS: 'Em Curso', COMPLETED: 'Concluído', DELAYED: 'Atrasado',
-};
-
-const PIE_COLORS = ['#10b981', '#f59e0b', '#ef4444', '#7c3aed'];
 const BAR_COLORS = ['#6b7280', '#3b82f6', '#10b981', '#f59e0b'];
 
 function KpiCard({ icon: Icon, label, value, sub, color }: { icon: any; label: string; value: string | number; sub?: string; color: string }) {
@@ -56,6 +45,7 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: any; label: s
 }
 
 export default function TutoriaDashboard() {
+  const { t } = useTranslation();
   const { token } = useAuthStore();
   const { isDark } = useTheme();
   const [data, setData] = useState<TutoriaData | null>(null);
@@ -66,45 +56,58 @@ export default function TutoriaDashboard() {
       .then(r => r.json()).then(setData).finally(() => setLoading(false));
   }, [token]);
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>;
+  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-red-500" /></div>;
   if (!data) return null;
 
   const axisColor = isDark ? '#6b7280' : '#9ca3af';
 
+  const sevLabels: Record<string, string> = {
+    BAIXA: t('relTutoria.sevLow'), MEDIA: t('relTutoria.sevMedium'),
+    ALTA: t('relTutoria.sevHigh'), CRITICA: t('relTutoria.sevCritical'),
+  };
   const severityData = Object.entries(data.by_severity)
     .filter(([, v]) => v > 0)
-    .map(([k, v]) => ({ name: SEVERITY_LABELS[k] || k, value: v, color: SEVERITY_COLORS[k] || '#6b7280' }));
+    .map(([k, v]) => ({ name: sevLabels[k] || k, value: v, color: SEVERITY_COLORS[k] || '#6b7280' }));
 
+  const statLabels: Record<string, string> = {
+    OPEN: t('relTutoria.statusOpen'), IN_PROGRESS: t('relTutoria.statusInProgress'),
+    RESOLVED: t('relTutoria.statusResolved'), CLOSED: t('relTutoria.statusClosed'),
+    PENDING: t('relTutoria.statusPending'),
+  };
   const statusData = Object.entries(data.by_status)
     .filter(([, v]) => v > 0)
-    .map(([k, v]) => ({ name: STATUS_LABELS[k] || k, value: v }));
+    .map(([k, v]) => ({ name: statLabels[k] || k, value: v }));
 
+  const planLabels: Record<string, string> = {
+    PENDING: t('relTutoria.planPending'), IN_PROGRESS: t('relTutoria.planInProgress'),
+    COMPLETED: t('relTutoria.planCompleted'), DELAYED: t('relTutoria.planDelayed'),
+  };
   const plansData = Object.entries(data.plans_by_status)
     .filter(([, v]) => v > 0)
-    .map(([k, v]) => ({ name: PLAN_STATUS_LABELS[k] || k, value: v }));
+    .map(([k, v]) => ({ name: planLabels[k] || k, value: v }));
 
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
-        <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDark ? 'text-red-400' : 'text-red-600'}`}>Portal de Tutoria</p>
-        <h1 className={`text-3xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>Relatório de Tutoria</h1>
+        <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDark ? 'text-red-400' : 'text-red-600'}`}>{t('relTutoria.portalTitle')}</p>
+        <h1 className={`text-3xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('relTutoria.title')}</h1>
       </div>
 
       {/* KPIs */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
         className="grid grid-cols-2 lg:grid-cols-3 gap-4"
       >
-        <KpiCard icon={AlertTriangle} label="Total de Erros" value={data.total_errors}
+        <KpiCard icon={AlertTriangle} label={t('relTutoria.totalErrors')} value={data.total_errors}
           color="bg-gradient-to-br from-red-600 to-red-500" />
-        <KpiCard icon={CheckCircle2} label="Taxa de Resolução" value={`${data.resolved_rate}%`}
-          sub={`${data.resolved_errors} resolvidos`} color="bg-gradient-to-br from-emerald-600 to-emerald-500" />
-        <KpiCard icon={RefreshCw} label="Taxa de Recorrência" value={`${data.recurrent_rate}%`}
-          sub={`${data.recurrent_errors} recorrentes`} color="bg-gradient-to-br from-amber-600 to-amber-500" />
-        <KpiCard icon={Shield} label="Erros Críticos" value={data.by_severity['CRITICA'] ?? 0}
+        <KpiCard icon={CheckCircle2} label={t('relTutoria.resolutionRate')} value={`${data.resolved_rate}%`}
+          sub={t('relTutoria.resolvedSub', { count: data.resolved_errors })} color="bg-gradient-to-br from-emerald-600 to-emerald-500" />
+        <KpiCard icon={RefreshCw} label={t('relTutoria.recurrenceRate')} value={`${data.recurrent_rate}%`}
+          sub={t('relTutoria.recurrentSub', { count: data.recurrent_errors })} color="bg-gradient-to-br from-amber-600 to-amber-500" />
+        <KpiCard icon={Shield} label={t('relTutoria.criticalErrors')} value={data.by_severity['CRITICA'] ?? 0}
           color="bg-gradient-to-br from-purple-600 to-purple-500" />
-        <KpiCard icon={Clock} label="Em Aberto" value={data.by_status['OPEN'] ?? 0}
+        <KpiCard icon={Clock} label={t('relTutoria.openErrors')} value={data.by_status['OPEN'] ?? 0}
           color="bg-gradient-to-br from-blue-600 to-blue-500" />
-        <KpiCard icon={TrendingUp} label="Planos Concluídos" value={data.plans_by_status['COMPLETED'] ?? 0}
+        <KpiCard icon={TrendingUp} label={t('relTutoria.completedPlans')} value={data.plans_by_status['COMPLETED'] ?? 0}
           color="bg-gradient-to-br from-teal-600 to-teal-500" />
       </motion.div>
 
@@ -115,7 +118,7 @@ export default function TutoriaDashboard() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
             className={`rounded-2xl border p-5 ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
           >
-            <p className={`text-sm font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Erros por Severidade</p>
+            <p className={`text-sm font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('relTutoria.errorsBySeverity')}</p>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie data={severityData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70}
@@ -133,7 +136,7 @@ export default function TutoriaDashboard() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
             className={`rounded-2xl border p-5 ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
           >
-            <p className={`text-sm font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Erros por Estado</p>
+            <p className={`text-sm font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('relTutoria.errorsByStatus')}</p>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={statusData} barSize={32}>
                 <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#ffffff10' : '#f3f4f6'} />
@@ -152,7 +155,7 @@ export default function TutoriaDashboard() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
           className={`rounded-2xl border p-5 ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
         >
-          <p className={`text-sm font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Planos de Ação por Estado</p>
+          <p className={`text-sm font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('relTutoria.actionPlansByStatus')}</p>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={plansData} barSize={40}>
               <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#ffffff10' : '#f3f4f6'} />

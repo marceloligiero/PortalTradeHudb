@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { MessageCircle, X, Send, Globe, Loader2, ExternalLink, Bot, Minimize2, Maximize2 } from 'lucide-react';
+import { MessageCircle, X, Send, Globe, Loader2, ExternalLink, Bot, Minimize2, Maximize2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../contexts/ThemeContext';
@@ -9,6 +9,7 @@ interface Message {
   text: string;
   supportUrl?: string;
   supportLabel?: string;
+  suggestions?: string[];
 }
 
 const LANGS = [
@@ -31,9 +32,9 @@ const TITLE: Record<LangCode, string> = {
 };
 
 const WELCOME: Record<LangCode, string> = {
-  pt: 'Olá! 👋 Sou o assistente virtual TradeHub. Escreve **ajuda** para ver o que sei responder.',
-  es: '¡Hola! 👋 Soy el asistente virtual TradeHub. Escribe **ayuda** para ver qué sé responder.',
-  en: 'Hello! 👋 I\'m the TradeHub virtual assistant. Type **help** to see what I can answer.',
+  pt: 'Olá! 👋 Sou o **Assistente TradeHub**, o teu assistente virtual inteligente. Posso ajudar-te com informações sobre erros, planos de ação, estatísticas e muito mais!\n\nExperimenta escrever uma pergunta ou clica numa das sugestões abaixo:',
+  es: '¡Hola! 👋 Soy el **Asistente TradeHub**, tu asistente virtual inteligente. Puedo ayudarte con información sobre errores, planes de acción, estadísticas y mucho más!\n\nPrueba escribir una pregunta o haz clic en una de las sugerencias:',
+  en: 'Hello! 👋 I\'m the **TradeHub Assistant**, your intelligent virtual helper. I can help with errors, action plans, statistics and more!\n\nTry typing a question or click a suggestion below:',
 };
 
 /** Simple markdown-to-HTML renderer (bold + bullet lists) */
@@ -91,7 +92,12 @@ export default function ChatBot() {
     if (open) {
       setTimeout(() => inputRef.current?.focus(), 200);
       if (messages.length === 0) {
-        setMessages([{ role: 'bot', text: WELCOME[lang] }]);
+        const defaultSuggestions: Record<LangCode, string[]> = {
+          pt: ['meus erros', 'estatísticas', 'meus planos', 'ajuda'],
+          es: ['mis errores', 'estadísticas', 'mis planes', 'ayuda'],
+          en: ['my errors', 'stats', 'my plans', 'help'],
+        };
+        setMessages([{ role: 'bot', text: WELCOME[lang], suggestions: defaultSuggestions[lang] }]);
       }
     }
   }, [open]);
@@ -122,7 +128,7 @@ export default function ChatBot() {
       const data = await res.json();
       setMessages((prev) => [
         ...prev,
-        { role: 'bot', text: data.reply, supportUrl: data.support_url, supportLabel: data.support_label },
+        { role: 'bot', text: data.reply, supportUrl: data.support_url, supportLabel: data.support_label, suggestions: data.suggestions },
       ]);
     } catch {
       setMessages((prev) => [
@@ -138,6 +144,34 @@ export default function ChatBot() {
   const onKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
   };
+
+  const sendSuggestion = useCallback((text: string) => {
+    if (loading || !token) return;
+    setInput(text);
+    // We need to trigger send with this text directly
+    setTimeout(() => {
+      setInput('');
+      setMessages((prev) => [...prev, { role: 'user', text }]);
+      setLoading(true);
+      fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ message: text, lang }),
+      })
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(data => {
+          setMessages(prev => [...prev, { role: 'bot', text: data.reply, supportUrl: data.support_url, supportLabel: data.support_label, suggestions: data.suggestions }]);
+        })
+        .catch(() => {
+          setMessages(prev => [...prev, { role: 'bot', text: '\u26a0\ufe0f Erro ao contactar o servidor.' }]);
+        })
+        .finally(() => {
+          setLoading(false);
+          setInput('');
+          setTimeout(() => inputRef.current?.focus(), 50);
+        });
+    }, 0);
+  }, [loading, token, lang]);
 
   if (!token) return null;
 
@@ -288,6 +322,29 @@ export default function ChatBot() {
                           </a>
                         )}
                       </div>
+                      {/* Suggestion chips */}
+                      {m.role === 'bot' && m.suggestions && m.suggestions.length > 0 && i === messages.length - 1 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {m.suggestions.map((s, si) => (
+                            <motion.button
+                              key={si}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: si * 0.05 }}
+                              onClick={() => sendSuggestion(s)}
+                              disabled={loading}
+                              className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium transition-all hover:scale-[1.03] ${
+                                isDark
+                                  ? 'bg-white/[0.06] text-gray-300 hover:bg-white/[0.12] border border-white/10'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+                              } disabled:opacity-50`}
+                            >
+                              <Sparkles className="w-3 h-3" />
+                              {s}
+                            </motion.button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 ))}
@@ -328,7 +385,7 @@ export default function ChatBot() {
                   </motion.button>
                 </div>
                 <p className={`text-center text-[10px] mt-2 ${isDark ? 'text-gray-700' : 'text-gray-400'}`}>
-                  TradeHub Assistant · Respostas baseadas em FAQs configuradas
+                  TradeHub Assistant · IA + FAQs configuradas
                 </p>
               </div>
             </motion.div>

@@ -9,14 +9,15 @@ from datetime import date, datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.models import (
     ErrorCategory, TutoriaError, TutoriaErrorMotivo, TutoriaActionPlan,
-    TutoriaActionItem, TutoriaComment, User, Product,
+    TutoriaActionItem, TutoriaComment, User, Product, Bank,
+    ErrorImpact, ErrorOrigin, ErrorDetectedBy, Department, Activity,
 )
 from app.auth import get_current_user
 
@@ -25,11 +26,18 @@ router = APIRouter()
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def is_manager(user: User) -> bool:
-    return user.role in ("ADMIN", "TRAINER")
+    return user.role in ("ADMIN", "TRAINER", "MANAGER") or getattr(user, 'is_tutor', False)
 
 def require_manager(user: User):
     if not is_manager(user):
         raise HTTPException(status_code=403, detail="Acesso negado")
+
+def _is_tutor_or_admin(user: User) -> bool:
+    return user.role == "ADMIN" or getattr(user, 'is_tutor', False)
+
+def _require_tutor_or_admin(user: User):
+    if not _is_tutor_or_admin(user):
+        raise HTTPException(status_code=403, detail="Apenas admins e tutores")
 
 def require_admin(user: User):
     if user.role != "ADMIN":
@@ -44,12 +52,14 @@ class CategoryIn(BaseModel):
     name: str
     description: Optional[str] = None
     parent_id: Optional[int] = None
+    origin_id: Optional[int] = None
 
 class CategoryOut(BaseModel):
     id: int
     name: str
     description: Optional[str]
     parent_id: Optional[int]
+    origin_id: Optional[int] = None
     is_active: bool
 
     class Config:
@@ -65,9 +75,28 @@ class ErrorIn(BaseModel):
     date_occurrence: date
     description: str
     tutorado_id: int
+    # Novos campos Access
+    date_detection: Optional[date] = None
+    date_solution: Optional[date] = None
+    bank_id: Optional[int] = None
+    office: Optional[str] = None
+    reference_code: Optional[str] = None
+    currency: Optional[str] = None
+    amount: Optional[float] = None
+    final_client: Optional[str] = None
+    impact_id: Optional[int] = None
+    origin_id: Optional[int] = None
     category_id: Optional[int] = None
+    detected_by_id: Optional[int] = None
+    department_id: Optional[int] = None
+    activity_id: Optional[int] = None
+    error_type_id: Optional[int] = None
+    approver_id: Optional[int] = None
     product_id: Optional[int] = None
     severity: str = "MEDIA"
+    solution: Optional[str] = None
+    action_plan_text: Optional[str] = None
+    recurrence_type: Optional[str] = None
     tags: Optional[List[str]] = None
     analysis_5_why: Optional[str] = None
     motivos: Optional[List[MotivoIn]] = None
@@ -78,6 +107,25 @@ class ErrorUpdate(BaseModel):
     category_id: Optional[int] = None
     severity: Optional[str] = None
     tags: Optional[List[str]] = None
+    date_detection: Optional[date] = None
+    date_solution: Optional[date] = None
+    bank_id: Optional[int] = None
+    office: Optional[str] = None
+    reference_code: Optional[str] = None
+    currency: Optional[str] = None
+    amount: Optional[float] = None
+    final_client: Optional[str] = None
+    impact_id: Optional[int] = None
+    origin_id: Optional[int] = None
+    detected_by_id: Optional[int] = None
+    department_id: Optional[int] = None
+    activity_id: Optional[int] = None
+    error_type_id: Optional[int] = None
+    approver_id: Optional[int] = None
+    product_id: Optional[int] = None
+    solution: Optional[str] = None
+    action_plan_text: Optional[str] = None
+    recurrence_type: Optional[str] = None
 
 class DeactivateIn(BaseModel):
     reason: str
@@ -99,21 +147,51 @@ def _error_out(e: TutoriaError) -> dict:
     return {
         "id": e.id,
         "date_occurrence": e.date_occurrence,
+        "date_detection": getattr(e, 'date_detection', None),
+        "date_solution": getattr(e, 'date_solution', None),
         "description": e.description,
+        "solution": getattr(e, 'solution', None),
+        "action_plan_text": getattr(e, 'action_plan_text', None),
+        # Pessoas
         "tutorado_id": e.tutorado_id,
         "tutorado_name": _user_name(e.tutorado),
         "created_by_id": e.created_by_id,
         "created_by_name": _user_name(e.creator),
+        "approver_id": getattr(e, 'approver_id', None),
+        "approver_name": _user_name(getattr(e, 'approver', None)),
+        # Transação
+        "bank_id": getattr(e, 'bank_id', None),
+        "bank_name": e.bank.name if getattr(e, 'bank', None) else None,
+        "office": getattr(e, 'office', None),
+        "reference_code": getattr(e, 'reference_code', None),
+        "currency": getattr(e, 'currency', None),
+        "amount": getattr(e, 'amount', None),
+        "final_client": getattr(e, 'final_client', None),
+        # Classificação
         "category_id": e.category_id,
         "category_name": e.category.name if e.category else None,
         "product_id": e.product_id,
         "product_name": e.product.name if hasattr(e, 'product') and e.product else None,
+        "impact_id": getattr(e, 'impact_id', None),
+        "impact_name": e.impact.name if getattr(e, 'impact', None) else None,
+        "origin_id": getattr(e, 'origin_id', None),
+        "origin_name": e.origin.name if getattr(e, 'origin', None) else None,
+        "detected_by_id": getattr(e, 'detected_by_id', None),
+        "detected_by_name": e.detected_by.name if getattr(e, 'detected_by', None) else None,
+        "department_id": getattr(e, 'department_id', None),
+        "department_name": e.department.name if getattr(e, 'department', None) else None,
+        "activity_id": getattr(e, 'activity_id', None),
+        "activity_name": e.activity.name if getattr(e, 'activity', None) else None,
+        "error_type_id": getattr(e, 'error_type_id', None),
+        "error_type_name": e.error_type.name if getattr(e, 'error_type', None) else None,
+        # Estado
         "severity": e.severity,
         "status": e.status,
         "tags": e.tags,
         "analysis_5_why": e.analysis_5_why,
         "is_recurrent": e.is_recurrent,
         "recurrence_count": e.recurrence_count,
+        "recurrence_type": getattr(e, 'recurrence_type', None),
         "is_active": e.is_active,
         "inactivation_reason": e.inactivation_reason,
         "plans_count": len(e.action_plans),
@@ -137,6 +215,12 @@ class PlanIn(BaseModel):
     who: Optional[str] = None
     how: Optional[str] = None
     how_much: Optional[str] = None
+
+    @validator("when_deadline", pre=True)
+    def _empty_date_to_none(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
 
 class PlanUpdate(BaseModel):
     analysis_5_why: Optional[str] = None
@@ -262,8 +346,16 @@ def _errors_query(db: Session, user: User):
         .options(
             joinedload(TutoriaError.tutorado),
             joinedload(TutoriaError.creator),
+            joinedload(TutoriaError.approver),
+            joinedload(TutoriaError.bank),
             joinedload(TutoriaError.category),
             joinedload(TutoriaError.product),
+            joinedload(TutoriaError.impact),
+            joinedload(TutoriaError.origin),
+            joinedload(TutoriaError.detected_by),
+            joinedload(TutoriaError.department),
+            joinedload(TutoriaError.activity),
+            joinedload(TutoriaError.error_type),
             joinedload(TutoriaError.action_plans).joinedload(TutoriaActionPlan.items),
             joinedload(TutoriaError.motivos),
         )
@@ -391,7 +483,7 @@ def create_error(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    require_manager(current_user)
+    # Any authenticated user can register a client error
 
     tutorado = db.get(User, body.tutorado_id)
     if not tutorado:
@@ -412,14 +504,32 @@ def create_error(
 
     error = TutoriaError(
         date_occurrence=body.date_occurrence,
+        date_detection=body.date_detection,
+        date_solution=body.date_solution,
         description=body.description,
+        solution=body.solution,
+        action_plan_text=body.action_plan_text,
         tutorado_id=body.tutorado_id,
         created_by_id=current_user.id,
+        approver_id=body.approver_id,
+        bank_id=body.bank_id,
+        office=body.office,
+        reference_code=body.reference_code,
+        currency=body.currency,
+        amount=body.amount,
+        final_client=body.final_client,
+        impact_id=body.impact_id,
+        origin_id=body.origin_id,
         category_id=body.category_id,
+        detected_by_id=body.detected_by_id,
+        department_id=body.department_id,
+        activity_id=body.activity_id,
+        error_type_id=body.error_type_id,
         product_id=body.product_id,
         severity=body.severity,
         tags=body.tags,
         analysis_5_why=body.analysis_5_why,
+        recurrence_type=body.recurrence_type,
         is_recurrent=(count > 0),
         recurrence_count=count,
     )
@@ -444,8 +554,15 @@ def create_error(
         .options(
             joinedload(TutoriaError.tutorado),
             joinedload(TutoriaError.creator),
+            joinedload(TutoriaError.approver),
+            joinedload(TutoriaError.bank),
             joinedload(TutoriaError.category),
             joinedload(TutoriaError.product),
+            joinedload(TutoriaError.impact),
+            joinedload(TutoriaError.origin),
+            joinedload(TutoriaError.detected_by),
+            joinedload(TutoriaError.department),
+            joinedload(TutoriaError.activity),
             joinedload(TutoriaError.action_plans),
             joinedload(TutoriaError.motivos),
         )
@@ -466,8 +583,15 @@ def get_error(
         .options(
             joinedload(TutoriaError.tutorado),
             joinedload(TutoriaError.creator),
+            joinedload(TutoriaError.approver),
+            joinedload(TutoriaError.bank),
             joinedload(TutoriaError.category),
             joinedload(TutoriaError.product),
+            joinedload(TutoriaError.impact),
+            joinedload(TutoriaError.origin),
+            joinedload(TutoriaError.detected_by),
+            joinedload(TutoriaError.department),
+            joinedload(TutoriaError.activity),
             joinedload(TutoriaError.action_plans)
             .joinedload(TutoriaActionPlan.items)
             .joinedload(TutoriaActionItem.responsible),
@@ -505,8 +629,16 @@ def update_error(
         .options(
             joinedload(TutoriaError.tutorado),
             joinedload(TutoriaError.creator),
+            joinedload(TutoriaError.approver),
+            joinedload(TutoriaError.bank),
             joinedload(TutoriaError.category),
             joinedload(TutoriaError.product),
+            joinedload(TutoriaError.impact),
+            joinedload(TutoriaError.origin),
+            joinedload(TutoriaError.detected_by),
+            joinedload(TutoriaError.department),
+            joinedload(TutoriaError.activity),
+            joinedload(TutoriaError.error_type),
             joinedload(TutoriaError.action_plans),
             joinedload(TutoriaError.motivos),
         )
@@ -574,29 +706,40 @@ def create_plan(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    require_manager(current_user)
+    _require_tutor_or_admin(current_user)
     error = db.get(TutoriaError, error_id)
     if not error or not error.is_active:
         raise HTTPException(404, "Erro não encontrado")
 
-    plan = TutoriaActionPlan(
-        error_id=error_id,
-        created_by_id=current_user.id,
-        **body.model_dump(),
-    )
-    db.add(plan)
+    # Validate tutorado exists
+    tutorado = db.get(User, body.tutorado_id)
+    if not tutorado:
+        raise HTTPException(400, "Tutorado não encontrado")
 
-    if error.status == "ABERTO":
-        error.status = "PLANO_CRIADO"
+    try:
+        plan = TutoriaActionPlan(
+            error_id=error_id,
+            created_by_id=current_user.id,
+            **body.model_dump(),
+        )
+        db.add(plan)
 
-    db.commit()
-    db.refresh(plan)
+        if error.status == "ABERTO":
+            error.status = "PLANO_CRIADO"
+
+        db.commit()
+        db.refresh(plan)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, f"Erro ao criar plano: {str(e)}")
 
     plan = (
         _plans_query(db, current_user)
         .filter(TutoriaActionPlan.id == plan.id)
         .first()
     )
+    if not plan:
+        raise HTTPException(500, "Plano criado mas não encontrado na query")
     return _plan_out(plan)
 
 

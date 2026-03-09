@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertTriangle, Save, X, ChevronDown, Loader2,
-  Calendar, User, Tag, Shield, Hash, CheckCircle2, Plus, Trash2,
+  Calendar, User, Tag, CheckCircle2,
+  Building2, Globe, DollarSign, FileText, Briefcase, Eye,
+  Zap, Target, RefreshCw, ClipboardList, Plus, Trash2,
 } from 'lucide-react';
 import axios from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -11,17 +14,11 @@ import { useTheme } from '../../contexts/ThemeContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface UserItem  { id: number; full_name: string }
-interface Category  { id: number; name: string }
+interface UserItem    { id: number; full_name: string; role?: string }
+interface Category    { id: number; name: string; origin_id?: number | null }
 interface ProductItem { id: number; code: string; name: string }
-interface Motivo    { id: string; typology: string; description: string }
-
-const TYPOLOGY_OPTIONS: { value: string; label: string; color: string; colorLight: string }[] = [
-  { value: 'METHODOLOGY', label: 'Metodologia',  color: 'bg-purple-500/20 text-purple-400 hover:bg-purple-500/30', colorLight: 'bg-purple-100 text-purple-700 hover:bg-purple-200' },
-  { value: 'KNOWLEDGE',   label: 'Conhecimento', color: 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30',     colorLight: 'bg-blue-100 text-blue-700 hover:bg-blue-200' },
-  { value: 'DETAIL',      label: 'Detalhe',      color: 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30',   colorLight: 'bg-amber-100 text-amber-700 hover:bg-amber-200' },
-  { value: 'PROCEDURE',   label: 'Procedimento', color: 'bg-green-500/20 text-green-400 hover:bg-green-500/30',   colorLight: 'bg-green-100 text-green-700 hover:bg-green-200' },
-];
+interface BankItem    { id: number; name: string; code?: string }
+interface LookupItem  { id: number; name: string; description?: string; is_active?: boolean; bank_id?: number | null; department_id?: number | null; activity_id?: number | null }
 
 // ─── Field helpers ────────────────────────────────────────────────────────────
 
@@ -109,75 +106,181 @@ export default function RegisterErrors() {
   const { user } = useAuthStore();
   const { isDark } = useTheme();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
-  // Form fields
-  const [dateOccurrence, setDate]     = useState(() => new Date().toISOString().split('T')[0]);
-  const [description, setDescription] = useState('');
-  const [tutoradoId, setTutorado]     = useState('');
-  const [categoryId, setCategory]     = useState('');
-  const [productId, setProduct]       = useState('');
-  const [severity, setSeverity]       = useState('MEDIA');
-  const [analysis5Why, setAnalysis]   = useState('');
+  // ── Form fields (matching Access form layout) ─────────────────────────────
 
-  // Lists
-  const [users, setUsers]             = useState<UserItem[]>([]);
-  const [categories, setCategories]   = useState<Category[]>([]);
-  const [products, setProducts]       = useState<ProductItem[]>([]);
+  // Row 1 — Dates
+  const [dateOccurrence, setDate]         = useState(() => new Date().toISOString().split('T')[0]);
+  const [dateDetection, setDateDetection] = useState('');
+  const [dateSolution, setDateSolution]   = useState('');
 
-  // UI
+  // Row 2 — Transaction + Classification
+  const [bankId, setBankId]               = useState('');
+  const [office, setOffice]               = useState('');
+  const [referenceCode, setReferenceCode] = useState('');
+  const [currency, setCurrency]           = useState('');
+  const [amount, setAmount]               = useState('');
+  const [finalClient, setFinalClient]     = useState('');
+  const [impactId, setImpactId]           = useState('');
+  const [originId, setOriginId]           = useState('');
+  const [categoryId, setCategory]         = useState('');   // Tipología Error
+  const [detectedById, setDetectedById]   = useState('');
+
+  // Row 3 — People
+  const [tutoradoId, setTutorado]   = useState('');  // Grabador
+  const [approverId, setApproverId] = useState('');  // Liberador
+
+  // Row 4 — Details
+  const [departmentId, setDepartmentId] = useState('');
+  const [activityId, setActivityId]     = useState('');   // EVENTO (depends on Banco + Depto)
+  const [errorTypeId, setErrorTypeId]   = useState('');   // Tipo Error (depends on Actividad)
+  const [productId, setProduct]         = useState('');
+  const [description, setDescription]   = useState('');
+  const [recurrenceType, setRecurrence] = useState('');
+
+  // ── Lists ─────────────────────────────────────────────────────────────────
+  const [allUsers, setAllUsers]     = useState<UserItem[]>([]);  // All users except ADMIN
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts]     = useState<ProductItem[]>([]);
+  const [banks, setBanks]           = useState<BankItem[]>([]);
+  const [impacts, setImpacts]       = useState<LookupItem[]>([]);
+  const [origins, setOrigins]       = useState<LookupItem[]>([]);
+  const [detectedBy, setDetectedBy] = useState<LookupItem[]>([]);
+  const [departments, setDepts]      = useState<LookupItem[]>([]);
+  const [activities, setActivities]  = useState<LookupItem[]>([]);
+  const [errorTypes, setErrorTypes]  = useState<LookupItem[]>([]);
+
+  // ── UI ────────────────────────────────────────────────────────────────────
   const [saving, setSaving] = useState(false);
   const [saved, setSaved]   = useState(false);
   const [error, setError]   = useState('');
 
-  // Motivos (multiple per error)
-  const [motivos, setMotivos] = useState<Motivo[]>([]);
+  const recurrenceOptions = [
+    { value: 'FIRST',     label: t('registerError.recurrencePuntual') },
+    { value: 'RECURRENT', label: t('registerError.recurrenceRecurrent') },
+    { value: 'SYSTEMIC',  label: t('registerError.recurrenceSystemic') },
+  ];
 
+  // ── Motivos do Erro ─────────────────────────────────────────────────────
+  interface Motivo { id: number; typology: string; description: string; references: string[] }
+  const TYPOLOGY_OPTIONS = [
+    { value: 'METHODOLOGY', label: t('registerError.typologyMethodology'), color: 'from-purple-500 to-indigo-500' },
+    { value: 'KNOWLEDGE',   label: t('registerError.typologyKnowledge'), color: 'from-blue-500 to-cyan-500' },
+    { value: 'DETAIL',      label: t('registerError.typologyDetail'), color: 'from-amber-500 to-orange-500' },
+    { value: 'PROCEDURE',   label: t('registerError.typologyProcedure'), color: 'from-emerald-500 to-teal-500' },
+  ];
+  const [motivos, setMotivos] = useState<Motivo[]>([]);
+  // Parse comma-separated references from the Referencia field
+  const parsedRefs = referenceCode.split(',').map(r => r.trim()).filter(Boolean);
+  let motivoIdCounter = motivos.length > 0 ? Math.max(...motivos.map(m => m.id)) + 1 : 1;
   const addMotivo = (typology: string) => {
-    setMotivos(prev => [...prev, { id: Date.now().toString(), typology, description: '' }]);
+    setMotivos(prev => [...prev, { id: motivoIdCounter++, typology, description: '', references: [] }]);
   };
-  const removeMotivo = (id: string) => {
+  const removeMotivo = (id: number) => {
     setMotivos(prev => prev.filter(m => m.id !== id));
   };
-  const updateMotivoDesc = (id: string, description: string) => {
-    setMotivos(prev => prev.map(m => m.id === id ? { ...m, description } : m));
+  const updateMotivoDesc = (id: number, desc: string) => {
+    setMotivos(prev => prev.map(m => m.id === id ? { ...m, description: desc } : m));
+  };
+  const toggleMotivoRef = (id: number, ref: string) => {
+    setMotivos(prev => prev.map(m => {
+      if (m.id !== id) return m;
+      const has = m.references.includes(ref);
+      return { ...m, references: has ? m.references.filter(r => r !== ref) : [...m.references, ref] };
+    }));
   };
 
   useEffect(() => {
+    const safe = async (fn: () => Promise<void>) => { try { await fn(); } catch { /* ignore */ } };
+
     (async () => {
-      // Load categories
-      try {
-        const r = await axios.get('/api/tutoria/categories');
-        setCategories(Array.isArray(r.data) ? r.data : []);
-      } catch { /* ignore */ }
-
-      // Load products (serviços)
-      try {
-        const r = await axios.get('/api/tutoria/products');
-        setProducts(Array.isArray(r.data) ? r.data : []);
-      } catch { /* ignore */ }
-
-      // Load tutorados visible to current user
-      try {
-        const r = await axios.get('/api/tutoria/students');
-        const data = Array.isArray(r.data) ? r.data : [];
-        if (data.length > 0) {
-          setUsers(data);
-        } else if (user) {
-          // Fallback: at least current user
-          setUsers([{ id: user.id, full_name: user.full_name }]);
-        }
-      } catch {
-        if (user) setUsers([{ id: user.id, full_name: user.full_name }]);
-      }
+      await Promise.all([
+        safe(async () => { const r = await axios.get('/api/tutoria/categories'); setCategories(Array.isArray(r.data) ? r.data : []); }),
+        safe(async () => { const r = await axios.get('/api/tutoria/products');    setProducts(Array.isArray(r.data) ? r.data : []); }),
+        safe(async () => {
+          // Load all users except ADMIN — used for Grabador and Liberador
+          const r = await axios.get('/api/tutoria/team');
+          const data = Array.isArray(r.data) ? r.data : [];
+          setAllUsers(data.filter((u: UserItem) => u.role !== 'ADMIN'));
+        }),
+        safe(async () => { const r = await axios.get('/api/admin/banks');              setBanks(Array.isArray(r.data) ? r.data : []); }),
+        safe(async () => { const r = await axios.get('/api/admin/master/impacts');     setImpacts(Array.isArray(r.data) ? r.data : []); }),
+        safe(async () => { const r = await axios.get('/api/admin/master/origins');     setOrigins(Array.isArray(r.data) ? r.data : []); }),
+        safe(async () => { const r = await axios.get('/api/admin/master/detected-by'); setDetectedBy(Array.isArray(r.data) ? r.data : []); }),
+        safe(async () => { const r = await axios.get('/api/admin/master/departments'); setDepts(Array.isArray(r.data) ? r.data : []); }),
+        safe(async () => { const r = await axios.get('/api/admin/master/activities');  setActivities(Array.isArray(r.data) ? r.data : []); }),
+        safe(async () => { const r = await axios.get('/api/admin/master/error-types'); setErrorTypes(Array.isArray(r.data) ? r.data : []); }),
+      ]);
     })();
   }, [user]);
+
+  // ── Cascading Dependencies ──────────────────────────────────────────────
+
+  // Actividad depends on Banco + Depto → filter activities by bank_id & department_id
+  const filteredActivities = activities.filter(a => {
+    if (a.is_active === false) return false;
+    // If activity has no bank/dept dependency (legacy), always show
+    if (!a.bank_id && !a.department_id) return true;
+    // Filter by selected bank
+    if (bankId && a.bank_id && a.bank_id !== Number(bankId)) return false;
+    // Filter by selected department
+    if (departmentId && a.department_id && a.department_id !== Number(departmentId)) return false;
+    // If neither bank nor dept selected yet, show all
+    if (!bankId && !departmentId) return true;
+    // If only bank selected, match bank
+    if (bankId && !departmentId) return a.bank_id === Number(bankId);
+    // If only dept selected, match dept
+    if (!bankId && departmentId) return a.department_id === Number(departmentId);
+    return true;
+  });
+
+  // Tipo Error depends on Actividad → filter error_types by activity_id
+  const filteredErrorTypes = errorTypes.filter(et => {
+    if (et.is_active === false) return false;
+    if (!activityId) return true; // show all if no activity selected
+    if (!et.activity_id) return true; // generic types always visible
+    return et.activity_id === Number(activityId);
+  });
+
+  // Tipología Error depends on Origen → filter categories by origin_id
+  const filteredCategories = categories.filter(c => {
+    if (!originId) return true; // show all if no origin selected
+    if (!(c as any).origin_id) return true; // legacy categories always visible
+    return (c as any).origin_id === Number(originId);
+  });
+
+  // Reset dependent fields when parent changes
+  useEffect(() => {
+    // When bank or department changes, reset activity (and cascaded error type)
+    setActivityId('');
+    setErrorTypeId('');
+  }, [bankId, departmentId]);
+
+  useEffect(() => {
+    // When activity changes, reset error type
+    setErrorTypeId('');
+  }, [activityId]);
+
+  useEffect(() => {
+    // When origin changes, reset tipología
+    setCategory('');
+  }, [originId]);
 
   const canSave = description.trim() && tutoradoId;
 
   const handleSave = async () => {
     if (!canSave) {
-      setError('Preencha obrigatoriamente a descrição e o tutorado.');
+      setError(t('registerError.validationRequired'));
       return;
+    }
+    // Validate motivos: each must have at least 1 reference linked (if references exist)
+    if (motivos.length > 0 && parsedRefs.length > 0) {
+      const missingRef = motivos.some(m => m.references.length === 0);
+      if (missingRef) {
+        setError(t('registerError.validationMotivosRef'));
+        return;
+      }
     }
     setError('');
     setSaving(true);
@@ -186,16 +289,34 @@ export default function RegisterErrors() {
         date_occurrence: dateOccurrence,
         description:     description.trim(),
         tutorado_id:     Number(tutoradoId),
-        category_id:     categoryId ? Number(categoryId) : null,
-        product_id:      productId ? Number(productId) : null,
-        severity,
-        analysis_5_why:  analysis5Why.trim() || null,
-        motivos:         motivos.length > 0 ? motivos.map(m => ({ typology: m.typology, description: m.description.trim() || null })) : null,
+        category_id:     categoryId  ? Number(categoryId) : null,
+        product_id:      productId   ? Number(productId)  : null,
+        severity:        'MEDIA',
+        // Dates
+        date_detection:  dateDetection || null,
+        date_solution:   dateSolution  || null,
+        // Transaction
+        bank_id:         bankId        ? Number(bankId)        : null,
+        office:          office.trim() || null,
+        reference_code:  referenceCode.trim() || null,
+        currency:        currency.trim() || null,
+        amount:          amount ? parseFloat(amount) : null,
+        final_client:    finalClient.trim() || null,
+        // Classification
+        impact_id:       impactId      ? Number(impactId)      : null,
+        origin_id:       originId      ? Number(originId)      : null,
+        detected_by_id:  detectedById  ? Number(detectedById)  : null,
+        department_id:   departmentId  ? Number(departmentId)  : null,
+        activity_id:     activityId    ? Number(activityId)    : null,
+        error_type_id:   errorTypeId   ? Number(errorTypeId)   : null,
+        approver_id:     approverId    ? Number(approverId)    : null,
+        recurrence_type: recurrenceType || null,
+        motivos: motivos.map(m => ({ typology: m.typology, description: m.description.trim(), references: m.references })),
       });
       setSaved(true);
       setTimeout(() => navigate('/tutoria/errors'), 1200);
     } catch (e: any) {
-      setError(e?.response?.data?.detail || 'Erro ao guardar. Tente novamente.');
+      setError(e?.response?.data?.detail || t('registerError.saveError'));
     } finally {
       setSaving(false);
     }
@@ -209,29 +330,18 @@ export default function RegisterErrors() {
           <div className="w-20 h-20 bg-gradient-to-br from-red-500 to-rose-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-red-500/30">
             <CheckCircle2 className="w-10 h-10 text-white" />
           </div>
-          <h2 className={`text-2xl font-black mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>Erro registado!</h2>
-          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>A redirecionar…</p>
+          <h2 className={`text-2xl font-black mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('registerError.successTitle')}</h2>
+          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('registerError.redirecting')}</p>
         </motion.div>
       </div>
     );
   }
 
-  const severityOptions = [
-    { value: 'BAIXA',   label: 'Baixa — impacto mínimo' },
-    { value: 'MEDIA',   label: 'Média — impacto moderado' },
-    { value: 'ALTA',    label: 'Alta — impacto significativo' },
-    { value: 'CRITICA', label: 'Crítica — impacto grave' },
-  ];
-
-  const severityColors: Record<string, string> = {
-    BAIXA:   isDark ? 'border-green-500/30 bg-green-500/5'  : 'border-green-200 bg-green-50',
-    MEDIA:   isDark ? 'border-yellow-500/30 bg-yellow-500/5' : 'border-yellow-200 bg-yellow-50',
-    ALTA:    isDark ? 'border-orange-500/30 bg-orange-500/5' : 'border-orange-200 bg-orange-50',
-    CRITICA: isDark ? 'border-red-500/30 bg-red-500/5'      : 'border-red-200 bg-red-50',
-  };
+  // ── Users for dropdowns (all except ADMIN) ────────────────────────────────
+  const userOptions = allUsers.map(u => ({ value: String(u.id), label: u.full_name }));
 
   return (
-    <div className="space-y-8 max-w-3xl">
+    <div className="space-y-8 max-w-5xl">
 
       {/* ── Page header ──────────────────────────────────────────────────────── */}
       <motion.div
@@ -246,233 +356,376 @@ export default function RegisterErrors() {
             <AlertTriangle className="w-8 h-8 text-white" />
           </motion.div>
           <div>
-            <span className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-red-400' : 'text-red-500'}`}>Tutoria</span>
-            <h1 className={`text-4xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>Registar Erro</h1>
+            <span className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-red-400' : 'text-red-500'}`}>{t('registerError.portalLabel')}</span>
+            <h1 className={`text-4xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('registerError.pageTitle')}</h1>
             <p className={`mt-1 text-sm ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
-              Registe um erro cometido pela equipa para análise e acompanhamento
+              {t('registerError.pageSubtitle')}
             </p>
           </div>
         </div>
       </motion.div>
 
-      {/* ── Card: Informação do Erro ─────────────────────────────────────────── */}
+      {/* ═══════════════════════════════════════════════════════════════════════
+          ROW 1 — Fecha Error · Fch Detección · Fch Solución
+          ═══════════════════════════════════════════════════════════════════════ */}
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
         className={`rounded-2xl border overflow-hidden ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
       >
         <div className={`px-6 py-4 border-b flex items-center gap-3 ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
           <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-rose-600 rounded-lg flex items-center justify-center shadow-md shadow-red-500/20">
-            <Hash className="w-4 h-4 text-white" />
+            <Calendar className="w-4 h-4 text-white" />
           </div>
-          <div>
-            <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Informação do Erro</p>
-            <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Dados de contexto sobre a ocorrência</p>
-          </div>
+          <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('registerError.dates')}</p>
         </div>
-
-        <div className="p-6 space-y-5">
-          {/* Linha 1: Data + Tutorado */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             <div>
-              <FieldLabel icon={Calendar} isDark={isDark} required>Data da Ocorrência</FieldLabel>
+              <FieldLabel icon={Calendar} isDark={isDark} required>{t('registerError.dateError')}</FieldLabel>
               <InputField type="date" value={dateOccurrence} onChange={setDate} isDark={isDark} />
             </div>
             <div>
-              <FieldLabel icon={User} isDark={isDark} required>Tutorado</FieldLabel>
-              <SelectField
-                value={tutoradoId}
-                onChange={setTutorado}
-                options={users.map(u => ({ value: String(u.id), label: u.full_name }))}
-                placeholder="Seleccionar tutorado"
-                isDark={isDark}
-              />
-            </div>
-          </div>
-
-          {/* Linha 2: Categoria + Gravidade */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div>
-              <FieldLabel icon={Tag} isDark={isDark}>Categoria</FieldLabel>
-              <SelectField
-                value={categoryId}
-                onChange={setCategory}
-                options={categories.map(c => ({ value: String(c.id), label: c.name }))}
-                placeholder="Seleccionar categoria"
-                isDark={isDark}
-              />
+              <FieldLabel icon={Calendar} isDark={isDark}>{t('registerError.dateDetection')}</FieldLabel>
+              <InputField type="date" value={dateDetection} onChange={setDateDetection} isDark={isDark} />
             </div>
             <div>
-              <FieldLabel icon={Tag} isDark={isDark}>Serviço</FieldLabel>
-              <SelectField
-                value={productId}
-                onChange={setProduct}
-                options={products.map(p => ({ value: String(p.id), label: p.name }))}
-                placeholder="Seleccionar serviço"
-                isDark={isDark}
-              />
+              <FieldLabel icon={Calendar} isDark={isDark}>{t('registerError.dateSolution')}</FieldLabel>
+              <InputField type="date" value={dateSolution} onChange={setDateSolution} isDark={isDark} />
             </div>
           </div>
-
-          {/* Linha 3: Gravidade */}
-          <div>
-            <FieldLabel icon={Shield} isDark={isDark} required>Gravidade</FieldLabel>
-            <SelectField
-              value={severity}
-              onChange={setSeverity}
-              options={severityOptions}
-              isDark={isDark}
-            />
-          </div>
-
-          {/* Severity visual indicator */}
-          {severity && (
-            <div className={`rounded-xl border p-3 text-xs font-medium transition-all ${severityColors[severity]}`}>
-              <strong className={isDark ? 'text-white' : 'text-gray-900'}>Gravidade {severity === 'CRITICA' ? 'Crítica' : severity === 'ALTA' ? 'Alta' : severity === 'MEDIA' ? 'Média' : 'Baixa'}:</strong>{' '}
-              <span className={isDark ? 'text-gray-300' : 'text-gray-700'}>
-                {severity === 'CRITICA' ? 'Este erro tem impacto grave. Será notificado ao administrador.' :
-                 severity === 'ALTA' ? 'Este erro tem impacto significativo na operação.' :
-                 severity === 'MEDIA' ? 'Este erro tem impacto moderado e requer acompanhamento.' :
-                 'Este erro tem impacto mínimo mas deve ser acompanhado.'}
-              </span>
-            </div>
-          )}
         </div>
       </motion.div>
 
-      {/* ── Card: Motivos ────────────────────────────────────────────────────── */}
+      {/* ═══════════════════════════════════════════════════════════════════════
+          ROW 2 — Banco(Cliente) · Oficina · Referencia · Div · Importe ·
+                  Cliente Final · Impacto · Origen · Tipología Error · Detectado Por
+          ═══════════════════════════════════════════════════════════════════════ */}
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }}
         className={`rounded-2xl border overflow-hidden ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
       >
         <div className={`px-6 py-4 border-b flex items-center gap-3 ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
-          <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-lg flex items-center justify-center shadow-md shadow-indigo-500/20">
-            <Plus className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md shadow-blue-500/20">
+            <Building2 className="w-4 h-4 text-white" />
           </div>
-          <div>
-            <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Motivos do Erro</p>
-            <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Cada erro pode ter vários motivos — adicione por tipologia</p>
-          </div>
-          {motivos.length > 0 && (
-            <span className={`ml-auto text-xs font-bold px-2.5 py-1 rounded-full ${isDark ? 'bg-indigo-500/15 text-indigo-400' : 'bg-indigo-100 text-indigo-700'}`}>
-              {motivos.length} motivo{motivos.length !== 1 ? 's' : ''}
-            </span>
-          )}
+          <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('registerError.transactionClassification')}</p>
         </div>
-
-        <div className="p-6 space-y-4">
-          {/* Botões para adicionar motivo por tipologia */}
-          <div>
-            <p className={`text-xs font-medium mb-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Adicionar motivo por tipologia:</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {TYPOLOGY_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => addMotivo(opt.value)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isDark ? opt.color : opt.colorLight}`}
-                >
-                  <Plus className="w-4 h-4" />
-                  {opt.label}
-                </button>
-              ))}
+        <div className="p-6 space-y-5">
+          {/* Banco(Cliente) · Oficina · Referencia */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div>
+              <FieldLabel icon={Building2} isDark={isDark}>{t('registerError.bankClient')}</FieldLabel>
+              <SelectField
+                value={bankId}
+                onChange={setBankId}
+                options={banks.map(b => ({ value: String(b.id), label: b.name }))}
+                placeholder={t('registerError.selectBank')}
+                isDark={isDark}
+              />
+            </div>
+            <div>
+              <FieldLabel icon={Globe} isDark={isDark}>{t('registerError.office')}</FieldLabel>
+              <InputField value={office} onChange={setOffice} placeholder={t('registerError.officeHint')} isDark={isDark} />
+            </div>
+            <div>
+              <FieldLabel icon={FileText} isDark={isDark}>{t('registerError.reference')}</FieldLabel>
+              <InputField value={referenceCode} onChange={setReferenceCode} placeholder="3530CLI0000057, 1924CLI0000321…" isDark={isDark} />
+              <p className={`mt-1 text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                {t('registerError.multiRefHint')}
+              </p>
             </div>
           </div>
 
-          {/* Lista de motivos adicionados */}
-          {motivos.length === 0 ? (
-            <div className={`text-center py-6 text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-              Nenhum motivo adicionado — clique nos botões acima para adicionar
+          {/* Div · Importe · Cliente Final */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div>
+              <FieldLabel icon={DollarSign} isDark={isDark}>{t('registerError.currency')}</FieldLabel>
+              <InputField value={currency} onChange={setCurrency} placeholder="EUR, USD…" isDark={isDark} />
             </div>
-          ) : (
-            <div className="space-y-3">
-              <AnimatePresence>
-                {motivos.map((m, idx) => {
-                  const opt = TYPOLOGY_OPTIONS.find(o => o.value === m.typology);
-                  return (
-                    <motion.div
-                      key={m.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className={`flex items-start gap-3 p-4 rounded-xl border ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-200 bg-gray-50'}`}
-                    >
-                      <div className="flex-shrink-0 mt-0.5">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold ${isDark ? (opt?.color.split(' hover:')[0] || 'bg-white/5 text-gray-400') : (opt?.colorLight.split(' hover:')[0] || 'bg-gray-100 text-gray-600')}`}>
-                          #{idx + 1} {opt?.label || m.typology}
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <input
-                          type="text"
-                          value={m.description}
-                          onChange={e => updateMotivoDesc(m.id, e.target.value)}
-                          placeholder="Descrição do motivo (opcional)…"
-                          className={`w-full px-3 py-2 rounded-lg border text-sm outline-none transition-all ${
-                            isDark
-                              ? 'bg-white/[0.04] border-white/10 text-white placeholder-gray-600 focus:border-indigo-500'
-                              : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-indigo-400'
-                          }`}
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeMotivo(m.id)}
-                        className={`flex-shrink-0 mt-0.5 p-2 rounded-lg transition-all ${isDark ? 'text-gray-500 hover:bg-red-500/15 hover:text-red-400' : 'text-gray-400 hover:bg-red-50 hover:text-red-500'}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
+            <div>
+              <FieldLabel icon={DollarSign} isDark={isDark}>{t('registerError.amount')}</FieldLabel>
+              <InputField type="number" value={amount} onChange={setAmount} placeholder="0.00" isDark={isDark} />
             </div>
-          )}
+            <div>
+              <FieldLabel icon={User} isDark={isDark}>{t('registerError.finalClient')}</FieldLabel>
+              <InputField value={finalClient} onChange={setFinalClient} placeholder={t('registerError.finalClientHint')} isDark={isDark} />
+            </div>
+          </div>
+
+          {/* Impacto · Origen · Tipología Error · Detectado Por */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
+            <div>
+              <FieldLabel icon={Zap} isDark={isDark}>{t('registerError.impact')}</FieldLabel>
+              <SelectField
+                value={impactId}
+                onChange={setImpactId}
+                options={impacts.filter(i => i.is_active !== false).map(i => ({ value: String(i.id), label: i.name }))}
+                placeholder={t('registerError.select')}
+                isDark={isDark}
+              />
+            </div>
+            <div>
+              <FieldLabel icon={Target} isDark={isDark}>{t('registerError.origin')}</FieldLabel>
+              <SelectField
+                value={originId}
+                onChange={setOriginId}
+                options={origins.filter(i => i.is_active !== false).map(i => ({ value: String(i.id), label: i.name }))}
+                placeholder={t('registerError.select')}
+                isDark={isDark}
+              />
+            </div>
+            <div>
+              <FieldLabel icon={Tag} isDark={isDark}>{t('registerError.errorTypology')}</FieldLabel>
+              <SelectField
+                value={categoryId}
+                onChange={setCategory}
+                options={filteredCategories.map(c => ({ value: String(c.id), label: c.name }))}
+                placeholder={originId ? t('registerError.select') : t('registerError.selectOriginFirst')}
+                isDark={isDark}
+              />
+            </div>
+            <div>
+              <FieldLabel icon={Eye} isDark={isDark}>{t('registerError.detectedBy')}</FieldLabel>
+              <SelectField
+                value={detectedById}
+                onChange={setDetectedById}
+                options={detectedBy.filter(i => i.is_active !== false).map(i => ({ value: String(i.id), label: i.name }))}
+                placeholder={t('registerError.select')}
+                isDark={isDark}
+              />
+            </div>
+          </div>
         </div>
       </motion.div>
 
-      {/* ── Card: Descrição + Análise ────────────────────────────────────────── */}
+      {/* ═══════════════════════════════════════════════════════════════════════
+          ROW 3 — Grabador · Liberador
+          ═══════════════════════════════════════════════════════════════════════ */}
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}
         className={`rounded-2xl border overflow-hidden ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
       >
         <div className={`px-6 py-4 border-b flex items-center gap-3 ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
-          <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-lg flex items-center justify-center shadow-md shadow-orange-500/20">
-            <AlertTriangle className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shadow-md shadow-emerald-500/20">
+            <User className="w-4 h-4 text-white" />
           </div>
-          <div>
-            <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Descrição e Análise</p>
-            <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>Detalhe o erro e a sua causa raiz</p>
+          <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('registerError.people')}</p>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <FieldLabel icon={User} isDark={isDark} required>{t('registerError.recorder')}</FieldLabel>
+              <SelectField
+                value={tutoradoId}
+                onChange={setTutorado}
+                options={userOptions}
+                placeholder={t('registerError.selectRecorder')}
+                isDark={isDark}
+              />
+            </div>
+            <div>
+              <FieldLabel icon={User} isDark={isDark}>{t('registerError.releaser')}</FieldLabel>
+              <SelectField
+                value={approverId}
+                onChange={setApproverId}
+                options={userOptions}
+                placeholder={t('registerError.selectReleaser')}
+                isDark={isDark}
+              />
+            </div>
           </div>
         </div>
+      </motion.div>
 
+      {/* ═══════════════════════════════════════════════════════════════════════
+          ROW 4 — Depto · Actividad · Tipo Error · Descripción · Solución · Recurrencia
+          ═══════════════════════════════════════════════════════════════════════ */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.25 }}
+        className={`rounded-2xl border overflow-hidden ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
+      >
+        <div className={`px-6 py-4 border-b flex items-center gap-3 ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
+          <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-lg flex items-center justify-center shadow-md shadow-orange-500/20">
+            <ClipboardList className="w-4 h-4 text-white" />
+          </div>
+          <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('registerError.incidentDetails')}</p>
+        </div>
         <div className="p-6 space-y-5">
+          {/* Depto · Evento · Tipo Error · Recurrencia */}
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
+            <div>
+              <FieldLabel icon={Building2} isDark={isDark}>{t('registerError.department')}</FieldLabel>
+              <SelectField
+                value={departmentId}
+                onChange={setDepartmentId}
+                options={departments.filter(i => i.is_active !== false).map(i => ({ value: String(i.id), label: i.name }))}
+                placeholder={t('registerError.select')}
+                isDark={isDark}
+              />
+            </div>
+            <div>
+              <FieldLabel icon={ClipboardList} isDark={isDark}>{t('registerError.activity')}</FieldLabel>
+              <SelectField
+                value={activityId}
+                onChange={setActivityId}
+                options={filteredActivities.map(i => ({ value: String(i.id), label: i.name }))}
+                placeholder={bankId || departmentId ? t('registerError.select') : t('registerError.selectBankDept')}
+                isDark={isDark}
+              />
+            </div>
+            <div>
+              <FieldLabel icon={Briefcase} isDark={isDark}>{t('registerError.errorType')}</FieldLabel>
+              <SelectField
+                value={errorTypeId}
+                onChange={setErrorTypeId}
+                options={filteredErrorTypes.map(et => ({ value: String(et.id), label: et.name }))}
+                placeholder={activityId ? t('registerError.select') : t('registerError.selectActivity')}
+                isDark={isDark}
+              />
+            </div>
+            <div>
+              <FieldLabel icon={RefreshCw} isDark={isDark}>{t('registerError.recurrence')}</FieldLabel>
+              <SelectField
+                value={recurrenceType}
+                onChange={setRecurrence}
+                options={recurrenceOptions}
+                placeholder={t('registerError.select')}
+                isDark={isDark}
+              />
+            </div>
+          </div>
+
+          {/* Descripción incidencia */}
           <div>
-            <FieldLabel isDark={isDark} required>Descrição do Erro</FieldLabel>
+            <FieldLabel isDark={isDark} required>{t('registerError.incidentDescription')}</FieldLabel>
             <TextareaField
               value={description}
               onChange={setDescription}
-              placeholder="Descreva em detalhe o que aconteceu, o contexto e o impacto…"
+              placeholder={t('registerError.descriptionHint')}
               rows={4}
               isDark={isDark}
             />
-            <p className={`text-xs mt-1.5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-              {description.length} caracteres — seja específico para facilitar a criação do plano de ação
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          ROW 5 — Motivos do Erro
+          ═══════════════════════════════════════════════════════════════════════ */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.28 }}
+        className={`rounded-2xl border overflow-hidden ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
+      >
+        <div className={`px-6 py-4 border-b flex items-center gap-3 ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
+          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-md shadow-purple-500/20">
+            <Tag className="w-4 h-4 text-white" />
+          </div>
+          <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('registerError.errorReasons')}</p>
+        </div>
+        <div className="p-6 space-y-5">
+          {/* Typology buttons */}
+          <div>
+            <p className={`text-xs font-semibold uppercase tracking-wider mb-3 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              {t('registerError.addReasonByTypology')}
             </p>
+            <div className="flex flex-wrap gap-2">
+              {TYPOLOGY_OPTIONS.map(opt => (
+                <motion.button
+                  key={opt.value}
+                  type="button"
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => addMotivo(opt.value)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r ${opt.color} shadow-md transition-all hover:shadow-lg`}
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  {opt.label}
+                </motion.button>
+              ))}
+            </div>
           </div>
 
-          <div>
-            <FieldLabel isDark={isDark}>Análise de Causa Raiz (5 Porquês)</FieldLabel>
-            <TextareaField
-              value={analysis5Why}
-              onChange={setAnalysis}
-              placeholder="Por que ocorreu? Por que esse motivo ocorreu? (Continue a perguntar 'porquê' até identificar a causa raiz)…"
-              rows={3}
-              isDark={isDark}
-            />
-            <p className={`text-xs mt-1.5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-              Opcional — pode ser preenchido agora ou mais tarde no detalhe do erro
+          {/* Motivos list */}
+          <AnimatePresence>
+            {motivos.map(m => {
+              const opt = TYPOLOGY_OPTIONS.find(o => o.value === m.typology);
+              const noRefsEntered = parsedRefs.length === 0;
+              const missingRef = !noRefsEntered && m.references.length === 0;
+              return (
+                <motion.div
+                  key={m.id}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className={`p-4 rounded-xl border space-y-3 ${missingRef ? (isDark ? 'border-red-500/30 bg-red-500/[0.04]' : 'border-red-300 bg-red-50/50') : (isDark ? 'bg-white/[0.02] border-white/8' : 'bg-gray-50 border-gray-200')}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-bold text-white bg-gradient-to-r ${opt?.color || 'from-gray-500 to-gray-600'} whitespace-nowrap mt-1`}>
+                      {opt?.label || m.typology}
+                    </span>
+                    <div className="flex-1">
+                      <TextareaField
+                        value={m.description}
+                        onChange={(v) => updateMotivoDesc(m.id, v)}
+                        placeholder={t('registerError.reasonDescHint')}
+                        rows={2}
+                        isDark={isDark}
+                      />
+                    </div>
+                    <motion.button
+                      type="button"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => removeMotivo(m.id)}
+                      className="mt-1 p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-all"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </motion.button>
+                  </div>
+
+                  {/* Reference checkboxes */}
+                  {parsedRefs.length > 0 ? (
+                    <div className="pl-1">
+                      <p className={`text-[10px] font-semibold uppercase tracking-wider mb-2 ${missingRef ? 'text-red-400' : (isDark ? 'text-gray-500' : 'text-gray-400')}`}>
+                        {t('registerError.linkedRefs')} {missingRef && t('registerError.selectAtLeast1')}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {parsedRefs.map(ref => {
+                          const selected = m.references.includes(ref);
+                          return (
+                            <button
+                              key={ref}
+                              type="button"
+                              onClick={() => toggleMotivoRef(m.id, ref)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold border transition-all ${
+                                selected
+                                  ? 'bg-red-500/90 text-white border-red-500 shadow-md shadow-red-500/20'
+                                  : isDark
+                                    ? 'bg-white/[0.04] border-white/10 text-gray-400 hover:border-red-500/40 hover:text-white'
+                                    : 'bg-white border-gray-200 text-gray-500 hover:border-red-400/40 hover:text-gray-700'
+                              }`}
+                            >
+                              {ref}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className={`text-[10px] italic pl-1 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                      {t('registerError.enterRefsAbove')}
+                    </p>
+                  )}
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+
+          {motivos.length === 0 && (
+            <p className={`text-center py-4 text-xs italic ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+              {t('registerError.noReasons')}
             </p>
-          </div>
+          )}
         </div>
       </motion.div>
 
@@ -497,17 +750,15 @@ export default function RegisterErrors() {
           isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'
         }`}
       >
-        {/* Validation summary */}
         <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
           {!tutoradoId && !description.trim()
-            ? <span className={isDark ? 'text-gray-600' : 'text-gray-400'}>Preencha os campos obrigatórios *</span>
+            ? <span className={isDark ? 'text-gray-600' : 'text-gray-400'}>{t('registerError.fillRequired')}</span>
             : !tutoradoId
-              ? <span className="text-orange-400">Seleccione o tutorado *</span>
+              ? <span className="text-orange-400">{t('registerError.selectRecorderHint')}</span>
               : !description.trim()
-                ? <span className="text-orange-400">Preencha a descrição *</span>
-                : <span className={isDark ? 'text-green-400' : 'text-green-600'}>✓ Pronto para guardar</span>}
+                ? <span className="text-orange-400">{t('registerError.fillDescription')}</span>
+                : <span className={isDark ? 'text-green-400' : 'text-green-600'}>{t('registerError.readyToSave')}</span>}
         </div>
-
         <div className="flex items-center gap-2">
           <motion.button
             whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
@@ -518,7 +769,7 @@ export default function RegisterErrors() {
                 : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900'
             }`}
           >
-            <X className="w-4 h-4" /> Cancelar
+            <X className="w-4 h-4" /> {t('registerError.exit')}
           </motion.button>
           <motion.button
             whileHover={{ scale: 1.03, boxShadow: '0 12px 30px rgba(239,68,68,.4)' }}
@@ -528,8 +779,8 @@ export default function RegisterErrors() {
             className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-400 hover:to-rose-400 text-white text-sm font-bold shadow-lg shadow-red-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> A guardar…</>
-              : <><Save className="w-4 h-4" /> Guardar Erro</>}
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('registerError.saving')}</>
+              : <><Save className="w-4 h-4" /> {t('registerError.save')}</>}
           </motion.button>
         </div>
       </motion.div>

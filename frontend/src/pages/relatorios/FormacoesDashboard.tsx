@@ -5,6 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -23,9 +24,6 @@ interface FormData {
 }
 
 const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'];
-const PLAN_LABELS: Record<string, string> = {
-  PENDING: 'Pendente', IN_PROGRESS: 'Em Curso', COMPLETED: 'Concluído', DELAYED: 'Atrasado',
-};
 
 function KpiCard({ icon: Icon, label, value, sub, color }: { icon: any; label: string; value: string | number; sub?: string; color: string }) {
   const { isDark } = useTheme();
@@ -44,6 +42,7 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: any; label: s
 }
 
 export default function FormacoesDashboard() {
+  const { t } = useTranslation();
   const { token } = useAuthStore();
   const { isDark } = useTheme();
   const [data, setData] = useState<FormData | null>(null);
@@ -54,41 +53,45 @@ export default function FormacoesDashboard() {
       .then(r => r.json()).then(setData).finally(() => setLoading(false));
   }, [token]);
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>;
+  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-red-500" /></div>;
   if (!data) return null;
 
-  const planChartData = Object.entries(data.plan_status).map(([k, v]) => ({ name: PLAN_LABELS[k] || k, value: v }));
+  const planLabels: Record<string, string> = {
+    PENDING: t('relFormacoes.planPending'), IN_PROGRESS: t('relFormacoes.planInProgress'),
+    COMPLETED: t('relFormacoes.planCompleted'), DELAYED: t('relFormacoes.planDelayed'),
+  };
+  const planChartData = Object.entries(data.plan_status).map(([k, v]) => ({ name: planLabels[k] || k, value: v }));
   const errData = [
-    { name: 'Metodologia', value: data.error_breakdown.methodology },
-    { name: 'Conhecimento', value: data.error_breakdown.knowledge },
-    { name: 'Detalhe', value: data.error_breakdown.detail },
-    { name: 'Procedimento', value: data.error_breakdown.procedure },
+    { name: t('relFormacoes.errMethodology'), value: data.error_breakdown.methodology },
+    { name: t('relFormacoes.errKnowledge'), value: data.error_breakdown.knowledge },
+    { name: t('relFormacoes.errDetail'), value: data.error_breakdown.detail },
+    { name: t('relFormacoes.errProcedure'), value: data.error_breakdown.procedure },
   ].filter(d => d.value > 0);
   const axisColor = isDark ? '#6b7280' : '#9ca3af';
 
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
-        <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>Portal de Formações</p>
-        <h1 className={`text-3xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>Relatório de Formações</h1>
+        <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{t('relFormacoes.portalTitle')}</p>
+        <h1 className={`text-3xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('relFormacoes.title')}</h1>
       </div>
 
       {/* KPIs */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
         className="grid grid-cols-2 lg:grid-cols-3 gap-4"
       >
-        <KpiCard icon={BookOpen} label="Inscrições" value={data.total_enrollments}
-          sub={`${data.completed_enrollments} concluídas`} color="bg-gradient-to-br from-blue-600 to-blue-500" />
-        <KpiCard icon={CheckCircle2} label="Taxa de Conclusão" value={`${data.completion_rate}%`}
+        <KpiCard icon={BookOpen} label={t('relFormacoes.enrollments')} value={data.total_enrollments}
+          sub={t('relFormacoes.completedSub', { count: data.completed_enrollments })} color="bg-gradient-to-br from-blue-600 to-blue-500" />
+        <KpiCard icon={CheckCircle2} label={t('relFormacoes.completionRate')} value={`${data.completion_rate}%`}
           color="bg-gradient-to-br from-emerald-600 to-emerald-500" />
-        <KpiCard icon={Target} label="Taxa de Aprovação" value={`${data.approval_rate}%`}
-          sub={`${data.approved_submissions}/${data.total_submissions} submissões`}
+        <KpiCard icon={Target} label={t('relFormacoes.approvalRate')} value={`${data.approval_rate}%`}
+          sub={t('relFormacoes.submissionsSub', { approved: data.approved_submissions, total: data.total_submissions })}
           color="bg-gradient-to-br from-purple-600 to-purple-500" />
-        <KpiCard icon={Clock} label="Horas de Estudo" value={`${data.total_study_hours}h`}
+        <KpiCard icon={Clock} label={t('relFormacoes.studyHours')} value={`${data.total_study_hours}h`}
           color="bg-gradient-to-br from-amber-600 to-amber-500" />
-        <KpiCard icon={GraduationCap} label="MPU Médio" value={data.avg_mpu > 0 ? `${data.avg_mpu}` : '—'}
-          sub="min/operação" color="bg-gradient-to-br from-teal-600 to-teal-500" />
-        <KpiCard icon={Award} label="Certificados" value={data.total_certificates}
+        <KpiCard icon={GraduationCap} label={t('relFormacoes.avgMpu')} value={data.avg_mpu > 0 ? `${data.avg_mpu}` : '—'}
+          sub={t('relFormacoes.minPerOperation')} color="bg-gradient-to-br from-teal-600 to-teal-500" />
+        <KpiCard icon={Award} label={t('relFormacoes.certificates')} value={data.total_certificates}
           color="bg-gradient-to-br from-yellow-600 to-yellow-500" />
       </motion.div>
 
@@ -98,7 +101,7 @@ export default function FormacoesDashboard() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
           className={`rounded-2xl border p-5 ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
         >
-          <p className={`text-sm font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Planos por Estado</p>
+          <p className={`text-sm font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('relFormacoes.plansByStatus')}</p>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={planChartData} barSize={32}>
               <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#ffffff10' : '#f3f4f6'} />
@@ -116,7 +119,7 @@ export default function FormacoesDashboard() {
             className={`rounded-2xl border p-5 ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
           >
             <p className={`text-sm font-bold mb-4 flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-              <AlertCircle className="w-4 h-4 text-red-500" /> Erros por Tipologia (Desafios)
+              <AlertCircle className="w-4 h-4 text-red-500" /> {t('relFormacoes.errorsByTypology')}
             </p>
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>

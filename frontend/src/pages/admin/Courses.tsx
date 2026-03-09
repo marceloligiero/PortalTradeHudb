@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { getTranslatedProductName } from '../../utils/productTranslation';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface Course {
   id: number;
@@ -56,6 +57,7 @@ interface Product {
 export default function CoursesPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [courses, setCourses] = useState<Course[]>([]);
   const [banks, setBanks] = useState<Bank[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -327,10 +329,11 @@ export default function CoursesPage() {
                 value={filterProduct}
                 onChange={(e) => setFilterProduct(e.target.value)}
                 className="pl-9 pr-8 py-2.5 bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-gray-900 dark:text-white appearance-none min-w-[160px]"
+                style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}
               >
-                <option value="">{t('admin.allProducts') || 'Todos Produtos'}</option>
+                <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('admin.allProducts') || 'Todos Produtos'}</option>
                 {uniqueProducts.map(product => (
-                  <option key={product.id} value={product.id}>{getTranslatedProductName(t, product.code, product.name)}</option>
+                  <option key={product.id} value={product.id} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{getTranslatedProductName(t, product.code, product.name)}</option>
                 ))}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -345,10 +348,11 @@ export default function CoursesPage() {
                 value={filterBank}
                 onChange={(e) => setFilterBank(e.target.value)}
                 className="pl-9 pr-8 py-2.5 bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all text-gray-900 dark:text-white appearance-none min-w-[160px]"
+                style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}
               >
-                <option value="">{t('admin.allBanks') || 'Todos Bancos'}</option>
+                <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('admin.allBanks') || 'Todos Bancos'}</option>
                 {uniqueBanks.map(bank => (
-                  <option key={bank.id} value={bank.id}>{bank.code} - {bank.name}</option>
+                  <option key={bank.id} value={bank.id} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{bank.code} - {bank.name}</option>
                 ))}
               </select>
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />

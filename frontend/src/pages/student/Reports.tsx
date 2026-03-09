@@ -394,10 +394,10 @@ const Reports: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-800'} flex items-center gap-2`}>
               <FileWarning className="w-6 h-6 text-red-500" />
-              Detalhe dos Erros
+              {t('myReports.errorDetails')}
             </h3>
             <span className={`text-sm px-3 py-1 rounded-full ${isDark ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-700'}`}>
-              {filteredErrors.length} {filteredErrors.length === 1 ? 'erro' : 'erros'}
+              {filteredErrors.length} {filteredErrors.length === 1 ? t('myReports.errorSingular') : t('myReports.errorsPlural')}
             </span>
           </div>
 
@@ -411,7 +411,7 @@ const Reports: React.FC = () => {
                   : isDark ? 'bg-white/5 text-gray-400 border-white/10 hover:bg-white/10' : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
               }`}
             >
-              Todos ({error_details.length})
+              {t('myReports.all')} ({error_details.length})
             </button>
             {(Array.from(new Set(error_details.map(e => e.error_type)))).map(type => {
               const count = error_details.filter(e => e.error_type === type).length;
@@ -437,13 +437,13 @@ const Reports: React.FC = () => {
             <table className="w-full">
               <thead>
                 <tr className={`border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
-                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Tipo</th>
-                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Descrição</th>
-                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Plano</th>
-                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Curso</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.type')}</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.description')}</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.plan')}</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.course')}</th>
                   <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.challenge')}</th>
-                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Ref.</th>
-                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Data</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.ref')}</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.date')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -496,12 +496,12 @@ const Reports: React.FC = () => {
                 {showAllErrors ? (
                   <>
                     <ChevronUp className="w-4 h-4" />
-                    Mostrar menos
+                    {t('myReports.showLess')}
                   </>
                 ) : (
                   <>
                     <ChevronDown className="w-4 h-4" />
-                    Ver todos ({filteredErrors.length} erros)
+                    {t('myReports.showAllErrors', { count: filteredErrors.length })}
                   </>
                 )}
               </button>
@@ -532,17 +532,17 @@ const Reports: React.FC = () => {
               <thead>
                 <tr className={`border-b ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
                   <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.challenge')}</th>
-                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Curso</th>
-                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Plano</th>
-                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Tentativa</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.course')}</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.plan')}</th>
+                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.attempt')}</th>
                   <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>MPU</th>
-                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Meta</th>
-                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Ops.</th>
+                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.target')}</th>
+                  <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.ops')}</th>
                   <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.errors')}</th>
                   <th className={`text-center py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.result')}</th>
                   <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('trainingPlanDetail.appliedBy', 'Aplicado por')}</th>
                   <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('trainingPlanDetail.correctedBy', 'Corrigido por')}</th>
-                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>Data</th>
+                  <th className={`text-left py-3 px-4 text-sm font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('myReports.date')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -597,7 +597,7 @@ const Reports: React.FC = () => {
                         ) : challenge.is_approved === false ? (
                           <><XCircle className="w-3.5 h-3.5" /> {t('myReports.rejections')}</>
                         ) : challenge.status === 'PENDING_REVIEW' ? (
-                          <><Clock className="w-3.5 h-3.5" /> Pendente</>
+                          <><Clock className="w-3.5 h-3.5" /> {t('myReports.pendingStatus')}</>
                         ) : (
                           <><Clock className="w-3.5 h-3.5" /> {challenge.status}</>
                         )}

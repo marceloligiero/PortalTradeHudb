@@ -1125,7 +1125,7 @@ async def list_challenge_submissions(
 @router.get("/pending-review/list", response_model=List[schemas.ChallengeSubmissionDetail])
 async def list_pending_review_submissions(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER", "MANAGER"]))
 ):
     """
     Listar todas as submissions pendentes de revisão
