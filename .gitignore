@@ -1,7 +1,7 @@
 /backend/.venv/
 /backend/venv/
 /frontend/node_modules/
-/frontend/dist/
+# /frontend/dist/  # Included in git for production deployment
 /logs/
 *.pyc
 __pycache__/
