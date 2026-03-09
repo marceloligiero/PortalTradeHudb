@@ -36,6 +36,9 @@ export default defineConfig(({ mode }) => {
         '@': path.resolve(__dirname, './src'),
       },
     },
+    optimizeDeps: {
+      include: ['xlsx'],
+    },
     build: {
       // Code splitting for faster parallel loading on mobile
       rollupOptions: {
