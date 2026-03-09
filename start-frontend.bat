@@ -7,9 +7,9 @@ cd /d "%~dp0frontend"
 if not exist "dist\index.html" goto :devmode
 
 echo.
-echo  Starting frontend in PRODUCTION mode (serving dist/)...
+echo  Starting frontend in PRODUCTION mode (serving dist/ on port 5173)...
 echo.
-call npx serve dist -s -l 5173
+python -m http.server 5173 --directory dist --bind 0.0.0.0
 goto :end
 
 :devmode
