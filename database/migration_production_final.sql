@@ -18,7 +18,7 @@
 -- Gerado em: 2026-06
 -- =====================================================================
 
-USE tradehub_db;
+-- NOTA: Não usa USE <database> — a ligação já aponta para a BD correta via DATABASE_URL.
 
 SET FOREIGN_KEY_CHECKS = 0;
 
