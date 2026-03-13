@@ -458,7 +458,7 @@ def _errors_query(db: Session, user: User):
     )
     if user.role == "TRAINER" and not getattr(user, 'is_tutor', False):
         q = q.join(TutoriaError.tutorado).filter(User.tutor_id == user.id)
-    elif user.role in ("STUDENT", "TRAINEE"):
+    elif user.role in ("STUDENT", "TRAINEE") and not is_chefe_referente_manager(user):
         q = q.filter(TutoriaError.tutorado_id == user.id)
     return q
 
@@ -473,9 +473,9 @@ def _plans_query(db: Session, user: User):
             joinedload(TutoriaActionPlan.items).joinedload(TutoriaActionItem.responsible),
         )
     )
-    if user.role == "TRAINER":
+    if user.role == "TRAINER" and not is_chefe_referente_manager(user):
         q = q.join(TutoriaActionPlan.tutorado).filter(User.tutor_id == user.id)
-    elif user.role in ("STUDENT", "TRAINEE"):
+    elif user.role in ("STUDENT", "TRAINEE") and not is_chefe_referente_manager(user):
         q = q.filter(TutoriaActionPlan.tutorado_id == user.id)
     return q
 
@@ -841,10 +841,15 @@ def create_plan(
         raise HTTPException(400, "Tutorado não encontrado")
 
     try:
+        data = body.model_dump()
+        # Map description alias to 'what' column
+        desc = data.pop("description", None)
+        if desc and not data.get("what"):
+            data["what"] = desc
         plan = TutoriaActionPlan(
             error_id=error_id,
             created_by_id=current_user.id,
-            **body.model_dump(),
+            **data,
         )
         db.add(plan)
 
@@ -1523,13 +1528,16 @@ def approve_plans(
         for uid in participants:
             existing = db.query(TutoriaLearningSheet).filter(
                 TutoriaLearningSheet.error_id == error_id,
-                TutoriaLearningSheet.user_id == uid,
+                TutoriaLearningSheet.tutorado_id == uid,
             ).first()
             if not existing:
                 sheet = TutoriaLearningSheet(
                     error_id=error_id,
-                    user_id=uid,
-                    status="PENDING",
+                    tutorado_id=uid,
+                    created_by_id=current_user.id,
+                    title=f"Ficha de aprendizagem — Incidência #{error_id}",
+                    error_summary=error.description or "",
+                    status="PENDENTE",
                     is_mandatory=False,
                     tutor_id=error.tutorado.tutor_id if error.tutorado else None,
                 )
@@ -1757,8 +1765,15 @@ def _sheet_out(s: TutoriaLearningSheet) -> dict:
     return {
         "id": s.id,
         "error_id": s.error_id,
-        "user_id": s.user_id,
-        "user_name": _user_name(s.user) if hasattr(s, 'user') and s.user else None,
+        "user_id": s.tutorado_id,
+        "user_name": _user_name(s.tutorado) if hasattr(s, 'tutorado') and s.tutorado else None,
+        "title": getattr(s, 'title', None),
+        "error_summary": getattr(s, 'error_summary', None),
+        "root_cause": getattr(s, 'root_cause', None),
+        "correct_procedure": getattr(s, 'correct_procedure', None),
+        "key_learnings": getattr(s, 'key_learnings', None),
+        "reference_material": getattr(s, 'reference_material', None),
+        "acknowledgment_note": getattr(s, 'acknowledgment_note', None),
         "status": s.status,
         "is_mandatory": getattr(s, 'is_mandatory', False),
         "reflection": getattr(s, 'reflection', None),
@@ -1784,7 +1799,7 @@ def list_learning_sheets(
     q = (
         db.query(TutoriaLearningSheet)
         .options(
-            joinedload(TutoriaLearningSheet.user),
+            joinedload(TutoriaLearningSheet.tutorado),
             joinedload(TutoriaLearningSheet.tutor),
         )
     )
@@ -1797,6 +1812,67 @@ def list_learning_sheets(
     return [_sheet_out(s) for s in sheets]
 
 
+class CreateSheetIn(BaseModel):
+    error_id: int
+    tutorado_id: Optional[int] = None
+    title: str
+    error_summary: str
+    root_cause: Optional[str] = None
+    correct_procedure: Optional[str] = None
+    key_learnings: Optional[str] = None
+    reference_material: Optional[str] = None
+    is_mandatory: bool = False
+
+
+@router.post("/learning-sheets", status_code=201)
+def create_learning_sheet(
+    body: CreateSheetIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Manually create a learning sheet — Tutor/Manager/Admin only."""
+    if not is_tutor_or_above(current_user):
+        raise HTTPException(403, "Apenas Tutor/Manager/Admin pode criar fichas")
+
+    error = db.get(TutoriaError, body.error_id)
+    if not error:
+        raise HTTPException(404, "Erro não encontrado")
+
+    tutorado_id = body.tutorado_id or error.tutorado_id
+    if tutorado_id:
+        tutorado = db.get(User, tutorado_id)
+        if not tutorado:
+            raise HTTPException(404, "Tutorado não encontrado")
+
+    sheet = TutoriaLearningSheet(
+        error_id=body.error_id,
+        tutorado_id=tutorado_id or current_user.id,
+        created_by_id=current_user.id,
+        title=body.title,
+        error_summary=body.error_summary,
+        root_cause=body.root_cause,
+        correct_procedure=body.correct_procedure,
+        key_learnings=body.key_learnings,
+        reference_material=body.reference_material,
+        is_mandatory=body.is_mandatory,
+        tutor_id=current_user.id,
+    )
+    db.add(sheet)
+    db.flush()
+
+    if tutorado_id and tutorado_id != current_user.id:
+        create_notification(db, tutorado_id, "LEARNING_SHEET",
+                            f"Nova ficha de aprendizagem: {body.title}", error_id=body.error_id)
+    db.commit()
+    sheet = (
+        db.query(TutoriaLearningSheet)
+        .options(joinedload(TutoriaLearningSheet.tutorado), joinedload(TutoriaLearningSheet.tutor))
+        .filter(TutoriaLearningSheet.id == sheet.id)
+        .first()
+    )
+    return _sheet_out(sheet)
+
+
 @router.get("/learning-sheets/mine")
 def my_learning_sheets(
     db: Session = Depends(get_db),
@@ -1806,10 +1882,10 @@ def my_learning_sheets(
     sheets = (
         db.query(TutoriaLearningSheet)
         .options(
-            joinedload(TutoriaLearningSheet.user),
+            joinedload(TutoriaLearningSheet.tutorado),
             joinedload(TutoriaLearningSheet.tutor),
         )
-        .filter(TutoriaLearningSheet.user_id == current_user.id)
+        .filter(TutoriaLearningSheet.tutorado_id == current_user.id)
         .order_by(TutoriaLearningSheet.created_at.desc())
         .all()
     )
@@ -1831,9 +1907,9 @@ def submit_reflection(
     sheet = db.get(TutoriaLearningSheet, sheet_id)
     if not sheet:
         raise HTTPException(404, "Ficha não encontrada")
-    if sheet.user_id != current_user.id:
+    if sheet.tutorado_id != current_user.id:
         raise HTTPException(403, "Só pode submeter a sua própria ficha")
-    if sheet.status not in ("PENDING",):
+    if sheet.status not in ("PENDENTE",):
         raise HTTPException(400, "Ficha já foi submetida")
 
     sheet.reflection = body.reflection
@@ -1849,7 +1925,7 @@ def submit_reflection(
     db.commit()
     sheet = (
         db.query(TutoriaLearningSheet)
-        .options(joinedload(TutoriaLearningSheet.user), joinedload(TutoriaLearningSheet.tutor))
+        .options(joinedload(TutoriaLearningSheet.tutorado), joinedload(TutoriaLearningSheet.tutor))
         .filter(TutoriaLearningSheet.id == sheet_id)
         .first()
     )
@@ -1884,7 +1960,7 @@ def review_sheet(
     db.commit()
     sheet = (
         db.query(TutoriaLearningSheet)
-        .options(joinedload(TutoriaLearningSheet.user), joinedload(TutoriaLearningSheet.tutor))
+        .options(joinedload(TutoriaLearningSheet.tutorado), joinedload(TutoriaLearningSheet.tutor))
         .filter(TutoriaLearningSheet.id == sheet_id)
         .first()
     )

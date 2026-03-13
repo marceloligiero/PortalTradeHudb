@@ -43,6 +43,7 @@ import InternalErrorDetail from './pages/tutoria/InternalErrorDetail';
 import SensoManagement from './pages/tutoria/SensoManagement';
 import LearningSheets from './pages/tutoria/LearningSheets';
 import MyLearningSheets from './pages/tutoria/MyLearningSheets';
+import TutoriaNotifications from './pages/tutoria/TutoriaNotifications';
 import AdminTeams from './pages/admin/Teams';
 import RelatoriosLayout from './pages/relatorios/RelatoriosLayout';
 import RelatoriosOverview from './pages/relatorios/Overview';
@@ -119,6 +120,9 @@ function App() {
         <Route path="censos" element={<SensoManagement />} />
         <Route path="learning-sheets" element={<LearningSheets />} />
         <Route path="my-learning-sheets" element={<MyLearningSheets />} />
+        <Route path="analysis" element={<TutoriaErrors />} />
+        <Route path="tutor-review" element={<TutoriaErrors />} />
+        <Route path="notifications" element={<TutoriaNotifications />} />
       </Route>
 
       {/* ── Portal de Relatórios (todos os roles autenticados) ── */}

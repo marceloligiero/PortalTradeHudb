@@ -26,6 +26,7 @@ interface Sheet {
 
 const STATUS_COLORS: Record<string, { dark: string; light: string }> = {
   PENDING:   { dark: 'bg-yellow-500/15 text-yellow-400', light: 'bg-yellow-50 text-yellow-600' },
+  PENDENTE:  { dark: 'bg-yellow-500/15 text-yellow-400', light: 'bg-yellow-50 text-yellow-600' },
   SUBMITTED: { dark: 'bg-blue-500/15 text-blue-400', light: 'bg-blue-50 text-blue-600' },
   REVIEWED:  { dark: 'bg-green-500/15 text-green-400', light: 'bg-green-50 text-green-600' },
 };
@@ -65,7 +66,8 @@ export default function MyLearningSheets() {
 
   const filtered = sheets.filter(s => !search || String(s.error_id).includes(search) || s.tutor_name?.toLowerCase().includes(search.toLowerCase()));
 
-  const counts = { total: sheets.length, pending: sheets.filter(s => s.status === 'PENDING').length, submitted: sheets.filter(s => s.status === 'SUBMITTED').length, reviewed: sheets.filter(s => s.status === 'REVIEWED').length };
+  const isPending = (s: Sheet) => s.status === 'PENDING' || s.status === 'PENDENTE';
+  const counts = { total: sheets.length, pending: sheets.filter(isPending).length, submitted: sheets.filter(s => s.status === 'SUBMITTED').length, reviewed: sheets.filter(s => s.status === 'REVIEWED').length };
 
   return (
     <div className="space-y-6">
@@ -114,17 +116,17 @@ export default function MyLearningSheets() {
             return (
               <motion.div key={sheet.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.03 }}
                 onClick={() => { setSelected(sheet); setReflection(sheet.reflection || ''); }}
-                className={`group p-5 rounded-2xl border cursor-pointer transition-all hover:shadow-lg ${sheet.status === 'PENDING' ? (isDark ? 'bg-cyan-500/[0.03] border-cyan-500/20 hover:border-cyan-500/30' : 'bg-cyan-50/50 border-cyan-200 hover:border-cyan-300') : (isDark ? 'bg-white/[0.02] border-white/5 hover:border-white/10' : 'bg-white border-gray-200 hover:border-gray-300')}`}>
+                className={`group p-5 rounded-2xl border cursor-pointer transition-all hover:shadow-lg ${isPending(sheet) ? (isDark ? 'bg-cyan-500/[0.03] border-cyan-500/20 hover:border-cyan-500/30' : 'bg-cyan-50/50 border-cyan-200 hover:border-cyan-300') : (isDark ? 'bg-white/[0.02] border-white/5 hover:border-white/10' : 'bg-white border-gray-200 hover:border-gray-300')}`}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      {sheet.status === 'PENDING' && <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />}
+                      {isPending(sheet) && <span className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />}
                       <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
                         <Calendar className="w-3 h-3 inline mr-1" />
                         {new Date(sheet.created_at).toLocaleDateString('pt-PT')}
                       </span>
                       <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${isDark ? scfg.dark : scfg.light}`}>
-                        {sheet.status === 'PENDING' ? <Clock className="w-3 h-3" /> : sheet.status === 'SUBMITTED' ? <Send className="w-3 h-3" /> : <CheckCircle className="w-3 h-3" />}
+                        {isPending(sheet) ? <Clock className="w-3 h-3" /> : sheet.status === 'SUBMITTED' ? <Send className="w-3 h-3" /> : <CheckCircle className="w-3 h-3" />}
                         {sheet.status}
                       </span>
                       {sheet.is_mandatory && (
@@ -176,7 +178,7 @@ export default function MyLearningSheets() {
               </div>
 
               {/* Pending — show reflection textarea + submit */}
-              {selected.status === 'PENDING' && (
+              {(selected.status === 'PENDING' || selected.status === 'PENDENTE') && (
                 <div className="space-y-3 pt-2">
                   <div>
                     <label className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{t('myLearningSheets.reflectionLabel', 'A minha reflexão')}</label>

@@ -17,6 +17,7 @@ import {
   Search as SearchIcon,
   PenTool,
   CheckCircle,
+  MessageSquare,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -160,11 +161,15 @@ export default function TutoriaLayout() {
                   <Calendar className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
                   <span className="tracking-wide">{t('tutoriaSidebar.censos', 'Censos')}</span>
                 </NavLink>
-                <NavLink to="/tutoria/learning-sheets" className={({ isActive }) => navClass(isActive, isDark)}>
-                  <FileText className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-                  <span className="tracking-wide">{t('tutoriaSidebar.learningSheets', 'Fichas de Aprendizagem')}</span>
-                </NavLink>
               </>
+            )}
+
+            {/* ── FICHAS DE APRENDIZAGEM (tutor/chefe/admin) ─── */}
+            {(isManager || isChefe || isReferente) && (
+              <NavLink to="/tutoria/learning-sheets" className={({ isActive }) => navClass(isActive, isDark)}>
+                <FileText className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                <span className="tracking-wide">{t('tutoriaSidebar.learningSheets', 'Fichas de Aprendizagem')}</span>
+              </NavLink>
             )}
 
             {/* ── MY LEARNING SHEETS (básico) ─── */}
@@ -173,6 +178,23 @@ export default function TutoriaLayout() {
                 <FileText className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
                 <span className="tracking-wide">{t('tutoriaSidebar.myLearningSheets', 'Minhas Fichas')}</span>
               </NavLink>
+            )}
+
+            {/* ── ADMIN (Categorias, Chat FAQs) ─── */}
+            {isAdmin && (
+              <>
+                <div className={`mt-6 mb-2 px-5 text-[11px] font-bold uppercase tracking-widest ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                  {t('tutoriaSidebar.adminSection', 'Administração')}
+                </div>
+                <NavLink to="/tutoria/categories" className={({ isActive }) => navClass(isActive, isDark)}>
+                  <PenTool className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                  <span className="tracking-wide">{t('tutoriaSidebar.categories', 'Categorias')}</span>
+                </NavLink>
+                <NavLink to="/tutoria/chat-faqs" className={({ isActive }) => navClass(isActive, isDark)}>
+                  <MessageSquare className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                  <span className="tracking-wide">{t('tutoriaSidebar.chatFaqs', 'Chat FAQs')}</span>
+                </NavLink>
+              </>
             )}
 
             {/* ── NOTIFICAÇÕES (todos) ─── */}

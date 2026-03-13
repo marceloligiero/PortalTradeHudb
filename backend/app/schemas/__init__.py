@@ -25,9 +25,12 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
+    is_pending: Optional[bool] = None
     is_trainer: Optional[bool] = None
     is_tutor: Optional[bool] = None
     is_liberador: Optional[bool] = None
+    is_team_lead: Optional[bool] = None
+    is_referente: Optional[bool] = None
 
 class User(UserBase):
     id: int

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -82,7 +82,13 @@ export default function TutoriaErrors() {
   const { user } = useAuthStore();
   const { isDark } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation();
+
+  // Determine view mode based on route
+  const isAnalysisView = location.pathname.endsWith('/analysis');
+  const isTutorReviewView = location.pathname.endsWith('/tutor-review');
+  const isMyErrorsView = location.pathname.endsWith('/my-errors');
 
   const SEVERITY_LABEL: Record<string, string> = {
     BAIXA: t('tutoriaDetail.severity.BAIXA'),
@@ -109,6 +115,10 @@ export default function TutoriaErrors() {
   const [filterSeverity, setFilterSeverity] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterRecurrent, setFilterRecurrent] = useState('');
+
+  // Status filters per view
+  const ANALYSIS_STATUSES = ['REGISTERED', 'PENDING', 'ABERTO', 'ANALYSIS', 'EM_ANALISE'];
+  const TUTOR_REVIEW_STATUSES = ['PENDING_TUTOR_REVIEW', 'PENDING_CHIEF_APPROVAL'];
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
@@ -126,6 +136,9 @@ export default function TutoriaErrors() {
   }, []);
 
   const filtered = errors.filter(e => {
+    // View-specific status filter
+    if (isAnalysisView && !ANALYSIS_STATUSES.includes(e.status)) return false;
+    if (isTutorReviewView && !TUTOR_REVIEW_STATUSES.includes(e.status)) return false;
     if (filterSeverity && e.severity !== filterSeverity) return false;
     if (filterStatus && e.status !== filterStatus) return false;
     if (filterRecurrent === 'yes' && !e.is_recurrent) return false;
@@ -171,7 +184,10 @@ export default function TutoriaErrors() {
             <div>
               <span className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-red-400' : 'text-red-500'}`}>Tutoria</span>
               <h1 className={`text-4xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {isManager ? t('tutoriaErrors.title') : t('tutoriaErrors.myTitle')}
+                {isAnalysisView ? t('tutoriaErrors.analysisTitle', 'Análise de Incidências')
+                  : isTutorReviewView ? t('tutoriaErrors.tutorReviewTitle', 'Revisão Tutor')
+                  : isMyErrorsView ? t('tutoriaErrors.myTitle')
+                  : isManager ? t('tutoriaErrors.title') : t('tutoriaErrors.myTitle')}
               </h1>
               <p className={`mt-1 text-sm ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
                 {t('tutoriaErrors.errorCount', { count: filtered.length })}
