@@ -458,7 +458,7 @@ def _errors_query(db: Session, user: User):
     )
     if user.role == "TRAINER" and not getattr(user, 'is_tutor', False):
         q = q.join(TutoriaError.tutorado).filter(User.tutor_id == user.id)
-    elif user.role in ("STUDENT", "TRAINEE") and not is_chefe_referente_manager(user):
+    elif user.role in ("STUDENT", "TRAINEE") and not is_chefe_referente_manager(user) and not getattr(user, 'is_tutor', False):
         q = q.filter(TutoriaError.tutorado_id == user.id)
     return q
 
@@ -475,7 +475,7 @@ def _plans_query(db: Session, user: User):
     )
     if user.role == "TRAINER" and not is_chefe_referente_manager(user):
         q = q.join(TutoriaActionPlan.tutorado).filter(User.tutor_id == user.id)
-    elif user.role in ("STUDENT", "TRAINEE") and not is_chefe_referente_manager(user):
+    elif user.role in ("STUDENT", "TRAINEE") and not is_chefe_referente_manager(user) and not getattr(user, 'is_tutor', False):
         q = q.filter(TutoriaActionPlan.tutorado_id == user.id)
     return q
 
@@ -910,8 +910,8 @@ def update_plan(
     for k, v in body.model_dump(exclude_none=True).items():
         setattr(plan, k, v)
     db.commit()
+    db.refresh(plan)
 
-    plan = _plans_query(db, current_user).filter(TutoriaActionPlan.id == plan_id).first()
     return _plan_out(plan)
 
 
