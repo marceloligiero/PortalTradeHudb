@@ -43,8 +43,8 @@ start "TradeHub Frontend" /D "%~dp0" cmd /k call "%~dp0start-frontend.bat"
 echo.
 echo ========================================
 echo  TradeHub is running!
-echo  Backend:  http://localhost:8000
-echo  Frontend: http://localhost:5173
+echo  App:      http://localhost:8000
+echo  API:      http://localhost:8000/api
 echo  Login:    admin@tradehub.com / admin123
 echo ========================================
 echo.
