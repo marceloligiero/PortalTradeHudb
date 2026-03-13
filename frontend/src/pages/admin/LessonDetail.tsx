@@ -21,6 +21,7 @@ import {
   Check
 } from 'lucide-react';
 import api from '../../lib/axios';
+import DOMPurify from 'dompurify';
 import { useAuthStore } from '../../stores/authStore';
 
 interface Lesson {
@@ -66,7 +67,7 @@ export default function LessonDetail() {
     
     // Split by paragraphs or block elements to avoid cutting mid-sentence
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = content;
+    tempDiv.innerHTML = DOMPurify.sanitize(content);
     const blocks = Array.from(tempDiv.children);
     
     let currentPageContent = '';

@@ -22,10 +22,7 @@ import { PremiumHeader, FloatingOrbs } from '../../components/premium';
 // Função para limpar HTML e extrair apenas texto
 const stripHtml = (html: string): string => {
   if (!html) return '';
-  // Criar elemento temporário para extrair texto
-  const temp = document.createElement('div');
-  temp.innerHTML = html;
-  return temp.textContent || temp.innerText || '';
+  return html.replace(/<[^>]*>/g, '');
 };
 
 interface MyLesson {

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
+import api from '../../lib/axios';
 import { useTheme } from '../../contexts/ThemeContext';
 import * as XLSX from 'xlsx';
 
@@ -79,7 +80,7 @@ function recurrenceLabel(v: string | null, t: (key: string) => string) {
 
 export default function IncidentsReport() {
   const { t } = useTranslation();
-  const { token, user } = useAuthStore();
+  const { user } = useAuthStore();
   const { isDark } = useTheme();
 
   // Only ADMIN and MANAGER can view this report
@@ -104,13 +105,11 @@ export default function IncidentsReport() {
   const [recurrence, setRecurrence] = useState('');
   const [searchText, setSearchText] = useState('');
 
-  const headers = { Authorization: `Bearer ${token}` };
-
   // Load filters on mount, then default to "Alto" impact
   useEffect(() => {
-    fetch('/api/relatorios/incidents/filters', { headers })
-      .then(r => r.json())
-      .then((f: Filters) => {
+    api.get('/relatorios/incidents/filters')
+      .then(r => {
+        const f: Filters = r.data;
         setFilters(f);
         // Default to "Alto" impact
         const alto = f.impacts?.find((i: FilterOption) => i.name.toLowerCase() === 'alto');
@@ -119,7 +118,7 @@ export default function IncidentsReport() {
         }
       })
       .catch(() => {});
-  }, [token]);
+  }, []);
 
   // Load data
   const fetchData = () => {
@@ -136,9 +135,8 @@ export default function IncidentsReport() {
     if (productId) params.set('product_id', productId);
     if (recurrence) params.set('recurrence_type', recurrence);
 
-    fetch(`/api/relatorios/incidents?${params.toString()}`, { headers })
-      .then(r => r.json())
-      .then(d => setData(Array.isArray(d) ? d : []))
+    api.get(`/relatorios/incidents?${params.toString()}`)
+      .then(r => setData(Array.isArray(r.data) ? r.data : []))
       .catch(() => setData([]))
       .finally(() => setLoading(false));
   };

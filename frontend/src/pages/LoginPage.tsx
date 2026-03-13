@@ -171,7 +171,8 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const login = useAuthStore(s => s.login);
-  const redirectTo = new URLSearchParams(location.search).get('redirect') || '/';
+  const rawRedirect = new URLSearchParams(location.search).get('redirect') || '/';
+  const redirectTo = rawRedirect.startsWith('/') && !rawRedirect.startsWith('//') ? rawRedirect : '/';
   const { t } = useTranslation();
 
   const [email, setEmail] = useState('');
@@ -183,7 +184,7 @@ export default function LoginPage() {
 
   const loginMutation = useMutation({
     mutationFn: authApi.login,
-    onSuccess: (data: any) => { login(data.user, data.access_token); window.location.href = redirectTo; },
+    onSuccess: (data: any) => { login(data.user, data.access_token); navigate(redirectTo); },
   });
 
   const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); loginMutation.mutate({ email, password }); };

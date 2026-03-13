@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Bell, CheckCheck, ExternalLink, AlertTriangle, ClipboardList, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
+import api from '../../lib/axios';
 
 interface Notification {
   id: number;
@@ -29,13 +30,12 @@ export default function TutoriaNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const token = localStorage.getItem('token');
-  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
-
   const fetchNotifications = async () => {
     try {
-      const res = await fetch('/api/tutoria/notifications', { headers });
-      if (res.ok) setNotifications(await res.json());
+      const res = await api.get('/tutoria/notifications');
+      setNotifications(res.data);
+    } catch {
+      // silently fail - empty notifications
     } finally {
       setLoading(false);
     }
@@ -44,12 +44,12 @@ export default function TutoriaNotifications() {
   useEffect(() => { fetchNotifications(); }, []);
 
   const markRead = async (id: number) => {
-    await fetch(`/api/tutoria/notifications/${id}/read`, { method: 'PATCH', headers });
+    await api.patch(`/tutoria/notifications/${id}/read`);
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
   const markAllRead = async () => {
-    await fetch('/api/tutoria/notifications/read-all', { method: 'PATCH', headers });
+    await api.patch('/tutoria/notifications/read-all');
     setNotifications([]);
   };
 

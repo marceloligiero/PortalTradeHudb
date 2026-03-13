@@ -5,7 +5,7 @@ import {
   UserPlus, UserMinus, Shield, ChevronRight, Building2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '../../stores/authStore';
+import api from '../../lib/axios';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface Team {
@@ -36,7 +36,6 @@ interface Manager { id: number; full_name: string; email: string; }
 const EMPTY_FORM = { name: '', description: '', product_id: '', manager_id: '' };
 
 export default function AdminTeams() {
-  const { token } = useAuthStore();
   const { isDark } = useTheme();
   const { t } = useTranslation();
   const [teams, setTeams] = useState<Team[]>([]);
@@ -54,32 +53,34 @@ export default function AdminTeams() {
   const [managers, setManagers] = useState<Manager[]>([]);
   const [error, setError] = useState('');
 
-  const h = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-
   const fetchAll = async () => {
     setLoading(true);
     try {
       const [tr, pr, ur] = await Promise.all([
-        fetch('/api/teams', { headers: h }),
-        fetch('/api/products', { headers: h }),
-        fetch('/api/users?role=MANAGER', { headers: h }),
+        api.get('/teams'),
+        api.get('/products'),
+        api.get('/users?role=MANAGER'),
       ]);
-      if (tr.ok) setTeams(await tr.json());
-      if (pr.ok) setProducts(await pr.json());
-      if (ur.ok) {
-        const all = await ur.json();
-        setManagers(Array.isArray(all) ? all.filter((u: any) => u.role === 'MANAGER') : []);
-      }
+      setTeams(tr.data);
+      setProducts(pr.data);
+      const all = ur.data;
+      setManagers(Array.isArray(all) ? all.filter((u: any) => u.role === 'MANAGER') : []);
+    } catch {
+      // silently fail
     } finally { setLoading(false); }
   };
 
   const fetchMembers = async (teamId: number) => {
-    const [mr, ur] = await Promise.all([
-      fetch(`/api/teams/${teamId}/members`, { headers: h }),
-      fetch('/api/users/unassigned', { headers: h }),
-    ]);
-    if (mr.ok) setMembers(await mr.json());
-    if (ur.ok) setUnassigned(await ur.json());
+    try {
+      const [mr, ur] = await Promise.all([
+        api.get(`/teams/${teamId}/members`),
+        api.get('/users/unassigned'),
+      ]);
+      setMembers(mr.data);
+      setUnassigned(ur.data);
+    } catch {
+      // silently fail
+    }
   };
 
   useEffect(() => { fetchAll(); }, []);
@@ -114,33 +115,31 @@ export default function AdminTeams() {
         product_id: form.product_id ? Number(form.product_id) : null,
         manager_id: form.manager_id ? Number(form.manager_id) : null,
       };
-      const url = editingId ? `/api/teams/${editingId}` : '/api/teams';
-      const res = await fetch(url, { method: editingId ? 'PATCH' : 'POST', headers: h, body: JSON.stringify(payload) });
-      if (!res.ok) {
-        const d = await res.json();
-        throw new Error(d.detail || t('adminTeams.saveError'));
+      const url = editingId ? `/teams/${editingId}` : '/teams';
+      if (editingId) {
+        await api.patch(url, payload);
+      } else {
+        await api.post(url, payload);
       }
       setWizardOpen(false);
       fetchAll();
       if (selectedTeam?.id === editingId) {
-        const updated = await fetch(`/api/teams/${editingId}`, { headers: h });
-        if (updated.ok) setSelectedTeam(await updated.json());
+        const updated = await api.get(`/teams/${editingId}`);
+        setSelectedTeam(updated.data);
       }
-    } catch (e: any) { setError(e.message); }
+    } catch (e: any) { setError(e.response?.data?.detail || e.message); }
     finally { setSaving(false); }
   };
 
   const addMember = async (userId: number) => {
-    await fetch(`/api/teams/${selectedTeam!.id}/members`, {
-      method: 'POST', headers: h, body: JSON.stringify({ user_id: userId }),
-    });
+    await api.post(`/teams/${selectedTeam!.id}/members`, { user_id: userId });
     fetchMembers(selectedTeam!.id);
     fetchAll();
   };
 
   const removeMember = async (userId: number) => {
     if (!confirm(t('adminTeams.confirmRemoveMember'))) return;
-    await fetch(`/api/teams/${selectedTeam!.id}/members/${userId}`, { method: 'DELETE', headers: h });
+    await api.delete(`/teams/${selectedTeam!.id}/members/${userId}`);
     fetchMembers(selectedTeam!.id);
     fetchAll();
   };

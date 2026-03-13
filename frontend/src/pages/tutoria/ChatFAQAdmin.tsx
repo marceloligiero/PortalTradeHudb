@@ -6,7 +6,7 @@ import {
   MessageSquare, Link, Settings, CheckCircle2, Loader2,
   Sparkles, GripVertical,
 } from 'lucide-react';
-import { useAuthStore } from '../../stores/authStore';
+import api from '../../lib/axios';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
@@ -85,7 +85,6 @@ const STEPS = [
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function ChatFAQAdmin() {
-  const { token } = useAuthStore();
   const { isDark } = useTheme();
   const { t } = useTranslation();
 
@@ -106,16 +105,13 @@ export default function ChatFAQAdmin() {
   const [emojiField, setEmojiField] = useState<string | null>(null);
   const emojiRef = useRef<HTMLDivElement>(null);
 
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-
   // ── Data ────────────────────────────────────────────────────────────────
 
   const fetchFaqs = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/chat/faqs', { headers });
-      if (!res.ok) throw new Error();
-      setFaqs(await res.json());
+      const res = await api.get('/chat/faqs');
+      setFaqs(res.data);
     } catch { setError(t('chatFAQ.loadError')); }
     finally { setLoading(false); }
   };
@@ -172,9 +168,12 @@ export default function ChatFAQAdmin() {
         support_url: form.support_url || null, support_label: form.support_label || null,
         role_filter: form.role_filter || null, priority: Number(form.priority),
       };
-      const url = editingId ? `/api/chat/faqs/${editingId}` : '/api/chat/faqs';
-      const res = await fetch(url, { method: editingId ? 'PATCH' : 'POST', headers, body: JSON.stringify(payload) });
-      if (!res.ok) throw new Error();
+      const url = editingId ? `/chat/faqs/${editingId}` : '/chat/faqs';
+      if (editingId) {
+        await api.patch(url, payload);
+      } else {
+        await api.post(url, payload);
+      }
       setSaved(true);
       setTimeout(() => { closeWizard(); fetchFaqs(); }, 1000);
     } catch { setError(t('chatFAQ.saveError')); }
@@ -182,13 +181,13 @@ export default function ChatFAQAdmin() {
   };
 
   const toggleActive = async (faq: FAQ) => {
-    await fetch(`/api/chat/faqs/${faq.id}`, { method: 'PATCH', headers, body: JSON.stringify({ is_active: !faq.is_active }) });
+    await api.patch(`/chat/faqs/${faq.id}`, { is_active: !faq.is_active });
     fetchFaqs();
   };
 
   const deleteFaq = async (id: number) => {
     if (!confirm(t('chatFAQ.deleteConfirm'))) return;
-    await fetch(`/api/chat/faqs/${id}`, { method: 'DELETE', headers });
+    await api.delete(`/chat/faqs/${id}`);
     fetchFaqs();
   };
 

@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { MessageCircle, X, Send, Globe, Loader2, ExternalLink, Bot, Minimize2, Maximize2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import DOMPurify from 'dompurify';
+import api from '../lib/axios';
 import { useAuthStore } from '../stores/authStore';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -119,13 +121,8 @@ export default function ChatBot() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ message: msg, lang }),
-      });
-      if (!res.ok) throw new Error('Erro ' + res.status);
-      const data = await res.json();
+      const res = await api.post('/chat', { message: msg, lang });
+      const data = res.data;
       setMessages((prev) => [
         ...prev,
         { role: 'bot', text: data.reply, supportUrl: data.support_url, supportLabel: data.support_label, suggestions: data.suggestions },
@@ -153,13 +150,9 @@ export default function ChatBot() {
       setInput('');
       setMessages((prev) => [...prev, { role: 'user', text }]);
       setLoading(true);
-      fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ message: text, lang }),
-      })
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(data => {
+      api.post('/chat', { message: text, lang })
+        .then(r => {
+          const data = r.data;
           setMessages(prev => [...prev, { role: 'bot', text: data.reply, supportUrl: data.support_url, supportLabel: data.support_label, suggestions: data.suggestions }]);
         })
         .catch(() => {
@@ -305,7 +298,7 @@ export default function ChatBot() {
                               : 'bg-white text-gray-800 rounded-2xl rounded-tl-md border border-gray-100 shadow-sm'
                         }`}
                       >
-                        <div dangerouslySetInnerHTML={{ __html: renderMarkdown(m.text) }} />
+                        <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(renderMarkdown(m.text)) }} />
                         {m.supportUrl && (
                           <a
                             href={m.supportUrl} target="_blank" rel="noopener noreferrer"

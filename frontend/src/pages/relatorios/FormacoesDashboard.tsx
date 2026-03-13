@@ -6,7 +6,7 @@ import {
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '../../stores/authStore';
+import api from '../../lib/axios';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface FormData {
@@ -43,15 +43,16 @@ function KpiCard({ icon: Icon, label, value, sub, color }: { icon: any; label: s
 
 export default function FormacoesDashboard() {
   const { t } = useTranslation();
-  const { token } = useAuthStore();
   const { isDark } = useTheme();
   const [data, setData] = useState<FormData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/relatorios/formacoes', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(setData).finally(() => setLoading(false));
-  }, [token]);
+    api.get('/relatorios/formacoes')
+      .then(r => setData(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-red-500" /></div>;
   if (!data) return null;

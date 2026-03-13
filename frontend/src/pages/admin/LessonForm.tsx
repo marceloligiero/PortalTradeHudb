@@ -20,6 +20,7 @@ import {
   Zap
 } from 'lucide-react';
 import api from '../../lib/axios';
+import DOMPurify from 'dompurify';
 import RichTextEditor from '../../components/RichTextEditor';
 
 interface LessonFormData {
@@ -669,7 +670,7 @@ const LessonForm: React.FC = () => {
                       <h4 className="text-sm font-medium text-gray-400 mb-3">{t('lessons.contentPreview')}</h4>
                       <div 
                         className="prose prose-invert prose-sm max-w-none max-h-40 overflow-y-auto"
-                        dangerouslySetInnerHTML={{ __html: formData.content }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formData.content) }}
                       />
                     </div>
                   )}

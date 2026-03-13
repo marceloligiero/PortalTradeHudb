@@ -5,7 +5,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '../../stores/authStore';
+import api from '../../lib/axios';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface TeamStat {
@@ -25,17 +25,17 @@ const BAR_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b
 
 export default function TeamsDashboard() {
   const { t } = useTranslation();
-  const { token } = useAuthStore();
   const { isDark } = useTheme();
   const [teams, setTeams] = useState<TeamStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    fetch('/api/relatorios/teams', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => setTeams(Array.isArray(d) ? d : d.teams ?? []))
+    api.get('/relatorios/teams')
+      .then(r => { const d = r.data; setTeams(Array.isArray(d) ? d : d.teams ?? []); })
+      .catch(() => {})
       .finally(() => setLoading(false));
-  }, [token]);
+  }, []);
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-red-500" /></div>;
 

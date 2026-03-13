@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Loader2, User, AlertTriangle, CheckCircle2, Award, Clock, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '../../stores/authStore';
+import api from '../../lib/axios';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface MemberStat {
@@ -27,7 +27,6 @@ const ROLE_COLORS: Record<string, string> = {
 
 export default function MembersDashboard() {
   const { t } = useTranslation();
-  const { token } = useAuthStore();
   const { isDark } = useTheme();
   const [members, setMembers] = useState<MemberStat[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,10 +35,11 @@ export default function MembersDashboard() {
   const [sortAsc, setSortAsc] = useState(false);
 
   useEffect(() => {
-    fetch('/api/relatorios/members', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(d => setMembers(Array.isArray(d) ? d : d.members ?? []))
+    api.get('/relatorios/members')
+      .then(r => { const d = r.data; setMembers(Array.isArray(d) ? d : d.members ?? []); })
+      .catch(() => {})
       .finally(() => setLoading(false));
-  }, [token]);
+  }, []);
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-red-500" /></div>;
 

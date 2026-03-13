@@ -19,16 +19,16 @@ export interface LoginResponse {
 
 export const authApi = {
   login: async (data: LoginRequest): Promise<LoginResponse> => {
-    console.log('Sending login request:', { username: data.email, password: '***' });
     try {
       const response = await api.post('/auth/login', {
         username: data.email,
         password: data.password,
       });
-      console.log('Login success:', response.data);
       return response.data;
     } catch (error: any) {
-      console.error('Login error:', error.response?.data || error.message);
+      if (import.meta.env.DEV) {
+        console.error('Login error:', error.response?.data || error.message);
+      }
       throw error;
     }
   },

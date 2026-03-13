@@ -25,6 +25,7 @@ import {
   Square
 } from 'lucide-react';
 import api from '../../lib/axios';
+import DOMPurify from 'dompurify';
 import { RatingModal } from '../../components';
 
 interface Lesson {
@@ -93,7 +94,7 @@ export default function LessonView() {
     
     // Split by paragraphs or block elements to avoid cutting mid-sentence
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = content;
+    tempDiv.innerHTML = DOMPurify.sanitize(content);
     const blocks = Array.from(tempDiv.children);
     
     let currentPageContent = '';

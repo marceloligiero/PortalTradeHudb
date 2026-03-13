@@ -5,6 +5,7 @@ import {
   Award, TrendingUp, Zap, Loader2,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
+import api from '../../lib/axios';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
@@ -45,16 +46,18 @@ const stagger = { visible: { transition: { staggerChildren: 0.07 } } };
 const fadeUp = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 
 export default function RelatoriosOverview() {
-  const { token, user } = useAuthStore();
+  const { user } = useAuthStore();
   const { isDark } = useTheme();
   const { t } = useTranslation();
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/relatorios/overview', { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json()).then(setData).finally(() => setLoading(false));
-  }, [token]);
+    api.get('/relatorios/overview')
+      .then(r => setData(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const roleLabel: Record<string, string> = {
     ADMIN: t('overview.roleAdmin'),
