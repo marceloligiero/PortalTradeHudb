@@ -647,16 +647,26 @@ def create_error(
             db.add(TutoriaErrorRef(error_id=error.id, referencia=r.referencia, divisa=r.divisa, importe=r.importe, cliente_final=r.cliente_final))
 
     # Notify chefe/manager of the tutorado's team
+    notified_ids = {current_user.id}  # avoid notifying the creator
     if tutorado.team_id:
         from app.models import Team
         team = db.get(Team, tutorado.team_id)
-        if team and team.manager_id:
+        if team and team.manager_id and team.manager_id not in notified_ids:
             create_notification(db, team.manager_id, "NEW_ERROR", f"Nova incidência registada por {current_user.full_name}", error_id=error.id)
+            notified_ids.add(team.manager_id)
     # Notify chefes de equipa in the same team
     if tutorado.team_id:
         chefes = db.query(User).filter(User.team_id == tutorado.team_id, User.is_team_lead == True, User.id != current_user.id).all()
         for c in chefes:
-            create_notification(db, c.id, "NEW_ERROR", f"Nova incidência registada por {current_user.full_name}", error_id=error.id)
+            if c.id not in notified_ids:
+                create_notification(db, c.id, "NEW_ERROR", f"Nova incidência registada por {current_user.full_name}", error_id=error.id)
+                notified_ids.add(c.id)
+    # Notify all ADMIN users about new errors
+    admins = db.query(User).filter(User.role == "ADMIN", User.is_active == True).all()
+    for a in admins:
+        if a.id not in notified_ids:
+            create_notification(db, a.id, "NEW_ERROR", f"Nova incidência registada por {current_user.full_name}", error_id=error.id)
+            notified_ids.add(a.id)
 
     db.commit()
     db.refresh(error)
@@ -1713,8 +1723,8 @@ def list_notifications(
 ):
     notifs = (
         db.query(TutoriaNotification)
-        .filter(TutoriaNotification.user_id == current_user.id, TutoriaNotification.is_read == False)
-        .order_by(TutoriaNotification.created_at.desc())
+        .filter(TutoriaNotification.user_id == current_user.id)
+        .order_by(TutoriaNotification.is_read.asc(), TutoriaNotification.created_at.desc())
         .limit(50)
         .all()
     )

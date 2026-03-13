@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Bell, CheckCheck, ExternalLink, AlertTriangle, ClipboardList, Info } from 'lucide-react';
+import { Bell, CheckCheck, ExternalLink, AlertTriangle, ClipboardList, Info, FileText, XCircle, RotateCcw, BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../lib/axios';
 
@@ -21,6 +21,10 @@ const TYPE_ICONS: Record<string, typeof AlertTriangle> = {
   PENDING_REVIEW: ClipboardList,
   STATUS_CHANGE: Info,
   PLAN_CREATED: ClipboardList,
+  PLAN_APPROVED: CheckCheck,
+  PLAN_RETURNED: RotateCcw,
+  CANCELLED_ERROR: XCircle,
+  LEARNING_SHEET: BookOpen,
 };
 
 export default function TutoriaNotifications() {
@@ -43,18 +47,24 @@ export default function TutoriaNotifications() {
 
   useEffect(() => { fetchNotifications(); }, []);
 
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
   const markRead = async (id: number) => {
-    await api.patch(`/tutoria/notifications/${id}/read`);
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    try {
+      await api.patch(`/tutoria/notifications/${id}/read`);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+    } catch { /* ignore */ }
   };
 
   const markAllRead = async () => {
-    await api.patch('/tutoria/notifications/read-all');
-    setNotifications([]);
+    try {
+      await api.patch('/tutoria/notifications/read-all');
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch { /* ignore */ }
   };
 
   const handleClick = (n: Notification) => {
-    markRead(n.id);
+    if (!n.is_read) markRead(n.id);
     if (n.error_id) navigate(`/tutoria/errors/${n.error_id}`);
     else if (n.plan_id) navigate(`/tutoria/plans/${n.plan_id}`);
   };
@@ -72,11 +82,11 @@ export default function TutoriaNotifications() {
           <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
             {t('tutoriaNotifications.title', 'Notificações')}
           </h1>
-          {notifications.length > 0 && (
-            <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{notifications.length}</span>
+          {unreadCount > 0 && (
+            <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{unreadCount}</span>
           )}
         </div>
-        {notifications.length > 0 && (
+        {unreadCount > 0 && (
           <button onClick={markAllRead} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-900/20 rounded-lg transition">
             <CheckCheck className="w-4 h-4" />
             {t('tutoriaNotifications.markAllRead', 'Marcar todas como lidas')}
@@ -91,8 +101,8 @@ export default function TutoriaNotifications() {
       ) : notifications.length === 0 ? (
         <div className={`text-center py-20 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
           <Bell className="w-12 h-12 mx-auto mb-4 opacity-30" />
-          <p className="text-lg font-medium">{t('tutoriaNotifications.empty', 'Sem notificações pendentes')}</p>
-          <p className="text-sm mt-1">{t('tutoriaNotifications.emptyDesc', 'Todas as notificações foram lidas.')}</p>
+          <p className="text-lg font-medium">{t('tutoriaNotifications.empty', 'Sem notificações')}</p>
+          <p className="text-sm mt-1">{t('tutoriaNotifications.emptyDesc', 'Nenhuma notificação disponível.')}</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -106,20 +116,31 @@ export default function TutoriaNotifications() {
                 transition={{ delay: i * 0.03 }}
                 onClick={() => handleClick(n)}
                 className={`flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all border ${
-                  isDark
-                    ? 'bg-gray-800/60 border-gray-700 hover:bg-gray-700/80'
-                    : 'bg-white border-gray-200 hover:bg-gray-50 shadow-sm'
+                  n.is_read
+                    ? isDark
+                      ? 'bg-gray-900/30 border-gray-800 hover:bg-gray-800/50 opacity-60'
+                      : 'bg-gray-50 border-gray-100 hover:bg-gray-100 opacity-60'
+                    : isDark
+                      ? 'bg-gray-800/60 border-gray-700 hover:bg-gray-700/80'
+                      : 'bg-white border-gray-200 hover:bg-gray-50 shadow-sm'
                 }`}
               >
+                {!n.is_read && (
+                  <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0 mt-2" />
+                )}
                 <div className={`p-2 rounded-lg flex-shrink-0 ${
                   n.type === 'NEW_ERROR' ? 'bg-red-500/10 text-red-500' :
                   n.type === 'PENDING_REVIEW' ? 'bg-yellow-500/10 text-yellow-500' :
+                  n.type === 'CANCELLED_ERROR' ? 'bg-gray-500/10 text-gray-500' :
+                  n.type === 'PLAN_APPROVED' ? 'bg-green-500/10 text-green-500' :
+                  n.type === 'PLAN_RETURNED' ? 'bg-orange-500/10 text-orange-500' :
+                  n.type === 'LEARNING_SHEET' ? 'bg-blue-500/10 text-blue-500' :
                   'bg-indigo-500/10 text-indigo-500'
                 }`}>
                   <Icon className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-medium ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
+                  <p className={`text-sm ${n.is_read ? 'font-normal' : 'font-medium'} ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>
                     {n.message}
                   </p>
                   <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
