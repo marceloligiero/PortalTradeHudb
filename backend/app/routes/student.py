@@ -329,12 +329,15 @@ async def get_student_overview(
         models.Certificate.user_id == current_user.id
     ).count()
     
-    # Total study hours (sum of all course hours)
-    study_hours = db.query(func.sum(models.Course.duration_hours)).join(
+    # Total study hours (estimated from lesson minutes)
+    study_hours = db.query(func.sum(models.Lesson.estimated_minutes)).join(
+        models.Course, models.Lesson.course_id == models.Course.id
+    ).join(
         models.Enrollment, models.Enrollment.course_id == models.Course.id
     ).filter(
         models.Enrollment.user_id == current_user.id
     ).scalar() or 0
+    study_hours = round(study_hours / 60, 1)
     
     # Certificates count
     certificates_count = completed_courses
@@ -371,22 +374,35 @@ async def get_student_courses_report(
     for enrollment in enrollments:
         course = enrollment.course
         
-        # Check if has certificate
-        certificate = db.query(models.Certificate).filter(
-            models.Certificate.user_id == current_user.id,
-            models.Certificate.course_id == course.id
-        ).first()
+        # Check if completed (has completed_at on enrollment)
+        completed = enrollment.completed_at is not None
         
+        # Compute duration from lessons
+        total_mins = db.query(func.sum(models.Lesson.estimated_minutes)).filter(
+            models.Lesson.course_id == course.id
+        ).scalar() or 0
+
+        # Compute progress from lesson progress
+        total_lessons = db.query(models.Lesson).filter(models.Lesson.course_id == course.id).count()
+        completed_lessons = db.query(models.LessonProgress).filter(
+            models.LessonProgress.user_id == current_user.id,
+            models.LessonProgress.lesson_id.in_(
+                db.query(models.Lesson.id).filter(models.Lesson.course_id == course.id)
+            ),
+            models.LessonProgress.status == "COMPLETED"
+        ).count()
+        progress = round((completed_lessons / total_lessons * 100) if total_lessons > 0 else 0, 1)
+
         courses_report.append({
             "id": course.id,
             "title": course.title,
             "description": course.description,
-            "bank_code": course.bank_code,
+            "bank_code": course.bank.code if course.bank else None,
             "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
-            "progress": enrollment.progress,
-            "completed": certificate is not None,
-            "completion_date": certificate.issued_at.isoformat() if certificate and certificate.issued_at else None,
-            "duration_hours": course.duration_hours
+            "progress": progress,
+            "completed": completed,
+            "completion_date": enrollment.completed_at.isoformat() if enrollment.completed_at else None,
+            "duration_hours": round(total_mins / 60, 1)
         })
     
     return courses_report
@@ -415,8 +431,15 @@ async def get_student_lessons_report(
         ).count()
         total_lessons += lessons_count
         
-        # For simplicity, estimate completed based on progress
-        completed_lessons += int(lessons_count * enrollment.progress / 100)
+        # Count completed lessons via LessonProgress
+        completed_in_course = db.query(models.LessonProgress).filter(
+            models.LessonProgress.user_id == current_user.id,
+            models.LessonProgress.lesson_id.in_(
+                db.query(models.Lesson.id).filter(models.Lesson.course_id == course.id)
+            ),
+            models.LessonProgress.status == "COMPLETED"
+        ).count()
+        completed_lessons += completed_in_course
     
     return {
         "total_lessons": total_lessons,

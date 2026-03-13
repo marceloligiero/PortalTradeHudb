@@ -462,15 +462,26 @@ async def create_course(
     current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
     db: Session = Depends(get_db)
 ):
+    course_data = course.dict()
+    bank_ids = course_data.pop("bank_ids", None) or []
+    product_ids = course_data.pop("product_ids", None) or []
+
     db_course = models.Course(
-        **course.dict(),
+        **course_data,
         created_by=current_user.id
     )
-    
     db.add(db_course)
     db.commit()
     db.refresh(db_course)
-    
+
+    for bid in bank_ids:
+        db.add(models.CourseBank(course_id=db_course.id, bank_id=bid))
+    for pid in product_ids:
+        db.add(models.CourseProduct(course_id=db_course.id, product_id=pid))
+    if bank_ids or product_ids:
+        db.commit()
+        db.refresh(db_course)
+
     return db_course
 
 @router.get("/courses/{course_id}", response_model=schemas.Course)
