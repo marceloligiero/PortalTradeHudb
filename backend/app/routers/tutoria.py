@@ -15,8 +15,9 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.models import (
-    ErrorCategory, TutoriaError, TutoriaErrorMotivo, TutoriaActionPlan,
-    TutoriaActionItem, TutoriaComment, User, Product, Bank,
+    ErrorCategory, TutoriaError, TutoriaErrorMotivo, TutoriaErrorRef,
+    TutoriaActionPlan, TutoriaActionItem, TutoriaComment, TutoriaNotification,
+    TutoriaLearningSheet, User, Product, Bank,
     ErrorImpact, ErrorOrigin, ErrorDetectedBy, Department, Activity,
 )
 from app.auth import get_current_user
@@ -43,8 +44,28 @@ def require_admin(user: User):
     if user.role != "ADMIN":
         raise HTTPException(status_code=403, detail="Apenas admins")
 
+def is_chefe_or_manager(u: User) -> bool:
+    return getattr(u, 'is_team_lead', False) or u.role in ("MANAGER", "ADMIN")
+
+def is_referente_user(u: User) -> bool:
+    return getattr(u, 'is_referente', False)
+
+def is_chefe_referente_manager(u: User) -> bool:
+    return getattr(u, 'is_team_lead', False) or getattr(u, 'is_referente', False) or u.role in ("MANAGER", "ADMIN")
+
+def is_tutor_or_above(u: User) -> bool:
+    return getattr(u, 'is_tutor', False) or u.role in ("MANAGER", "ADMIN")
+
 def _user_name(u) -> Optional[str]:
     return u.full_name if u else None
+
+def create_notification(db: Session, user_id: int, ntype: str, message: str, error_id: int = None, plan_id: int = None):
+    notif = TutoriaNotification(
+        user_id=user_id, type=ntype, message=message,
+        error_id=error_id, plan_id=plan_id,
+    )
+    db.add(notif)
+    return notif
 
 # ─── Pydantic schemas ─────────────────────────────────────────────────────────
 
@@ -71,10 +92,16 @@ class MotivoIn(BaseModel):
     typology: str  # METHODOLOGY | KNOWLEDGE | DETAIL | PROCEDURE
     description: Optional[str] = None
 
+class RefIn(BaseModel):
+    referencia: Optional[str] = None
+    divisa: Optional[str] = None
+    importe: Optional[float] = None
+    cliente_final: Optional[str] = None
+
 class ErrorIn(BaseModel):
     date_occurrence: date
     description: str
-    tutorado_id: int
+    tutorado_id: Optional[int] = None
     # Novos campos Access
     date_detection: Optional[date] = None
     date_solution: Optional[date] = None
@@ -100,6 +127,30 @@ class ErrorIn(BaseModel):
     tags: Optional[List[str]] = None
     analysis_5_why: Optional[str] = None
     motivos: Optional[List[MotivoIn]] = None
+    refs: Optional[List[RefIn]] = None
+
+class AnalysisIn(BaseModel):
+    impact_level: Optional[str] = None
+    impact_detail: Optional[str] = None
+    origin_id: Optional[int] = None
+    origin_detail: Optional[str] = None
+    grabador_id: Optional[int] = None
+    liberador_id: Optional[int] = None
+    date_solution: Optional[date] = None
+    solution: Optional[str] = None
+    solution_confirmed: Optional[bool] = None
+    recurrence_type: Optional[str] = None
+    action_plan_summary: Optional[str] = None
+
+class CancelErrorIn(BaseModel):
+    reason: str
+
+class ConfirmSolutionIn(BaseModel):
+    date_solution: date
+    solution: str
+
+class ReturnAnalysisIn(BaseModel):
+    reason: str
 
 class ErrorUpdate(BaseModel):
     status: Optional[str] = None
@@ -126,6 +177,16 @@ class ErrorUpdate(BaseModel):
     solution: Optional[str] = None
     action_plan_text: Optional[str] = None
     recurrence_type: Optional[str] = None
+    impact_level: Optional[str] = None
+    impact_detail: Optional[str] = None
+    origin_detail: Optional[str] = None
+    grabador_id: Optional[int] = None
+    liberador_id: Optional[int] = None
+    solution_confirmed: Optional[bool] = None
+    pending_solution: Optional[bool] = None
+    excel_sent: Optional[bool] = None
+    action_plan_summary: Optional[str] = None
+    refs: Optional[List[RefIn]] = None
 
 class DeactivateIn(BaseModel):
     reason: str
@@ -184,6 +245,21 @@ def _error_out(e: TutoriaError) -> dict:
         "activity_name": e.activity.name if getattr(e, 'activity', None) else None,
         "error_type_id": getattr(e, 'error_type_id', None),
         "error_type_name": e.error_type.name if getattr(e, 'error_type', None) else None,
+        # Análise
+        "impact_level": getattr(e, 'impact_level', None),
+        "impact_detail": getattr(e, 'impact_detail', None),
+        "origin_detail": getattr(e, 'origin_detail', None),
+        "grabador_id": getattr(e, 'grabador_id', None),
+        "grabador_name": _user_name(getattr(e, 'grabador', None)),
+        "liberador_id": getattr(e, 'liberador_id', None),
+        "liberador_name": _user_name(getattr(e, 'liberador', None)),
+        "solution_confirmed": getattr(e, 'solution_confirmed', False),
+        "pending_solution": getattr(e, 'pending_solution', False),
+        "excel_sent": getattr(e, 'excel_sent', False),
+        "action_plan_summary": getattr(e, 'action_plan_summary', None),
+        "cancelled_reason": getattr(e, 'cancelled_reason', None),
+        "cancelled_by_id": getattr(e, 'cancelled_by_id', None),
+        "cancelled_by_name": _user_name(getattr(e, 'cancelled_by', None)),
         # Estado
         "severity": e.severity,
         "status": e.status,
@@ -196,6 +272,7 @@ def _error_out(e: TutoriaError) -> dict:
         "inactivation_reason": e.inactivation_reason,
         "plans_count": len(e.action_plans),
         "motivos": motivos_list,
+        "refs": [{"id": r.id, "referencia": r.referencia, "divisa": r.divisa, "importe": r.importe, "cliente_final": r.cliente_final} for r in (getattr(e, 'refs', None) or [])],
         "created_at": e.created_at,
         "updated_at": e.updated_at,
     }
@@ -204,6 +281,11 @@ def _error_out(e: TutoriaError) -> dict:
 
 class PlanIn(BaseModel):
     tutorado_id: int
+    plan_type: Optional[str] = None        # CORRECTIVO | PREVENTIVO | MELHORIA
+    responsible_id: Optional[int] = None
+    expected_result: Optional[str] = None
+    deadline: Optional[date] = None
+    description: Optional[str] = None      # alias for "what" in simplified flow
     analysis_5_why: Optional[str] = None
     immediate_correction: Optional[str] = None
     corrective_action: Optional[str] = None
@@ -253,6 +335,15 @@ def _plan_out(p: TutoriaActionPlan) -> dict:
         "created_by_name": _user_name(p.creator),
         "tutorado_id": p.tutorado_id,
         "tutorado_name": _user_name(p.tutorado),
+        "plan_type": getattr(p, 'plan_type', None),
+        "responsible_id": getattr(p, 'responsible_id', None),
+        "responsible_name": _user_name(getattr(p, 'responsible', None)),
+        "expected_result": getattr(p, 'expected_result', None),
+        "deadline": getattr(p, 'deadline', None),
+        "result_score": getattr(p, 'result_score', None),
+        "result_comment": getattr(p, 'result_comment', None),
+        "started_at": getattr(p, 'started_at', None),
+        "completed_at": getattr(p, 'completed_at', None),
         "analysis_5_why": p.analysis_5_why,
         "immediate_correction": p.immediate_correction,
         "corrective_action": p.corrective_action,
@@ -358,10 +449,14 @@ def _errors_query(db: Session, user: User):
             joinedload(TutoriaError.error_type),
             joinedload(TutoriaError.action_plans).joinedload(TutoriaActionPlan.items),
             joinedload(TutoriaError.motivos),
+            joinedload(TutoriaError.refs),
+            joinedload(TutoriaError.grabador),
+            joinedload(TutoriaError.liberador),
+            joinedload(TutoriaError.cancelled_by),
         )
         .filter(TutoriaError.is_active == True)
     )
-    if user.role == "TRAINER":
+    if user.role == "TRAINER" and not getattr(user, 'is_tutor', False):
         q = q.join(TutoriaError.tutorado).filter(User.tutor_id == user.id)
     elif user.role in ("STUDENT", "TRAINEE"):
         q = q.filter(TutoriaError.tutorado_id == user.id)
@@ -484,10 +579,14 @@ def create_error(
     current_user: User = Depends(get_current_user),
 ):
     # Any authenticated user can register a client error
-
-    tutorado = db.get(User, body.tutorado_id)
+    tutorado_id = body.tutorado_id or current_user.id
+    tutorado = db.get(User, tutorado_id)
     if not tutorado:
         raise HTTPException(404, "Tutorado não encontrado")
+
+    # Only chefe/referente/manager/tutor can assign to other users
+    if tutorado_id != current_user.id and not is_chefe_referente_manager(current_user) and not _is_tutor_or_admin(current_user):
+        raise HTTPException(403, "Sem permissão para atribuir a outro utilizador")
 
     # Recurrence detection
     count = 0
@@ -509,7 +608,7 @@ def create_error(
         description=body.description,
         solution=body.solution,
         action_plan_text=body.action_plan_text,
-        tutorado_id=body.tutorado_id,
+        tutorado_id=tutorado_id,
         created_by_id=current_user.id,
         approver_id=body.approver_id,
         bank_id=body.bank_id,
@@ -527,6 +626,7 @@ def create_error(
         error_type_id=body.error_type_id,
         product_id=body.product_id,
         severity=body.severity,
+        status="REGISTERED",
         tags=body.tags,
         analysis_5_why=body.analysis_5_why,
         recurrence_type=body.recurrence_type,
@@ -534,17 +634,29 @@ def create_error(
         recurrence_count=count,
     )
     db.add(error)
-    db.flush()  # get error.id before adding motivos
+    db.flush()
 
     # Save motivos (multiple per error)
     if body.motivos:
         for m in body.motivos:
-            motivo = TutoriaErrorMotivo(
-                error_id=error.id,
-                typology=m.typology,
-                description=m.description,
-            )
-            db.add(motivo)
+            db.add(TutoriaErrorMotivo(error_id=error.id, typology=m.typology, description=m.description))
+
+    # Save refs (multiple per error)
+    if body.refs:
+        for r in body.refs:
+            db.add(TutoriaErrorRef(error_id=error.id, referencia=r.referencia, divisa=r.divisa, importe=r.importe, cliente_final=r.cliente_final))
+
+    # Notify chefe/manager of the tutorado's team
+    if tutorado.team_id:
+        from app.models import Team
+        team = db.get(Team, tutorado.team_id)
+        if team and team.manager_id:
+            create_notification(db, team.manager_id, "NEW_ERROR", f"Nova incidência registada por {current_user.full_name}", error_id=error.id)
+    # Notify chefes de equipa in the same team
+    if tutorado.team_id:
+        chefes = db.query(User).filter(User.team_id == tutorado.team_id, User.is_team_lead == True, User.id != current_user.id).all()
+        for c in chefes:
+            create_notification(db, c.id, "NEW_ERROR", f"Nova incidência registada por {current_user.full_name}", error_id=error.id)
 
     db.commit()
     db.refresh(error)
@@ -620,8 +732,19 @@ def update_error(
     error = db.get(TutoriaError, error_id)
     if not error or not error.is_active:
         raise HTTPException(404, "Erro não encontrado")
-    for k, v in body.model_dump(exclude_none=True).items():
+
+    data = body.model_dump(exclude_none=True)
+    refs_data = data.pop("refs", None)
+
+    for k, v in data.items():
         setattr(error, k, v)
+
+    # Replace refs if provided
+    if refs_data is not None:
+        db.query(TutoriaErrorRef).filter(TutoriaErrorRef.error_id == error_id).delete()
+        for r in refs_data:
+            db.add(TutoriaErrorRef(error_id=error_id, referencia=r.get("referencia"), divisa=r.get("divisa"), importe=r.get("importe"), cliente_final=r.get("cliente_final")))
+
     db.commit()
 
     error = (
@@ -641,6 +764,7 @@ def update_error(
             joinedload(TutoriaError.error_type),
             joinedload(TutoriaError.action_plans),
             joinedload(TutoriaError.motivos),
+            joinedload(TutoriaError.refs),
         )
         .filter(TutoriaError.id == error_id)
         .first()
@@ -724,9 +848,6 @@ def create_plan(
         )
         db.add(plan)
 
-        if error.status == "ABERTO":
-            error.status = "PLANO_CRIADO"
-
         db.commit()
         db.refresh(plan)
     except Exception as e:
@@ -779,8 +900,8 @@ def update_plan(
     plan = db.get(TutoriaActionPlan, plan_id)
     if not plan:
         raise HTTPException(404, "Plano não encontrado")
-    if plan.status not in ("RASCUNHO", "DEVOLVIDO"):
-        raise HTTPException(400, "Só é possível editar planos em rascunho ou devolvidos")
+    if plan.status not in ("RASCUNHO", "DEVOLVIDO", "OPEN"):
+        raise HTTPException(400, "Só é possível editar planos em rascunho, abertos ou devolvidos")
     for k, v in body.model_dump(exclude_none=True).items():
         setattr(plan, k, v)
     db.commit()
@@ -800,7 +921,7 @@ def submit_plan(
     plan = db.get(TutoriaActionPlan, plan_id)
     if not plan:
         raise HTTPException(404, "Plano não encontrado")
-    if plan.status not in ("RASCUNHO", "DEVOLVIDO"):
+    if plan.status not in ("RASCUNHO", "DEVOLVIDO", "OPEN"):
         raise HTTPException(400, "Plano não pode ser submetido no estado atual")
     if current_user.role == "ADMIN":
         plan.status = "APROVADO"
@@ -1123,9 +1244,10 @@ def list_students(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    require_manager(current_user)
+    if not is_chefe_referente_manager(current_user) and not is_tutor_or_above(current_user):
+        raise HTTPException(403, "Acesso negado")
     q = db.query(User).filter(User.role.in_(["STUDENT", "TRAINEE"]), User.is_active == True)
-    if current_user.role == "TRAINER":
+    if current_user.role == "TRAINER" and not getattr(current_user, 'is_team_lead', False):
         q = q.filter(User.tutor_id == current_user.id)
     users = q.order_by(User.full_name).all()
     return [{"id": u.id, "full_name": u.full_name, "email": u.email, "tutor_id": u.tutor_id} for u in users]
@@ -1136,9 +1258,10 @@ def list_team(
     current_user: User = Depends(get_current_user),
 ):
     """All active users (admins + trainers + students) — used in responsible dropdowns."""
-    require_manager(current_user)
+    if not is_chefe_referente_manager(current_user) and not is_tutor_or_above(current_user):
+        raise HTTPException(403, "Acesso negado")
     users = db.query(User).filter(User.is_active == True).order_by(User.full_name).all()
-    return [{"id": u.id, "full_name": u.full_name, "role": u.role} for u in users]
+    return [{"id": u.id, "full_name": u.full_name, "role": u.role, "is_tutor": getattr(u, 'is_tutor', False), "is_team_lead": getattr(u, 'is_team_lead', False), "is_referente": getattr(u, 'is_referente', False)} for u in users]
 
 @router.get("/my-plans")
 def my_plans(
@@ -1214,3 +1337,555 @@ def dashboard(
         "overdue_plans": overdue_plans,
         "severity_counts": severity_counts,
     }
+
+# ─── ANALYSIS ENDPOINTS ──────────────────────────────────────────────────────
+
+@router.patch("/errors/{error_id}/analysis")
+def save_analysis(
+    error_id: int,
+    body: AnalysisIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Save analysis draft — does NOT change status."""
+    if not is_chefe_referente_manager(current_user):
+        raise HTTPException(403, "Apenas Chefe/Referente/Manager pode analisar")
+    error = db.get(TutoriaError, error_id)
+    if not error or not error.is_active:
+        raise HTTPException(404, "Erro não encontrado")
+    if error.status not in ("REGISTERED", "ANALYSIS"):
+        raise HTTPException(400, f"Incidência não está em estado analisável (atual: {error.status})")
+    if error.status == "REGISTERED":
+        error.status = "ANALYSIS"
+    for k, v in body.model_dump(exclude_none=True).items():
+        setattr(error, k, v)
+    db.commit()
+    error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+    return _error_out(error)
+
+
+@router.post("/errors/{error_id}/submit-analysis")
+def submit_analysis(
+    error_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Submit analysis for tutor review → PENDING_TUTOR_REVIEW."""
+    if not is_chefe_referente_manager(current_user):
+        raise HTTPException(403, "Apenas Chefe/Referente/Manager pode submeter análise")
+    error = db.get(TutoriaError, error_id)
+    if not error or not error.is_active:
+        raise HTTPException(404, "Erro não encontrado")
+    if error.status not in ("ANALYSIS", "REGISTERED"):
+        raise HTTPException(400, "Incidência não está em estado para submissão de análise")
+
+    # If referente, needs chief approval first
+    if is_referente_user(current_user) and not is_chefe_or_manager(current_user):
+        error.status = "PENDING_CHIEF_APPROVAL"
+        db.commit()
+        # Notify chefes
+        if error.tutorado:
+            tutorado = error.tutorado
+            if hasattr(tutorado, 'team_id') and tutorado.team_id:
+                chefes = db.query(User).filter(User.team_id == tutorado.team_id, User.is_team_lead == True).all()
+                for c in chefes:
+                    create_notification(db, c.id, "PENDING_REVIEW", f"Análise do Referente aguarda aprovação", error_id=error.id)
+        db.commit()
+        error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+        return _error_out(error)
+
+    # Check if solution is pending
+    if not error.date_solution:
+        error.pending_solution = True
+
+    error.status = "PENDING_TUTOR_REVIEW"
+    db.flush()
+
+    # Notify tutors responsible for the plans
+    plans = db.query(TutoriaActionPlan).filter(TutoriaActionPlan.error_id == error_id).all()
+    notified_ids = set()
+    for p in plans:
+        rid = getattr(p, 'responsible_id', None)
+        if rid and rid not in notified_ids:
+            create_notification(db, rid, "PENDING_REVIEW", f"Incidência #{error_id} submetida para revisão", error_id=error.id)
+            notified_ids.add(rid)
+    # Also notify tutorado's tutor
+    if error.tutorado and error.tutorado.tutor_id and error.tutorado.tutor_id not in notified_ids:
+        create_notification(db, error.tutorado.tutor_id, "PENDING_REVIEW", f"Incidência #{error_id} submetida para revisão", error_id=error.id)
+
+    db.commit()
+    error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+    return _error_out(error)
+
+
+@router.post("/errors/{error_id}/approve-chief")
+def approve_chief(
+    error_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Chefe approves referente's analysis → PENDING_TUTOR_REVIEW."""
+    if not is_chefe_or_manager(current_user):
+        raise HTTPException(403, "Apenas Chefe/Manager pode aprovar")
+    error = db.get(TutoriaError, error_id)
+    if not error or not error.is_active:
+        raise HTTPException(404, "Erro não encontrado")
+    if error.status != "PENDING_CHIEF_APPROVAL":
+        raise HTTPException(400, "Incidência não está pendente de aprovação do Chefe")
+
+    if not error.date_solution:
+        error.pending_solution = True
+
+    error.status = "PENDING_TUTOR_REVIEW"
+    db.flush()
+
+    # Notify tutors
+    plans = db.query(TutoriaActionPlan).filter(TutoriaActionPlan.error_id == error_id).all()
+    notified_ids = set()
+    for p in plans:
+        rid = getattr(p, 'responsible_id', None)
+        if rid and rid not in notified_ids:
+            create_notification(db, rid, "PENDING_REVIEW", f"Incidência #{error_id} aprovada pelo Chefe, aguarda revisão", error_id=error.id)
+            notified_ids.add(rid)
+    if error.tutorado and error.tutorado.tutor_id and error.tutorado.tutor_id not in notified_ids:
+        create_notification(db, error.tutorado.tutor_id, "PENDING_REVIEW", f"Incidência #{error_id} aprovada pelo Chefe, aguarda revisão", error_id=error.id)
+
+    db.commit()
+    error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+    return _error_out(error)
+
+
+@router.post("/errors/{error_id}/cancel")
+def cancel_error(
+    error_id: int,
+    body: CancelErrorIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Cancel (eliminate) an incident — Chefe/Manager only."""
+    if not is_chefe_or_manager(current_user):
+        raise HTTPException(403, "Apenas Chefe/Manager pode eliminar incidências")
+    error = db.get(TutoriaError, error_id)
+    if not error or not error.is_active:
+        raise HTTPException(404, "Erro não encontrado")
+    if not body.reason or not body.reason.strip():
+        raise HTTPException(400, "Motivo de eliminação é obrigatório")
+
+    error.status = "CANCELLED"
+    error.cancelled_reason = body.reason.strip()
+    error.cancelled_by_id = current_user.id
+    db.flush()
+
+    # Notify the original registrant
+    if error.created_by_id and error.created_by_id != current_user.id:
+        create_notification(db, error.created_by_id, "CANCELLED_ERROR",
+                          f"Incidência #{error_id} eliminada: {body.reason.strip()[:100]}", error_id=error.id)
+
+    db.commit()
+    return {"ok": True, "status": "CANCELLED"}
+
+
+@router.post("/errors/{error_id}/approve-plans")
+def approve_plans(
+    error_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Tutor approves plans → APPROVED. If origin is Trade_Personas, auto-create learning sheets."""
+    if not is_tutor_or_above(current_user):
+        raise HTTPException(403, "Apenas Tutor/Manager/Admin pode aprovar planos")
+    error = db.get(TutoriaError, error_id)
+    if not error or not error.is_active:
+        raise HTTPException(404, "Erro não encontrado")
+    if error.status != "PENDING_TUTOR_REVIEW":
+        raise HTTPException(400, f"Incidência não está em PENDING_TUTOR_REVIEW (atual: {error.status})")
+
+    error.status = "APPROVED"
+    db.flush()
+
+    # Notify responsible of each plan
+    plans = db.query(TutoriaActionPlan).filter(TutoriaActionPlan.error_id == error_id).all()
+    for p in plans:
+        rid = getattr(p, 'responsible_id', None)
+        if rid:
+            create_notification(db, rid, "PLAN_APPROVED", f"Plano #{p.id} aprovado pelo Tutor para incidência #{error_id}", error_id=error.id, plan_id=p.id)
+
+    # Auto-create learning sheets if origin is Trade_Personas
+    origin_name = None
+    if error.origin:
+        origin_name = error.origin.name
+    if origin_name and "persona" in origin_name.lower():
+        participants = set()
+        if getattr(error, 'grabador_id', None):
+            participants.add(error.grabador_id)
+        if getattr(error, 'liberador_id', None):
+            participants.add(error.liberador_id)
+        for uid in participants:
+            existing = db.query(TutoriaLearningSheet).filter(
+                TutoriaLearningSheet.error_id == error_id,
+                TutoriaLearningSheet.user_id == uid,
+            ).first()
+            if not existing:
+                sheet = TutoriaLearningSheet(
+                    error_id=error_id,
+                    user_id=uid,
+                    status="PENDING",
+                    is_mandatory=False,
+                    tutor_id=error.tutorado.tutor_id if error.tutorado else None,
+                )
+                db.add(sheet)
+                create_notification(db, uid, "LEARNING_SHEET", f"Nova ficha de aprendizagem para incidência #{error_id}", error_id=error.id)
+
+    db.commit()
+    error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+    return _error_out(error)
+
+
+@router.post("/errors/{error_id}/return-analysis")
+def return_analysis(
+    error_id: int,
+    body: ReturnAnalysisIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Tutor returns analysis to Chefe/Manager → ANALYSIS."""
+    if not is_tutor_or_above(current_user):
+        raise HTTPException(403, "Apenas Tutor/Manager/Admin pode devolver análise")
+    error = db.get(TutoriaError, error_id)
+    if not error or not error.is_active:
+        raise HTTPException(404, "Erro não encontrado")
+    if error.status != "PENDING_TUTOR_REVIEW":
+        raise HTTPException(400, "Incidência não está em PENDING_TUTOR_REVIEW")
+    if not body.reason or not body.reason.strip():
+        raise HTTPException(400, "Motivo de devolução é obrigatório")
+
+    error.status = "ANALYSIS"
+    db.flush()
+
+    # Add comment with reason
+    db.add(TutoriaComment(
+        ref_type="ERROR", ref_id=error_id,
+        author_id=current_user.id,
+        content=f"[DEVOLVIDO PELO TUTOR] {body.reason.strip()}",
+    ))
+
+    # Notify chefe/manager who submitted
+    if error.created_by_id:
+        create_notification(db, error.created_by_id, "PLAN_RETURNED",
+                          f"Análise da incidência #{error_id} devolvida: {body.reason.strip()[:100]}", error_id=error.id)
+    # Also notify chefes of team
+    if error.tutorado and hasattr(error.tutorado, 'team_id') and error.tutorado.team_id:
+        chefes = db.query(User).filter(User.team_id == error.tutorado.team_id, User.is_team_lead == True, User.id != error.created_by_id).all()
+        for c in chefes:
+            create_notification(db, c.id, "PLAN_RETURNED",
+                              f"Análise da incidência #{error_id} devolvida pelo Tutor", error_id=error.id)
+
+    db.commit()
+    error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+    return _error_out(error)
+
+
+@router.post("/errors/{error_id}/confirm-solution")
+def confirm_solution(
+    error_id: int,
+    body: ConfirmSolutionIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Chefe/Manager confirms solution → back to PENDING_TUTOR_REVIEW for final confirmation."""
+    if not is_chefe_referente_manager(current_user):
+        raise HTTPException(403, "Apenas Chefe/Referente/Manager pode confirmar solução")
+    error = db.get(TutoriaError, error_id)
+    if not error or not error.is_active:
+        raise HTTPException(404, "Erro não encontrado")
+
+    error.date_solution = body.date_solution
+    error.solution = body.solution
+    error.solution_confirmed = True
+    error.pending_solution = False
+    error.status = "PENDING_TUTOR_REVIEW"
+    db.flush()
+
+    # Notify tutor
+    if error.tutorado and error.tutorado.tutor_id:
+        create_notification(db, error.tutorado.tutor_id, "PENDING_REVIEW",
+                          f"Solução confirmada para incidência #{error_id}, aguarda revisão final", error_id=error.id)
+
+    db.commit()
+    error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+    return _error_out(error)
+
+
+@router.post("/errors/{error_id}/resolve")
+def resolve_error(
+    error_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Tutor confirms final solution → RESOLVED."""
+    if not is_tutor_or_above(current_user):
+        raise HTTPException(403, "Apenas Tutor/Manager/Admin pode resolver")
+    error = db.get(TutoriaError, error_id)
+    if not error or not error.is_active:
+        raise HTTPException(404, "Erro não encontrado")
+    if error.status not in ("APPROVED", "PENDING_TUTOR_REVIEW"):
+        raise HTTPException(400, f"Incidência não está em estado resolúvel (atual: {error.status})")
+
+    error.status = "RESOLVED"
+    db.commit()
+    error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+    return _error_out(error)
+
+
+# ─── PLAN START / COMPLETE ────────────────────────────────────────────────────
+
+@router.patch("/plans/{plan_id}/start")
+def start_plan(
+    plan_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Start plan execution: OPEN → IN_PROGRESS."""
+    plan = db.get(TutoriaActionPlan, plan_id)
+    if not plan:
+        raise HTTPException(404, "Plano não encontrado")
+    if plan.status != "OPEN":
+        raise HTTPException(400, f"Plano não está OPEN (atual: {plan.status})")
+    # Only responsible or admin can start
+    if getattr(plan, 'responsible_id', None) and plan.responsible_id != current_user.id and current_user.role != "ADMIN":
+        raise HTTPException(403, "Apenas o responsável pode iniciar o plano")
+
+    plan.status = "IN_PROGRESS"
+    plan.started_at = datetime.utcnow()
+    db.commit()
+    plan = _plans_query(db, current_user).filter(TutoriaActionPlan.id == plan_id).first()
+    return _plan_out(plan)
+
+
+class CompletePlanIn(BaseModel):
+    result_score: int
+    result_comment: str
+
+
+@router.patch("/plans/{plan_id}/complete")
+def complete_plan(
+    plan_id: int,
+    body: CompletePlanIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Complete plan: IN_PROGRESS → DONE with result score and comment."""
+    plan = db.get(TutoriaActionPlan, plan_id)
+    if not plan:
+        raise HTTPException(404, "Plano não encontrado")
+    if plan.status != "IN_PROGRESS":
+        raise HTTPException(400, f"Plano não está IN_PROGRESS (atual: {plan.status})")
+    if getattr(plan, 'responsible_id', None) and plan.responsible_id != current_user.id and current_user.role != "ADMIN":
+        raise HTTPException(403, "Apenas o responsável pode concluir o plano")
+    if body.result_score < 0 or body.result_score > 5:
+        raise HTTPException(400, "result_score deve ser entre 0 e 5")
+    if len(body.result_comment) > 160:
+        raise HTTPException(400, "result_comment máximo 160 caracteres")
+
+    plan.status = "DONE"
+    plan.result_score = body.result_score
+    plan.result_comment = body.result_comment
+    plan.completed_at = datetime.utcnow()
+    db.commit()
+    plan = _plans_query(db, current_user).filter(TutoriaActionPlan.id == plan_id).first()
+    return _plan_out(plan)
+
+
+# ─── NOTIFICATIONS ───────────────────────────────────────────────────────────
+
+@router.get("/notifications")
+def list_notifications(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    notifs = (
+        db.query(TutoriaNotification)
+        .filter(TutoriaNotification.user_id == current_user.id, TutoriaNotification.is_read == False)
+        .order_by(TutoriaNotification.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    return [
+        {
+            "id": n.id,
+            "type": n.type,
+            "message": n.message,
+            "error_id": n.error_id,
+            "plan_id": n.plan_id,
+            "is_read": n.is_read,
+            "created_at": n.created_at,
+        }
+        for n in notifs
+    ]
+
+
+@router.patch("/notifications/{notif_id}/read")
+def mark_notification_read(
+    notif_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    notif = db.get(TutoriaNotification, notif_id)
+    if not notif or notif.user_id != current_user.id:
+        raise HTTPException(404, "Notificação não encontrada")
+    notif.is_read = True
+    db.commit()
+    return {"ok": True}
+
+
+@router.patch("/notifications/read-all")
+def mark_all_notifications_read(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    db.query(TutoriaNotification).filter(
+        TutoriaNotification.user_id == current_user.id,
+        TutoriaNotification.is_read == False,
+    ).update({"is_read": True})
+    db.commit()
+    return {"ok": True}
+
+
+# ─── LEARNING SHEETS ─────────────────────────────────────────────────────────
+
+def _sheet_out(s: TutoriaLearningSheet) -> dict:
+    return {
+        "id": s.id,
+        "error_id": s.error_id,
+        "user_id": s.user_id,
+        "user_name": _user_name(s.user) if hasattr(s, 'user') and s.user else None,
+        "status": s.status,
+        "is_mandatory": getattr(s, 'is_mandatory', False),
+        "reflection": getattr(s, 'reflection', None),
+        "submitted_at": getattr(s, 'submitted_at', None),
+        "tutor_id": getattr(s, 'tutor_id', None),
+        "tutor_name": _user_name(getattr(s, 'tutor', None)),
+        "tutor_outcome": getattr(s, 'tutor_outcome', None),
+        "tutor_notes": getattr(s, 'tutor_notes', None),
+        "reviewed_at": getattr(s, 'reviewed_at', None),
+        "created_at": s.created_at,
+    }
+
+
+@router.get("/learning-sheets")
+def list_learning_sheets(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    status: Optional[str] = None,
+):
+    """List learning sheets — Tutors see submitted sheets from their tutorados."""
+    if not is_tutor_or_above(current_user):
+        raise HTTPException(403, "Apenas Tutor/Manager/Admin pode listar fichas")
+    q = (
+        db.query(TutoriaLearningSheet)
+        .options(
+            joinedload(TutoriaLearningSheet.user),
+            joinedload(TutoriaLearningSheet.tutor),
+        )
+    )
+    if current_user.role not in ("ADMIN", "MANAGER"):
+        # Tutor sees sheets where they are the tutor
+        q = q.filter(TutoriaLearningSheet.tutor_id == current_user.id)
+    if status:
+        q = q.filter(TutoriaLearningSheet.status == status)
+    sheets = q.order_by(TutoriaLearningSheet.created_at.desc()).all()
+    return [_sheet_out(s) for s in sheets]
+
+
+@router.get("/learning-sheets/mine")
+def my_learning_sheets(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List learning sheets for current user."""
+    sheets = (
+        db.query(TutoriaLearningSheet)
+        .options(
+            joinedload(TutoriaLearningSheet.user),
+            joinedload(TutoriaLearningSheet.tutor),
+        )
+        .filter(TutoriaLearningSheet.user_id == current_user.id)
+        .order_by(TutoriaLearningSheet.created_at.desc())
+        .all()
+    )
+    return [_sheet_out(s) for s in sheets]
+
+
+class SubmitReflectionIn(BaseModel):
+    reflection: str
+
+
+@router.post("/learning-sheets/{sheet_id}/submit")
+def submit_reflection(
+    sheet_id: int,
+    body: SubmitReflectionIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Participant submits reflection."""
+    sheet = db.get(TutoriaLearningSheet, sheet_id)
+    if not sheet:
+        raise HTTPException(404, "Ficha não encontrada")
+    if sheet.user_id != current_user.id:
+        raise HTTPException(403, "Só pode submeter a sua própria ficha")
+    if sheet.status not in ("PENDING",):
+        raise HTTPException(400, "Ficha já foi submetida")
+
+    sheet.reflection = body.reflection
+    sheet.submitted_at = datetime.utcnow()
+    sheet.status = "SUBMITTED"
+    db.flush()
+
+    # Notify tutor
+    if sheet.tutor_id:
+        create_notification(db, sheet.tutor_id, "LEARNING_SHEET",
+                          f"Ficha de aprendizagem submetida por {current_user.full_name}", error_id=sheet.error_id)
+
+    db.commit()
+    sheet = (
+        db.query(TutoriaLearningSheet)
+        .options(joinedload(TutoriaLearningSheet.user), joinedload(TutoriaLearningSheet.tutor))
+        .filter(TutoriaLearningSheet.id == sheet_id)
+        .first()
+    )
+    return _sheet_out(sheet)
+
+
+class ReviewSheetIn(BaseModel):
+    tutor_outcome: str  # SEM_ACAO | FEEDBACK_DIRETO | TUTORIA_INDIVIDUAL | TUTORIA_GRUPAL
+    tutor_notes: Optional[str] = None
+
+
+@router.patch("/learning-sheets/{sheet_id}/review")
+def review_sheet(
+    sheet_id: int,
+    body: ReviewSheetIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Tutor reviews a submitted sheet."""
+    if not is_tutor_or_above(current_user):
+        raise HTTPException(403, "Apenas Tutor/Manager/Admin pode revisar fichas")
+    sheet = db.get(TutoriaLearningSheet, sheet_id)
+    if not sheet:
+        raise HTTPException(404, "Ficha não encontrada")
+    if sheet.status != "SUBMITTED":
+        raise HTTPException(400, "Ficha não está em estado SUBMITTED")
+
+    sheet.tutor_outcome = body.tutor_outcome
+    sheet.tutor_notes = body.tutor_notes
+    sheet.reviewed_at = datetime.utcnow()
+    sheet.status = "REVIEWED"
+    db.commit()
+    sheet = (
+        db.query(TutoriaLearningSheet)
+        .options(joinedload(TutoriaLearningSheet.user), joinedload(TutoriaLearningSheet.tutor))
+        .filter(TutoriaLearningSheet.id == sheet_id)
+        .first()
+    )
+    return _sheet_out(sheet)

@@ -30,6 +30,21 @@ interface ErrorDetail {
   created_by_name?: string;
   approver_id?: number;
   approver_name?: string;
+  // Análise
+  impact_level?: string;
+  impact_detail?: string;
+  origin_detail?: string;
+  grabador_id?: number;
+  grabador_name?: string;
+  liberador_id?: number;
+  liberador_name?: string;
+  solution_confirmed?: boolean;
+  pending_solution?: boolean;
+  excel_sent?: boolean;
+  action_plan_summary?: string;
+  cancelled_reason?: string;
+  cancelled_by_id?: number;
+  cancelled_by_name?: string;
   // Transação
   bank_id?: number;
   bank_name?: string;
@@ -67,6 +82,7 @@ interface ErrorDetail {
   inactivation_reason?: string;
   plans_count: number;
   motivos?: { id: number; typology: string; description?: string; created_at?: string }[];
+  refs?: { id: number; referencia?: string; divisa?: string; importe?: number; cliente_final?: string }[];
   created_at: string;
   updated_at?: string;
 }
@@ -75,11 +91,20 @@ interface Plan {
   id: number;
   tutorado_name?: string;
   created_by_name?: string;
+  plan_type?: string;
+  responsible_name?: string;
+  expected_result?: string;
+  deadline?: string;
+  result_score?: number;
+  result_comment?: string;
+  started_at?: string;
+  completed_at?: string;
   status: string;
   when_deadline?: string;
   items_total: number;
   items_completed: number;
   what?: string;
+  description?: string;
   created_at: string;
 }
 
@@ -122,6 +147,15 @@ function severityCls(s: string, isDark: boolean) {
 }
 function statusCls(s: string, isDark: boolean) {
   const d: Record<string, string> = {
+    REGISTERED: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
+    ANALYSIS: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20',
+    PENDING_CHIEF_APPROVAL: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
+    PENDING_TUTOR_REVIEW: 'bg-orange-500/15 text-orange-400 border-orange-500/20',
+    PENDING_SOLUTION: 'bg-red-500/15 text-red-300 border-red-500/20',
+    APPROVED: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
+    RESOLVED: 'bg-green-500/15 text-green-400 border-green-500/20',
+    CANCELLED: 'bg-gray-500/15 text-gray-400 border-gray-500/20',
+    // Legacy
     ABERTO: 'bg-red-500/15 text-red-400 border-red-500/20',
     EM_ANALISE: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20',
     PLANO_CRIADO: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
@@ -130,6 +164,15 @@ function statusCls(s: string, isDark: boolean) {
     VERIFICADO: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
   };
   const l: Record<string, string> = {
+    REGISTERED: 'bg-blue-50 text-blue-700 border-blue-200',
+    ANALYSIS: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    PENDING_CHIEF_APPROVAL: 'bg-amber-50 text-amber-700 border-amber-200',
+    PENDING_TUTOR_REVIEW: 'bg-orange-50 text-orange-700 border-orange-200',
+    PENDING_SOLUTION: 'bg-red-50 text-red-600 border-red-200',
+    APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    RESOLVED: 'bg-green-50 text-green-700 border-green-200',
+    CANCELLED: 'bg-gray-100 text-gray-500 border-gray-200',
+    // Legacy
     ABERTO: 'bg-red-50 text-red-700 border-red-200',
     EM_ANALISE: 'bg-yellow-50 text-yellow-700 border-yellow-200',
     PLANO_CRIADO: 'bg-blue-50 text-blue-700 border-blue-200',
@@ -142,22 +185,27 @@ function statusCls(s: string, isDark: boolean) {
 
 // ─── Status progress bar ──────────────────────────────────────────────────────
 
-const STATUS_STEPS = ['ABERTO', 'EM_ANALISE', 'PLANO_CRIADO', 'EM_EXECUCAO', 'CONCLUIDO', 'VERIFICADO'];
+const STATUS_STEPS = ['REGISTERED', 'ANALYSIS', 'PENDING_TUTOR_REVIEW', 'APPROVED', 'RESOLVED'];
 
 function StatusStepper({ status, isDark }: { status: string; isDark: boolean }) {
   const { t } = useTranslation();
   const STATUS_LABEL: Record<string, string> = {
-    ABERTO: t('tutoriaDetail.status.ABERTO'),
-    EM_ANALISE: t('tutoriaDetail.status.EM_ANALISE'),
-    PLANO_CRIADO: t('tutoriaDetail.status.PLANO_CRIADO'),
-    EM_EXECUCAO: t('tutoriaDetail.status.EM_EXECUCAO'),
-    CONCLUIDO: t('tutoriaDetail.status.CONCLUIDO'),
-    VERIFICADO: t('tutoriaDetail.status.VERIFICADO'),
+    REGISTERED: t('tutoriaDetail.status.REGISTERED', 'Registada'),
+    ANALYSIS: t('tutoriaDetail.status.ANALYSIS', 'Em Análise'),
+    PENDING_TUTOR_REVIEW: t('tutoriaDetail.status.PENDING_TUTOR_REVIEW', 'Revisão Tutor'),
+    APPROVED: t('tutoriaDetail.status.APPROVED', 'Aprovada'),
+    RESOLVED: t('tutoriaDetail.status.RESOLVED', 'Resolvida'),
   };
+  const isCancelled = status === 'CANCELLED';
   const idx = STATUS_STEPS.indexOf(status);
   return (
-    <div className="flex items-center gap-0">
-      {STATUS_STEPS.map((s, i) => (
+    <div className="flex items-center gap-0 flex-wrap">
+      {isCancelled ? (
+        <div className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border ${isDark ? 'bg-gray-500/15 text-gray-400 border-gray-500/25' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+          {t('tutoriaDetail.status.CANCELLED', 'Cancelada')}
+        </div>
+      ) : (
+        STATUS_STEPS.map((s, i) => (
         <div key={s} className="flex items-center">
           <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${
             i < idx
@@ -174,7 +222,8 @@ function StatusStepper({ status, isDark }: { status: string; isDark: boolean }) 
             <div className={`w-4 h-px mx-0.5 ${i < idx ? isDark ? 'bg-emerald-500/30' : 'bg-emerald-200' : isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
           )}
         </div>
-      ))}
+      ))
+      )}
     </div>
   );
 }
@@ -195,14 +244,26 @@ export default function ErrorDetail() {
     CRITICA: t('tutoriaDetail.severity.CRITICA'),
   };
   const STATUS_LABEL: Record<string, string> = {
-    ABERTO: t('tutoriaDetail.status.ABERTO'),
-    EM_ANALISE: t('tutoriaDetail.status.EM_ANALISE'),
-    PLANO_CRIADO: t('tutoriaDetail.status.PLANO_CRIADO'),
-    EM_EXECUCAO: t('tutoriaDetail.status.EM_EXECUCAO'),
-    CONCLUIDO: t('tutoriaDetail.status.CONCLUIDO'),
-    VERIFICADO: t('tutoriaDetail.status.VERIFICADO'),
+    REGISTERED: t('tutoriaDetail.status.REGISTERED', 'Registada'),
+    ANALYSIS: t('tutoriaDetail.status.ANALYSIS', 'Em Análise'),
+    PENDING_CHIEF_APPROVAL: t('tutoriaDetail.status.PENDING_CHIEF_APPROVAL', 'Aprovação Chefe'),
+    PENDING_TUTOR_REVIEW: t('tutoriaDetail.status.PENDING_TUTOR_REVIEW', 'Revisão Tutor'),
+    PENDING_SOLUTION: t('tutoriaDetail.status.PENDING_SOLUTION', 'Pendente Solução'),
+    APPROVED: t('tutoriaDetail.status.APPROVED', 'Aprovada'),
+    RESOLVED: t('tutoriaDetail.status.RESOLVED', 'Resolvida'),
+    CANCELLED: t('tutoriaDetail.status.CANCELLED', 'Cancelada'),
+    // Legacy
+    ABERTO: t('tutoriaDetail.status.ABERTO', 'Aberto'),
+    EM_ANALISE: t('tutoriaDetail.status.EM_ANALISE', 'Em Análise'),
+    PLANO_CRIADO: t('tutoriaDetail.status.PLANO_CRIADO', 'Plano Criado'),
+    EM_EXECUCAO: t('tutoriaDetail.status.EM_EXECUCAO', 'Em Execução'),
+    CONCLUIDO: t('tutoriaDetail.status.CONCLUIDO', 'Concluído'),
+    VERIFICADO: t('tutoriaDetail.status.VERIFICADO', 'Verificado'),
   };
   const PLAN_STATUS_LABEL: Record<string, string> = {
+    OPEN: t('tutoriaDetail.planStatus.OPEN', 'Aberto'),
+    IN_PROGRESS: t('tutoriaDetail.planStatus.IN_PROGRESS', 'Em Progresso'),
+    DONE: t('tutoriaDetail.planStatus.DONE', 'Concluído'),
     RASCUNHO: t('tutoriaDetail.planStatus.RASCUNHO'),
     AGUARDANDO_APROVACAO: t('tutoriaDetail.planStatus.AGUARDANDO_APROVACAO'),
     APROVADO: t('tutoriaDetail.planStatus.APROVADO'),
@@ -219,6 +280,12 @@ export default function ErrorDetail() {
 
   const isManager = user?.role === 'ADMIN' || user?.role === 'TRAINER';
   const isAdmin   = user?.role === 'ADMIN';
+  const isTutor   = !!(user as any)?.is_tutor || user?.role === 'ADMIN';
+  const isChefe   = !!(user as any)?.is_team_lead || user?.role === 'MANAGER' || user?.role === 'ADMIN';
+  const isReferente = !!(user as any)?.is_referente;
+  const isChefRef = isChefe || isReferente;
+  const canAnalyze = isChefRef;
+  const canReviewAsTutor = isTutor;
 
   const [error, setError]       = useState<ErrorDetail | null>(null);
   const [plans, setPlans]       = useState<Plan[]>([]);
@@ -231,6 +298,13 @@ export default function ErrorDetail() {
 
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [showStatusDrop, setShowStatusDrop] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<'registo' | 'analise' | 'revisao' | 'historico'>('registo');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [returnReason, setReturnReason] = useState('');
+  const [showReturnModal, setShowReturnModal] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -273,6 +347,72 @@ export default function ErrorDetail() {
     }
   };
 
+  const handleSubmitAnalysis = async () => {
+    setActionLoading(true);
+    try {
+      const res = await axios.post(`/api/tutoria/errors/${id}/submit-analysis`);
+      setError(res.data);
+    } catch (e: any) {
+      alert(e?.response?.data?.detail || 'Erro ao submeter análise');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!cancelReason.trim()) return;
+    setActionLoading(true);
+    try {
+      await axios.post(`/api/tutoria/errors/${id}/cancel`, { reason: cancelReason.trim() });
+      setError(prev => prev ? { ...prev, status: 'CANCELLED', cancelled_reason: cancelReason.trim() } : prev);
+      setShowCancelModal(false);
+      setCancelReason('');
+    } catch (e: any) {
+      alert(e?.response?.data?.detail || 'Erro ao cancelar');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleApprovePlans = async () => {
+    setActionLoading(true);
+    try {
+      const res = await axios.post(`/api/tutoria/errors/${id}/approve-plans`);
+      setError(res.data);
+    } catch (e: any) {
+      alert(e?.response?.data?.detail || 'Erro ao aprovar planos');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReturnAnalysis = async () => {
+    if (!returnReason.trim()) return;
+    setActionLoading(true);
+    try {
+      const res = await axios.post(`/api/tutoria/errors/${id}/return-analysis`, { reason: returnReason.trim() });
+      setError(res.data);
+      setShowReturnModal(false);
+      setReturnReason('');
+    } catch (e: any) {
+      alert(e?.response?.data?.detail || 'Erro ao devolver análise');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleResolve = async () => {
+    setActionLoading(true);
+    try {
+      const res = await axios.post(`/api/tutoria/errors/${id}/resolve`);
+      setError(res.data);
+    } catch (e: any) {
+      alert(e?.response?.data?.detail || 'Erro ao resolver');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleComment = async () => {
     if (!commentText.trim()) return;
     setSendingComment(true);
@@ -301,15 +441,8 @@ export default function ErrorDetail() {
     </div>
   );
 
-  const STATUS_TRANSITIONS: Record<string, string[]> = {
-    ABERTO: ['EM_ANALISE'],
-    EM_ANALISE: ['PLANO_CRIADO', 'ABERTO'],
-    PLANO_CRIADO: ['EM_EXECUCAO'],
-    EM_EXECUCAO: ['CONCLUIDO'],
-    CONCLUIDO: [],
-    VERIFICADO: [],
-  };
-  const availableTransitions = STATUS_TRANSITIONS[error.status] || [];
+  const STATUS_TRANSITIONS: Record<string, string[]> = {};
+  const availableTransitions: string[] = [];
 
   return (
     <div className="space-y-8 max-w-4xl">
@@ -339,7 +472,7 @@ export default function ErrorDetail() {
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-red-400' : 'text-red-500'}`}>{t('tutoriaDetail.errorLabel')} #{error.id}</span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusCls(error.status, isDark)}`}>
-                  {STATUS_LABEL[error.status]}
+                  {STATUS_LABEL[error.status] ?? error.status}
                 </span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${severityCls(error.severity, isDark)}`}>
                   {SEVERITY_LABEL[error.severity]}
@@ -349,62 +482,82 @@ export default function ErrorDetail() {
                     <RefreshCw className="w-2.5 h-2.5" /> {error.recurrence_count + 1}ª {t('tutoriaDetail.occurrence')}
                   </span>
                 )}
+                {error.pending_solution && (
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${isDark ? 'bg-red-500/15 text-red-400 border-red-500/20' : 'bg-red-50 text-red-600 border-red-200'}`}>
+                    {t('tutoriaDetail.pendingSolution', 'Pendente Solução')}
+                  </span>
+                )}
               </div>
               <p className={`text-lg font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{error.description}</p>
+              {error.cancelled_reason && (
+                <p className={`text-sm mt-1 ${isDark ? 'text-red-400' : 'text-red-600'}`}>
+                  {t('tutoriaDetail.cancelledReason', 'Motivo')}: {error.cancelled_reason}
+                </p>
+              )}
             </div>
           </div>
 
-          {/* Status actions */}
-          {isManager && error.status !== 'VERIFICADO' && (
-            <div className="flex gap-2">
-              {availableTransitions.length > 0 && (
-                <div className="relative">
-                  <button
-                    onClick={() => setShowStatusDrop(!showStatusDrop)}
-                    disabled={updatingStatus}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${isDark ? 'bg-white/[0.04] border-white/10 text-gray-300 hover:text-white' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
-                  >
-                    {updatingStatus ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                    {t('tutoriaDetail.changeStatus')} <ChevronDown className={`w-4 h-4 transition-transform ${showStatusDrop ? 'rotate-180' : ''}`} />
-                  </button>
-                  <AnimatePresence>
-                    {showStatusDrop && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                        className={`absolute right-0 top-full mt-1 z-50 rounded-xl border shadow-xl overflow-hidden min-w-[160px] ${isDark ? 'bg-[#111] border-white/10' : 'bg-white border-gray-200'}`}
-                      >
-                        {availableTransitions.map(s => (
-                          <button
-                            key={s}
-                            onClick={() => handleStatusChange(s)}
-                            className={`w-full text-left px-4 py-2.5 text-sm font-semibold transition-colors ${isDark ? 'text-gray-300 hover:bg-white/5' : 'text-gray-700 hover:bg-gray-50'}`}
-                          >
-                            → {STATUS_LABEL[s]}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
-              {isAdmin && error.status === 'CONCLUIDO' && (
+          {/* Contextual action buttons */}
+          <div className="flex gap-2 flex-wrap">
+            {/* Chefe/Manager: cancel button */}
+            {isChefe && error.status !== 'CANCELLED' && error.status !== 'RESOLVED' && (
+              <button
+                onClick={() => setShowCancelModal(true)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${isDark ? 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20' : 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100'}`}
+              >
+                {t('tutoriaDetail.cancelIncident', 'Eliminar')}
+              </button>
+            )}
+            {/* Chefe/Ref: submit analysis */}
+            {canAnalyze && (error.status === 'REGISTERED' || error.status === 'ANALYSIS') && (
+              <button
+                onClick={handleSubmitAnalysis}
+                disabled={actionLoading}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold shadow-md disabled:opacity-50"
+              >
+                {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                {t('tutoriaDetail.submitAnalysis', 'Submeter para Tutor')}
+              </button>
+            )}
+            {/* Tutor: approve plans */}
+            {canReviewAsTutor && error.status === 'PENDING_TUTOR_REVIEW' && (
+              <>
                 <button
-                  onClick={handleVerify}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white text-sm font-bold"
+                  onClick={handleApprovePlans}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold shadow-md disabled:opacity-50"
                 >
-                  <CheckCircle2 className="w-4 h-4" /> {t('tutoriaDetail.verifyAndClose')}
+                  {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                  {t('tutoriaDetail.approvePlans', 'Aprovar Planos')}
                 </button>
-              )}
+                <button
+                  onClick={() => setShowReturnModal(true)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${isDark ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20' : 'bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100'}`}
+                >
+                  {t('tutoriaDetail.returnAnalysis', 'Devolver')}
+                </button>
+              </>
+            )}
+            {/* Tutor: resolve */}
+            {canReviewAsTutor && (error.status === 'APPROVED' || (error.status === 'PENDING_TUTOR_REVIEW' && error.solution_confirmed)) && (
+              <button
+                onClick={handleResolve}
+                disabled={actionLoading}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs font-bold shadow-md disabled:opacity-50"
+              >
+                {t('tutoriaDetail.resolve', 'Resolver')}
+              </button>
+            )}
+            {/* Manager: create plan */}
+            {isManager && error.status !== 'CANCELLED' && error.status !== 'RESOLVED' && (
               <button
                 onClick={() => navigate(`/tutoria/errors/${error.id}/plans/new`)}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-bold shadow-lg shadow-blue-500/20"
               >
                 <Plus className="w-4 h-4" /> {t('tutoriaDetail.actionPlan')}
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </motion.div>
 
@@ -416,6 +569,35 @@ export default function ErrorDetail() {
         <StatusStepper status={error.status} isDark={isDark} />
       </motion.div>
 
+      {/* ── Tabs ─────────────────────────────────────────────────────────────── */}
+      <div className="flex gap-1 overflow-x-auto">
+        {(['registo', 'analise', 'revisao', 'historico'] as const).map(tab => {
+          const labels: Record<string, string> = {
+            registo: t('tutoriaDetail.tabRegisto', 'Registo'),
+            analise: t('tutoriaDetail.tabAnalise', 'Análise'),
+            revisao: t('tutoriaDetail.tabRevisao', 'Revisão Tutor'),
+            historico: t('tutoriaDetail.tabHistorico', 'Histórico'),
+          };
+          const isActive = activeTab === tab;
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                isActive
+                  ? isDark ? 'bg-red-500/15 text-red-400 border border-red-500/30' : 'bg-red-50 text-red-700 border border-red-200'
+                  : isDark ? 'bg-white/[0.03] text-gray-500 border border-white/5 hover:text-white' : 'bg-gray-50 text-gray-400 border border-gray-100 hover:text-gray-700'
+              }`}
+            >
+              {labels[tab]}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── TAB: Registo ─────────────────────────────────────────────────────── */}
+      {activeTab === 'registo' && (
+        <>
       {/* ── Meta grid ────────────────────────────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
@@ -555,7 +737,90 @@ export default function ErrorDetail() {
             </div>
           </div>
         )}
+
+        {/* ── Refs ── */}
+        {error.refs && error.refs.length > 0 && (
+          <div className={`px-5 pb-5 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+            <p className={`text-xs font-bold uppercase tracking-wider mt-4 mb-3 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+              {t('tutoriaDetail.refs', 'Referências')} ({error.refs.length})
+            </p>
+            <div className="overflow-x-auto">
+              <table className={`w-full text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                <thead>
+                  <tr className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                    <th className="text-left py-2 pr-4">{t('tutoriaDetail.reference', 'Referência')}</th>
+                    <th className="text-left py-2 pr-4">{t('tutoriaDetail.currency', 'Divisa')}</th>
+                    <th className="text-right py-2 pr-4">{t('tutoriaDetail.amount', 'Importe')}</th>
+                    <th className="text-left py-2">{t('tutoriaDetail.finalClient', 'Cliente Final')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {error.refs.map(r => (
+                    <tr key={r.id} className={`border-t ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+                      <td className="py-2 pr-4 font-mono text-xs">{r.referencia || '—'}</td>
+                      <td className="py-2 pr-4">{r.divisa || '—'}</td>
+                      <td className="py-2 pr-4 text-right">{r.importe != null ? r.importe.toLocaleString('pt-PT', { minimumFractionDigits: 2 }) : '—'}</td>
+                      <td className="py-2">{r.cliente_final || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </motion.div>
+        </>
+      )}
+
+      {/* ── TAB: Análise ─────────────────────────────────────────────────────── */}
+      {activeTab === 'analise' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}
+          className={`rounded-2xl border overflow-hidden ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
+        >
+          <div className={`px-5 py-3 border-b text-xs font-bold uppercase tracking-wider ${isDark ? 'border-white/8 bg-white/[0.02] text-gray-600' : 'border-gray-100 bg-gray-50 text-gray-400'}`}>
+            {t('tutoriaDetail.analysisSection', 'Dados de Análise')}
+          </div>
+          <div className="p-5 grid grid-cols-2 sm:grid-cols-3 gap-5">
+            {[
+              { label: t('tutoriaDetail.impactLevel', 'Nível Impacto'), value: error.impact_level || '—' },
+              { label: t('tutoriaDetail.impactDetail', 'Detalhe Impacto'), value: error.impact_detail || '—' },
+              { label: t('tutoriaDetail.origin', 'Origem'), value: error.origin_name || '—' },
+              { label: t('tutoriaDetail.originDetail', 'Detalhe Origem'), value: error.origin_detail || '—' },
+              { label: t('tutoriaDetail.grabador', 'Grabador'), value: error.grabador_name || '—' },
+              { label: t('tutoriaDetail.liberador', 'Liberador'), value: error.liberador_name || '—' },
+              { label: t('tutoriaDetail.solutionConfirmed', 'Solução Confirmada'), value: error.solution_confirmed ? t('common.yes', 'Sim') : t('common.no', 'Não') },
+              { label: t('tutoriaDetail.recurrence', 'Recorrência'), value: error.recurrence_type || '—' },
+              error.action_plan_summary ? { label: t('tutoriaDetail.actionPlanSummary', 'Resumo Plano Ação'), value: error.action_plan_summary } : null,
+            ].filter(Boolean).map((item: any) => (
+              <div key={item.label}>
+                <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{item.label}</p>
+                <p className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{item.value}</p>
+              </div>
+            ))}
+          </div>
+          {(error.solution || error.analysis_5_why) && (
+            <div className={`px-5 pb-5 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+              {error.analysis_5_why && (
+                <>
+                  <p className={`text-xs font-bold uppercase tracking-wider mt-4 mb-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{t('tutoriaDetail.rootCauseAnalysis')}</p>
+                  <p className={`text-sm whitespace-pre-wrap mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{error.analysis_5_why}</p>
+                </>
+              )}
+              {error.solution && (
+                <>
+                  <p className={`text-xs font-bold uppercase tracking-wider mt-4 mb-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{t('tutoriaDetail.solution')}</p>
+                  <p className={`text-sm whitespace-pre-wrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{error.solution}</p>
+                </>
+              )}
+            </div>
+          )}
+        </motion.div>
+      )}
+
+      {/* ── TAB: Revisão Tutor ───────────────────────────────────────────────── */}
+      {activeTab === 'revisao' && (
+        <>
 
       {/* ── Plans ────────────────────────────────────────────────────────────── */}
       <motion.div
@@ -634,6 +899,12 @@ export default function ErrorDetail() {
           </div>
         )}
       </motion.div>
+        </>
+      )}
+
+      {/* ── TAB: Histórico ───────────────────────────────────────────────────── */}
+      {activeTab === 'historico' && (
+        <>
 
       {/* ── Comments ─────────────────────────────────────────────────────────── */}
       <motion.div
@@ -693,6 +964,88 @@ export default function ErrorDetail() {
           </div>
         </div>
       </motion.div>
+        </>
+      )}
+
+      {/* ── Cancel Modal ─────────────────────────────────────────────────────── */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            className={`w-full max-w-md rounded-2xl border p-6 ${isDark ? 'bg-gray-900 border-white/10' : 'bg-white border-gray-200 shadow-xl'}`}
+          >
+            <h3 className={`text-lg font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              {t('tutoriaDetail.cancelError', 'Cancelar Incidência')}
+            </h3>
+            <textarea
+              value={cancelReason}
+              onChange={e => setCancelReason(e.target.value)}
+              placeholder={t('tutoriaDetail.cancelReasonPlaceholder', 'Motivo do cancelamento...')}
+              rows={4}
+              className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none resize-none transition-all mb-4 ${
+                isDark
+                  ? 'bg-white/[0.04] border-white/10 text-white placeholder-gray-600 focus:border-red-500'
+                  : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-red-400'
+              }`}
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => { setShowCancelModal(false); setCancelReason(''); }}
+                className={`px-4 py-2 rounded-xl text-sm font-bold ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
+              >
+                {t('common.cancel', 'Voltar')}
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={!cancelReason.trim() || actionLoading}
+                className="px-4 py-2 rounded-xl bg-red-500 text-white text-sm font-bold disabled:opacity-50"
+              >
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('tutoriaDetail.confirmCancel', 'Confirmar Cancelamento')}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ── Return Analysis Modal ────────────────────────────────────────────── */}
+      {showReturnModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            className={`w-full max-w-md rounded-2xl border p-6 ${isDark ? 'bg-gray-900 border-white/10' : 'bg-white border-gray-200 shadow-xl'}`}
+          >
+            <h3 className={`text-lg font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+              {t('tutoriaDetail.returnAnalysis', 'Devolver Análise')}
+            </h3>
+            <textarea
+              value={returnReason}
+              onChange={e => setReturnReason(e.target.value)}
+              placeholder={t('tutoriaDetail.returnReasonPlaceholder', 'Motivo da devolução...')}
+              rows={4}
+              className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none resize-none transition-all mb-4 ${
+                isDark
+                  ? 'bg-white/[0.04] border-white/10 text-white placeholder-gray-600 focus:border-amber-500'
+                  : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-amber-400'
+              }`}
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => { setShowReturnModal(false); setReturnReason(''); }}
+                className={`px-4 py-2 rounded-xl text-sm font-bold ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
+              >
+                {t('common.cancel', 'Voltar')}
+              </button>
+              <button
+                onClick={handleReturnAnalysis}
+                disabled={!returnReason.trim() || actionLoading}
+                className="px-4 py-2 rounded-xl bg-amber-500 text-white text-sm font-bold disabled:opacity-50"
+              >
+                {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('tutoriaDetail.confirmReturn', 'Confirmar Devolução')}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
     </div>
   );

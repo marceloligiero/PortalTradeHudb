@@ -16,6 +16,8 @@ class User(Base):
     is_trainer = Column(Boolean, default=False, nullable=False)  # Can create/manage courses (Formador)
     is_tutor = Column(Boolean, default=False, nullable=False)    # Can mentor in Tutoria (Tutor)
     is_liberador = Column(Boolean, default=False, nullable=False) # Can release/approve operations (Liberador)
+    is_team_lead = Column(Boolean, default=False, nullable=False) # Chefe de equipa
+    is_referente = Column(Boolean, default=False, nullable=False) # Referente (representante do chefe)
     validated_at = Column(DateTime(timezone=True), nullable=True)  # When trainer was approved
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -631,20 +633,35 @@ class TutoriaError(Base):
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)           # quem cria no sistema
     approver_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)  # Liberador
 
+    # ── Pessoas adicionais ──
+    grabador_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    liberador_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
     # ── Descrição e solução ──
     description = Column(Text, nullable=False)                        # Descripción incidencia
     solution = Column(Text, nullable=True)                            # Solución
     action_plan_text = Column(Text, nullable=True)                    # Plan de Acción (texto livre)
+    action_plan_summary = Column(Text, nullable=True)                 # Resumo para Excel
 
     # ── Report-only fields (filled later / in meetings) ──
     clasificacion = Column(String(50), nullable=True)                  # Clasificación: Externo / Interno
     escalado = Column(Text, nullable=True)                             # Escalado
     comentarios_reunion = Column(Text, nullable=True)                  # Comentarios vistos en la reunión
 
+    # ── Análise ──
+    impact_level = Column(String(20), nullable=True)                   # ALTO | BAIXO
+    impact_detail = Column(String(100), nullable=True)                # Sub-detalhe do impacto
+    origin_detail = Column(String(100), nullable=True)                # Sub-detalhe da origem
+    solution_confirmed = Column(Boolean, default=False, nullable=False)
+    pending_solution = Column(Boolean, default=False, nullable=False)
+    excel_sent = Column(Boolean, default=False, nullable=False)
+    cancelled_reason = Column(Text, nullable=True)
+    cancelled_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
     # ── Classificação legada ──
     product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
     severity = Column(String(20), default="MEDIA", nullable=False)
-    status = Column(String(30), default="ABERTO", nullable=False)
+    status = Column(String(30), default="REGISTERED", nullable=False)
     tags = Column(JSON, nullable=True)
     analysis_5_why = Column(Text, nullable=True)
     is_recurrent = Column(Boolean, default=False, nullable=False)
@@ -659,6 +676,9 @@ class TutoriaError(Base):
     tutorado = relationship("User", foreign_keys=[tutorado_id])
     creator = relationship("User", foreign_keys=[created_by_id])
     approver = relationship("User", foreign_keys=[approver_id])
+    grabador = relationship("User", foreign_keys=[grabador_id])
+    liberador = relationship("User", foreign_keys=[liberador_id])
+    cancelled_by = relationship("User", foreign_keys=[cancelled_by_id])
     bank = relationship("Bank", foreign_keys=[bank_id])
     category = relationship("ErrorCategory", back_populates="errors")
     product = relationship("Product", foreign_keys=[product_id])
@@ -670,12 +690,28 @@ class TutoriaError(Base):
     error_type = relationship("ErrorType", foreign_keys=[error_type_id])
     action_plans = relationship("TutoriaActionPlan", back_populates="error", cascade="all, delete-orphan")
     motivos = relationship("TutoriaErrorMotivo", back_populates="error", cascade="all, delete-orphan")
+    refs = relationship("TutoriaErrorRef", back_populates="error", cascade="all, delete-orphan")
     comments = relationship(
         "TutoriaComment",
         primaryjoin="and_(TutoriaComment.ref_type=='ERROR', foreign(TutoriaComment.ref_id)==TutoriaError.id)",
         viewonly=True,
         overlaps="action_item_comments,plan_comments"
     )
+
+
+class TutoriaErrorRef(Base):
+    """Referências múltiplas por erro (Ref/Divisa/Importe/Cliente Final)"""
+    __tablename__ = "tutoria_error_refs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    error_id = Column(Integer, ForeignKey("tutoria_errors.id", ondelete="CASCADE"), nullable=False)
+    referencia = Column(String(100), nullable=True)
+    divisa = Column(String(20), nullable=True)
+    importe = Column(Float, nullable=True)
+    cliente_final = Column(String(255), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    error = relationship("TutoriaError", back_populates="refs")
 
 
 class TutoriaErrorMotivo(Base):
@@ -717,9 +753,19 @@ class TutoriaActionPlan(Base):
     how = Column(Text, nullable=True)
     how_much = Column(Text, nullable=True)
 
+    # Tipo e responsável do plano
+    plan_type = Column(String(20), nullable=True)        # CORRECTIVO | PREVENTIVO | MELHORIA
+    responsible_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    expected_result = Column(Text, nullable=True)
+    deadline = Column(Date, nullable=True)
+    result_score = Column(Integer, nullable=True)         # 0-5
+    result_comment = Column(String(160), nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
     # Fluxo de aprovação/validação
-    status = Column(String(30), default="RASCUNHO", nullable=False)
-    # RASCUNHO | AGUARDANDO_APROVACAO | APROVADO | EM_EXECUCAO | CONCLUIDO | DEVOLVIDO
+    status = Column(String(30), default="OPEN", nullable=False)
+    # OPEN | IN_PROGRESS | DONE | RASCUNHO | AGUARDANDO_APROVACAO | APROVADO | EM_EXECUCAO | CONCLUIDO | DEVOLVIDO
     approved_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     approved_at = Column(DateTime(timezone=True), nullable=True)
     validated_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -731,6 +777,7 @@ class TutoriaActionPlan(Base):
     error = relationship("TutoriaError", back_populates="action_plans")
     creator = relationship("User", foreign_keys=[created_by_id])
     tutorado = relationship("User", foreign_keys=[tutorado_id])
+    responsible = relationship("User", foreign_keys=[responsible_id])
     approver = relationship("User", foreign_keys=[approved_by_id])
     validator = relationship("User", foreign_keys=[validated_by_id])
     items = relationship("TutoriaActionItem", back_populates="plan", cascade="all, delete-orphan")
@@ -1147,9 +1194,20 @@ class TutoriaLearningSheet(Base):
 
     # Status
     status = Column(String(20), default="PENDENTE", nullable=False)
-    # PENDENTE | LIDA | RECONHECIDA (quando o tutorado confirma leitura)
+    # PENDENTE | SUBMITTED | REVIEWED | LIDA | RECONHECIDA
     read_at = Column(DateTime(timezone=True), nullable=True)
     acknowledged_at = Column(DateTime(timezone=True), nullable=True)
+    is_mandatory = Column(Boolean, default=False, nullable=False)
+
+    # Reflexão do participante
+    reflection = Column(Text, nullable=True)
+    submitted_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Revisão pelo Tutor
+    tutor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    tutor_outcome = Column(String(30), nullable=True)  # SEM_ACAO | FEEDBACK_DIRETO | TUTORIA_INDIVIDUAL | TUTORIA_GRUPAL
+    tutor_notes = Column(Text, nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -1157,3 +1215,25 @@ class TutoriaLearningSheet(Base):
     error = relationship("TutoriaError", foreign_keys=[error_id])
     tutorado = relationship("User", foreign_keys=[tutorado_id])
     creator = relationship("User", foreign_keys=[created_by_id])
+    tutor = relationship("User", foreign_keys=[tutor_id])
+
+
+# =================== Notificações Tutoria ===================
+
+class TutoriaNotification(Base):
+    """Notificação/alerta in-app para o sistema de tutoria"""
+    __tablename__ = "tutoria_notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    error_id = Column(Integer, ForeignKey("tutoria_errors.id", ondelete="SET NULL"), nullable=True)
+    plan_id = Column(Integer, ForeignKey("tutoria_action_plans.id", ondelete="SET NULL"), nullable=True)
+    type = Column(String(50), nullable=False)
+    # NEW_ERROR | CANCELLED_ERROR | PENDING_REVIEW | PLAN_APPROVED | PLAN_RETURNED | SOLUTION_NEEDED | LEARNING_SHEET
+    message = Column(String(500), nullable=False)
+    is_read = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", foreign_keys=[user_id])
+    error = relationship("TutoriaError", foreign_keys=[error_id])
+    plan = relationship("TutoriaActionPlan", foreign_keys=[plan_id])

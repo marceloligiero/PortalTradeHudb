@@ -164,6 +164,7 @@ export default function RegisterErrors() {
 
   // ── Motivos do Erro ─────────────────────────────────────────────────────
   interface Motivo { id: number; typology: string; description: string; references: string[] }
+  interface RefRow { id: number; referencia: string; divisa: string; importe: string; cliente_final: string }
   const TYPOLOGY_OPTIONS = [
     { value: 'METHODOLOGY', label: t('registerError.typologyMethodology'), color: 'from-purple-500 to-indigo-500' },
     { value: 'KNOWLEDGE',   label: t('registerError.typologyKnowledge'), color: 'from-blue-500 to-cyan-500' },
@@ -171,6 +172,12 @@ export default function RegisterErrors() {
     { value: 'PROCEDURE',   label: t('registerError.typologyProcedure'), color: 'from-emerald-500 to-teal-500' },
   ];
   const [motivos, setMotivos] = useState<Motivo[]>([]);
+  // ── Refs (Ref/Divisa/Importe/Cliente Final) ────────────────────────────
+  const [refs, setRefs] = useState<RefRow[]>([{ id: 1, referencia: '', divisa: '', importe: '', cliente_final: '' }]);
+  let refIdCounter = refs.length > 0 ? Math.max(...refs.map(r => r.id)) + 1 : 1;
+  const addRef = () => setRefs(prev => [...prev, { id: refIdCounter++, referencia: '', divisa: '', importe: '', cliente_final: '' }]);
+  const removeRef = (id: number) => setRefs(prev => prev.length > 1 ? prev.filter(r => r.id !== id) : prev);
+  const updateRef = (id: number, field: keyof RefRow, value: string) => setRefs(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
   // Parse comma-separated references from the Referencia field
   const parsedRefs = referenceCode.split(',').map(r => r.trim()).filter(Boolean);
   let motivoIdCounter = motivos.length > 0 ? Math.max(...motivos.map(m => m.id)) + 1 : 1;
@@ -267,7 +274,8 @@ export default function RegisterErrors() {
     setCategory('');
   }, [originId]);
 
-  const canSave = description.trim() && tutoradoId;
+  const isManager = user?.role === 'ADMIN' || user?.role === 'MANAGER' || (user as any)?.is_tutor || (user as any)?.is_team_lead || (user as any)?.is_referente;
+  const canSave = description.trim() && dateOccurrence;
 
   const handleSave = async () => {
     if (!canSave) {
@@ -288,7 +296,7 @@ export default function RegisterErrors() {
       await axios.post('/api/tutoria/errors', {
         date_occurrence: dateOccurrence,
         description:     description.trim(),
-        tutorado_id:     Number(tutoradoId),
+        tutorado_id:     tutoradoId ? Number(tutoradoId) : null,
         category_id:     categoryId  ? Number(categoryId) : null,
         product_id:      productId   ? Number(productId)  : null,
         severity:        'MEDIA',
@@ -312,6 +320,12 @@ export default function RegisterErrors() {
         approver_id:     approverId    ? Number(approverId)    : null,
         recurrence_type: recurrenceType || null,
         motivos: motivos.map(m => ({ typology: m.typology, description: m.description.trim(), references: m.references })),
+        refs: refs.filter(r => r.referencia.trim() || r.divisa.trim() || r.importe || r.cliente_final.trim()).map(r => ({
+          referencia: r.referencia.trim() || null,
+          divisa: r.divisa.trim() || null,
+          importe: r.importe ? parseFloat(r.importe) : null,
+          cliente_final: r.cliente_final.trim() || null,
+        })),
       });
       setSaved(true);
       setTimeout(() => navigate('/tutoria/errors'), 1200);
@@ -499,6 +513,67 @@ export default function RegisterErrors() {
       </motion.div>
 
       {/* ═══════════════════════════════════════════════════════════════════════
+          ROW 2b — Refs (Ref / Divisa / Importe / Cliente Final) — dynamic array
+          ═══════════════════════════════════════════════════════════════════════ */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.17 }}
+        className={`rounded-2xl border overflow-hidden ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
+      >
+        <div className={`px-6 py-4 border-b flex items-center justify-between ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md shadow-cyan-500/20">
+              <FileText className="w-4 h-4 text-white" />
+            </div>
+            <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('registerError.refsTitle', 'Referências')}</p>
+          </div>
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={addRef}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-600 shadow-md hover:shadow-lg transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            {t('registerError.addRef', '+ Ref')}
+          </motion.button>
+        </div>
+        <div className="p-6 space-y-3">
+          {refs.map((r, idx) => (
+            <div key={r.id} className={`grid grid-cols-[1fr_0.7fr_0.7fr_1fr_auto] gap-3 items-end ${idx > 0 ? 'pt-2' : ''}`}>
+              <div>
+                {idx === 0 && <FieldLabel icon={FileText} isDark={isDark}>{t('registerError.reference', 'Referência')}</FieldLabel>}
+                <InputField value={r.referencia} onChange={v => updateRef(r.id, 'referencia', v)} placeholder="3530CLI0000057" isDark={isDark} />
+              </div>
+              <div>
+                {idx === 0 && <FieldLabel icon={DollarSign} isDark={isDark}>{t('registerError.currency', 'Divisa')}</FieldLabel>}
+                <InputField value={r.divisa} onChange={v => updateRef(r.id, 'divisa', v)} placeholder="EUR" isDark={isDark} />
+              </div>
+              <div>
+                {idx === 0 && <FieldLabel icon={DollarSign} isDark={isDark}>{t('registerError.amount', 'Importe')}</FieldLabel>}
+                <InputField type="number" value={r.importe} onChange={v => updateRef(r.id, 'importe', v)} placeholder="0.00" isDark={isDark} />
+              </div>
+              <div>
+                {idx === 0 && <FieldLabel icon={User} isDark={isDark}>{t('registerError.finalClient', 'Cliente Final')}</FieldLabel>}
+                <InputField value={r.cliente_final} onChange={v => updateRef(r.id, 'cliente_final', v)} placeholder={t('registerError.finalClientHint', 'Nome do cliente')} isDark={isDark} />
+              </div>
+              <div className={idx === 0 ? 'mt-6' : ''}>
+                <motion.button
+                  type="button"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => removeRef(r.id)}
+                  disabled={refs.length <= 1}
+                  className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </motion.button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
           ROW 3 — Grabador · Liberador
           ═══════════════════════════════════════════════════════════════════════ */}
       <motion.div
@@ -513,16 +588,18 @@ export default function RegisterErrors() {
         </div>
         <div className="p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div>
-              <FieldLabel icon={User} isDark={isDark} required>{t('registerError.recorder')}</FieldLabel>
-              <SelectField
-                value={tutoradoId}
-                onChange={setTutorado}
-                options={userOptions}
-                placeholder={t('registerError.selectRecorder')}
-                isDark={isDark}
-              />
-            </div>
+            {isManager && (
+              <div>
+                <FieldLabel icon={User} isDark={isDark}>{t('registerError.recorder')}</FieldLabel>
+                <SelectField
+                  value={tutoradoId}
+                  onChange={setTutorado}
+                  options={userOptions}
+                  placeholder={t('registerError.selectRecorderOptional', 'Deixar vazio = eu próprio')}
+                  isDark={isDark}
+                />
+              </div>
+            )}
             <div>
               <FieldLabel icon={User} isDark={isDark}>{t('registerError.releaser')}</FieldLabel>
               <SelectField

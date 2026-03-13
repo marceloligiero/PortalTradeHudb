@@ -42,6 +42,8 @@ interface User {
   is_trainer: boolean;
   is_tutor: boolean;
   is_liberador: boolean;
+  is_team_lead: boolean;
+  is_referente: boolean;
   created_at: string;
 }
 
@@ -271,7 +273,9 @@ const EditUserContent = ({ user, onSave, onClose, saving, t }: { user: User | nu
     is_active: true,
     is_trainer: false,
     is_tutor: false,
-    is_liberador: false
+    is_liberador: false,
+    is_team_lead: false,
+    is_referente: false,
   });
 
   useEffect(() => {
@@ -283,7 +287,9 @@ const EditUserContent = ({ user, onSave, onClose, saving, t }: { user: User | nu
         is_active: user.is_active,
         is_trainer: user.is_trainer ?? false,
         is_tutor: user.is_tutor ?? false,
-        is_liberador: user.is_liberador ?? false
+        is_liberador: user.is_liberador ?? false,
+        is_team_lead: user.is_team_lead ?? false,
+        is_referente: user.is_referente ?? false,
       });
     }
   }, [user]);
@@ -354,19 +360,27 @@ const EditUserContent = ({ user, onSave, onClose, saving, t }: { user: User | nu
           <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:border-orange-500/30 transition-all">
             <input
               type="checkbox"
-              checked={formData.role === 'MANAGER' || formData.role === 'ADMIN'}
-              onChange={(e) => {
-                if (formData.role !== 'ADMIN') {
-                  setFormData({ ...formData, role: e.target.checked ? 'MANAGER' : 'TRAINEE' });
-                }
-              }}
-              disabled={formData.role === 'ADMIN'}
-              className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500 disabled:opacity-50"
+              checked={formData.is_team_lead}
+              onChange={(e) => setFormData({ ...formData, is_team_lead: e.target.checked })}
+              className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
             />
             <Crown className="w-4 h-4 text-orange-400" />
             <div>
               <span className="text-sm font-medium text-gray-900 dark:text-white">{t('usersPage.teamLeader', 'Chefe de Equipa')}</span>
               <p className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.teamLeaderDesc', 'Pode gerir equipas e aprovar planos')}</p>
+            </div>
+          </label>
+          <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:border-purple-500/30 transition-all">
+            <input
+              type="checkbox"
+              checked={formData.is_referente}
+              onChange={(e) => setFormData({ ...formData, is_referente: e.target.checked })}
+              className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+            />
+            <Shield className="w-4 h-4 text-purple-400" />
+            <div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">{t('usersPage.referente', 'Referente')}</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.referenteDesc', 'Representante do chefe na análise de incidências')}</p>
             </div>
           </label>
           <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:border-cyan-500/30 transition-all">

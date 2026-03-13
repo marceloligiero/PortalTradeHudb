@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -13,9 +13,14 @@ import {
   ShieldAlert,
   Calendar,
   FileText,
+  Bell,
+  Search as SearchIcon,
+  PenTool,
+  CheckCircle,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import axios from '../../lib/axios';
 
 function navClass(isActive: boolean, isDark: boolean) {
   return `flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group text-sm font-medium tracking-wide ${
@@ -32,13 +37,33 @@ export default function TutoriaLayout() {
   const { isDark } = useTheme();
   const { t } = useTranslation();
 
-  const isManager = user?.role === 'ADMIN' || user?.role === 'TRAINER' || user?.is_tutor;
-  const isLiberador = user?.is_liberador || user?.role === 'ADMIN';
+  const isAdmin = user?.role === 'ADMIN';
+  const isTutor = user?.is_tutor;
+  const isManager = isAdmin || user?.role === 'TRAINER' || isTutor;
+  const isChefe = (user as any)?.is_team_lead;
+  const isReferente = (user as any)?.is_referente;
+  const isLiberador = user?.is_liberador || isAdmin;
+  const canAnalyze = isManager || isChefe || isReferente;
   const canSeeInternalErrors = isManager || isLiberador;
+
+  const [notifCount, setNotifCount] = useState(0);
 
   useEffect(() => {
     document.title = t('tutoriaLayout.pageTitle');
     return () => { document.title = t('tutoriaLayout.defaultTitle'); };
+  }, []);
+
+  // Poll notifications every 30s
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const { data } = await axios.get('/tutoria/notifications');
+        setNotifCount(Array.isArray(data) ? data.length : 0);
+      } catch { /* ignore */ }
+    };
+    fetchCount();
+    const iv = setInterval(fetchCount, 30000);
+    return () => clearInterval(iv);
   }, []);
 
   return (
@@ -64,26 +89,38 @@ export default function TutoriaLayout() {
               <span className="tracking-wide">{t('tutoriaSidebar.dashboard')}</span>
             </NavLink>
 
-            {/* ── ADMIN + TRAINER ─── */}
-            {isManager && (
-              <>
-                <NavLink to="/tutoria/errors" className={({ isActive }) => navClass(isActive, isDark)}>
-                  <AlertTriangle className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-                  <span className="tracking-wide">{t('tutoriaSidebar.errors')}</span>
-                </NavLink>
-                <NavLink to="/tutoria/plans" className={({ isActive }) => navClass(isActive, isDark)}>
-                  <ClipboardList className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-                  <span className="tracking-wide">{t('tutoriaSidebar.actionPlans')}</span>
-                </NavLink>
-                <NavLink to="/tutoria/report" className={({ isActive }) => navClass(isActive, isDark)}>
-                  <BarChart3 className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-                  <span className="tracking-wide">{t('tutoriaSidebar.report')}</span>
-                </NavLink>
-              </>
+            {/* ── Incidências (todos) ─── */}
+            <NavLink to="/tutoria/errors" className={({ isActive }) => navClass(isActive, isDark)}>
+              <AlertTriangle className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+              <span className="tracking-wide">{t('tutoriaSidebar.errors')}</span>
+            </NavLink>
+
+            {/* ── Análise (Chefe/Manager/Referente) ─── */}
+            {canAnalyze && (
+              <NavLink to="/tutoria/analysis" className={({ isActive }) => navClass(isActive, isDark)}>
+                <SearchIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                <span className="tracking-wide">{t('tutoriaSidebar.analysis', 'Análise')}</span>
+              </NavLink>
             )}
 
-            {/* ── STUDENT / TRAINEE ─── */}
-            {!isManager && (
+            {/* ── Revisão Tutor ─── */}
+            {isTutor && (
+              <NavLink to="/tutoria/tutor-review" className={({ isActive }) => navClass(isActive, isDark)}>
+                <CheckCircle className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                <span className="tracking-wide">{t('tutoriaSidebar.tutorReview', 'Revisão Tutor')}</span>
+              </NavLink>
+            )}
+
+            {/* ── Planos de Ação (Tutor + Chefe + Manager) ─── */}
+            {(isTutor || isChefe || isManager) && (
+              <NavLink to="/tutoria/plans" className={({ isActive }) => navClass(isActive, isDark)}>
+                <ClipboardList className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                <span className="tracking-wide">{t('tutoriaSidebar.actionPlans')}</span>
+              </NavLink>
+            )}
+
+            {/* ── Básico (não manager/chefe/referente) ─── */}
+            {!isManager && !isChefe && !isReferente && (
               <>
                 <NavLink to="/tutoria/my-errors" className={({ isActive }) => navClass(isActive, isDark)}>
                   <BookOpen className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
@@ -93,11 +130,20 @@ export default function TutoriaLayout() {
                   <ClipboardList className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
                   <span className="tracking-wide">{t('tutoriaSidebar.myPlans')}</span>
                 </NavLink>
-                <NavLink to="/tutoria/report" className={({ isActive }) => navClass(isActive, isDark)}>
-                  <BarChart3 className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-                  <span className="tracking-wide">{t('tutoriaSidebar.myProgress')}</span>
-                </NavLink>
               </>
+            )}
+
+            {/* ── Relatório ─── */}
+            {(isManager || isChefe) ? (
+              <NavLink to="/tutoria/report" className={({ isActive }) => navClass(isActive, isDark)}>
+                <BarChart3 className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                <span className="tracking-wide">{t('tutoriaSidebar.report')}</span>
+              </NavLink>
+            ) : (
+              <NavLink to="/tutoria/report" className={({ isActive }) => navClass(isActive, isDark)}>
+                <BarChart3 className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                <span className="tracking-wide">{t('tutoriaSidebar.myProgress')}</span>
+              </NavLink>
             )}
 
             {/* ── ERROS INTERNOS (tutor/admin/liberador) ─── */}
@@ -121,13 +167,27 @@ export default function TutoriaLayout() {
               </>
             )}
 
-            {/* ── MY LEARNING SHEETS (tutorado) ─── */}
-            {!isManager && !isLiberador && (
+            {/* ── MY LEARNING SHEETS (básico) ─── */}
+            {!isManager && !isChefe && !isReferente && (
               <NavLink to="/tutoria/my-learning-sheets" className={({ isActive }) => navClass(isActive, isDark)}>
                 <FileText className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
                 <span className="tracking-wide">{t('tutoriaSidebar.myLearningSheets', 'Minhas Fichas')}</span>
               </NavLink>
             )}
+
+            {/* ── NOTIFICAÇÕES (todos) ─── */}
+            <div className={`mt-4 mb-1`} />
+            <NavLink to="/tutoria/notifications" className={({ isActive }) => navClass(isActive, isDark)}>
+              <div className="relative">
+                <Bell className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                {notifCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold text-white flex items-center justify-center">
+                    {notifCount > 9 ? '9+' : notifCount}
+                  </span>
+                )}
+              </div>
+              <span className="tracking-wide">{t('tutoriaSidebar.notifications', 'Notificações')}</span>
+            </NavLink>
           </nav>
         </aside>
 

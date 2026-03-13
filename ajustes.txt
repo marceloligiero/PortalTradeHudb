@@ -1,0 +1,452 @@
+PROMPT PARA AGENTE — Refatoração completa do Portal de Tutoria
+CONTEXTO DO PROJETO
+Stack: React + TypeScript + Vite + Tailwind CSS + Framer Motion (frontend) / FastAPI + SQLAlchemy + Pydantic v2 / MySQL prod, SQLite dev (dev_tutoria.db).
+
+Roles atuais no sistema:
+
+ADMIN — acesso total
+MANAGER — gestor (Sinuhe)
+TRAINER — formador/tutor (quando is_tutor=True)
+STUDENT / TRAINEE — formando básico
+Ficheiros-chave existentes:
+
+backend/app/models.py — modelos SQLAlchemy (User, TutoriaError, TutoriaActionPlan, TutoriaActionItem, TutoriaComment, etc.)
+backend/app/routers/tutoria.py — todos os endpoints /api/tutoria/*
+frontend/src/pages/tutoria/RegisterErrors.tsx — formulário de registo
+frontend/src/pages/tutoria/ErrorDetail.tsx — detalhe de incidência
+frontend/src/pages/tutoria/CreateActionPlan.tsx — criar plano
+frontend/src/pages/tutoria/PlanDetail.tsx — detalhe de plano
+frontend/src/pages/tutoria/LearningSheets.tsx — fichas de aprendizagem (existente)
+frontend/src/pages/tutoria/MyLearningSheets.tsx — fichas do utilizador (existente)
+frontend/src/pages/tutoria/TutoriaLayout.tsx — layout com sidebar
+scripts/migrate_tutoria_v3_additive.sql — migração MySQL existente
+ALTERAÇÕES REQUERIDAS
+1. SISTEMA DE ROLES/PERFIS
+Adicionar ao modelo User dois novos campos booleanos (migração aditiva):
+
+
+is_team_lead = Column(Boolean, default=False)   # Chefe de equipa
+is_referente = Column(Boolean, default=False)   # Referente (representante do chefe)
+Mapeamento de perfis do portal:
+
+Label UI	Condição no backend
+Básico	role in (STUDENT, TRAINEE)
+Manager	role == MANAGER
+Chefe de equipa	is_team_lead == True (pode ter qualquer role base)
+Referente	is_referente == True
+Tutor	is_tutor == True
+Helpers a criar/atualizar em tutoria.py:
+
+
+def is_chefe_or_manager(u): return u.is_team_lead or u.role in ("MANAGER","ADMIN")
+def is_referente(u): return u.is_referente
+def is_chefe_referente_manager(u): return u.is_team_lead or u.is_referente or u.role in ("MANAGER","ADMIN")
+def is_tutor_or_above(u): return u.is_tutor or u.role in ("MANAGER","ADMIN")
+Adicionar is_team_lead e is_referente à página de gestão de utilizadores em frontend/src/pages/admin/Users.tsx (checkboxes junto a is_tutor e is_liberador).
+
+2. REFORMULAÇÃO DO REGISTO DE INCIDÊNCIA (fase 1 — qualquer utilizador)
+O formulário atual em RegisterErrors.tsx deve ser refatorado.
+
+O registo passa a ter campos obrigatórios múltiplos. Em particular, Ref/Divisa/Importe/Cliente Final são listas dinâmicas (1 ou mais entradas). Implementar como array de linhas com botão "+ Adicionar Ref".
+
+Campos obrigatórios para submissão:
+
+
+fecha_error          (date) — obrigatório
+fecha_deteccion      (date) — obrigatório
+detectado_por        (select) — obrigatório
+  opções: Cliente Final | Corresponsal | Oficina/Uni/Middle | Quality Unit | Trade
+banco_id             (FK banco) — obrigatório
+oficina              (text) — obrigatório
+departamento_id      (FK) — obrigatório
+actividad_id         (FK) — obrigatório
+error_type_id        (FK TBL_TIPOERROR) — obrigatório
+descripcion          (textarea extenso) — obrigatório
+
+refs[]               (array, min 1 entrada):
+  - referencia   (text)
+  - divisa       (text/select)
+  - importe      (number)
+  - cliente_final (text)
+Campos opcionais no registo:
+
+
+tutorado_id (para ADMIN/MANAGER/Chefe/Referente/Tutor atribuir a outro utilizador)
+Após submissão: status → REGISTERED. Sistema cria notificação (alerta) para o Chefe de equipa e Manager da equipa do utilizador.
+
+Backend — modelo TutoriaError: adicionar campos em falta:
+
+
+fecha_error = Column(Date, nullable=True)          # renomear date_occurrence se necessário, ou adicionar alias
+fecha_deteccion = Column(Date, nullable=True)       # já existe como date_detection
+detectado_por = Column(String(100), nullable=True)  # já existe como detected_by_id → manter FK + adicionar campo texto
+Criar modelo TutoriaErrorRef (tabela tutoria_error_refs):
+
+
+class TutoriaErrorRef(Base):
+    __tablename__ = "tutoria_error_refs"
+    id = Column(Integer, primary_key=True)
+    error_id = Column(Integer, ForeignKey("tutoria_errors.id"), nullable=False)
+    referencia = Column(String(100), nullable=True)
+    divisa = Column(String(20), nullable=True)
+    importe = Column(Float, nullable=True)
+    cliente_final = Column(String(255), nullable=True)
+    error = relationship("TutoriaError", back_populates="refs")
+Adicionar refs = relationship("TutoriaErrorRef", back_populates="error", cascade="all, delete-orphan") ao TutoriaError.
+
+Os endpoints POST/PATCH de erros devem aceitar refs: List[RefIn] e criar/substituir os registos em tutoria_error_refs.
+
+3. REFORMULAÇÃO DA ANÁLISE (fase 2 — Chefe de equipa / Manager / Referente)
+Fluxo: após registo, incidência fica em REGISTERED. Chefe/Manager/Referente vê a incidência e inicia análise → status ANALYSIS.
+
+Chefe/Manager pode ELIMINAR a incidência (endpoint DELETE ou PATCH status=CANCELLED) indicando motivo obrigatório. Trigger: alerta para o registante com motivo de eliminação.
+
+Novos campos de análise — todos no modelo TutoriaError existente (adicionar colunas em falta):
+
+
+# Nível de impacto
+impact_level = Column(String(20), nullable=True)   # "ALTO" | "BAIXO"
+
+# Impacto detalhado (depende do nível)
+# BAIXO: "IMAGEM" | "RETRASO_OPERATIVO"
+# ALTO:  "ECONOMICO" | "REGULATORIO" | "REPUTACIONAL" | "GDPR"
+impact_detail = Column(String(100), nullable=True)
+
+# Origem
+# origin_id já existe → manter. Os valores na tabela error_origins devem ser:
+# Trade_Personas | Trade_Procesos | Trade_Tecnologia | Terceros
+
+# Detalhe da origem (sub-opção da origem)
+origin_detail = Column(String(100), nullable=True)
+# Trade_Personas: Formación Insuficiente | Dependencia de personal clave | Error Puntual | Sobrecarga Operativa | Segregación Funcional
+# Trade_Procesos: Diseño ineficaz del processo | Desempeño ineficaz de un processo | Calidad de los datos
+# Trade_Tecnologia: Gestión del cambio tecnológico inadecuado | Diseño inadecuado de los sistemas | Funcionamiento inadecuado de un sistema
+# Terceros: Proveedores | Oficina/Uni/Middle | Corresponsal
+
+# Participantes
+grabador_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+liberador_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+# Solução
+date_solution = Column(Date, nullable=True)        # já pode existir
+solution = Column(Text, nullable=True)             # já existe
+solution_confirmed = Column(Boolean, default=False) # novo — confirmação da solução
+
+# Recorrência
+recurrence_type = Column(String(20), nullable=True)  # já existe: "PUNTUAL" | "RECURRENTE"
+
+# Análise e plano de ação (campo de texto curto para Excel)
+action_plan_summary = Column(Text, nullable=True)  # campo que vai para Excel (renomear action_plan_text se existir)
+excel_sent = Column(Boolean, default=False)        # se ficheiro Excel já foi enviado
+Formulário de análise no frontend (ErrorDetail.tsx ou nova tab):
+
+Mostrar formulário de análise como secção editável dentro de ErrorDetail.tsx quando status == REGISTERED e o utilizador tem permissão de análise.
+
+Lógica de impacto condicional:
+
+Se impact_level == BAIXO → mostrar opções: Imagem / Retraso operativo
+Se impact_level == ALTO → mostrar opções: Económico / Regulatorio / Reputacional / GDPR
+Lógica de origem condicional — ao selecionar origem, filtrar sub-opções do origin_detail.
+
+Planos de ação na análise: O utilizador seleciona 1, 2 ou 3 tipos de plano:
+
+
+Tipo 1 — Correctivo (eliminar a causa)
+Tipo 2 — Preventivo (prevenir recorrência)
+Tipo 3 — Melhoria/Desenvolvimento (exclusivo Trade_Personas)
+Para cada plano selecionado, preencher:
+
+description — breve descrição da ação
+expected_result — resultado esperado
+responsible_id — FK para utilizador (só pode ser: Tutor / Chefe de equipa / Referente)
+deadline — data prazo
+plan_type — "CORRECTIVO" | "PREVENTIVO" | "MELHORIA"
+Restrição: plano tipo MELHORIA/DESENVOLVIMENTO só visível se origin_id corresponde a Trade_Personas. O responsável de MELHORIA é sempre o Tutor.
+
+Após submissão da análise:
+
+Se impact_level == ALTO: marcar para envio ao Excel (flag excel_sent=False até envio confirmado)
+Status → PENDING_TUTOR_REVIEW
+Notificação/alerta para os Tutores responsáveis pelos planos criados
+Se date_solution não foi preenchida → status permanece PENDING_SOLUTION em paralelo (ver fase pendente abaixo)
+Guardar rascunho: botão "Guardar" salva sem mudar status. Botão "Submeter para revisão do Tutor" muda status.
+
+4. REVISÃO DO PLANO DE AÇÃO (fase 3 — Tutor)
+Acesso: Tutor vê todas as incidências onde é responsável de algum plano, em status == PENDING_TUTOR_REVIEW.
+
+Permissões do Tutor no ErrorDetail.tsx:
+
+Leitura: todos os campos da incidência
+Edição disponível: campos dos planos de ação + campo solution + campo action_plan_summary (apenas se excel_sent == False)
+Ações do Tutor:
+
+Corrigir descrições dos planos
+Validar resultado esperado
+Aprovar para execução → status APPROVED + notificação para responsáveis de cada plano
+Devolver → status volta a ANALYSIS + motivo obrigatório + notificação para Chefe/Manager
+Estado pendente de solução:
+
+Se a incidência tem date_solution vazia quando chega ao Tutor → Tutor pode aprovar planos mas incidência fica com flag pending_solution = True
+Chefe/Manager/Referente pode depois preencher date_solution + confirmar solution
+Após confirmação → incidência volta para revisão do Tutor (status PENDING_TUTOR_REVIEW novamente)
+Tutor confirma solução final → status RESOLVED
+Adicionar ao modelo:
+
+
+pending_solution = Column(Boolean, default=False)
+cancelled_reason = Column(Text, nullable=True)  # motivo de eliminação
+cancelled_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+5. APROVAÇÃO E EXECUÇÃO DOS PLANOS (fase 4)
+Modelo TutoriaActionPlan — adicionar/verificar campos:
+
+
+plan_type = Column(String(20), nullable=True)      # CORRECTIVO | PREVENTIVO | MELHORIA
+responsible_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+expected_result = Column(Text, nullable=True)
+deadline = Column(Date, nullable=True)
+status = Column(String(30), default="OPEN")        # OPEN | IN_PROGRESS | DONE
+result_score = Column(Integer, nullable=True)      # 0-5
+result_comment = Column(String(160), nullable=True) # máx 160 chars
+started_at = Column(DateTime, nullable=True)
+completed_at = Column(DateTime, nullable=True)
+Lógica de visibilidade:
+
+Chefe de equipa vê planos onde responsible_id é Chefe
+Tutor vê planos onde responsible_id é Tutor
+Ambos veem apenas os seus planos em TutoriaPlans.tsx
+Transições de status do plano:
+
+OPEN → botão "Iniciar" → IN_PROGRESS (guarda started_at)
+IN_PROGRESS → botão "Marcar como concluído" → abre modal com:
+result_score (0-5, com labels: 0=Não alcançado/alteração de estratégia, 5=Resultado completamente atingido)
+result_comment (textarea, máx 160 chars, obrigatório) → status DONE, guarda completed_at
+Prazo deadline: todas as incidências devem estar finalizadas (status == RESOLVED) até ao 1.º dia útil do mês seguinte. Exibir badge de alerta vermelho em incidências próximas do prazo (< 5 dias úteis).
+
+6. FICHAS DE APRENDIZAGEM (fase 5 — apenas Trade_Personas)
+Trigger: quando o Tutor aprova os planos (status → APPROVED) e origin é Trade_Personas → criar automaticamente fichas de aprendizagem para os participantes (grabador_id e liberador_id) da incidência.
+
+Modelo LearningSheet — verificar se existe, senão criar:
+
+
+class LearningSheet(Base):
+    __tablename__ = "learning_sheets"
+    id = Column(Integer, primary_key=True)
+    error_id = Column(Integer, ForeignKey("tutoria_errors.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))   # participante
+    status = Column(String(30), default="PENDING")      # PENDING | SUBMITTED | REVIEWED
+    is_mandatory = Column(Boolean, default=False)       # fichas de incidência NÃO são obrigatórias
+    
+    # Preenchido pelo participante
+    reflection = Column(Text, nullable=True)
+    submitted_at = Column(DateTime, nullable=True)
+    
+    # Revisão pelo Tutor
+    tutor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    tutor_outcome = Column(String(30), nullable=True)  # SEM_ACAO | FEEDBACK_DIRETO | TUTORIA_INDIVIDUAL | TUTORIA_GRUPAL
+    tutor_notes = Column(Text, nullable=True)
+    reviewed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+Frontend MyLearningSheets.tsx:
+
+Listar fichas do utilizador autenticado
+Ficha pode ser preenchida (não obrigatória) → botão "Preencher" → textarea de reflexão → "Submeter"
+Após submissão → status SUBMITTED → Tutor recebe notificação
+Frontend LearningSheets.tsx (Tutor):
+
+Listar todas as fichas submetidas (status == SUBMITTED) dos seus tutorados
+Tutor abre ficha → lê reflexão → seleciona outcome:
+Sem necessidade de ação (+ motivo)
+Feedback direto
+Ação de tutoria individual
+Ação de tutoria grupal
+Ao guardar → status REVIEWED
+7. SISTEMA DE NOTIFICAÇÕES/ALERTAS (in-app)
+Criar tabela tutoria_notifications:
+
+
+class TutoriaNotification(Base):
+    __tablename__ = "tutoria_notifications"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))  # destinatário
+    error_id = Column(Integer, ForeignKey("tutoria_errors.id"), nullable=True)
+    plan_id = Column(Integer, ForeignKey("tutoria_action_plans.id"), nullable=True)
+    type = Column(String(50))  # NEW_ERROR | CANCELLED_ERROR | PENDING_REVIEW | PLAN_APPROVED | PLAN_RETURNED | SOLUTION_NEEDED | LEARNING_SHEET
+    message = Column(String(500))
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime, server_default=func.now())
+Endpoints:
+
+GET /api/tutoria/notifications → lista não lidas do utilizador atual
+PATCH /api/tutoria/notifications/:id/read → marcar como lida
+PATCH /api/tutoria/notifications/read-all → marcar todas
+Frontend: adicionar badge de notificações no sidebar do TutoriaLayout.tsx (ponto vermelho com contagem). Ao clicar → dropdown ou página de notificações com lista das alertas.
+
+Criar helper create_notification(db, user_id, type, message, error_id=None, plan_id=None) no backend.
+
+Triggers de notificação:
+
+Evento	Destinatários	Tipo
+Nova incidência registada	Chefe de equipa + Manager da equipa do registante	NEW_ERROR
+Incidência eliminada	Registante original	CANCELLED_ERROR
+Análise submetida para revisão	Tutores responsáveis pelos planos	PENDING_REVIEW
+Plano aprovado pelo Tutor	Responsável de cada plano	PLAN_APPROVED
+Análise devolvida pelo Tutor	Chefe/Manager que submeteu	PLAN_RETURNED
+Solução confirmada → revisão	Tutor	PENDING_REVIEW
+Ficha de aprendizagem submetida	Tutor do participante	LEARNING_SHEET
+8. MIGRAÇÃO DE BASE DE DADOS
+Criar ficheiro scripts/migrate_tutoria_v4_incidencias.sql com todas as alterações aditivas (ALTER TABLE ADD COLUMN IF NOT EXISTS para MySQL):
+
+
+-- Users
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_team_lead TINYINT(1) DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_referente TINYINT(1) DEFAULT 0;
+
+-- TutoriaError
+ALTER TABLE tutoria_errors ADD COLUMN IF NOT EXISTS impact_level VARCHAR(20);
+ALTER TABLE tutoria_errors ADD COLUMN IF NOT EXISTS impact_detail VARCHAR(100);
+ALTER TABLE tutoria_errors ADD COLUMN IF NOT EXISTS origin_detail VARCHAR(100);
+ALTER TABLE tutoria_errors ADD COLUMN IF NOT EXISTS grabador_id INT REFERENCES users(id);
+ALTER TABLE tutoria_errors ADD COLUMN IF NOT EXISTS liberador_id INT REFERENCES users(id);
+ALTER TABLE tutoria_errors ADD COLUMN IF NOT EXISTS solution_confirmed TINYINT(1) DEFAULT 0;
+ALTER TABLE tutoria_errors ADD COLUMN IF NOT EXISTS pending_solution TINYINT(1) DEFAULT 0;
+ALTER TABLE tutoria_errors ADD COLUMN IF NOT EXISTS excel_sent TINYINT(1) DEFAULT 0;
+ALTER TABLE tutoria_errors ADD COLUMN IF NOT EXISTS action_plan_summary TEXT;
+ALTER TABLE tutoria_errors ADD COLUMN IF NOT EXISTS cancelled_reason TEXT;
+ALTER TABLE tutoria_errors ADD COLUMN IF NOT EXISTS cancelled_by_id INT REFERENCES users(id);
+
+-- TutoriaErrorRef (nova tabela)
+CREATE TABLE IF NOT EXISTS tutoria_error_refs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    error_id INT NOT NULL REFERENCES tutoria_errors(id) ON DELETE CASCADE,
+    referencia VARCHAR(100),
+    divisa VARCHAR(20),
+    importe DECIMAL(18,2),
+    cliente_final VARCHAR(255),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- TutoriaActionPlan
+ALTER TABLE tutoria_action_plans ADD COLUMN IF NOT EXISTS plan_type VARCHAR(20);
+ALTER TABLE tutoria_action_plans ADD COLUMN IF NOT EXISTS result_score INT;
+ALTER TABLE tutoria_action_plans ADD COLUMN IF NOT EXISTS result_comment VARCHAR(160);
+ALTER TABLE tutoria_action_plans ADD COLUMN IF NOT EXISTS started_at DATETIME;
+ALTER TABLE tutoria_action_plans ADD COLUMN IF NOT EXISTS completed_at DATETIME;
+
+-- Notificações
+CREATE TABLE IF NOT EXISTS tutoria_notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL REFERENCES users(id),
+    error_id INT REFERENCES tutoria_errors(id),
+    plan_id INT REFERENCES tutoria_action_plans(id),
+    type VARCHAR(50) NOT NULL,
+    message VARCHAR(500) NOT NULL,
+    is_read TINYINT(1) DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+9. AJUSTES DE STATUS DO TutoriaError
+O campo status deve suportar os seguintes valores:
+
+
+REGISTERED          — recém registado, aguarda análise
+ANALYSIS            — em análise pelo Chefe/Manager/Referente (rascunho)
+PENDING_TUTOR_REVIEW — submetido para revisão do Tutor
+PENDING_SOLUTION    — aguarda data/descrição de solução
+APPROVED            — planos aprovados pelo Tutor
+RESOLVED            — solução confirmada e finalizado
+CANCELLED           — eliminado pelo Chefe/Manager com motivo
+Atualizar badges de status em todo o frontend para refletir estes estados com cores:
+
+REGISTERED → azul
+ANALYSIS → amarelo
+PENDING_TUTOR_REVIEW → laranja
+PENDING_SOLUTION → vermelho claro
+APPROVED → verde claro
+RESOLVED → verde escuro
+CANCELLED → cinzento
+10. AJUSTES AO TutoriaLayout.tsx (sidebar)
+Adicionar novos itens ao menu com controlo de visibilidade por perfil:
+
+
+Dashboard           → todos
+Incidências         → todos (lista filtrada por perfil)
+  └ Nova Incidência → todos
+Análise             → Chefe/Manager/Referente (incidências em REGISTERED)
+Revisão Tutor       → Tutor (incidências em PENDING_TUTOR_REVIEW)
+Planos de Ação      → Tutor + Chefe (os seus planos)
+Fichas Aprendizagem → Tutor (LearningSheets.tsx)
+Minhas Fichas       → Básico (MyLearningSheets.tsx)
+Relatório           → Chefe/Manager/Tutor
+Notificações        → todos (com badge de contagem)
+---- ADMIN ----
+Categorias          → ADMIN
+Chat FAQs           → ADMIN
+Dados Mestres       → ADMIN
+11. AJUSTES AO ErrorDetail.tsx
+Reestruturar como página com tabs ou secções:
+
+Tab "Registo" — campos do registo (editáveis em REGISTERED/ANALYSIS para quem tem permissão)
+Tab "Análise" — campos de análise + planos de ação (visível/editável por Chefe/Manager/Referente em REGISTERED/ANALYSIS)
+Tab "Revisão Tutor" — campos de plano + solução editáveis pelo Tutor em PENDING_TUTOR_REVIEW
+Tab "Histórico/Comentários" — comentários e log de alterações de status
+Botões de ação contextuais na parte superior direita consoante o status e o perfil do utilizador.
+
+12. REGRAS DE NEGÓCIO IMPORTANTES A IMPLEMENTAR
+Save vs Submit: em cada fase, distinguir "Guardar rascunho" (não muda status) de "Submeter" (muda status + dispara notificações).
+
+Referente pode enviar para aprovação do Chefe antes de passar para Tutor — adicionar botão "Enviar para aprovação do Chefe" no formulário de análise do Referente → status intermédio PENDING_CHIEF_APPROVAL → Chefe aprova e passa para PENDING_TUTOR_REVIEW.
+
+Prazo: calcular e exibir o prazo máximo (1.º dia útil do mês seguinte à data de registo). Mostrar em cada incidência.
+
+Plano MELHORIA: só disponível quando origin é Trade_Personas. Responsável fixo = Tutor.
+
+Eliminação só por Chefe/Manager: validar no backend com 403 para outros perfis.
+
+action_plan_summary para Excel: só editável pelo Tutor enquanto excel_sent == False.
+
+13. ENDPOINTS NOVOS/MODIFICADOS
+
+# Refs
+GET    /api/tutoria/errors/:id/refs
+POST   /api/tutoria/errors/:id/refs      (criar/substituir array de refs)
+
+# Notificações
+GET    /api/tutoria/notifications
+PATCH  /api/tutoria/notifications/:id/read
+PATCH  /api/tutoria/notifications/read-all
+
+# Análise
+PATCH  /api/tutoria/errors/:id/analysis      (salvar campos de análise + status)
+POST   /api/tutoria/errors/:id/submit-analysis   (submit para PENDING_TUTOR_REVIEW)
+POST   /api/tutoria/errors/:id/cancel        (CHEFE/MANAGER only, motivo obrigatório)
+
+# Tutor
+POST   /api/tutoria/errors/:id/approve-plans  (status → APPROVED)
+POST   /api/tutoria/errors/:id/return-analysis (devolver, motivo obrigatório)
+POST   /api/tutoria/errors/:id/confirm-solution (Chefe confirma solução)
+
+# Planos
+PATCH  /api/tutoria/plans/:id/start
+PATCH  /api/tutoria/plans/:id/complete      (body: {result_score, result_comment})
+
+# Fichas
+GET    /api/tutoria/learning-sheets
+GET    /api/tutoria/learning-sheets/mine
+POST   /api/tutoria/learning-sheets/:id/submit  (participante submete reflexão)
+PATCH  /api/tutoria/learning-sheets/:id/review  (tutor revisa: outcome + notes)
+INSTRUÇÕES PARA O AGENTE
+Leia primeiro os ficheiros listados na secção CONTEXTO para entender o estado atual antes de modificar.
+Migração aditiva apenas — nunca remover colunas existentes, apenas ADD COLUMN IF NOT EXISTS.
+Manter compatibilidade — os campos e endpoints existentes devem continuar a funcionar.
+Ficheiros a criar/modificar:
+scripts/migrate_tutoria_v4_incidencias.sql (novo)
+backend/app/models.py (modificar)
+backend/app/routers/tutoria.py (modificar extensivamente)
+frontend/src/pages/tutoria/RegisterErrors.tsx (refatorar)
+frontend/src/pages/tutoria/ErrorDetail.tsx (refatorar com tabs)
+frontend/src/pages/tutoria/TutoriaLayout.tsx (adicionar itens menu + badge)
+frontend/src/pages/tutoria/LearningSheets.tsx (ajustar para novo modelo)
+frontend/src/pages/tutoria/MyLearningSheets.tsx (ajustar)
+frontend/src/pages/admin/Users.tsx (adicionar checkboxes is_team_lead, is_referente)
+Usar padrões existentes — copiar estilo de componentes de RegisterErrors.tsx (SelectField, InputField, FieldLabel).
+Implementar por fases — começar pelo backend (modelos + migração + endpoints), depois frontend.
+Este prompt cobre tudo o que foi descrito no pedido. Cole-o diretamente num agente com acesso aos ficheiros do projeto para iniciar a implementação.
