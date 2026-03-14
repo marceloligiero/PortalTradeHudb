@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
-import TradeDatahubLanding from './pages/TradeDatahubLanding';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPassword from './pages/ForgotPassword';
@@ -86,7 +86,7 @@ function App() {
   if (!isAuthenticated) {
     return (
       <Routes>
-        <Route path="/" element={<TradeDatahubLanding />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="/portal-tutoria" element={<PortalTutoriaPublic />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />

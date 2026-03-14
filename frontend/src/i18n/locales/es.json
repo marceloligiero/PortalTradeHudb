@@ -1242,342 +1242,119 @@
     "selectStudent": "Selecciona un estudiante"
   },
   "landing": {
-    "badge": "Santander Digital Services | Shared Services",
-    "heroTitle1": "Portal de",
-    "heroTitle2": "Formaciones",
-    "heroTitle3": "Trade Datahub",
-    "heroSubtitle": "Capacitación operacional de excelencia para equipos de Trade Finance.",
-    "heroSubtitle2": "Procesos estandarizados. Conocimiento centralizado. Resultados consistentes.",
-    "startTraining": "Comenzar Formación",
-    "exploreProcesses": "Explorar Procesos",
-    "stats": {
-      "areas": "Servicios",
-      "courses": "Cursos",
-      "students": "Formandos",
-      "satisfaction": "Satisfacción"
-    },
     "navbar": {
-      "portalTitle": "PORTAL DE FORMACIONES",
-      "login": "Entrar",
-      "register": "Registrarse",
-      "selectLanguage": "Idioma"
+      "login": "Iniciar Sesión",
+      "start": "Empezar"
     },
-    "intro": {
-      "title": "¿Qué es el Portal de Formaciones?",
-      "p1": "El Portal de Formaciones del Trade Datahub es la plataforma oficial de capacitación operacional para los equipos que actúan en los procesos de comercio exterior. Desarrollado en el contexto de Shared Services de Santander Digital Services, el portal centraliza todo el conocimiento necesario para la ejecución correcta, estandarizada y eficiente de las operaciones de Trade Finance.",
-      "p2": "A través de rutas de formación estructuradas por área operacional, los colaboradores desarrollan competencias técnicas alineadas con los procesos oficiales, regulaciones internacionales y mejores prácticas del sector."
+    "hero": {
+      "badge": "Plataforma de formación para trading",
+      "title": "Tu equipo. Listo para el",
+      "titleHighlight": "mercado.",
+      "subtitle": "Formaciones estructuradas, tutoría personalizada, informes con insights y soporte integrado — todo en una plataforma.",
+      "cta": "Empezar Ahora",
+      "ctaSecondary": "Iniciar Sesión"
     },
-    "processes": {
-      "badge": "7 Áreas Especializadas",
-      "title": "Nuestros Servicios",
-      "subtitle": "Formación especializada en Trade Finance para tu desarrollo profesional",
-      "focus": "Enfoque",
-      "creditosImportacion": {
-        "title": "Créditos Importación",
-        "description": "Gestión completa de operaciones de crédito para importación con control de plazos y liquidación.",
-        "items": [
-          "Liberación de recursos conforme contrato",
-          "Control de contratos activos",
-          "Cálculo de intereses y cargos",
-          "Interfaz operacional con área de cambio",
-          "Liquidación al vencimiento"
-        ],
-        "focus": "Control y liquidación de operaciones de crédito"
+    "proof": {
+      "tests": "341 tests validados",
+      "portals": "5 portales integrados",
+      "languages": "3 idiomas",
+      "api": "API REST completa",
+      "cicd": "CI/CD automatizado"
+    },
+    "pillars": {
+      "title": "Todo lo que tu equipo necesita",
+      "subtitle": "Una plataforma. Tres pilares. Resultados reales.",
+      "learnMore": "Saber más",
+      "train": {
+        "title": "Forma",
+        "description": "Cursos, desafíos y certificaciones para que tu equipo domine el mercado."
       },
-      "remesasImportacion": {
-        "title": "Remesas Importación",
-        "description": "Procesamiento de remesas internacionales para operaciones de importación.",
-        "items": [
-          "Procesamiento de remesas de entrada",
-          "Validación de datos del ordenante y beneficiario",
-          "Envío y recepción de mensajes SWIFT",
-          "Validación de compliance y sanciones",
-          "Liquidación y conciliación"
-        ],
-        "focus": "Ejecución correcta de remesas de importación"
+      "evaluate": {
+        "title": "Evalúa",
+        "description": "Dashboards con KPIs e insights accionables para cada decisión."
       },
-      "remesasExportacion": {
-        "title": "Remesas Exportación",
-        "description": "Gestión de remesas para operaciones de exportación y comercio exterior.",
-        "items": [
-          "Procesamiento de remesas de salida",
-          "Validación de documentos de exportación",
-          "Control de cambio y divisas",
-          "Tratamiento de excepciones",
-          "Conciliación de operaciones"
-        ],
-        "focus": "Flujo eficiente de remesas de exportación"
-      },
-      "garantiasEmitidas": {
-        "title": "Garantías Emitidas",
-        "description": "Emisión y gestión de garantías bancarias internacionales.",
-        "items": [
-          "Emisión de garantías bancarias",
-          "Control de vencimientos",
-          "Gestión de renovaciones",
-          "Comunicación con bancos corresponsales",
-          "Liberación y cancelación"
-        ],
-        "focus": "Gestión integral de garantías emitidas"
-      },
-      "garantiasRecibidas": {
-        "title": "Garantías Recibidas",
-        "description": "Control y seguimiento de garantías recibidas de terceros.",
-        "items": [
-          "Recepción y validación de garantías",
-          "Control de autenticidad",
-          "Seguimiento de vencimientos",
-          "Gestión de reclamaciones",
-          "Archivo y custodia"
-        ],
-        "focus": "Control riguroso de garantías recibidas"
-      },
-      "ordenesPagoFinanciadas": {
-        "title": "Órdenes de Pago Financiadas",
-        "description": "Financiamiento de órdenes de pago para operaciones comerciales.",
-        "items": [
-          "Análisis y aprobación de financiamiento",
-          "Liberación de fondos",
-          "Control de plazos",
-          "Cálculo de intereses",
-          "Liquidación al vencimiento"
-        ],
-        "focus": "Financiamiento eficiente de operaciones"
-      },
-      "eurocobros": {
-        "title": "Eurocobros",
-        "description": "Cobranzas internacionales con gestión documental y financiera completa.",
-        "items": [
-          "Recepción de documentos comerciales",
-          "Envío al banco del importador",
-          "Control D/P y D/A",
-          "Seguimiento de aceptación y pago",
-          "Liquidación de valores"
-        ],
-        "focus": "Control del ciclo completo de cobranza"
-      },
-      "remittances": {
-        "title": "Remesas Internacionales",
-        "description": "Ejecución de los flujos financieros asociados a las operaciones de comercio exterior, garantizando el correcto movimiento de fondos entre ordenante y beneficiario.",
-        "items": [
-          "Procesamiento de remesas de entrada y salida",
-          "Validación de datos del ordenante y beneficiario",
-          "Envío y recepción de mensajes SWIFT",
-          "Validación de compliance y sanciones",
-          "Tratamiento de excepciones y devoluciones",
-          "Liquidación y conciliación de operaciones"
-        ],
-        "focus": "Ejecución correcta, reducción de fallos y estandarización global"
-      },
-      "collections": {
-        "title": "Cobranzas Internacionales (Eurocobros)",
-        "description": "Operaciones de cobranza internacional donde el banco actúa como intermediario entre exportador e importador, garantizando el flujo documental y financiero.",
-        "items": [
-          "Recepción y verificación de documentos comerciales",
-          "Envío de documentos al banco del importador",
-          "Control de las modalidades D/P y D/A",
-          "Seguimiento de aceptación y pago",
-          "Gestión de plazos e instrucciones del cliente",
-          "Tratamiento de impagos o devoluciones",
-          "Liquidación de los valores recibidos"
-        ],
-        "focus": "Control de plazos y seguimiento del ciclo de cobranza"
-      },
-      "lcs": {
-        "title": "Cartas de Crédito (Trade Finance – LCs)",
-        "description": "Operaciones en que el banco actúa como garante del pago, mediante cumplimiento de las condiciones documentales establecidas por la UCP 600.",
-        "items": [
-          "Emisión y aviso de cartas de crédito",
-          "Procesamiento de modificaciones (amendments)",
-          "Verificación documental conforme UCP 600 e ISBP",
-          "Identificación y tratamiento de discrepancias",
-          "Envío y recepción de mensajes SWIFT",
-          "Control de plazos, vencimientos y liquidación",
-          "Interfaz operacional con bancos corresponsales"
-        ],
-        "focus": "Rigor documental y adherencia a las reglas internacionales"
-      },
-      "financing": {
-        "title": "Financiamientos al Comercio Exterior",
-        "description": "Gestión operacional de los productos de crédito vinculados a las operaciones de importación y exportación, asegurando el correcto control y liquidación.",
-        "items": [
-          "Liberación de recursos conforme contrato",
-          "Control de contratos activos",
-          "Cálculo de intereses y cargos",
-          "Interfaz operacional con área de cambio",
-          "Liquidación al vencimiento",
-          "Gestión de prórrogas y anticipaciones",
-          "Cierre y baja de operaciones"
-        ],
-        "focus": "Ejecución precisa y control de contratos"
+      "evolve": {
+        "title": "Evoluciona",
+        "description": "Tutoría y planes de acción que transforman errores en aprendizaje."
       }
     },
-    "integration": {
-      "badge": "Integración Total",
-      "title": "Integración con el Trade Datahub",
-      "description": "El Portal de Formaciones está totalmente integrado al Trade Datahub, garantizando que todo el contenido de capacitación refleja fielmente los procesos oficiales, flujos operacionales y estándares globales de la organización.",
-      "items": [
-        "Contenido alineado con procesos oficiales documentados",
-        "Actualización continua conforme evolución de los flujos",
-        "Fuente única de conocimiento operacional",
-        "Conformidad con estándares internacionales (UCP, SWIFT)"
-      ],
-      "platform": "Plataforma Central de Datos",
-      "documented": "Procesos Documentados",
-      "documentedDesc": "Flujos oficiales por área operacional",
-      "realtime": "Actualización en Tiempo Real",
-      "realtimeDesc": "Sincronización automática de contenidos",
-      "compliance": "Compliance Integrado",
-      "complianceDesc": "Alineamiento regulatorio garantizado"
+    "features": {
+      "title": "5 portales. Una plataforma.",
+      "courses": {
+        "title": "Formaciones",
+        "description": "Cursos estructurados, lecciones, desafíos prácticos, planes de entrenamiento y certificados."
+      },
+      "tutoring": {
+        "title": "Tutoría",
+        "description": "Gestión de errores, planes de acción, seguimiento personalizado."
+      },
+      "reports": {
+        "title": "Informes",
+        "description": "Dashboards con insights, KPIs, tendencias y comparaciones."
+      },
+      "tickets": {
+        "title": "Tickets",
+        "description": "Soporte con Kanban, seguimiento de tickets e historial."
+      },
+      "masterdata": {
+        "title": "Datos Maestros",
+        "description": "Gestión de usuarios, equipos y categorías."
+      }
+    },
+    "stats": {
+      "portals": "Portales Integrados",
+      "tests": "Tests Validados",
+      "roles": "Roles de Acceso",
+      "languages": "Idiomas"
     },
     "howItWorks": {
-      "badge": "Paso a Paso",
-      "title": "Cómo Funciona",
-      "subtitle": "Acceso simple y directo al conocimiento operacional",
-      "steps": [
-        {
-          "title": "Seleccione el Área de Trade",
-          "description": "Elija el área operacional donde actúa: Remesas, Eurocobros, Cartas de Crédito o Financiamientos. Cada área posee rutas de formación específicas."
-        },
-        {
-          "title": "Acceda a los Módulos de Formación",
-          "description": "Explore los módulos estructurados por proceso, desde conceptos fundamentales hasta procedimientos avanzados. Contenido desarrollado por especialistas operacionales."
-        },
-        {
-          "title": "Aplique en el Día a Día",
-          "description": "Utilice el conocimiento adquirido en la ejecución de sus actividades diarias. Consulte los materiales siempre que sea necesario como referencia."
-        },
-        {
-          "title": "Manténgase Actualizado",
-          "description": "Acompañe las actualizaciones de contenido que reflejan las evoluciones de los procesos y regulaciones del sector de Trade Finance."
-        }
-      ]
-    },
-    "benefits": {
-      "badge": "Ventajas",
-      "title": "Beneficios para los Equipos Operacionales",
-      "subtitle": "Capacitación enfocada en resultados concretos para la operación",
-      "items": {
-        "clarity": {
-          "title": "Claridad de Proceso",
-          "description": "Comprensión completa de cada etapa operacional, eliminando dudas y ambigüedades en la ejecución."
-        },
-        "standardization": {
-          "title": "Estandarización",
-          "description": "Uniformidad en la ejecución de las operaciones, garantizando consistencia entre equipos y turnos."
-        },
-        "errors": {
-          "title": "Reducción de Errores",
-          "description": "Disminución significativa de fallos operacionales a través del conocimiento preciso de los procedimientos."
-        },
-        "autonomy": {
-          "title": "Mayor Autonomía",
-          "description": "Colaboradores más preparados para tomar decisiones y resolver situaciones del día a día."
-        },
-        "onboarding": {
-          "title": "Onboarding Eficiente",
-          "description": "Integración más rápida de nuevos miembros del equipo con acceso inmediato al conocimiento estructurado."
-        },
-        "certification": {
-          "title": "Certificación",
-          "description": "Reconocimiento formal de las competencias adquiridas a través de certificados de conclusión."
-        }
+      "title": "Del registro a la evolución en 4 pasos",
+      "register": {
+        "title": "Regístrate",
+        "description": "Crea tu cuenta en segundos. Sin complicaciones."
+      },
+      "access": {
+        "title": "Accede a las Formaciones",
+        "description": "Cursos estructurados con desafíos prácticos y certificación."
+      },
+      "tutoring": {
+        "title": "Recibe Tutoría",
+        "description": "Seguimiento personalizado. Los errores se convierten en aprendizaje."
+      },
+      "evolve": {
+        "title": "Analiza y Evoluciona",
+        "description": "Dashboards con insights. Observa el progreso del equipo."
       }
     },
-    "cta": {
-      "title": "Acceda al Portal de Formaciones",
-      "subtitle": "Explore las rutas de capacitación por proceso de Trade y desarrolle las competencias esenciales para la excelencia operacional.",
-      "startNow": "Comenzar Ahora",
-      "haveAccount": "Ya tengo cuenta"
+    "quote": {
+      "text": "No formamos traders. Formamos equipos que ganan.",
+      "cta": "Empezar Ahora"
     },
-    "ratings": {
-      "badge": "Evaluaciones",
-      "title": "Lo que dicen nuestros formandos",
-      "subtitle": "Descubre las opiniones de quienes ya transformaron su conocimiento con nosotros."
+    "tech": {
+      "title": "Construido con tecnología de punta"
+    },
+    "finalCta": {
+      "title": "¿Listo para transformar tu equipo?",
+      "subtitle": "Únete a los equipos que ya usan TradeHub para formar, evaluar y evolucionar.",
+      "cta": "Crear Cuenta",
+      "login": "Iniciar Sesión"
     },
     "footer": {
-      "copyright": "© {{year}} Santander Digital Services. Portal de Formaciones - Trade Datahub."
-    },
-    "heroTitle": "Plataforma de Formación Trade y Comercio Exterior",
-    "getStarted": "Acceder a la Plataforma",
-    "learnMore": "Conocer Planes",
-    "featuresTitle": "¿Por qué elegir TradeHub?",
-    "feature1Title": "Especialización en Trade",
-    "feature1Desc": "Formaciones desarrolladas por expertos en créditos documentarios, garantías bancarias y operaciones de comercio exterior.",
-    "feature2Title": "Certificación Interna",
-    "feature2Desc": "Certificados y badges que reconocen competencias en operaciones de Trade, LC, ACC y operaciones cambiales.",
-    "feature3Title": "Aprendizaje Práctico",
-    "feature3Desc": "Casos reales, simulaciones de operaciones y desafíos prácticos basados en escenarios del mercado.",
-    "statsUsers": "Profesionales Formados",
-    "statsCourses": "Planes de Formación",
-    "statsCertificates": "Certificados Emitidos",
-    "journeyTitle": "Trayecto de Desarrollo",
-    "journeyStep1": "Inscripción",
-    "journeyStep1Desc": "Acceda a la plataforma y elija su plan de formación en Trade.",
-    "journeyStep2": "Aprendizaje",
-    "journeyStep2Desc": "Módulos especializados en LC, ACC, cambio y garantías bancarias.",
-    "journeyStep3": "Práctica",
-    "journeyStep3Desc": "Simulaciones de operaciones y estudios de casos reales del mercado.",
-    "journeyStep4": "Certificación",
-    "journeyStep4Desc": "Obtenga certificado de especialización en Trade y Comercio Exterior.",
-    "ctaTitle": "Transforme su equipo con formación especializada",
-    "ctaSubtitle": "Profesionales más calificados en operaciones de Trade, créditos y cambio.",
-    "faqTitle": "Preguntas Frecuentes",
-    "faq1Q": "¿Cómo accedo a los planes de formación?",
-    "faq1A": "Después de autenticarse, tendrá acceso a todos los planes disponibles. Inscríbase en los módulos de su interés.",
-    "faq2Q": "¿Los certificados son reconocidos internamente?",
-    "faq2A": "Sí, todos los certificados son reconocidos por Santander e incluidos en sus registros de desarrollo profesional.",
-    "faq3Q": "¿Puedo hacer los planes a mi ritmo?",
-    "faq3A": "Sí, la plataforma permite aprendizaje flexible. Usted controla su calendario de estudio.",
-    "trainingPlansTitle": "Planes de Formación Especializados",
-    "trainingPlansSubtitle": "Elija el plan adecuado a su perfil profesional",
-    "viewAllPlans": "Ver Todos los Planes",
-    "planDuration": "Duración",
-    "planLevel": "Nivel",
-    "planModules": "Módulos",
-    "searchPlaceholder": "Buscar plan de formación...",
-    "categories": "Áreas de Especialización",
-    "trustedBy": "Plataforma de formación de Santander para Trade y Comercio Exterior",
-    "viewCourse": "Ver Plan",
-    "bestseller": "Más Solicitado",
-    "new": "Nuevo",
-    "rating": "Calificación",
-    "explore": "Explorar",
-    "business": "Trade Finance",
-    "finance": "Operaciones Cambiales",
-    "technology": "Documentación",
-    "compliance": "Regulación y Cumplimiento",
-    "marketing": "Estrategia Comercial",
-    "leadership": "Liderazgo de Equipos",
-    "heroBadge": "Plataforma Nº1 en Trade Finance",
-    "trustCertification": "Certificación Oficial",
-    "trustSecure": "100% Seguro",
-    "trustRating": "4.9/5 Calificación",
-    "miniStatsProfessionals": "Profesionales",
-    "miniStatsCourses": "Cursos",
-    "miniStatsCertificates": "Certificados",
-    "statsPlans": "Planes",
-    "statsCompletion": "Tasa de Conclusión",
-    "servicesTag": "Áreas de Formación",
-    "servicesTitle": "Nuestros Servicios",
-    "servicesDesc": "Formación especializada en <1>Trade Finance</1> para tu desarrollo profesional",
-    "featureCreditosImportacao": "Créditos Importación",
-    "featureCreditosImportacaoDesc": "Gestión completa de operaciones de crédito para importación con control de plazos y liquidación.",
-    "featureRemessasImportacao": "Remesas Importación",
-    "featureRemessasImportacaoDesc": "Procesamiento de remesas internacionales para operaciones de importación.",
-    "featureRemessasExportacao": "Remesas Exportación",
-    "featureRemessasExportacaoDesc": "Gestión de remesas para operaciones de exportación y comercio exterior.",
-    "featureGarantiasEmitidas": "Garantías Emitidas",
-    "featureGarantiasEmitidasDesc": "Emisión y gestión de garantías bancarias internacionales.",
-    "featureGarantiasRecebidas": "Garantías Recibidas",
-    "featureGarantiasRecebidasDesc": "Control y seguimiento de garantías recibidas.",
-    "featureOrdensPagamento": "Órdenes de Pago Financiadas",
-    "featureOrdensPagamentoDesc": "Financiamiento de órdenes de pago para operaciones comerciales.",
-    "featureEurocobros": "Eurocobros",
-    "featureEurocobrosDesc": "Cobranzas internacionales con gestión documental y financiera completa.",
-    "featureLearnMore": "Más información",
-    "ctaButton": "Comenzar Ahora - Gratis",
-    "copyright": "© 2026 Santander TradeHub. Todos los derechos reservados."
+      "tagline": "Tu plataforma de evolución",
+      "platform": "Plataforma",
+      "courses": "Formaciones",
+      "tutoring": "Tutoría",
+      "reports": "Informes",
+      "tickets": "Tickets",
+      "resources": "Recursos",
+      "docs": "Documentación",
+      "apiDocs": "API Docs",
+      "support": "Soporte",
+      "legal": "Legal",
+      "terms": "Términos de Uso",
+      "privacy": "Privacidad",
+      "copyright": "Propiedad privada. Todos los derechos reservados."
+    }
   },
   "lessonManagement": {
     "title": "Gestión de Clase",
@@ -2540,8 +2317,8 @@
     "bank": "Banco",
     "office": "Sucursal",
     "reference": "Referencia",
-    "currency": "Moneda",
-    "amount": "Monto",
+    "currency": "Divisa",
+    "amount": "Importe",
     "finalClient": "Cliente Final",
     "rootCauseAnalysis": "Análisis de Causa Raíz (5 Por Qués)",
     "solution": "Solución Aplicada",
@@ -2560,10 +2337,6 @@
     "errorLabel": "Error",
     "planLabel": "Plan",
     "refs": "Referencias",
-    "reference": "Referencia",
-    "currency": "Divisa",
-    "amount": "Importe",
-    "finalClient": "Cliente Final",
     "tabRegisto": "Registro",
     "tabAnalise": "Análisis",
     "tabRevisao": "Revisión Tutor",

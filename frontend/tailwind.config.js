@@ -28,7 +28,24 @@ export default {
             800: '#1f2937',
             900: '#111827',
           }
-        }
+        },
+        santander: {
+          50: '#FFF5F5',
+          100: '#FFE0E0',
+          200: '#FFB3B3',
+          300: '#FF6666',
+          400: '#FF3333',
+          500: '#EC0000',
+          600: '#CC0000',
+          700: '#990000',
+          800: '#660000',
+          900: '#330000',
+        },
+      },
+      fontFamily: {
+        display: ['"Instrument Serif"', 'Georgia', 'serif'],
+        body: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
       },
       animation: {
         'fade-in': 'fadeIn 1s ease-in',
