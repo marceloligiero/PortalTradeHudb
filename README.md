@@ -2,19 +2,74 @@
 
 Sistema integrado de gestão de formações, tutoria, relatórios e suporte para equipas de trading.
 
+---
+
+## Arranque Rápido (Docker)
+
+```bash
+# 1. Clonar o repositório
+git clone https://github.com/marceloligiero/PortalTradeHudb.git
+cd PortalTradeHudb
+
+# 2. Configurar variáveis de ambiente
+cp .env.example .env                       # variáveis Docker (MySQL, portas)
+cp backend/.env.example backend/.env       # variáveis do backend (DATABASE_URL, SECRET_KEY)
+# Editar os dois ficheiros com os valores reais
+
+# 3. Iniciar tudo
+docker compose up -d
+
+# 4. Verificar que está tudo a correr
+docker compose ps
+curl http://localhost:8000/health
+```
+
+Acesso: http://localhost (frontend) · http://localhost:8000/docs (API Swagger)
+
+> Não é necessário instalar Python, Node.js ou MySQL localmente — tudo corre em containers.
+
 ## Pré-requisitos
+
+| Modo | Ferramentas necessárias |
+|---|---|
+| **Docker** (recomendado) | Docker Engine 24+ · Docker Compose v2+ · (opcional) Make |
+| **Local** (sem Docker) | Python 3.13+ · Node.js 18+ · MySQL 8.0+ |
+
+---
+
+## Comandos Úteis
+
+| Comando | O que faz |
+|---|---|
+| `make up` | Inicia todos os serviços em foreground |
+| `make up-d` | Inicia em background |
+| `make up-prod` | Produção (sem hot reload) |
+| `make down` | Para tudo (preserva dados) |
+| `make down-volumes` | Para e apaga a DB — CUIDADO |
+| `make logs` | Logs em tempo real |
+| `make logs-backend` | Logs só do backend |
+| `make shell` | Terminal no container do backend |
+| `make shell-db` | MySQL shell |
+| `make status` | Estado dos serviços |
+| `make health` | Verifica `/health` |
+| `make clean` | Remove tudo (containers + imagens + volumes) |
+| `make help` | Lista todos os comandos |
+
+---
+
+## Instalação Local (sem Docker)
+
+### Pré-requisitos
 
 | Ferramenta | Versão mínima | Notas |
 |---|---|---|
 | Python | 3.13+ | Obrigatório para SQLAlchemy 2.0.40 |
 | Node.js | 18+ | Inclui npm |
 | MySQL | 8.0+ | Produção; desenvolvimento pode usar SQLite |
-| PM2 | qualquer | Apenas em produção (VPS) |
-| Nginx | qualquer | Apenas em produção (VPS) |
 
 ---
 
-## Instalação
+## Instalação Local
 
 ```bash
 # 1. Clonar o repositório

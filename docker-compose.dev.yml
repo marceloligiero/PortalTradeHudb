@@ -1,0 +1,43 @@
+# ══════════════════════════════════════════════════════
+# Override para DESENVOLVIMENTO LOCAL — hot reload
+# NÃO fazer deploy deste ficheiro no servidor Windows.
+# É carregado automaticamente pelo docker compose em dev.
+#
+# Backend:  uvicorn --reload + volume mount do código
+# Frontend: Vite dev server (porta 5173) + volume mount do src/
+#
+# Arranque: docker compose up
+# Acesso:   http://localhost:5173  (frontend Vite)
+#           http://localhost:8100  (backend API)
+# ══════════════════════════════════════════════════════
+
+services:
+
+  tradehub-backend:
+    build:
+      target: deps                        # stage com packages, sem código (vem do volume)
+    volumes:
+      - ./backend:/app/backend            # hot reload do código Python
+      - ./database/migrations:/app/database/migrations:ro
+    working_dir: /app/backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DEBUG: "true"
+
+  tradehub-frontend:
+    build:
+      context: ./frontend
+      target: builder                     # stage Node.js com node_modules instalados
+    ports:
+      - "${FRONTEND_DEV_PORT:-5173}:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+    environment:
+      VITE_API_BASE_URL: http://tradehub-backend:8000
+
+  tradehub-db:
+    ports:
+      - "${DB_PORT:-3307}:3306"           # acesso directo à DB em dev

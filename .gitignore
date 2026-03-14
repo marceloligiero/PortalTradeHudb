@@ -1,46 +1,105 @@
-/backend/.venv/
-/backend/venv/
-/frontend/node_modules/
-# /frontend/dist/  # Included in git for production deployment
-/logs/
-*.pyc
+# ══════════════════════════════════════════════════════
+# .gitignore — Portal TradeHub
+# Stack: Python 3.13 / FastAPI + React / TypeScript / Vite
+# ══════════════════════════════════════════════════════
+
+# ── Python ─────────────────────────────────────────────
 __pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+.venv/
+venv/
+backend/.venv/
+backend/venv/
+*.egg-info/
+.eggs/
+dist/
+build/
+*.whl
+
+# ── Node.js / Frontend ─────────────────────────────────
+frontend/node_modules/
+frontend/.vite/
+frontend/.cache/
+# frontend/dist/ é commitado intencionalmente (build de produção)
+
+# ── Ambiente (NUNCA commitar .env com valores reais) ───
 .env
 .env.local
-.vscode/
+.env.*.local
+backend/.env
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+# Manter apenas .env.example
+
+# ── Logs e runtime ─────────────────────────────────────
 *.log
+logs/*.log
+logs/*.log*
+backend/audit.log
 
-# SSL certificates (sensitive)
+# ── Bases de dados de desenvolvimento ──────────────────
+backend/*.db
+*.sqlite
+*.sqlite3
+
+# ── Docker (volumes locais) ────────────────────────────
+# Os volumes Docker nomeados (tradehub_*) não ficam no repo
+
+# ── Testes e cobertura ─────────────────────────────────
+backend/.pytest_cache/
+backend/htmlcov/
+.coverage
+coverage.xml
+
+# ── IDE ────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*.orig
+*~
+
+# ── OS ─────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# ── Certificados SSL (nunca no repositório) ────────────
 ssl/
+*.pem
+*.crt
+*.key
+*.p12
+*.pfx
 
-# Binaries and tools (download on server)
+# ── Backups e temporários ──────────────────────────────
+*.bak
+*.backup
+*.tmp
+*.temp
+*_backup*
+*_dump*
+*.dump.sql
+
+# ── Ferramentas de tunnel (dev local) ──────────────────
 cloudflared.exe
 win-acme/
 win-acme.zip
-
-# Arquivos temporarios de tunnel
 .cf-*.err
 .cf-*.out
 .lt-*.err
 .lt-*.out
-.lt-*.body
-.lt-*.headers
-.frontend.index
-.try.api
-backend/package-lock.json
-frontend/src/pages/admin/Reports_backup.tsx
-backend/exception_trace.txt
 
-# Backup files (may contain sensitive data)
-*_backup*
-*.backup
-*_dump*
-*.dump.sql
-install-service-output.txt
-*.bak
-
-# Dev databases
-backend/*.db
-
-# Claude Code memory
+# ── Claude Code (IDE local) ────────────────────────────
 .claude/
+
+# ── Outros artefactos ──────────────────────────────────
+backend/exception_trace.txt
+frontend/src/pages/admin/Reports_backup.tsx
+install-service-output.txt

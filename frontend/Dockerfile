@@ -1,31 +1,32 @@
-# Build stage
-FROM node:18-alpine AS builder
+# ══════════════════════════════════════════════════════
+# STAGE 1 — Build (Node.js)
+# ══════════════════════════════════════════════════════
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copiar package files
 COPY package*.json ./
+RUN npm install
 
-# Instalar dependências
-RUN npm install --legacy-peer-deps
-
-# Copiar código fonte
 COPY . .
-
-# Build da aplicação
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
+# ══════════════════════════════════════════════════════
+# STAGE 2 — Production (nginx)
+# nginx.conf: serve SPA + proxy /api → http://backend:8000
+# ══════════════════════════════════════════════════════
+FROM nginx:1.27-alpine AS production
 
-# Copiar build do Vite
+LABEL org.opencontainers.image.title="Portal TradeHub — Frontend" \
+      org.opencontainers.image.version="1.0.0" \
+      org.opencontainers.image.description="React SPA servida por nginx — Portal TradeHub"
+
 COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copiar configuração customizada do Nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expor porta 80
 EXPOSE 80
 
-# Iniciar Nginx
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+    CMD wget -qO- http://localhost/ > /dev/null || exit 1
+
 CMD ["nginx", "-g", "daemon off;"]
