@@ -47,8 +47,9 @@ backend/*.db
 *.sqlite
 *.sqlite3
 
-# ── Docker (volumes locais) ────────────────────────────
+# ── Docker (volumes locais e imagens exportadas) ───────
 # Os volumes Docker nomeados (tradehub_*) não ficam no repo
+deploy-images/
 
 # ── Testes e cobertura ─────────────────────────────────
 backend/.pytest_cache/

@@ -1,0 +1,61 @@
+# ══════════════════════════════════════════════════════
+# Portal TradeHub — PRODUÇÃO
+# ══════════════════════════════════════════════════════
+# Uso: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Requisitos:
+#   - Ficheiro .env.prod na raiz (ver .env.example)
+#   - Ficheiro backend/.env.prod (ver backend/.env.example)
+#   - Porta 80 livre no host
+#   - (Opcional) certificados SSL em ./ssl/
+# ══════════════════════════════════════════════════════
+
+services:
+
+  tradehub-backend:
+    env_file: ./backend/.env.prod
+    environment:
+      DEBUG: "false"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
+
+  tradehub-frontend:
+    ports:
+      - "80:80"
+      - "443:443"
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+  tradehub-db:
+    ports:
+      - "127.0.0.1:3306:3306"          # só localhost, não expor para fora
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-tradehub_db}
+      MYSQL_USER: ${MYSQL_USER:-tradehub_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - tradehub_mysql_data:/var/lib/mysql
+      - ./database/init_mysql.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./database/init_data.sql:/docker-entrypoint-initdb.d/02-data.sql:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2.0'
