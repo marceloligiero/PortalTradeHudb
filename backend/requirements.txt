@@ -14,7 +14,7 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.7
 python-dotenv==1.0.0
 email-validator==2.1.0
-reportlab==4.0.9
+reportlab==4.4.10
 ## pandas wheel for CPython 3.13 available; pin to a wheel-friendly version
 ## Use a pandas wheel compatible with this environment
 pandas==2.3.3
