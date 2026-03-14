@@ -12,6 +12,7 @@ from app.routers import teams
 from app.routers import relatorios
 from app.routers import chamados
 from app.routers import internal_errors
+from app.routers import dw
 from app.database import init_db
 from app.migrate import run_migrations
 from contextlib import asynccontextmanager
@@ -159,6 +160,8 @@ app.include_router(ratings.router, tags=["ratings"])
 app.include_router(knowledge_matrix.router, tags=["knowledge_matrix"])
 # Mount public routes (landing page stats — no auth)
 app.include_router(public.router, tags=["public"])
+# Data Warehouse aggregated data for dashboards
+app.include_router(dw.router, prefix="/api/dw", tags=["data-warehouse"])
 
 @app.get("/api")
 async def api_root():

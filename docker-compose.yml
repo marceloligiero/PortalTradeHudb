@@ -66,6 +66,50 @@ services:
           cpus: '0.5'
 
   # ──────────────────────────────────────────────────────
+  # Grafana — Dashboards analíticos (port 3001)
+  # Acesso: http://localhost:3001  (anonymous viewer enabled)
+  # ──────────────────────────────────────────────────────
+  tradehub-grafana:
+    container_name: tradehub-grafana
+    image: grafana/grafana:11.4.0
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      # Admin
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-tradehub_grafana}
+      # Anonymous viewer — React iframes don't need auth
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      # Allow embedding in iframes (X-Frame-Options)
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      # Serve under /grafana/ subpath (nginx proxy)
+      GF_SERVER_DOMAIN: "${GRAFANA_DOMAIN:-localhost}"
+      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      # Disable login form for viewers (anonymous already enabled)
+      GF_AUTH_DISABLE_LOGIN_FORM: "false"
+      # MySQL credentials for provisioned datasource
+      MYSQL_USER: ${MYSQL_USER:-tradehub_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-tradehub_db}
+    volumes:
+      - tradehub_grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+    depends_on:
+      tradehub-db:
+        condition: service_healthy
+    networks:
+      - tradehub-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+
+  # ──────────────────────────────────────────────────────
   # Base de dados — MySQL 8.0
   # ──────────────────────────────────────────────────────
   tradehub-db:
@@ -99,6 +143,8 @@ services:
 volumes:
   tradehub_mysql_data:
     name: tradehub_mysql_data
+  tradehub_grafana_data:
+    name: tradehub_grafana_data
 
 # ── Rede isolada (não usa a rede default do Docker) ─────
 networks:

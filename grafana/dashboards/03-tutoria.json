@@ -1,0 +1,200 @@
+{
+  "uid": "tradehub-tutoria",
+  "title": "TradeHub — Tutoria",
+  "description": "Erros registados, planos de ação, recorrências e fichas de aprendizagem",
+  "tags": ["tradehub", "tutoria"],
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10m",
+  "time": { "from": "now-90d", "to": "now" },
+  "timezone": "browser",
+  "panels": [
+
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total Erros Registados",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "red" } } },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT COUNT(*) AS value FROM tutoria_errors WHERE is_active = 1",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Erros Recorrentes",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 3, "color": "yellow" }, { "value": 10, "color": "red" }] }
+        }
+      },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT COUNT(*) AS value FROM tutoria_errors WHERE is_recurrent = 1 AND is_active = 1",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Planos de Ação Abertos",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 5, "color": "yellow" }, { "value": 15, "color": "red" }] }
+        }
+      },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT COUNT(*) AS value FROM tutoria_action_plans WHERE status NOT IN ('DONE','CONCLUIDO')",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Erros com Impacto ALTO",
+      "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 2, "color": "yellow" }, { "value": 8, "color": "red" }] }
+        }
+      },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT COUNT(*) AS value FROM tutoria_errors WHERE impact_level = 'ALTO' AND is_active = 1",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Fichas de Aprendizagem Pendentes",
+      "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 3, "color": "yellow" }, { "value": 10, "color": "red" }] }
+        }
+      },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT COUNT(*) AS value FROM tutoria_learning_sheets WHERE status IN ('PENDENTE','SUBMITTED')",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Planos em Atraso",
+      "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 1, "color": "yellow" }, { "value": 5, "color": "red" }] }
+        }
+      },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT COUNT(*) AS value FROM tutoria_action_plans WHERE deadline < CURDATE() AND status NOT IN ('DONE','CONCLUIDO')",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Erros Registados por Dia",
+      "gridPos": { "x": 0, "y": 4, "w": 14, "h": 8 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "legend": { "displayMode": "hidden" } },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 15 }, "color": { "mode": "fixed", "fixedColor": "red" } } },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT DATE(created_at) AS time, COUNT(*) AS 'Erros' FROM tutoria_errors WHERE created_at >= NOW() - INTERVAL 90 DAY AND is_active = 1 GROUP BY DATE(created_at) ORDER BY time",
+        "format": "time_series", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 8,
+      "type": "piechart",
+      "title": "Erros por Severidade",
+      "gridPos": { "x": 14, "y": 4, "w": 5, "h": 8 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "pieType": "donut", "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT severity AS metric, COUNT(*) AS value FROM tutoria_errors WHERE is_active = 1 GROUP BY severity",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 9,
+      "type": "piechart",
+      "title": "Status dos Planos de Ação",
+      "gridPos": { "x": 19, "y": 4, "w": 5, "h": 8 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "pieType": "donut", "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT status AS metric, COUNT(*) AS value FROM tutoria_action_plans GROUP BY status ORDER BY value DESC",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 10,
+      "type": "barchart",
+      "title": "Erros por Categoria (Top 10)",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "orientation": "horizontal", "legend": { "displayMode": "hidden" } },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT ec.name AS Categoria, COUNT(te.id) AS Total FROM tutoria_errors te JOIN tutoria_error_categories ec ON te.category_id = ec.id WHERE te.is_active = 1 GROUP BY ec.id, ec.name ORDER BY Total DESC LIMIT 10",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Tutorados com Mais Erros",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "sortBy": [{ "displayName": "Total", "desc": true }] },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT u.full_name AS Tutorado, COUNT(te.id) AS Total, SUM(te.is_recurrent) AS Recorrentes, SUM(te.impact_level = 'ALTO') AS 'Impacto Alto' FROM tutoria_errors te JOIN users u ON te.tutorado_id = u.id WHERE te.is_active = 1 GROUP BY u.id, u.full_name ORDER BY Total DESC LIMIT 15",
+        "format": "table", "refId": "A"
+      }]
+    }
+
+  ]
+}

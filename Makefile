@@ -1,6 +1,7 @@
 .PHONY: up up-d up-build up-prod up-prod-build down down-volumes build \
         build-backend build-frontend logs logs-backend logs-frontend logs-db \
-        shell shell-db shell-db-root restart restart-backend status health clean help
+        logs-grafana shell shell-db shell-db-root shell-grafana \
+        restart restart-backend restart-grafana status health clean help
 
 # ── Prefixo do projecto ────────────────────────────────
 PROJECT := tradehub
@@ -55,6 +56,9 @@ logs-frontend: ## Logs do frontend (nginx)
 logs-db: ## Logs da base de dados
 	docker compose logs -f $(PROJECT)-db
 
+logs-grafana: ## Logs do Grafana
+	docker compose logs -f $(PROJECT)-grafana
+
 ## ── Shells ────────────────────────────────────────────────────────────────
 
 shell: ## Abre shell no container do backend
@@ -66,6 +70,9 @@ shell-db: ## Abre MySQL shell como utilizador da app
 shell-db-root: ## Abre MySQL shell como root
 	docker compose exec $(PROJECT)-db mysql -u root -p
 
+shell-grafana: ## Abre shell no container do Grafana
+	docker compose exec $(PROJECT)-grafana sh
+
 ## ── Gestão ────────────────────────────────────────────────────────────────
 
 restart: ## Reinicia todos os serviços
@@ -73,6 +80,9 @@ restart: ## Reinicia todos os serviços
 
 restart-backend: ## Reinicia apenas o backend
 	docker compose restart $(PROJECT)-backend
+
+restart-grafana: ## Reinicia apenas o Grafana
+	docker compose restart $(PROJECT)-grafana
 
 status: ## Mostra estado e portas dos containers
 	docker compose ps

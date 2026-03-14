@@ -1,0 +1,151 @@
+{
+  "uid": "tradehub-equipas",
+  "title": "TradeHub — Equipas",
+  "description": "Composição das equipas, formação por equipa e indicadores de performance",
+  "tags": ["tradehub", "equipas"],
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15m",
+  "time": { "from": "now-90d", "to": "now" },
+  "timezone": "browser",
+  "panels": [
+
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Equipas Ativas",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" } } },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT COUNT(*) AS value FROM teams WHERE is_active = 1",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total Membros",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" } } },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT COUNT(DISTINCT user_id) AS value FROM team_members",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Formandos Ativos",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "purple" } } },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT COUNT(*) AS value FROM users WHERE role IN ('TRAINEE','STUDENT') AND is_active = 1",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Formadores Ativos",
+      "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "orange" } } },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT COUNT(*) AS value FROM users WHERE is_trainer = 1 AND is_active = 1",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Tutores Ativos",
+      "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "teal" } } },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT COUNT(*) AS value FROM users WHERE is_tutor = 1 AND is_active = 1",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Utilizadores Pendentes",
+      "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "value": null, "color": "green" }, { "value": 1, "color": "yellow" }, { "value": 5, "color": "red" }] }
+        }
+      },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT COUNT(*) AS value FROM users WHERE is_pending = 1",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 7,
+      "type": "barchart",
+      "title": "Membros por Equipa",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "orientation": "horizontal", "legend": { "displayMode": "hidden" } },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT t.name AS Equipa, COUNT(tm.user_id) AS Membros FROM teams t LEFT JOIN team_members tm ON t.id = tm.team_id WHERE t.is_active = 1 GROUP BY t.id, t.name ORDER BY Membros DESC",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 8,
+      "type": "barchart",
+      "title": "Planos de Formação por Equipa",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "orientation": "horizontal", "legend": { "displayMode": "list", "placement": "right" } },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT t.name AS Equipa, tp.status AS Status, COUNT(tp.id) AS Total FROM training_plans tp JOIN users u ON tp.student_id = u.id JOIN teams t ON u.team_id = t.id WHERE t.is_active = 1 GROUP BY t.id, t.name, tp.status ORDER BY t.name, tp.status",
+        "format": "table", "refId": "A"
+      }]
+    },
+
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Resumo por Equipa",
+      "gridPos": { "x": 0, "y": 12, "w": 24, "h": 8 },
+      "datasource": { "uid": "tradehub-mysql" },
+      "options": { "sortBy": [{ "displayName": "Membros", "desc": true }] },
+      "targets": [{
+        "datasource": { "uid": "tradehub-mysql" },
+        "rawSql": "SELECT t.name AS Equipa, m.full_name AS Manager, COUNT(DISTINCT tm.user_id) AS Membros, SUM(u.is_trainer) AS Formadores, SUM(u.is_tutor) AS Tutores FROM teams t LEFT JOIN team_members tm ON t.id = tm.team_id LEFT JOIN users u ON tm.user_id = u.id LEFT JOIN users m ON t.manager_id = m.id WHERE t.is_active = 1 GROUP BY t.id, t.name, m.full_name ORDER BY Membros DESC",
+        "format": "table", "refId": "A"
+      }]
+    }
+
+  ]
+}
