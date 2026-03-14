@@ -1,0 +1,88 @@
+# ══════════════════════════════════════════════════════
+# Deploy — Servidor Windows via SSH
+# Dispara automaticamente após Build & Push ou manualmente
+# ══════════════════════════════════════════════════════
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["Build & Push"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Ambiente de deploy"
+        required: true
+        default: production
+        type: choice
+        options:
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_SSH_PORT || 22 }}
+          timeout: 120s
+          script: |
+            set -e
+            cd ${{ secrets.SERVER_APP_PATH || '/opt/tradehub' }}
+
+            echo "══════════════════════════════════════"
+            echo "  Deploy — Portal TradeHub"
+            echo "══════════════════════════════════════"
+
+            # Pull latest code
+            git pull origin main
+
+            # Backup database before deploy
+            BACKUP_FILE="backups/pre-deploy-$(date +%Y%m%d-%H%M%S).sql"
+            mkdir -p backups
+            docker exec tradehub-db mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" tradehub_db > "$BACKUP_FILE" 2>/dev/null || true
+            echo "✅ Backup: $BACKUP_FILE"
+
+            # Build and restart
+            docker compose -f docker-compose.yml build --no-cache
+            docker compose -f docker-compose.yml up -d
+
+            # Wait for health checks
+            echo "Aguardando health checks..."
+            sleep 15
+
+            # Verify
+            BACKEND_STATUS=$(docker inspect --format='{{.State.Health.Status}}' tradehub-backend 2>/dev/null || echo "unknown")
+            FRONTEND_STATUS=$(docker inspect --format='{{.State.Running}}' tradehub-frontend 2>/dev/null || echo "false")
+
+            if [ "$BACKEND_STATUS" = "healthy" ] && [ "$FRONTEND_STATUS" = "true" ]; then
+              echo "✅ Deploy concluído com sucesso!"
+            else
+              echo "⚠️ Deploy pode ter problemas:"
+              echo "   Backend: $BACKEND_STATUS"
+              echo "   Frontend: $FRONTEND_STATUS"
+              docker compose logs --tail 20
+              exit 1
+            fi
+
+            # Prune old images
+            docker image prune -f

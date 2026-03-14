@@ -542,38 +542,55 @@ Os relatórios de testes encontram-se em `docs/TEST_EVIDENCE_REPORT.md`.
 | `npm run preview` | Pré-visualiza o build de produção |
 | `npm run lint` | Executa ESLint |
 
-### VPS / Deploy
+### Deploy (Docker)
 
 | Comando | O que faz |
 |---|---|
-| `./start-vps.sh update` | Deploy completo: pull + deps + build + restart |
-| `./start-vps.sh quick` | Pull + deps Python + restart backend |
-| `./start-vps.sh frontend` | Pull + build frontend |
-| `./start-vps.sh restart` | Reinicia serviços PM2 |
-| `./start-vps.sh status` | Status PM2 + logs recentes |
+| `.\scripts\deploy.ps1` | Deploy completo: backup + pull + build + restart |
+| `.\scripts\rollback.ps1` | Rollback para o commit anterior |
+| `.\scripts\setup-server.ps1` | Verificação de pré-requisitos do servidor |
+| `docker compose ps` | Status dos containers |
+| `docker compose logs -f` | Logs em tempo real |
 
 ---
 
 ## Deploy
 
-O deploy de produção usa PM2 (gestor de processos Node.js) para o backend Python e Nginx como reverse proxy.
+O deploy de produção usa **Docker Compose** com 3 containers:
+- **tradehub-frontend** — React SPA servida por nginx (porta 80) + proxy `/api` → backend
+- **tradehub-backend** — FastAPI (Python 3.13)
+- **tradehub-db** — MySQL 8.0
 
-O pipeline CI/CD (`.github/workflows/deploy.yml`) executa automaticamente após push para `main`:
-1. SSH para o VPS
-2. `git pull origin main`
-3. `pip install -r requirements.txt`
-4. `npm ci && npm run build`
-5. `pm2 restart tradehub-api`
+### CI/CD Pipeline
 
-Para configurar o Nginx e o PM2 pela primeira vez, consultar os ficheiros em `deploy/`.
+```
+push → CI (lint + tests) → Build & Push (GHCR) → Deploy (SSH)
+```
+
+| Workflow | Trigger | Função |
+|----------|---------|--------|
+| `ci.yml` | Push/PR para main, develop | Lint, type check, testes |
+| `build-and-push.yml` | Após CI passar em main | Build Docker → GHCR |
+| `deploy.yml` | Após Build ou manual | Deploy via SSH |
+| `dependabot.yml` | Semanal (segundas) | PRs de atualização de deps |
+
+### Deploy Manual
+
+```powershell
+.\scripts\deploy.ps1           # Deploy com backup automático
+.\scripts\rollback.ps1         # Rollback rápido
+```
 
 ### Logs
 
-```bash
-pm2 logs tradehub-backend          # logs em tempo real
-pm2 logs tradehub-backend --lines 50  # últimas 50 linhas
-pm2 status                         # estado de todos os processos
+```powershell
+docker compose logs -f tradehub-backend    # logs em tempo real
+docker compose logs --tail 50 tradehub-backend  # últimas 50 linhas
+docker compose ps                          # estado dos containers
+docker stats --no-stream                   # uso de recursos
 ```
+
+> Para documentação detalhada de deploy, consultar [DEPLOY.md](DEPLOY.md).
 
 ---
 
