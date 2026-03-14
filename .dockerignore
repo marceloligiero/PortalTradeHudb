@@ -1,0 +1,76 @@
+# ══════════════════════════════════════════════════════
+# .dockerignore — contexto de build do backend (raiz do projecto)
+# O frontend usa ./frontend como contexto e tem o seu próprio .dockerignore.
+# ══════════════════════════════════════════════════════
+
+# Frontend completo (não necessário para o backend)
+frontend/
+
+# Ambientes virtuais Python
+backend/.venv/
+backend/venv/
+.venv/
+
+# Cache Python
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+backend/.pytest_cache/
+
+# Bases de dados de desenvolvimento
+backend/*.db
+
+# Ficheiros de teste e scripts avulsos
+backend/tests/
+backend/run_all_tests.py
+backend/reset_admin_password.py
+backend/reset_user_password.py
+backend/scripts/
+
+# Logs
+logs/
+*.log
+backend/audit.log
+
+# Ambiente (os valores reais são passados via docker-compose env_file)
+backend/.env
+backend/.env.*
+!backend/.env.example
+.env
+.env.*
+!.env.example
+
+# Git & CI/CD
+.git/
+.github/
+.gitignore
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Documentação e scripts de deploy (não necessários na imagem)
+docs/
+deploy/
+scripts/
+archive/
+.claude/
+
+# Ficheiros de arranque antigos (eliminados — aqui por segurança)
+*.bat
+*.ps1
+*.sh
+
+# Docker (evitar inception)
+docker-compose*.yml
+**/Dockerfile
+**/.dockerignore
+
+# Backups e temporários
+*.backup
+*.bak
+README.md

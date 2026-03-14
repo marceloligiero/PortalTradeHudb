@@ -8,16 +8,274 @@ from datetime import datetime, timedelta
 
 router = APIRouter()
 
-@router.get("/courses", response_model=List[schemas.Course])
+
+# Dashboard Stats
+@router.get("/stats")
+async def get_student_stats(
+    current_user: models.User = Depends(auth.get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get student dashboard statistics"""
+    student_id = current_user.id
+    
+    # Enrollments
+    enrollments = db.query(models.Enrollment).filter(
+        models.Enrollment.user_id == student_id
+    ).all()
+    
+    total_enrollments = len(enrollments)
+    completed_enrollments = len([e for e in enrollments if e.completed_at])
+    
+    # Training plans assigned to student (both methods)
+    plans_by_student_id = db.query(models.TrainingPlan).filter(
+        models.TrainingPlan.student_id == student_id
+    ).all()
+    
+    assignments = db.query(models.TrainingPlanAssignment).filter(
+        models.TrainingPlanAssignment.user_id == student_id
+    ).all()
+    plan_ids_from_assignments = [a.training_plan_id for a in assignments]
+    plans_by_assignment = db.query(models.TrainingPlan).filter(
+        models.TrainingPlan.id.in_(plan_ids_from_assignments)
+    ).all() if plan_ids_from_assignments else []
+    
+    # Combinar sem duplicados
+    all_plan_ids = list(set([p.id for p in plans_by_student_id] + [p.id for p in plans_by_assignment]))
+    assigned_plans = db.query(models.TrainingPlan).filter(
+        models.TrainingPlan.id.in_(all_plan_ids)
+    ).all() if all_plan_ids else []
+    
+    total_training_plans = len(assigned_plans)
+    active_training_plans = len([p for p in assigned_plans if getattr(p, 'is_active', True)])
+    
+    # Lesson progress - buscar por user_id OU enrollment_id
+    enrollment_ids = [e.id for e in enrollments]
+    lesson_progress = db.query(models.LessonProgress).filter(
+        (models.LessonProgress.user_id == student_id) |
+        (models.LessonProgress.enrollment_id.in_(enrollment_ids) if enrollment_ids else False)
+    ).all()
+    
+    total_lessons_started = len(lesson_progress)
+    completed_lessons = len([lp for lp in lesson_progress if lp.completed_at])
+    
+    # Study time
+    total_study_minutes = sum(lp.actual_time_minutes or 0 for lp in lesson_progress)
+    total_study_hours = round(total_study_minutes / 60, 1)
+    
+    # Certificates
+    certificates = db.query(models.Certificate).filter(
+        models.Certificate.user_id == student_id
+    ).count()
+    
+    # Challenge submissions
+    submissions = db.query(models.ChallengeSubmission).filter(
+        models.ChallengeSubmission.user_id == student_id
+    ).all()
+    
+    total_submissions = len(submissions)
+    approved_submissions = len([s for s in submissions if s.is_approved])
+    
+    # Average MPU
+    mpu_values = [s.calculated_mpu for s in submissions if s.calculated_mpu]
+    avg_mpu = round(sum(mpu_values) / len(mpu_values), 2) if mpu_values else 0
+    
+    # Completion rate
+    completion_rate = round((completed_lessons / total_lessons_started * 100) if total_lessons_started > 0 else 0, 1)
+    
+    return {
+        "total_enrollments": total_enrollments,
+        "completed_enrollments": completed_enrollments,
+        "total_training_plans": total_training_plans,
+        "active_training_plans": active_training_plans,
+        "total_lessons_started": total_lessons_started,
+        "completed_lessons": completed_lessons,
+        "total_study_hours": total_study_hours,
+        "certificates": certificates,
+        "total_submissions": total_submissions,
+        "approved_submissions": approved_submissions,
+        "avg_mpu": avg_mpu,
+        "completion_rate": completion_rate
+    }
+
+
+@router.get("/certificates")
+async def get_my_certificates(
+    current_user: models.User = Depends(auth.get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Listar certificados do formando logado"""
+    certificates = db.query(models.Certificate).filter(
+        models.Certificate.user_id == current_user.id,
+        models.Certificate.is_valid == True
+    ).order_by(models.Certificate.issued_at.desc()).all()
+    
+    result = []
+    for cert in certificates:
+        result.append({
+            "id": cert.id,
+            "certificate_number": cert.certificate_number,
+            "student_name": cert.student_name,
+            "training_plan_title": cert.training_plan_title,
+            "issued_at": cert.issued_at.isoformat() if cert.issued_at else None,
+            "total_hours": cert.total_hours,
+            "courses_completed": cert.courses_completed,
+            "average_mpu": cert.average_mpu,
+            "average_approval_rate": cert.average_approval_rate,
+            "is_valid": cert.is_valid
+        })
+    
+    return result
+
+
+@router.get("/courses")
 async def get_my_courses(
     current_user: models.User = Depends(auth.get_current_active_user),
     db: Session = Depends(get_db)
 ):
+    """Return student's enrolled courses plus optional training plan association when the course
+    is part of a training plan assigned to the student.
+    """
+    # Get assigned training plan ids for this student
+    assigned = db.query(models.TrainingPlanAssignment).filter(
+        models.TrainingPlanAssignment.user_id == current_user.id
+    ).all()
+    assigned_plan_ids = [a.training_plan_id for a in assigned]
+
     enrollments = db.query(models.Enrollment).filter(
         models.Enrollment.user_id == current_user.id
     ).all()
+
+    result = []
+    for enrollment in enrollments:
+        course = enrollment.course
+
+        # Build base course dict (keep fields frontend expects)
+        course_obj = {
+            "id": course.id,
+            "title": course.title,
+            "description": course.description,
+            "bank_code": course.bank.code if hasattr(course, 'bank') and course.bank else None,
+            "product_name": course.product.name if hasattr(course, 'product') and course.product else None,
+            "product_code": course.product.code if hasattr(course, 'product') and course.product else None,
+            "is_enrolled": True,
+            "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
+        }
+
+        # If the course is part of any training plan assigned to this student, attach the first one found
+        tp = None
+        if assigned_plan_ids:
+            tp_course = db.query(models.TrainingPlanCourse).filter(
+                models.TrainingPlanCourse.course_id == course.id,
+                models.TrainingPlanCourse.training_plan_id.in_(assigned_plan_ids)
+            ).first()
+            if tp_course:
+                tp_record = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == tp_course.training_plan_id).first()
+                if tp_record:
+                    tp = {
+                        "id": tp_record.id,
+                        "title": tp_record.title,
+                        "start_date": tp_record.start_date.isoformat() if tp_record.start_date else None,
+                        "end_date": tp_record.end_date.isoformat() if tp_record.end_date else None,
+                    }
+
+        course_obj["training_plan"] = tp
+        result.append(course_obj)
+
+    return result
+
+
+@router.get("/courses/{course_id}")
+async def get_course_detail(
+    course_id: int,
+    current_user: models.User = Depends(auth.get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Return course details for a student - they must be enrolled in the course."""
+    # Check if student is enrolled in this course
+    enrollment = db.query(models.Enrollment).filter(
+        models.Enrollment.user_id == current_user.id,
+        models.Enrollment.course_id == course_id
+    ).first()
     
-    return [enrollment.course for enrollment in enrollments]
+    if not enrollment:
+        raise HTTPException(status_code=403, detail="You are not enrolled in this course")
+    
+    course = db.query(models.Course).filter(models.Course.id == course_id).first()
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Get lessons for this course
+    lessons = db.query(models.Lesson).filter(
+        models.Lesson.course_id == course_id
+    ).order_by(models.Lesson.order_index).all()
+    
+    # Get challenges for this course
+    challenges = db.query(models.Challenge).filter(
+        models.Challenge.course_id == course_id
+    ).all()
+    
+    # Get training plan if exists
+    assigned = db.query(models.TrainingPlanAssignment).filter(
+        models.TrainingPlanAssignment.user_id == current_user.id
+    ).all()
+    assigned_plan_ids = [a.training_plan_id for a in assigned]
+    
+    tp = None
+    if assigned_plan_ids:
+        tp_course = db.query(models.TrainingPlanCourse).filter(
+            models.TrainingPlanCourse.course_id == course_id,
+            models.TrainingPlanCourse.training_plan_id.in_(assigned_plan_ids)
+        ).first()
+        if tp_course:
+            tp_record = db.query(models.TrainingPlan).filter(models.TrainingPlan.id == tp_course.training_plan_id).first()
+            if tp_record:
+                tp = {
+                    "id": tp_record.id,
+                    "title": tp_record.title,
+                    "start_date": tp_record.start_date.isoformat() if tp_record.start_date else None,
+                    "end_date": tp_record.end_date.isoformat() if tp_record.end_date else None,
+                }
+    
+    # Get total enrolled students count
+    total_students = db.query(models.Enrollment).filter(
+        models.Enrollment.course_id == course_id
+    ).count()
+    
+    return {
+        "id": course.id,
+        "title": course.title,
+        "description": course.description,
+        "bank_code": course.bank.code if hasattr(course, 'bank') and course.bank else None,
+        "bank_name": course.bank.name if hasattr(course, 'bank') and course.bank else None,
+        "product_code": course.product.code if hasattr(course, 'product') and course.product else None,
+        "product_name": course.product.name if hasattr(course, 'product') and course.product else None,
+        "trainer_id": course.created_by,
+        "trainer_name": course.creator.full_name if hasattr(course, 'creator') and course.creator else None,
+        "total_students": total_students,
+        "total_lessons": len(lessons),
+        "total_challenges": len(challenges),
+        "created_at": course.created_at.isoformat() if course.created_at else None,
+        "updated_at": course.updated_at.isoformat() if course.updated_at else None,
+        "lessons": [{
+            "id": l.id,
+            "title": l.title,
+            "description": l.description,
+            "content_type": l.lesson_type if hasattr(l, 'lesson_type') else None,
+            "duration_minutes": l.estimated_minutes if hasattr(l, 'estimated_minutes') else None,
+            "order_index": l.order_index
+        } for l in lessons],
+        "challenges": [{
+            "id": c.id,
+            "title": c.title,
+            "description": c.description,
+            "challenge_type": c.challenge_type if hasattr(c, 'challenge_type') else None,
+            "difficulty": c.difficulty if hasattr(c, 'difficulty') else None,
+            "max_score": c.max_score if hasattr(c, 'max_score') else None,
+            "time_limit_minutes": c.time_limit_minutes if hasattr(c, 'time_limit_minutes') else None
+        } for c in challenges],
+        "training_plan": tp
+    }
+
 
 @router.post("/enroll/{course_id}")
 async def enroll_in_course(
@@ -71,12 +329,15 @@ async def get_student_overview(
         models.Certificate.user_id == current_user.id
     ).count()
     
-    # Total study hours (sum of all course hours)
-    study_hours = db.query(func.sum(models.Course.duration_hours)).join(
+    # Total study hours (estimated from lesson minutes)
+    study_hours = db.query(func.sum(models.Lesson.estimated_minutes)).join(
+        models.Course, models.Lesson.course_id == models.Course.id
+    ).join(
         models.Enrollment, models.Enrollment.course_id == models.Course.id
     ).filter(
         models.Enrollment.user_id == current_user.id
     ).scalar() or 0
+    study_hours = round(study_hours / 60, 1)
     
     # Certificates count
     certificates_count = completed_courses
@@ -113,22 +374,35 @@ async def get_student_courses_report(
     for enrollment in enrollments:
         course = enrollment.course
         
-        # Check if has certificate
-        certificate = db.query(models.Certificate).filter(
-            models.Certificate.user_id == current_user.id,
-            models.Certificate.course_id == course.id
-        ).first()
+        # Check if completed (has completed_at on enrollment)
+        completed = enrollment.completed_at is not None
         
+        # Compute duration from lessons
+        total_mins = db.query(func.sum(models.Lesson.estimated_minutes)).filter(
+            models.Lesson.course_id == course.id
+        ).scalar() or 0
+
+        # Compute progress from lesson progress
+        total_lessons = db.query(models.Lesson).filter(models.Lesson.course_id == course.id).count()
+        completed_lessons = db.query(models.LessonProgress).filter(
+            models.LessonProgress.user_id == current_user.id,
+            models.LessonProgress.lesson_id.in_(
+                db.query(models.Lesson.id).filter(models.Lesson.course_id == course.id)
+            ),
+            models.LessonProgress.status == "COMPLETED"
+        ).count()
+        progress = round((completed_lessons / total_lessons * 100) if total_lessons > 0 else 0, 1)
+
         courses_report.append({
             "id": course.id,
             "title": course.title,
             "description": course.description,
-            "bank_code": course.bank_code,
+            "bank_code": course.bank.code if course.bank else None,
             "enrolled_at": enrollment.enrolled_at.isoformat() if enrollment.enrolled_at else None,
-            "progress": enrollment.progress,
-            "completed": certificate is not None,
-            "completion_date": certificate.issued_at.isoformat() if certificate and certificate.issued_at else None,
-            "duration_hours": course.duration_hours
+            "progress": progress,
+            "completed": completed,
+            "completion_date": enrollment.completed_at.isoformat() if enrollment.completed_at else None,
+            "duration_hours": round(total_mins / 60, 1)
         })
     
     return courses_report
@@ -157,8 +431,15 @@ async def get_student_lessons_report(
         ).count()
         total_lessons += lessons_count
         
-        # For simplicity, estimate completed based on progress
-        completed_lessons += int(lessons_count * enrollment.progress / 100)
+        # Count completed lessons via LessonProgress
+        completed_in_course = db.query(models.LessonProgress).filter(
+            models.LessonProgress.user_id == current_user.id,
+            models.LessonProgress.lesson_id.in_(
+                db.query(models.Lesson.id).filter(models.Lesson.course_id == course.id)
+            ),
+            models.LessonProgress.status == "COMPLETED"
+        ).count()
+        completed_lessons += completed_in_course
     
     return {
         "total_lessons": total_lessons,

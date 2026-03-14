@@ -5,8 +5,11 @@ export interface User {
   id: number;
   email: string;
   full_name: string;
-  role: 'STUDENT' | 'TRAINER' | 'ADMIN';
+  role: 'STUDENT' | 'TRAINEE' | 'TRAINER' | 'ADMIN' | 'MANAGER';
   is_active: boolean;
+  is_trainer?: boolean;
+  is_tutor?: boolean;
+  is_liberador?: boolean;
 }
 
 interface AuthState {

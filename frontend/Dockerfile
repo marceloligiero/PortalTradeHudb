@@ -1,33 +1,32 @@
-# Build stage
-FROM node:20-alpine AS build
+# ══════════════════════════════════════════════════════
+# STAGE 1 — Build (Node.js)
+# ══════════════════════════════════════════════════════
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copiar arquivos de dependências
 COPY package*.json ./
+RUN npm install
 
-# Instalar dependências
-RUN npm ci
-
-# Copiar código fonte
 COPY . .
-
-# Build da aplicação
 RUN npm run build
 
-# Runtime stage
-FROM node:20-alpine
+# ══════════════════════════════════════════════════════
+# STAGE 2 — Production (nginx)
+# nginx.conf: serve SPA + proxy /api → http://backend:8000
+# ══════════════════════════════════════════════════════
+FROM nginx:1.27-alpine AS production
 
-WORKDIR /app
+LABEL org.opencontainers.image.title="Portal TradeHub — Frontend" \
+      org.opencontainers.image.version="1.0.0" \
+      org.opencontainers.image.description="React SPA servida por nginx — Portal TradeHub"
 
-# Instalar servidor estático
-RUN npm install -g serve
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Copiar arquivos buildados do estágio anterior
-COPY --from=build /app/dist ./dist
+EXPOSE 80
 
-# Expor porta
-EXPOSE 3000
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+    CMD wget -qO- http://localhost/ > /dev/null || exit 1
 
-# Comando para iniciar a aplicação
-CMD ["serve", "-s", "dist", "-l", "3000"]
+CMD ["nginx", "-g", "daemon off;"]
