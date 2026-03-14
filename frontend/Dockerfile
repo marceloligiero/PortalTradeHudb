@@ -15,7 +15,7 @@ RUN npm run build
 # STAGE 2 — Production (nginx)
 # nginx.conf: serve SPA + proxy /api → http://backend:8000
 # ══════════════════════════════════════════════════════
-FROM nginx:1.27-alpine AS production
+FROM nginx:1.29-alpine AS production
 
 LABEL org.opencontainers.image.title="Portal TradeHub — Frontend" \
       org.opencontainers.image.version="1.0.0" \
