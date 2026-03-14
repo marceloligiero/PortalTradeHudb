@@ -1,347 +1,527 @@
-# 🎓 Portal TradeHub
+# Portal TradeHub
 
-<!-- Auto-deploy test: 2026-02-19 #6 -->
+Sistema integrado de gestão de formações, tutoria, relatórios e suporte para equipas de trading.
 
-Sistema completo de gestão de formações e cursos online com funcionalidades avançadas de gestão de utilizadores, planos de treino, e certificados.
+## Pré-requisitos
 
-## 🌟 Características
+| Ferramenta | Versão mínima | Notas |
+|---|---|---|
+| Python | 3.13+ | Obrigatório para SQLAlchemy 2.0.40 |
+| Node.js | 18+ | Inclui npm |
+| MySQL | 8.0+ | Produção; desenvolvimento pode usar SQLite |
+| PM2 | qualquer | Apenas em produção (VPS) |
+| Nginx | qualquer | Apenas em produção (VPS) |
 
-- **Gestão de Utilizadores** - Sistema completo de CRUD com ativação/desativação
-- **Planos de Treino** - Criação e gestão de módulos e lições
-- **Sistema de Certificados** - Geração automática de certificados após conclusão
-- **Dashboard Administrativo** - Estatísticas e gestão completa
-- **Autenticação Segura** - Sistema robusto com bcrypt e JWT
-- **Design Moderno** - Interface premium com Tailwind CSS e Framer Motion
+---
 
-## 🛠️ Stack Tecnológico
+## Instalação
 
-### Backend
-- **Python 3.13**
-- **FastAPI** - Framework web moderno e rápido
-- **SQLAlchemy 2.0** - ORM para banco de dados
-- **MySQL 8.4** - Banco de dados
-- **Uvicorn** - Servidor ASGI
-- **JWT** - Autenticação
-- **bcrypt** - Hash de senhas
+```bash
+# 1. Clonar o repositório
+git clone https://github.com/marceloligiero/PortalTradeHudb.git
+cd PortalTradeHudb
 
-### Frontend
-- **React 18** - Biblioteca UI
-- **TypeScript** - Type-safety
-- **Vite 5** - Build tool
-- **Tailwind CSS** - Estilização
-- **Framer Motion** - Animações
-- **React Router** - Navegação
+# 2. Backend — criar ambiente virtual e instalar dependências
+cd backend
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 
-### DevOps
-- **PM2** - Gerenciador de processos
-- **Nginx** - Servidor web e proxy reverso
-- **Certbot** - Certificados SSL
+# 3. Configurar variáveis de ambiente do backend
+cp .env.example .env             # editar o ficheiro .env criado
 
-## 🚀 Deploy no VPS
+# 4. Frontend — instalar dependências
+cd ../frontend
+npm install
+```
 
-### Informações do Servidor
+---
+
+## Configuração
+
+O backend lê as variáveis de ambiente do ficheiro `backend/.env`.
+
+| Variável | Obrigatória | Descrição | Exemplo |
+|---|:---:|---|---|
+| `DATABASE_URL` | ✅ | Connection string da base de dados | `mysql+pymysql://root:pass@localhost/tradehub_db` |
+| `SECRET_KEY` | ✅ | Chave para assinar tokens JWT | gerar com `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
+| `ALLOWED_ORIGINS` | ❌ | Origens CORS permitidas (separadas por vírgula) | `http://localhost:5173` |
+| `ALGORITHM` | ❌ | Algoritmo JWT (padrão: `HS256`) | `HS256` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | ❌ | Validade do token em minutos (padrão: `480`) | `480` |
+| `DEBUG` | ❌ | Modo debug, desativa CORS restrito (padrão: `false`) | `true` |
+| `FRONTEND_URL` | ❌ | URL base do frontend, para links de e-mail | `https://srv1242193.hstgr.cloud` |
+| `SMTP_HOST` | ❌ | Servidor SMTP para recuperação de senha | `smtp.gmail.com` |
+| `SMTP_PORT` | ❌ | Porta SMTP (padrão: `587`) | `587` |
+| `SMTP_USER` | ❌ | Utilizador SMTP | `no-reply@tradehub.com` |
+| `SMTP_PASSWORD` | ❌ | Senha SMTP | — |
+| `SMTP_FROM_EMAIL` | ❌ | Endereço remetente | `no-reply@tradehub.com` |
+| `SMTP_TLS` | ❌ | Usar TLS (padrão: `true`) | `true` |
+
+> Gerador de `SECRET_KEY` segura:
+> ```bash
+> python -c "import secrets; print(secrets.token_urlsafe(32))"
+> ```
+
+---
+
+## Uso
+
+### Desenvolvimento
+
+```bash
+# Backend (a partir da pasta backend/, com .venv activo)
+uvicorn main:app --reload
+
+# Frontend (a partir da pasta frontend/)
+npm run dev
+```
+
+Acessos locais:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+- Documentação interactiva da API: http://localhost:8000/docs
+
+**Credenciais padrão (alterar em produção):**
+- Email: `admin@tradehub.com`
+- Password: `admin123`
+
+### Windows (scripts de arranque rápido)
+
+```bat
+start-all.bat        # Abre dois terminais: backend + frontend
+start-backend.bat    # Apenas backend
+start-frontend.bat   # Apenas frontend
+```
+
+### Produção (VPS)
+
+O projecto corre num VPS Ubuntu com PM2 + Nginx.
 
 - **IP**: 72.60.188.172
 - **Domínio**: srv1242193.hstgr.cloud
-- **OS**: Ubuntu 25.10
-- **URLs**:
-  - Frontend: https://srv1242193.hstgr.cloud
-  - Backend API: https://srv1242193.hstgr.cloud/api
-
-### Script Unificado de Deploy
-
-O projeto inclui um script unificado para facilitar o gerenciamento no VPS.
-
-#### Comandos Disponíveis
+- **Frontend**: https://srv1242193.hstgr.cloud
+- **API**: https://srv1242193.hstgr.cloud/api
 
 ```bash
-# No VPS
-cd /var/www/tradehub
-
-# Ver status atual
-./start-vps.sh status
-
-# Deploy completo (pull + deps + build + restart)
-./start-vps.sh update
-
-# Atualização rápida (sem rebuild do frontend)
-./start-vps.sh quick
-
-# Atualizar apenas frontend
-./start-vps.sh frontend
-
-# Reiniciar serviços
-./start-vps.sh restart
-
-# Parar serviços
-./start-vps.sh stop
+# No VPS: /var/www/tradehub
+./start-vps.sh update    # Pull + deps + build frontend + restart PM2
+./start-vps.sh quick     # Pull + deps Python + restart backend (sem rebuild)
+./start-vps.sh frontend  # Pull + build frontend apenas
+./start-vps.sh restart   # Reiniciar todos os serviços PM2
+./start-vps.sh stop      # Parar todos os serviços PM2
+./start-vps.sh status    # Status PM2 + últimos 20 logs
 ```
 
-#### O que cada comando faz
+O deploy automático é feito via GitHub Actions a cada push para `main` (ver `.github/workflows/deploy.yml`).
 
-| Comando | Ações |
-|---------|-------|
-| `update` | Pull do código + Atualiza deps Python + Build frontend + Restart PM2 |
-| `quick` | Pull do código + Atualiza deps Python + Restart backend |
-| `frontend` | Pull do código + Build frontend |
-| `status` | Mostra status PM2 + últimos 20 logs |
-| `restart` | Reinicia todos os serviços |
-| `stop` | Para todos os serviços |
-
-### Deploy Manual (Passo a Passo)
-
-#### 1. Primeiro Deploy (Configuração Inicial)
+#### Primeiro deploy manual
 
 ```bash
-# Conectar ao VPS
 ssh root@72.60.188.172
-
-# Clonar repositório
 cd /var/www
 git clone https://github.com/marceloligiero/PortalTradeHudb.git tradehub
 cd tradehub
 
-# Backend - Instalar dependências
+# Backend
 cd backend
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+# Criar backend/.env com DATABASE_URL e SECRET_KEY
 
-# Frontend - Build
+# Frontend
 cd ../frontend
-npm install
+npm ci
 npm run build
 
-# Configurar PM2
+# Iniciar com PM2
 pm2 start ecosystem.config.js
 pm2 save
 pm2 startup
-
-# Configurar Nginx (se ainda não estiver)
-sudo ln -s /etc/nginx/sites-available/tradehub /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
 ```
-
-#### 2. Deploys Subsequentes
-
-Simplesmente use o script:
-```bash
-./start-vps.sh update
-```
-
-## 🔧 Desenvolvimento Local
-
-### Pré-requisitos
-
-- Python 3.13+
-- Node.js 18+
-- MySQL 8.0+
-
-### Configuração
-
-1. **Clone o repositório**
-```bash
-git clone https://github.com/marceloligiero/PortalTradeHudb.git
-cd PortalTradeHudb
-```
-
-2. **Backend**
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-
-# Criar arquivo .env
-echo "DATABASE_URL=mysql+pymysql://root:password@localhost/tradehub_db" > .env
-
-# Iniciar
-uvicorn main:app --reload
-```
-
-3. **Frontend**
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-4. **Acesso**
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8000
-- Docs API: http://localhost:8000/docs
-
-## 📁 Estrutura do Projeto
-
-```
-PortalTradeHudb/
-├── backend/              # Backend FastAPI
-│   ├── app/
-│   │   ├── models.py    # Modelos SQLAlchemy
-│   │   ├── routes/      # Endpoints da API
-│   │   └── ...
-│   ├── main.py          # Ponto de entrada
-│   └── requirements.txt
-├── frontend/            # Frontend React
-│   ├── src/
-│   │   ├── pages/       # Páginas
-│   │   ├── components/  # Componentes
-│   │   └── lib/         # Utilidades
-│   ├── index.html
-│   └── package.json
-├── deploy/              # Scripts e configs de deploy
-├── database/            # Scripts SQL
-├── start-vps.sh        # Script unificado
-└── README.md
-```
-
-## 🔐 Credenciais Padrão
-
-**Admin**
-- Email: admin@tradehub.com
-- Password: admin123
-
-> ⚠️ **Importante**: Altere a senha padrão em produção!
-
-## 🐛 Troubleshooting
-
-### Backend não inicia (SQLAlchemy error)
-
-Problema: Python 3.13 incompatível com SQLAlchemy < 2.0.40
-
-**Solução:**
-```bash
-cd /var/www/tradehub/backend
-source .venv/bin/activate
-pip install 'sqlalchemy>=2.0.40' --upgrade
-pm2 restart tradehub-backend
-```
-
-Ou simplesmente:
-```bash
-./start-vps.sh quick
-```
-
-### Frontend não atualiza
-
-**Solução:**
-```bash
-./start-vps.sh frontend
-```
-
-### Ver logs de erros
-
-```bash
-# Backend
-pm2 logs tradehub-backend
-
-# Backend (últimas 50 linhas)
-pm2 logs tradehub-backend --lines 50
-
-# Status
-pm2 status
-```
-
-### Reiniciar tudo
-
-```bash
-./start-vps.sh restart
-```
-
-## 📊 Monitoramento
-
-### PM2 Status
-```bash
-pm2 status
-```
-
-Mostra:
-- Status (online/stopped)
-- Uso de CPU/memória
-- Uptime
-- Número de restarts
-
-### Logs em Tempo Real
-```bash
-pm2 logs
-```
-
-## 🔄 Workflow de Desenvolvimento
-
-1. **Fazer mudanças localmente**
-2. **Testar localmente**
-3. **Commit e push**
-```bash
-git add .
-git commit -m "Descrição das mudanças"
-git push origin main
-```
-
-4. **Deploy no VPS**
-```bash
-ssh root@72.60.188.172
-cd /var/www/tradehub
-./start-vps.sh update
-```
-
-## 📝 Scripts Úteis
-
-### Resetar senha de admin
-```bash
-cd /var/www/tradehub/backend
-source .venv/bin/activate
-python reset_admin_password.py
-```
-
-### Verificar conexão com banco
-```bash
-cd /var/www/tradehub/backend
-source .venv/bin/activate
-python test_db_connection.py
-```
-
-## 🔗 Links Úteis
-
-- **Repositório**: https://github.com/marceloligiero/PortalTradeHudb
-- **Frontend Produção**: https://srv1242193.hstgr.cloud
-- **API Produção**: https://srv1242193.hstgr.cloud/api
-- **API Docs**: https://srv1242193.hstgr.cloud/api/docs
-
-## 📦 Dependências Principais
-
-### Backend
-- fastapi==0.109.0
-- sqlalchemy>=2.0.40 (compatível com Python 3.13)
-- uvicorn[standard]==0.27.0
-- pymysql==1.1.0
-- bcrypt (para hashing de senhas)
-- python-jose (JWT)
-
-### Frontend
-- react@18.3.1
-- vite@5.4.21
-- typescript@5.6.3
-- tailwindcss@3.4.17
-- framer-motion@11.15.0
-
-## 🎯 Roadmap
-
-- [ ] Sistema de notificações
-- [ ] Chat em tempo real
-- [ ] Integração com payment gateway
-- [ ] App mobile (React Native)
-- [ ] Análise avançada de progresso
-- [ ] Gamificação
-
-## 👥 Contribuição
-
-Este é um projeto privado. Para contribuir, contacte o administrador.
-
-## 📄 Licença
-
-Propriedade privada. Todos os direitos reservados.
 
 ---
 
-**Desenvolvido com ❤️ para TradeHub**
+## Estrutura do Projecto
+
+```
+PortalTradeHudb/
+├── backend/
+│   ├── main.py                  # Ponto de entrada FastAPI
+│   ├── requirements.txt         # Dependências Python
+│   ├── app/
+│   │   ├── config.py            # Configuração (Pydantic Settings)
+│   │   ├── database.py          # Engine + sessão SQLAlchemy
+│   │   ├── models.py            # Todos os modelos ORM
+│   │   ├── auth.py              # JWT + bcrypt
+│   │   ├── migrate.py           # Sistema de migrações SQL automáticas
+│   │   ├── routes/              # Módulos de rotas (formações, admin, etc.)
+│   │   └── routers/             # Módulos de rotas (tutoria, chamados, etc.)
+│   └── tests/                   # Testes pytest (341 testes)
+├── frontend/
+│   ├── src/
+│   │   ├── App.tsx              # Routing React Router v6
+│   │   ├── pages/               # Páginas por portal
+│   │   ├── components/          # Componentes reutilizáveis + Chatbot
+│   │   ├── stores/              # Estado Zustand (authStore)
+│   │   ├── contexts/            # ThemeContext (dark/light)
+│   │   └── i18n/locales/        # Traduções PT / ES / EN
+│   ├── vite.config.ts
+│   └── package.json
+├── database/                    # Scripts SQL de migração
+├── scripts/                     # Scripts de migração e utilitários
+├── deploy/                      # Configs Nginx, systemd, webhook
+├── docs/                        # Documentação técnica e relatórios de testes
+├── .github/workflows/deploy.yml # CI/CD GitHub Actions
+└── start-vps.sh                 # Script unificado de deploy no VPS
+```
+
+---
+
+## API
+
+A API segue o padrão REST. Autenticação via `Bearer <token>` em todos os endpoints protegidos. Documentação interactiva em `/docs` (Swagger UI).
+
+Roles disponíveis: `ADMIN`, `TRAINER`, `STUDENT`, `TRAINEE`, `MANAGER`
+
+### Autenticação
+
+| Método | Rota | Descrição | Auth |
+|---|---|---|---|
+| POST | `/api/auth/login` | Obter token JWT | — |
+| POST | `/api/auth/register` | Registar utilizador | — |
+| GET | `/api/auth/me` | Perfil do utilizador autenticado | Bearer |
+| POST | `/api/auth/forgot-password` | Solicitar reset de senha | — |
+| POST | `/api/auth/reset-password` | Confirmar reset de senha | — |
+
+### Administração
+
+| Método | Rota | Descrição | Auth |
+|---|---|---|---|
+| GET | `/api/admin/users` | Listar utilizadores | ADMIN |
+| POST | `/api/admin/users` | Criar utilizador | ADMIN |
+| PATCH | `/api/admin/users/{id}` | Actualizar utilizador | ADMIN |
+| DELETE | `/api/admin/users/{id}` | Desactivar utilizador | ADMIN |
+| GET | `/api/admin/stats` | Estatísticas globais | ADMIN |
+| GET | `/api/admin/reports` | Relatórios administrativos | ADMIN |
+
+### Formações (Cursos, Módulos, Lições, Desafios)
+
+| Método | Rota | Descrição | Auth |
+|---|---|---|---|
+| GET | `/api/admin/courses` | Listar cursos | Bearer |
+| POST | `/api/admin/courses` | Criar curso | ADMIN/TRAINER |
+| GET | `/api/admin/courses/{id}` | Detalhe do curso | Bearer |
+| GET | `/api/lessons` | Listar lições | Bearer |
+| POST | `/api/lessons` | Criar lição | ADMIN/TRAINER |
+| GET | `/api/challenges` | Listar desafios | Bearer |
+| POST | `/api/challenges` | Criar desafio | ADMIN/TRAINER |
+| GET | `/api/training-plans` | Listar planos de treino | Bearer |
+| POST | `/api/training-plans` | Criar plano de treino | ADMIN/TRAINER |
+| GET | `/api/finalization` | Estado de conclusões | Bearer |
+
+### Tutoria (Gestão de Erros)
+
+| Método | Rota | Descrição | Auth |
+|---|---|---|---|
+| GET | `/api/tutoria/categories` | Listar categorias de erro | Bearer |
+| POST | `/api/tutoria/categories` | Criar categoria | ADMIN |
+| PATCH | `/api/tutoria/categories/{id}` | Actualizar categoria | ADMIN |
+| GET | `/api/tutoria/errors` | Listar erros | Bearer |
+| POST | `/api/tutoria/errors` | Registar erro | Bearer |
+| GET | `/api/tutoria/errors/{id}` | Detalhe do erro | Bearer |
+| PATCH | `/api/tutoria/errors/{id}` | Actualizar erro | Bearer |
+| POST | `/api/tutoria/errors/{id}/verify` | Verificar erro | ADMIN/TRAINER |
+| GET | `/api/tutoria/plans` | Listar planos de acção | Bearer |
+| POST | `/api/tutoria/plans` | Criar plano de acção | Bearer |
+| GET | `/api/tutoria/plans/{id}` | Detalhe do plano | Bearer |
+| POST | `/api/tutoria/plans/{id}/submit` | Submeter plano | Bearer |
+| POST | `/api/tutoria/plans/{id}/approve` | Aprovar plano | ADMIN/TRAINER |
+| POST | `/api/tutoria/plans/{id}/return` | Devolver plano | ADMIN/TRAINER |
+| GET | `/api/tutoria/plans/{id}/items` | Itens do plano | Bearer |
+| POST | `/api/tutoria/plans/{id}/items` | Adicionar item | Bearer |
+| PATCH | `/api/tutoria/items/{id}` | Actualizar item | Bearer |
+| GET | `/api/tutoria/errors/{id}/comments` | Comentários do erro | Bearer |
+| POST | `/api/tutoria/errors/{id}/comments` | Adicionar comentário | Bearer |
+| GET | `/api/tutoria/students` | Listar tutorandos | ADMIN/TRAINER |
+| GET | `/api/tutoria/dashboard` | Dashboard de tutoria | Bearer |
+
+### Erros Internos e Fichas de Aprendizagem
+
+| Método | Rota | Descrição | Auth |
+|---|---|---|---|
+| GET | `/api/internal-errors` | Listar erros internos | Bearer |
+| POST | `/api/internal-errors` | Registar erro interno | Bearer |
+| GET | `/api/internal-errors/{id}` | Detalhe | Bearer |
+| GET | `/api/internal-errors/learning-sheets` | Fichas de aprendizagem | Bearer |
+| POST | `/api/internal-errors/learning-sheets` | Criar ficha | Bearer |
+
+### Chamados (Suporte / Kanban)
+
+| Método | Rota | Descrição | Auth |
+|---|---|---|---|
+| GET | `/api/chamados` | Listar chamados | Bearer |
+| POST | `/api/chamados` | Criar chamado | Bearer |
+| GET | `/api/chamados/{id}` | Detalhe | Bearer |
+| PATCH | `/api/chamados/{id}` | Actualizar estado/campos | Bearer |
+| DELETE | `/api/chamados/{id}` | Eliminar chamado | ADMIN |
+
+### Relatórios
+
+| Método | Rota | Descrição | Auth |
+|---|---|---|---|
+| GET | `/api/relatorios/overview` | Visão geral | Bearer |
+| GET | `/api/relatorios/formacoes` | Relatório de formações | Bearer |
+| GET | `/api/relatorios/tutoria` | Relatório de tutoria | Bearer |
+| GET | `/api/relatorios/teams` | Relatório de equipas | Bearer |
+| GET | `/api/advanced-reports` | Relatórios avançados | ADMIN/TRAINER |
+
+### Equipas
+
+| Método | Rota | Descrição | Auth |
+|---|---|---|---|
+| GET | `/api/teams` | Listar equipas | Bearer |
+| POST | `/api/teams` | Criar equipa | ADMIN |
+| GET | `/api/teams/{id}` | Detalhe | Bearer |
+| POST | `/api/teams/{id}/members` | Adicionar membro | ADMIN |
+
+### Chatbot e FAQs
+
+| Método | Rota | Descrição | Auth |
+|---|---|---|---|
+| POST | `/api/chat` | Enviar mensagem ao chatbot | Bearer |
+| GET | `/api/chat/faqs` | Listar FAQs personalizadas | Bearer |
+| POST | `/api/chat/faqs` | Criar FAQ | ADMIN |
+| PATCH | `/api/chat/faqs/{id}` | Actualizar FAQ | ADMIN |
+| DELETE | `/api/chat/faqs/{id}` | Eliminar FAQ | ADMIN |
+
+### Certificados e Avaliações
+
+| Método | Rota | Descrição | Auth |
+|---|---|---|---|
+| GET | `/api/certificates` | Listar certificados | Bearer |
+| GET | `/api/certificates/{id}` | Download PDF | Bearer |
+| GET | `/api/ratings` | Listar avaliações | Bearer |
+| POST | `/api/ratings` | Submeter avaliação | Bearer |
+| GET | `/api/knowledge_matrix` | Matriz de conhecimento | Bearer |
+| GET | `/api/stats` | KPIs e estatísticas | Bearer |
+
+---
+
+## Base de Dados
+
+MySQL 8.0+ em produção. Em desenvolvimento local pode usar SQLite definindo `DATABASE_URL=sqlite:///./dev_tradehub.db`.
+
+As migrações SQL são aplicadas automaticamente no arranque do backend (via `app/migrate.py`). Os ficheiros SQL estão em `database/`.
+
+### Entidades principais
+
+```mermaid
+erDiagram
+    User {
+        int id PK
+        string email
+        string hashed_password
+        string role
+        bool is_active
+    }
+    Course {
+        int id PK
+        string title
+        string level
+        int trainer_id FK
+    }
+    TrainingPlan {
+        int id PK
+        string title
+        int trainer_id FK
+        int student_id FK
+    }
+    Lesson {
+        int id PK
+        string title
+        int course_id FK
+    }
+    Challenge {
+        int id PK
+        string title
+        string difficulty
+        int course_id FK
+    }
+    Certificate {
+        int id PK
+        int user_id FK
+        int course_id FK
+        date issued_at
+    }
+    Team {
+        int id PK
+        string name
+    }
+    TeamMember {
+        int team_id FK
+        int user_id FK
+        string role
+    }
+    TutoriaError {
+        int id PK
+        string title
+        string status
+        int student_id FK
+        int trainer_id FK
+        int category_id FK
+    }
+    ErrorCategory {
+        int id PK
+        string name
+    }
+    TutoriaActionPlan {
+        int id PK
+        string status
+        int error_id FK
+        int student_id FK
+    }
+    TutoriaActionItem {
+        int id PK
+        string description
+        bool completed
+        int plan_id FK
+    }
+    TutoriaComment {
+        int id PK
+        string content
+        int error_id FK
+        int user_id FK
+    }
+    InternalError {
+        int id PK
+        string title
+        string status
+        int reported_by FK
+    }
+    Chamado {
+        int id PK
+        string title
+        string status
+        int created_by FK
+    }
+    ChatFAQ {
+        int id PK
+        string question
+        string answer
+        int priority
+    }
+
+    User ||--o{ Course : "ensina"
+    User ||--o{ TrainingPlan : "atribuído"
+    User ||--o{ Certificate : "recebe"
+    User ||--o{ TeamMember : "pertence"
+    Team ||--o{ TeamMember : "tem"
+    Course ||--o{ Lesson : "contém"
+    Course ||--o{ Challenge : "contém"
+    User ||--o{ TutoriaError : "regista"
+    ErrorCategory ||--o{ TutoriaError : "classifica"
+    TutoriaError ||--o{ TutoriaActionPlan : "gera"
+    TutoriaActionPlan ||--o{ TutoriaActionItem : "contém"
+    TutoriaError ||--o{ TutoriaComment : "tem"
+    User ||--o{ InternalError : "reporta"
+    User ||--o{ Chamado : "abre"
+```
+
+---
+
+## Portais (Frontend)
+
+| Portal | Rota base | Roles com acesso |
+|---|---|---|
+| Landing page | `/` (não autenticado) | — |
+| Portal de Formações | `/` (autenticado) | ADMIN, TRAINER, STUDENT, TRAINEE |
+| Portal de Tutoria | `/tutoria` | Todos |
+| Portal de Relatórios | `/relatorios` | Todos |
+| Portal de Chamados | `/chamados` | Todos |
+| Portal de Dados Mestres | `/master-data` | ADMIN |
+
+O chatbot (widget flutuante) está disponível em todos os portais autenticados.
+
+---
+
+## Testes
+
+```bash
+# A partir da pasta backend/, com .venv activo
+
+# Todos os testes (341 testes, todos os portais)
+pytest tests/test_all_portals.py -v
+
+# Testes de tutoria
+pytest tests/test_tutoria_v4.py -v
+
+# Todos os testes com output detalhado
+pytest tests/ -v
+
+# Relatório de cobertura (requer pytest-cov)
+pytest tests/ --cov=app --cov-report=html
+```
+
+Os relatórios de testes encontram-se em `docs/TEST_EVIDENCE_REPORT.md`.
+
+---
+
+## Scripts Disponíveis
+
+### Backend
+
+| Comando | O que faz |
+|---|---|
+| `uvicorn main:app --reload` | Inicia backend em modo desenvolvimento |
+| `python reset_admin_password.py` | Repõe a senha do utilizador admin |
+| `python reset_user_password.py` | Repõe a senha de qualquer utilizador |
+| `pytest tests/` | Corre todos os testes |
+
+### Frontend
+
+| Comando | O que faz |
+|---|---|
+| `npm run dev` | Inicia frontend em modo desenvolvimento (porta 5173) |
+| `npm run build` | Compila para produção (output em `dist/`) |
+| `npm run preview` | Pré-visualiza o build de produção |
+| `npm run lint` | Executa ESLint |
+
+### VPS / Deploy
+
+| Comando | O que faz |
+|---|---|
+| `./start-vps.sh update` | Deploy completo: pull + deps + build + restart |
+| `./start-vps.sh quick` | Pull + deps Python + restart backend |
+| `./start-vps.sh frontend` | Pull + build frontend |
+| `./start-vps.sh restart` | Reinicia serviços PM2 |
+| `./start-vps.sh status` | Status PM2 + logs recentes |
+
+---
+
+## Deploy
+
+O deploy de produção usa PM2 (gestor de processos Node.js) para o backend Python e Nginx como reverse proxy.
+
+O pipeline CI/CD (`.github/workflows/deploy.yml`) executa automaticamente após push para `main`:
+1. SSH para o VPS
+2. `git pull origin main`
+3. `pip install -r requirements.txt`
+4. `npm ci && npm run build`
+5. `pm2 restart tradehub-api`
+
+Para configurar o Nginx e o PM2 pela primeira vez, consultar os ficheiros em `deploy/`.
+
+### Logs
+
+```bash
+pm2 logs tradehub-backend          # logs em tempo real
+pm2 logs tradehub-backend --lines 50  # últimas 50 linhas
+pm2 status                         # estado de todos os processos
+```
+
+---
+
+## Licença
+
+Propriedade privada. Todos os direitos reservados.
