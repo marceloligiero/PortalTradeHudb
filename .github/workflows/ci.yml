@@ -62,6 +62,13 @@ jobs:
             sleep 2
           done
 
+      - name: Seed CI admin user
+        working-directory: backend
+        env:
+          DATABASE_URL: mysql+pymysql://root:${{ secrets.CI_MYSQL_ROOT_PASSWORD || 'ci-test-pass' }}@127.0.0.1:3306/tradehub_test
+          SECRET_KEY: ${{ env.CI_SECRET_KEY }}
+        run: python scripts/seed_ci_admin.py
+
       - name: Run tests
         working-directory: backend
         env:
