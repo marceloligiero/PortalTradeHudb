@@ -217,7 +217,7 @@ export default function TrainingPlans() {
   const totalPlans = plans.length;
   const activePlans = plans.filter(p => p.is_active !== false).length;
   // Contar formandos únicos atribuídos aos planos
-  const uniqueStudentIds = new Set(plans.filter(p => p.student?.id).map(p => p.student.id));
+  const uniqueStudentIds = new Set(plans.filter(p => p.student?.id).map(p => p.student!.id));
   const totalStudents = uniqueStudentIds.size;
   const totalCourses = plans.reduce((acc, p) => acc + (p.total_courses || 0), 0);
   const totalHours = plans.reduce((acc, p) => acc + (p.total_duration_hours || 0), 0);

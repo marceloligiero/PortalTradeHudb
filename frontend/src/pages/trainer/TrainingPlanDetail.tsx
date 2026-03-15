@@ -1385,7 +1385,7 @@ export default function TrainingPlanDetail() {
               const grouped = levelOrder
                 .map(level => ({
                   level,
-                  courses: plan.courses.filter(c => (c.level || 'BEGINNER') === level)
+                  courses: plan.courses!.filter(c => (c.level || 'BEGINNER') === level)
                 }))
                 .filter(g => g.courses.length > 0);
               let globalIdx = 0;

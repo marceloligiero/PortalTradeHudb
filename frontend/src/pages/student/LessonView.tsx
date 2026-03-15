@@ -38,6 +38,7 @@ interface Lesson {
   lesson_type: string;
   order_index: number;
   estimated_minutes: number;
+  estimated_duration?: number;
   video_url: string;
   materials_url: string;
   started_by?: 'TRAINER' | 'TRAINEE';
@@ -51,6 +52,7 @@ interface LessonProgress {
   student_confirmed?: boolean;
   started_at?: string;
   elapsed_seconds: number;
+  accumulated_seconds?: number;
 }
 
 // Characters per page for pagination

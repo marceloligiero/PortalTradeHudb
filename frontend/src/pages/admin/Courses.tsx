@@ -30,6 +30,7 @@ interface Course {
   id: number;
   title: string;
   description: string;
+  level?: string;
   bank_id: number;
   bank_ids: number[];
   banks: { id: number; code: string; name: string }[];

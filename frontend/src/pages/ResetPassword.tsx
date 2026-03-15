@@ -209,7 +209,6 @@ export default function ResetPassword() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder={t('auth.reset.minChars')}
             icon={<Lock className="w-5 h-5" />}
-            theme={isDark ? 'dark' : 'light'}
             required
           />
 
@@ -220,7 +219,6 @@ export default function ResetPassword() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder={t('auth.reset.repeatPassword')}
             icon={<Lock className="w-5 h-5" />}
-            theme={isDark ? 'dark' : 'light'}
             required
           />
 

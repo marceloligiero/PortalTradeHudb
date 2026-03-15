@@ -66,6 +66,8 @@ interface DashboardData {
     course_title: string | null;
     plan_title: string | null;
     completed_at: string | null;
+    submitted_by_name?: string | null;
+    reviewed_by_name?: string | null;
   }>;
   recent_activity: Array<{
     id: number;
