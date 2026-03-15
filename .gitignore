@@ -108,3 +108,6 @@ backend/exception_trace.txt
 backend/error_trace.txt
 frontend/src/pages/admin/Reports_backup.tsx
 install-service-output.txt
+
+# ── Deploy keys (public key stored for reference, keep out of repo) ────────
+.github/deploy-keys/
