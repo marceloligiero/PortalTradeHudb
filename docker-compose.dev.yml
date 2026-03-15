@@ -44,15 +44,18 @@ services:
 
   tradehub-grafana:
     environment:
-      # Em dev: permitir edição dos dashboards pela UI
+      # Em dev: desactivar home dashboard override e analytics
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: ""
       GF_ANALYTICS_REPORTING_ENABLED: "false"
-      # Override root_url para acesso directo sem nginx em dev
+      # Em dev: acesso directo sem nginx (sem subpath)
+      GF_SERVER_HTTP_PORT: "3001"
       GF_SERVER_ROOT_URL: "http://localhost:${GRAFANA_PORT:-3001}"
       GF_SERVER_SERVE_FROM_SUB_PATH: "false"
+      # SSO desactivado em dev por defeito (evitar dependência do Azure em dev)
+      GF_AUTH_AZUREAD_ENABLED: "false"
     # Em dev os dashboards podem ser editados na UI (override do provisioning)
     volumes:
       # Override apenas o ficheiro de provider dos dashboards (allowUiUpdates: true em dev)
       - ./grafana/dev/dashboards.yaml:/etc/grafana/provisioning/dashboards/dashboards.yaml:ro
       # Dashboards com permissão de escrita (sem :ro) para poder guardar edições na UI
-      - ./grafana/dashboards:/etc/grafana/dashboards
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
