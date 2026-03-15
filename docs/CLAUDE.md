@@ -1,505 +1,589 @@
-# CLAUDE.md — Recriar a Landing Page do Zero
+# CLAUDE.md — Migrar Relatórios para Grafana com SSO Microsoft
 
 > Instruções para Claude Code. Colocar na raiz do projeto PortalTradeHub.
 
 ---
 
-## LEIA ISTO PRIMEIRO
+## MISSÃO
 
-Esta tarefa é APENAS sobre a **landing page** (rota `/` para utilizadores não autenticados).
+Migrar TODOS os relatórios do Portal de Relatórios do TradeHub para **Grafana OSS** com autenticação **SSO Microsoft (Entra ID / Azure AD)**. O processo:
 
-**NÃO tocar em mais NADA.** Não tocar no backend. Não tocar nas páginas autenticadas. Não tocar nos relatórios. Não tocar na tutoria, formações, chamados, admin. APENAS a landing page.
-
----
-
-## A REGRA MAIS IMPORTANTE
-
-**NÃO APROVEITAR NADA da landing page actual.**
-
-Não reaproveitar componentes. Não reaproveitar estilos. Não reaproveitar layout. Não reaproveitar textos hardcoded. Não "melhorar". Não "refatorar". Não "adaptar".
-
-**APAGAR o componente actual da landing page e CRIAR UM NOVO DO ZERO.**
-
-A landing page actual não existe para ti. Imagina que nunca existiu. Vais construir uma como se fosse a primeira vez que alguém cria uma landing page para este projeto.
+1. Identificar cada relatório existente (backend + frontend)
+2. Criar versão equivalente ou melhor em Grafana para cada um
+3. Configurar Grafana com SSO Microsoft Entra ID
+4. Integrar Grafana na aplicação React
+5. Remover os relatórios antigos do frontend
 
 ---
 
-## O QUE MANTER INTACTO (não alterar)
+## CUSTOS — ZERO
 
 ```
-✅ TODO o backend/ (zero alterações)
-✅ TODAS as páginas autenticadas (formações, tutoria, relatórios, chamados, admin)
-✅ frontend/src/stores/authStore — autenticação
-✅ frontend/src/contexts/ThemeContext.tsx — dark/light mode
-✅ frontend/src/i18n/ — estrutura existente (adicionar chaves novas, não apagar)
-✅ frontend/src/App.tsx — manter routing das páginas autenticadas intacto
-✅ frontend/vite.config.ts
-✅ frontend/package.json (adicionar deps novas se necessário)
-✅ 341 testes do backend
+Grafana OSS:           GRATUITO (open-source, AGPL-3.0)
+SSO Microsoft Entra ID: GRATUITO (incluído no Entra ID Free/P1 que a empresa já tem)
+MySQL Datasource:      GRATUITO (built-in no Grafana OSS)
+OAuth2 Azure AD:       GRATUITO (built-in no Grafana OSS, NÃO precisa de Enterprise)
+Embedding:             GRATUITO (config allow_embedding no Grafana OSS)
+Alertas:               GRATUITO (unified alerting no Grafana OSS)
+
+TOTAL: 0€. Tudo open-source + licenças que a empresa já paga (Microsoft 365/Entra ID).
 ```
 
-## O QUE APAGAR E RECRIAR DO ZERO
-
-```
-❌ O componente/página da landing page actual → APAGAR conteúdo, RECRIAR do zero
-❌ A navbar da landing (se existir separada) → CRIAR NOVA
-❌ O footer da landing (se existir separado) → CRIAR NOVO
-❌ Quaisquer componentes usados EXCLUSIVAMENTE pela landing → APAGAR
-```
-
-**Antes de apagar:** Ler o componente actual para identificar como o routing funciona (qual ficheiro, qual rota, como distingue autenticado vs não autenticado). Anotar isso. Depois apagar o conteúdo e recriar.
+**NOTA:** O SSO com Microsoft Entra ID funciona no Grafana OSS via OAuth2/OpenID Connect. NÃO é necessário Grafana Enterprise. O SAML é que requer Enterprise — mas OAuth2 faz exactamente a mesma coisa e é gratuito.
 
 ---
 
-## PALETA DE CORES — SANTANDER
+## REGRAS
 
-```css
-:root {
-  --red-50: #FFF5F5;
-  --red-100: #FFE0E0;
-  --red-200: #FFB3B3;
-  --red-300: #FF6666;
-  --red-400: #FF3333;
-  --red-500: #EC0000;    /* SANTANDER RED */
-  --red-600: #CC0000;
-  --red-700: #990000;
-  --red-800: #660000;
-  --red-900: #330000;
-
-  --gray-50: #FAFAFA;
-  --gray-100: #F5F5F5;
-  --gray-200: #E8E8E8;
-  --gray-300: #D4D4D4;
-  --gray-400: #A3A3A3;
-  --gray-500: #737373;
-  --gray-600: #525252;
-  --gray-700: #404040;
-  --gray-800: #262626;
-  --gray-900: #171717;
-  --gray-950: #0A0A0A;
-}
-
-/* Light mode */
---bg-primary: #FAFAFA;
---bg-card: #FFFFFF;
---text-primary: #0A0A0A;
---text-secondary: #525252;
---gradient-hero: linear-gradient(145deg, #CC0000 0%, #8B0000 40%, #1A0005 100%);
-
-/* Dark mode */
---bg-primary: #0A0A0A;
---bg-card: #171717;
---text-primary: #F5F5F5;
---text-secondary: #A3A3A3;
---gradient-hero: linear-gradient(145deg, #1A0005 0%, #330000 30%, #660000 70%, #8B0000 100%);
+```
+1. NÃO tocar no backend Python EXCEPTO para ler queries dos relatórios existentes
+2. NÃO quebrar os 341 testes
+3. NÃO remover os endpoints de API existentes (/api/relatorios/*, /api/stats, etc.)
+4. SÓ remover componentes frontend DEPOIS de validar que Grafana cobre tudo
+5. Pedir confirmação antes de apagar ficheiros
+6. Secrets (client_id, client_secret, tenant_id) vão em variáveis de ambiente, NUNCA no código
 ```
 
 ---
 
-## TIPOGRAFIA
+## FASE 1 — INVENTÁRIO COMPLETO DOS RELATÓRIOS
 
-```
-Headlines: "Instrument Serif" (Google Fonts) — serif, bold, com personalidade
-Body: "DM Sans" (Google Fonts) — sans-serif, limpa, moderna
-Mono/Stats: "JetBrains Mono" — para números e badges
+Antes de criar qualquer coisa, mapear CADA relatório.
 
-PROIBIDO: Inter, Roboto, Arial, system-ui como headline
-```
-
----
-
-## ESTILO VISUAL
-
-**Nível:** Stripe.com × Linear.app × Santander. Award-winning.
-
-**Texturas:** Noise grain subtil (0.03 opacity), gradient mesh no hero, glow vermelho difuso.
-
-**Movimento:** Scroll-triggered fade-in com stagger, count-up nos stats, navbar transparente→glassmorphism ao scroll, hover glow nos cards.
-
-**Layout:** Assimétrico onde impacta. Bento grid para features. Espaço negativo generoso.
-
-**Respeitar:** `prefers-reduced-motion` — desativar animações para quem prefere.
-
----
-
-## TAREFAS — Executar na Ordem
-
-### TAREFA 1 — Ler a landing actual (NÃO para reaproveitar — para entender o routing)
+### 1.1 — Encontrar endpoints de relatórios no backend
 
 ```bash
-# Identificar:
-# 1. Qual ficheiro/componente renderiza a landing page
-# 2. Como o routing distingue autenticado vs não autenticado
-# 3. Quais rotas /login e /register existem
-# 4. Se o i18n já tem chaves de landing page
-
-cat frontend/src/App.tsx
-ls frontend/src/pages/
-grep -r "Landing\|landing\|LandingPage" frontend/src/
+grep -rn "relatorio\|report\|stats\|dashboard\|overview\|advanced\|knowledge_matrix" \
+  backend/app/routes/ backend/app/routers/ --include="*.py"
 ```
 
-Anotar o routing. Depois esquecer tudo o resto sobre o ficheiro.
+Ler cada ficheiro encontrado. Endpoints conhecidos:
+```
+GET /api/relatorios/overview
+GET /api/relatorios/formacoes
+GET /api/relatorios/tutoria
+GET /api/relatorios/teams
+GET /api/advanced-reports
+GET /api/admin/stats
+GET /api/admin/reports
+GET /api/tutoria/dashboard
+GET /api/knowledge_matrix
+GET /api/stats
+```
 
-### TAREFA 2 — Instalar dependências (se necessário)
+### 1.2 — Para CADA endpoint documentar
+
+```
+📊 RELATÓRIO #N: [Nome]
+  Endpoint: GET /api/...
+  Ficheiro: backend/app/routes/[ficheiro].py linha X
+  Query/ORM: [descrever o que faz — quais tabelas, JOINs, GROUP BY, filtros]
+  Response: { campo1: tipo, campo2: tipo, ... }
+  Auth: Bearer / ADMIN / etc.
+```
+
+### 1.3 — Encontrar componentes frontend
 
 ```bash
-cd frontend
-cat package.json | grep -E "motion|framer|lucide|recharts"
+find frontend/src/pages -name "*relat*" -o -name "*report*" -o -name "*dashboard*" \
+  -o -name "*stats*" -o -name "*overview*" 2>/dev/null
 
-# Instalar o que faltar:
-npm install lucide-react clsx tailwind-merge
-# Se Motion/Framer Motion não estiver instalado:
-npm install motion
+grep -rn "recharts\|Chart\|BarChart\|LineChart\|PieChart" \
+  frontend/src/ --include="*.tsx" -l
 ```
 
-Adicionar as Google Fonts ao `index.html`:
-```html
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+### 1.4 — Para CADA componente documentar
+
+```
+🖥️ COMPONENTE #N: [Nome]
+  Ficheiro: frontend/src/pages/Relatorios/[ficheiro].tsx
+  Rota: /relatorios
+  Endpoint(s): GET /api/relatorios/overview
+  Visual: tabela / cards / gráfico barras / etc.
+  Charts library: recharts / chart.js / nenhuma
 ```
 
-### TAREFA 3 — Atualizar Tailwind config
+### 1.5 — Apresentar inventário e aguardar confirmação
 
-Estender o `tailwind.config` com:
+```
+📋 INVENTÁRIO COMPLETO
+═══════════════════════
 
-```js
-colors: {
-  santander: {
-    50: '#FFF5F5', 100: '#FFE0E0', 200: '#FFB3B3', 300: '#FF6666',
-    400: '#FF3333', 500: '#EC0000', 600: '#CC0000', 700: '#990000',
-    800: '#660000', 900: '#330000',
-  }
-},
-fontFamily: {
-  display: ['"Instrument Serif"', 'Georgia', 'serif'],
-  body: ['"DM Sans"', 'system-ui', 'sans-serif'],
-  mono: ['"JetBrains Mono"', 'monospace'],
+BACKEND: X endpoints de relatórios
+FRONTEND: X componentes/páginas de relatórios
+CHARTS LIB: [recharts / chart.js / etc.]
+
+#  | Nome              | Endpoint                  | Frontend         | Tipo
+---|-------------------|---------------------------|------------------|------
+1  | Overview          | /api/relatorios/overview   | OverviewPage.tsx | Cards
+2  | Formações         | /api/relatorios/formacoes  | FormacoesPage.tsx| Tabela
+...
+
+Aguardo confirmação para avançar.
+```
+
+---
+
+## FASE 2 — ADICIONAR GRAFANA AO DOCKER COMPOSE
+
+### 2.1 — Serviço Grafana no docker-compose.yml
+
+```yaml
+  tradehub-grafana:
+    container_name: tradehub-grafana
+    image: grafana/grafana-oss:11.4.0
+    volumes:
+      - tradehub_grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      # ── Server ────────────────────────────
+      GF_SERVER_HTTP_PORT: "3001"
+      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/grafana/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+
+      # ── SSO Microsoft Entra ID (Azure AD) ─
+      GF_AUTH_AZUREAD_ENABLED: "true"
+      GF_AUTH_AZUREAD_NAME: "Microsoft"
+      GF_AUTH_AZUREAD_ALLOW_SIGN_UP: "true"
+      GF_AUTH_AZUREAD_AUTO_LOGIN: "false"
+      GF_AUTH_AZUREAD_CLIENT_ID: ${GRAFANA_AZURE_CLIENT_ID}
+      GF_AUTH_AZUREAD_CLIENT_SECRET: ${GRAFANA_AZURE_CLIENT_SECRET}
+      GF_AUTH_AZUREAD_SCOPES: "openid email profile"
+      GF_AUTH_AZUREAD_AUTH_URL: "https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/authorize"
+      GF_AUTH_AZUREAD_TOKEN_URL: "https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token"
+      GF_AUTH_AZUREAD_API_URL: "https://graph.microsoft.com/oidc/userinfo"
+      GF_AUTH_AZUREAD_ALLOWED_ORGANIZATIONS: ${AZURE_TENANT_ID}
+      GF_AUTH_AZUREAD_ROLE_ATTRIBUTE_STRICT: "false"
+      GF_AUTH_AZUREAD_SKIP_ORG_ROLE_SYNC: "false"
+      GF_AUTH_AZUREAD_USE_PKCE: "true"
+
+      # ── Embedding (para iframes no React) ──
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+      GF_SECURITY_COOKIE_SAMESITE: "lax"
+
+      # ── Admin local (fallback) ─────────────
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+
+      # ── UI ─────────────────────────────────
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ALERTING_ENABLED: "true"
+      GF_UNIFIED_ALERTING_ENABLED: "true"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: "/var/lib/grafana/dashboards/home.json"
+    ports:
+      - "${GRAFANA_PORT:-3001}:3001"
+    depends_on:
+      tradehub-db:
+        condition: service_healthy
+    networks:
+      - tradehub-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+```
+
+Volume:
+```yaml
+volumes:
+  tradehub_grafana_data:
+    name: tradehub_grafana_data
+```
+
+### 2.2 — Estrutura de ficheiros Grafana
+
+```
+grafana/
+├── provisioning/
+│   ├── datasources/
+│   │   └── mysql.yml
+│   └── dashboards/
+│       └── dashboards.yml
+└── dashboards/
+    ├── home.json
+    ├── formacoes.json
+    ├── tutoria.json
+    ├── chamados.json
+    ├── equipas.json
+    ├── erros-internos.json
+    └── executive.json
+```
+
+### 2.3 — Datasource MySQL (provisioning automático)
+
+```yaml
+# grafana/provisioning/datasources/mysql.yml
+apiVersion: 1
+datasources:
+  - name: TradeHub MySQL
+    type: mysql
+    access: proxy
+    url: tradehub-db:3306
+    database: ${DB_NAME:-tradehub_db}
+    user: ${DB_USER:-root}
+    secureJsonData:
+      password: ${DB_PASSWORD}
+    jsonData:
+      maxOpenConns: 5
+      maxIdleConns: 2
+      connMaxLifetime: 14400
+    isDefault: true
+    editable: false
+```
+
+### 2.4 — Dashboard provisioning
+
+```yaml
+# grafana/provisioning/dashboards/dashboards.yml
+apiVersion: 1
+providers:
+  - name: TradeHub
+    orgId: 1
+    folder: TradeHub
+    type: file
+    disableDeletion: true
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards
+```
+
+### 2.5 — Nginx proxy para Grafana
+
+Adicionar ao nginx.conf do `tradehub-frontend`:
+
+```nginx
+location /grafana/ {
+    proxy_pass http://tradehub-grafana:3001/grafana/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
 }
 ```
 
-### TAREFA 4 — Apagar a landing actual e criar a nova
+### 2.6 — Atualizar .env.example
 
-**Apagar** o conteúdo do componente da landing page. Se está espalhado por vários ficheiros, consolidar num ficheiro só.
+```env
+# ══════════════════════════════════════
+# Grafana
+# ══════════════════════════════════════
+GRAFANA_PORT=3001
+GRAFANA_ADMIN_USER=admin
+GRAFANA_ADMIN_PASSWORD=DEFINIR_PASSWORD_FORTE
 
-**Criar** estes componentes NOVOS:
+# ══════════════════════════════════════
+# Grafana SSO — Microsoft Entra ID (Azure AD)
+# ══════════════════════════════════════
+# Criar App Registration no Azure Portal:
+# 1. portal.azure.com → Microsoft Entra ID → App Registrations → New
+# 2. Nome: "TradeHub Grafana"
+# 3. Redirect URI: https://SEU_DOMINIO/grafana/login/azuread
+# 4. Copiar Application (client) ID → GRAFANA_AZURE_CLIENT_ID
+# 5. Copiar Directory (tenant) ID → AZURE_TENANT_ID
+# 6. Certificates & secrets → New client secret → copiar Value → GRAFANA_AZURE_CLIENT_SECRET
+# 7. API Permissions → Add → Microsoft Graph → Delegated: openid, email, profile, User.Read
+# 8. Grant admin consent
+#
+AZURE_TENANT_ID=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+GRAFANA_AZURE_CLIENT_ID=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
+GRAFANA_AZURE_CLIENT_SECRET=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+```
+
+---
+
+## FASE 3 — CRIAR DASHBOARDS GRAFANA
+
+Criar um dashboard JSON para cada relatório identificado na FASE 1. Cada dashboard:
+
+- Usa queries SQL **directas ao MySQL** (não usa a API do backend — o Grafana conecta direto à DB)
+- Queries baseadas EXCLUSIVAMENTE nas tabelas reais (ler `backend/app/models.py` para nomes exactos)
+- Template variables para filtros ($timeRange, $team, $role)
+- Auto-refresh 5 minutos
+- Dark theme como padrão
+- Thresholds com cores
+
+### Mapeamento: Relatório Antigo → Dashboard Grafana
+
+Para CADA relatório identificado na FASE 1, criar o equivalente:
 
 ```
-frontend/src/components/landing/
-├── LandingNavbar.tsx
-├── HeroSection.tsx
-├── SocialProofBar.tsx
-├── PillarsSection.tsx
-├── FeaturesGrid.tsx
-├── StatsSection.tsx
-├── HowItWorks.tsx
-├── QuoteSection.tsx
-├── TechStack.tsx
-├── FinalCTA.tsx
-└── LandingFooter.tsx
+Relatório Antigo                    → Dashboard Grafana
+═══════════════════════════════════════════════════════
+/api/relatorios/overview            → home.json (KPIs globais + tendências + alertas)
+/api/relatorios/formacoes           → formacoes.json (certificados, cursos, rankings)
+/api/relatorios/tutoria             → tutoria.json (erros, resolução, performance)
+/api/relatorios/teams               → equipas.json (comparação, health score)
+/api/advanced-reports               → executive.json (ADMIN — insights cruzados)
+/api/admin/stats                    → home.json (incorporado nos KPIs)
+/api/admin/reports                  → executive.json (incorporado)
+/api/tutoria/dashboard              → tutoria.json (incorporado)
+/api/knowledge_matrix               → formacoes.json (painel de matriz)
+/api/stats                          → home.json (incorporado nos KPIs)
 ```
 
-E a página que os compõe:
+**REGRA:** Cada relatório antigo deve ter um equivalente claro no Grafana. Nenhum dado pode ser perdido na migração. O Grafana deve mostrar MAIS do que o antigo (filtros, tendências, comparações).
+
+### Dashboard por dashboard — queries SQL
+
+Para cada dashboard, ler o endpoint backend correspondente, copiar a lógica da query (ORM → SQL), e recriá-la como query Grafana.
+
+**Exemplo de tradução:**
+
+```python
+# Backend (ORM SQLAlchemy)
+db.query(func.count(Certificate.id)).filter(
+    Certificate.issued_at >= start_of_month
+).scalar()
+```
+
+```sql
+-- Grafana (SQL direto)
+SELECT COUNT(*) as "Certificados este mês"
+FROM certificates
+WHERE issued_at >= DATE_FORMAT(NOW(), '%Y-%m-01')
+```
+
+**Para CADA relatório:** ler a query ORM no backend → traduzir para SQL → criar painel Grafana.
+
+### Tipos de painéis por relatório
+
+**home.json (Overview):**
+- Stat panels: users ativos, cursos, certificados mês, erros abertos, chamados abertos
+- Time series: certificados e erros por mês (últimos 12 meses)
+- Pie chart: users por role, erros por categoria
+- Table: itens pendentes (erros >7 dias, chamados sem resposta)
+
+**formacoes.json:**
+- Stat panels: cursos ativos, lições, desafios, certificados mês, taxa conclusão
+- Time series: certificados por mês
+- Bar chart: top 10 cursos, top trainers
+- Pie chart: cursos por nível, desafios por dificuldade
+
+**tutoria.json:**
+- Stat panels: erros totais, abertos, resolvidos, taxa resolução, tempo médio
+- Bar chart: erros por status (funil)
+- Time series: criados vs resolvidos por mês
+- Pie chart: erros por categoria
+- Table: performance por aluno, performance por trainer
+
+**chamados.json:**
+- Stat panels: total, abertos, em progresso, resolvidos
+- Time series: volume por semana
+- Bar chart: por status
+- Table: mais antigos sem resposta
+
+**equipas.json:**
+- Bar chart agrupado: métricas por equipa
+- Gauge: health score por equipa
+- Table: membros com métricas individuais
+
+**erros-internos.json:**
+- Stat panels: total, abertos, fichas de aprendizagem
+- Time series: erros por mês
+
+**executive.json (ADMIN/MANAGER):**
+- KPIs com trend
+- Comparação MoM
+- Insights cruzados (correlação formação↔erros)
+- Alertas activos
+
+---
+
+## FASE 4 — SSO MICROSOFT ENTRA ID
+
+### 4.1 — Configuração no Azure Portal (documentar para o utilizador)
+
+Criar um ficheiro `docs/GRAFANA_SSO_SETUP.md`:
+
+```markdown
+# Configurar SSO Microsoft para Grafana
+
+## Pré-requisitos
+- Acesso de administrador ao Azure Portal (portal.azure.com)
+- Tenant Microsoft Entra ID (antigo Azure AD)
+
+## Passo 1 — Criar App Registration
+
+1. Portal Azure → Microsoft Entra ID → App Registrations → "+ New registration"
+2. Nome: "TradeHub Grafana"
+3. Supported account types: "Accounts in this organizational directory only"
+4. Redirect URI:
+   - Type: Web
+   - URI: https://SEU_DOMINIO/grafana/login/azuread
+5. Clicar "Register"
+
+## Passo 2 — Anotar IDs
+
+Na página Overview da app criada:
+- **Application (client) ID** → copiar para GRAFANA_AZURE_CLIENT_ID
+- **Directory (tenant) ID** → copiar para AZURE_TENANT_ID
+
+## Passo 3 — Criar Client Secret
+
+1. Certificates & secrets → "+ New client secret"
+2. Description: "Grafana SSO"
+3. Expires: 24 months (ou conforme política da empresa)
+4. Copiar o **Value** (não o Secret ID!) → GRAFANA_AZURE_CLIENT_SECRET
+
+⚠️ O Value só aparece UMA VEZ. Copiar imediatamente.
+
+## Passo 4 — Configurar API Permissions
+
+1. API permissions → "+ Add a permission"
+2. Microsoft Graph → Delegated permissions
+3. Selecionar: openid, email, profile, User.Read
+4. Clicar "Add permissions"
+5. Clicar "Grant admin consent for [Tenant Name]"
+
+## Passo 5 — (Opcional) Configurar App Roles para mapear roles Grafana
+
+1. App roles → "+ Create app role"
+2. Criar roles:
+   - Display name: "Grafana Admin" → Value: "Admin"
+   - Display name: "Grafana Editor" → Value: "Editor"  
+   - Display name: "Grafana Viewer" → Value: "Viewer"
+3. Enterprise Applications → TradeHub Grafana → Users and groups
+4. Atribuir users/grupos aos roles
+
+## Passo 6 — Atualizar .env
+
+Copiar os valores para o ficheiro .env do projeto:
+```env
+AZURE_TENANT_ID=valor-copiado
+GRAFANA_AZURE_CLIENT_ID=valor-copiado
+GRAFANA_AZURE_CLIENT_SECRET=valor-copiado
+```
+
+## Passo 7 — Reiniciar Grafana
+
+```bash
+docker compose restart tradehub-grafana
+```
+
+Aceder a /grafana/ — deve aparecer botão "Sign in with Microsoft".
+
+## Mapeamento de Roles (opcional)
+
+Se configurou App Roles no passo 5, os users do Azure AD são automaticamente mapeados:
+- Azure "Admin" → Grafana Admin
+- Azure "Editor" → Grafana Editor
+- Azure "Viewer" → Grafana Viewer (padrão)
+
+Se NÃO configurou App Roles, todos entram como Viewer (seguro por defeito).
+```
+
+### 4.2 — Configuração no Docker Compose (já incluída na FASE 2)
+
+As variáveis `GF_AUTH_AZUREAD_*` no docker-compose.yml já configuram tudo. O Grafana OSS suporta OAuth2 com Entra ID nativamente — NÃO precisa de Enterprise.
+
+### 4.3 — Fluxo de autenticação
+
+```
+User abre /grafana/ 
+  → Grafana mostra "Sign in with Microsoft"
+  → Redirect para login.microsoftonline.com
+  → User faz login com conta Microsoft corporativa
+  → Entra ID valida + devolve token
+  → Grafana cria/atualiza user com email + role
+  → User vê dashboards conforme o seu role
+```
+
+Para dashboards embebidos no React (iframe), o anonymous viewer permite ver sem login. Se quiser forçar auth nos iframes também, desativar `GF_AUTH_ANONYMOUS_ENABLED` e usar auth proxy ou token forwarding.
+
+---
+
+## FASE 5 — INTEGRAR GRAFANA NO REACT
+
+### 5.1 — Componente de embedding
+
+Criar `frontend/src/components/GrafanaDashboard.tsx`:
+
 ```tsx
-// frontend/src/pages/LandingPage.tsx (ou onde o routing aponta)
-export default function LandingPage() {
-  return (
-    <>
-      <LandingNavbar />
-      <HeroSection />
-      <SocialProofBar />
-      <PillarsSection />
-      <FeaturesGrid />
-      <StatsSection />
-      <HowItWorks />
-      <QuoteSection />
-      <TechStack />
-      <FinalCTA />
-      <LandingFooter />
-    </>
-  );
+interface Props {
+  dashboardUid: string;
+  panelId?: number;       // para embeber painel individual
+  theme?: 'light' | 'dark';
+  from?: string;          // "now-30d"
+  to?: string;            // "now"
+  height?: string;
+  variables?: Record<string, string>;
 }
+
+// Usa iframe para /grafana/d/{uid} ou /grafana/d-solo/{uid}
+// Adiciona ?kiosk para remover header
+// Sincroniza tema com ThemeContext
 ```
+
+### 5.2 — Reescrever página de relatórios
+
+Substituir os componentes antigos por iframes Grafana com tabs:
+
+```
+/relatorios           → Tab "Overview" → embebe home.json
+/relatorios/formacoes → Tab "Formações" → embebe formacoes.json
+/relatorios/tutoria   → Tab "Tutoria" → embebe tutoria.json
+/relatorios/chamados  → Tab "Chamados" → embebe chamados.json
+/relatorios/equipas   → Tab "Equipas" → embebe equipas.json
+/relatorios/executive → Tab "Executivo" → embebe executive.json (ADMIN/MANAGER)
+```
+
+Link direto para Grafana: botão "Abrir no Grafana ↗" em cada tab para quem quiser a experiência completa.
 
 ---
 
-## AS 11 SECÇÕES — Detalhe de cada uma
+## FASE 6 — REMOVER RELATÓRIOS ANTIGOS DO FRONTEND
 
-### 1. NAVBAR (LandingNavbar.tsx)
+**SÓ DEPOIS de validar que Grafana cobre tudo.**
 
-Fixa no topo. Transparente sobre o hero → glassmorphism ao scroll > 80px.
-
-```
-Sobre o hero:     [Logo branco]                    [PT|ES|EN] [Login] [Começar →]
-Após scroll:      [Logo vermelho]  bg-white/80 dark:bg-black/60 backdrop-blur-xl
-```
-
-- "Começar →": bg-[#EC0000] text-white rounded-full px-5 py-2.5
-- "Login": ghost, text-white (hero) ou text-gray-700 (scroll)
-- Seletor de idioma: compacto, usa o i18n existente
-- Mobile: hamburger → menu fullscreen com overlay gradiente vermelho
-- Transição: 300ms ease
-
-### 2. HERO (HeroSection.tsx) — 100vh
+### 6.1 — Listar o que vai ser removido
 
 ```
-Background: --gradient-hero + noise grain (0.03) + glow radial vermelho
-Height: min-h-screen
-Padding: centrado vertical e horizontal
+🗑️ COMPONENTES A REMOVER:
+- frontend/src/pages/Relatorios/OverviewPage.tsx → substituído por Grafana home.json
+- frontend/src/pages/Relatorios/FormacoesReport.tsx → substituído por formacoes.json
+- frontend/src/pages/Relatorios/TutoriaReport.tsx → substituído por tutoria.json
+- frontend/src/pages/Relatorios/TeamsReport.tsx → substituído por equipas.json
+- frontend/src/components/charts/[vários].tsx → já não usados
+- [listar cada ficheiro]
 
-[Badge pill] "Plataforma de formação para trading"
-  → bg-white/10 border border-white/20 backdrop-blur text-xs text-white rounded-full px-4 py-1.5
+📦 DEPENDÊNCIAS A AVALIAR:
+- recharts / chart.js → se já não é importado em NENHUM outro lugar, pode remover do package.json
 
-[Headline] "A sua equipa. Pronta para o mercado."
-  → font-display text-5xl md:text-7xl font-bold text-white tracking-tight leading-[1.1]
-  → A palavra "mercado" pode ter um underline animado ou cor #FF6666
-
-[Subtítulo] "Formações estruturadas, tutoria personalizada, relatórios com insights e suporte integrado — tudo numa plataforma."
-  → font-body text-lg md:text-xl text-white/70 max-w-2xl
-
-[CTA Primário] "Começar Agora →"
-  → bg-[#EC0000] hover:bg-[#CC0000] text-white font-semibold px-8 py-4 rounded-full
-  → shadow-[0_0_40px_rgba(236,0,0,0.35)] hover:shadow-[0_0_60px_rgba(236,0,0,0.5)]
-  → link para /register
-
-[CTA Secundário] "Iniciar Sessão"
-  → border border-white/30 text-white hover:bg-white/10 px-8 py-4 rounded-full
-  → link para /login
-
-[Scroll indicator] chevron ↓ animado a pulsar no fundo
-
-Animação stagger:
-  - headline: delay 0s, fade-in + slide-up 20px
-  - subtítulo: delay 0.2s
-  - CTAs: delay 0.4s
-  - badge: delay 0.1s
+⚠️ NÃO REMOVER:
+- Endpoints de API backend → mantêm para backward compatibility
+- Testes do backend → intactos
 ```
 
-### 3. SOCIAL PROOF BAR (SocialProofBar.tsx)
-
-```
-Background: bg-white dark:bg-[#111] border-y border-gray-200 dark:border-gray-800
-Padding: py-6
-
-Conteúdo: badges horizontais com scroll se necessário
-
-✓ 341 testes validados  ·  ✓ 5 portais integrados  ·  ✓ 3 idiomas  ·  ✓ API REST completa  ·  ✓ CI/CD automatizado
-
-Cada badge: text-sm text-gray-500 font-mono
-Separador: · em text-gray-300
-Scroll infinito em mobile (CSS animation marquee)
-```
-
-### 4. PILARES (PillarsSection.tsx) — Forme · Avalie · Evolua
-
-```
-Background: bg-[--bg-primary]
-Padding: py-24 md:py-32
-
-Título: "Tudo o que a sua equipa precisa"
-  → font-display text-3xl md:text-4xl font-bold text-center
-
-Subtítulo: "Uma plataforma. Três pilares. Resultados reais."
-  → font-body text-lg text-[--text-secondary] text-center mb-16
-
-3 cards em grid (grid-cols-1 md:grid-cols-3 gap-8):
-
-Card:
-  → bg-white dark:bg-gray-900 rounded-2xl p-8
-  → border border-gray-200 dark:border-gray-800
-  → hover:border-[#EC0000]/30 hover:shadow-xl hover:shadow-red-500/5
-  → transition-all duration-300
-
-Ícone: div w-14 h-14 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mb-6
-  → ícone Lucide vermelho w-7 h-7
-
-Título card: font-display text-2xl font-bold mb-3
-Descrição: font-body text-[--text-secondary] text-base leading-relaxed mb-4
-Link: text-[#EC0000] font-medium hover → arrow slide right
-
-Cards:
-  1. Ícone: GraduationCap → "Forme" → "Cursos, desafios e certificações para a sua equipa dominar o mercado."
-  2. Ícone: BarChart3 → "Avalie" → "Dashboards com KPIs e insights accionáveis para cada decisão."
-  3. Ícone: Rocket → "Evolua" → "Tutoria e planos de ação que transformam erros em aprendizagem."
-
-Animação: stagger 0s, 0.15s, 0.3s (fade-in + slide-up ao scroll)
-```
-
-### 5. FEATURES GRID (FeaturesGrid.tsx) — 5 portais, bento grid
-
-```
-Background: bg-gray-50 dark:bg-[#0A0A0A]
-Padding: py-24 md:py-32
-
-Título: "5 portais. Uma plataforma."
-  → font-display text-3xl md:text-4xl font-bold text-center mb-16
-
-Layout bento grid assimétrico:
-┌────────────────────────────────────┬─────────────────────┐
-│  Formações (col-span-2, row-span-2)│  Tutoria             │
-│  Grande, destaque                   │                     │
-├──────────────┬─────────────────────┼─────────────────────┤
-│  Relatórios  │  Chamados           │  Dados Mestres       │
-│              │                     │  badge: ADMIN        │
-└──────────────┴─────────────────────┴─────────────────────┘
-
-Desktop: grid grid-cols-3 grid-rows-2 gap-4
-Mobile: stack vertical
-
-Cada card bento:
-  → rounded-2xl overflow-hidden p-8
-  → gradiente de fundo subtil ÚNICO por card:
-    Formações: bg-gradient-to-br from-red-50 to-white dark:from-red-950/30 dark:to-gray-900
-    Tutoria: bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-950
-    (etc. — cada um ligeiramente diferente)
-  → border border-gray-200 dark:border-gray-800
-  → hover: scale(1.02) transition-transform duration-300
-
-Conteúdo de cada card:
-  → Ícone Lucide (BookOpen, Users, BarChart3, LifeBuoy, Settings) em vermelho
-  → Título: font-display text-xl font-bold
-  → Descrição: 2 linhas, font-body text-sm text-[--text-secondary]
-  → Badge de roles (se relevante): bg-red-50 text-[#EC0000] text-xs rounded-full px-2 py-0.5
-
-Cards:
-  1. BookOpen → "Formações" → "Cursos estruturados, lições, desafios práticos, planos de treino e certificados."
-  2. Users → "Tutoria" → "Gestão de erros, planos de ação, acompanhamento personalizado."
-  3. BarChart3 → "Relatórios" → "Dashboards com insights, KPIs, tendências e comparações."
-  4. LifeBuoy → "Chamados" → "Suporte com Kanban, tracking de tickets e histórico."
-  5. Settings → "Dados Mestres" → "Gestão de utilizadores, equipas e categorias." badge: "ADMIN"
-```
-
-### 6. STATS (StatsSection.tsx)
-
-```
-Background: gradiente escuro (bg-gradient-to-r from-gray-950 via-red-950/40 to-gray-950)
-Padding: py-20
-
-4 stats em row (grid-cols-2 md:grid-cols-4 gap-8 text-center):
-
-Cada stat:
-  Número: font-display text-5xl md:text-6xl font-bold text-white
-  Label: font-body text-sm uppercase tracking-widest text-white/50 mt-2
-
-Stats (adaptar ao conteúdo real do README):
-  5 → "Portais Integrados"
-  341 → "Testes Validados"
-  5 → "Roles de Acesso"
-  3 → "Idiomas"
-
-Count-up animation: 0 → valor final em 1.5s easeOut, trigger ao entrar no viewport
-Separadores: linha vertical 1px border-white/10 entre stats (desktop only)
-```
-
-### 7. COMO FUNCIONA (HowItWorks.tsx)
-
-```
-Background: bg-[--bg-primary]
-Padding: py-24 md:py-32
-
-Título: "Do registo à evolução em 4 passos"
-  → font-display text-3xl md:text-4xl font-bold text-center mb-16
-
-Timeline vertical com linha vermelha:
-
-Desktop: alternar esquerda/direita ao longo da linha
-Mobile: tudo à direita da linha
-
-Cada step:
-  Número: w-10 h-10 rounded-full bg-[#EC0000] text-white font-mono font-bold flex items-center justify-center
-  Título: font-display text-xl font-bold
-  Descrição: font-body text-[--text-secondary]
-  Linha conectora: w-0.5 bg-[#EC0000]/30 (entre os steps)
-
-Steps:
-  ① "Registe-se" → "Crie a sua conta em segundos. Sem complicações."
-  ② "Aceda às Formações" → "Cursos estruturados com desafios práticos e certificação."
-  ③ "Receba Tutoria" → "Acompanhamento personalizado. Erros viram aprendizagem."
-  ④ "Analise e Evolua" → "Dashboards com insights. Veja o progresso da equipa."
-
-Animação: cada step fade-in + slide ao scroll (stagger 0.2s)
-```
-
-### 8. QUOTE (QuoteSection.tsx)
-
-```
-Background: bg-[#EC0000]
-Padding: py-20 md:py-24
-
-Frase: "Não formamos traders. Formamos equipas que vencem."
-  → font-display text-3xl md:text-5xl text-white text-center max-w-4xl mx-auto leading-tight
-
-(opcionalmente um CTA pequeno abaixo: "Começar Agora →" ghost branco)
-```
-
-### 9. TECH STACK (TechStack.tsx)
-
-```
-Background: bg-gray-50 dark:bg-gray-950
-Padding: py-16
-
-"Construído com tecnologia de ponta"
-  → font-body text-sm uppercase tracking-widest text-[--text-secondary] text-center mb-8
-
-Logos/ícones: React, FastAPI, MySQL, Docker, Tailwind, TypeScript, Zustand
-  → SVGs ou texto em font-mono, opacity-30 hover:opacity-100, transition
-  → flex justify-center gap-8 md:gap-12, items-center
-  → Cada um: grayscale hover:grayscale-0
-
-Subtil — não é secção principal, é credibilidade técnica
-```
-
-### 10. CTA FINAL (FinalCTA.tsx)
-
-```
-Background: --gradient-hero (mesmo do hero)
-Padding: py-24 md:py-32
-
-"Pronto para transformar a sua equipa?"
-  → font-display text-3xl md:text-5xl text-white text-center font-bold leading-tight
-
-"Junte-se às equipas que já usam o TradeHub para formar, avaliar e evoluir."
-  → font-body text-lg text-white/70 text-center max-w-xl mx-auto mt-4
-
-[Criar Conta →] bg-white text-[#EC0000] font-semibold px-8 py-4 rounded-full mt-8
-  → hover:bg-gray-100, shadow-lg
-
-[Iniciar Sessão] text-white/60 text-sm mt-4, link para /login
-```
-
-### 11. FOOTER (LandingFooter.tsx)
-
-```
-Background: bg-[#0A0A0A] (sempre escuro)
-Padding: py-16
-
-4 colunas (desktop), stack (mobile):
-
-TradeHub                Plataforma       Recursos         Legal
-"A sua plataforma       Formações        Documentação     Termos de Uso
- de evolução"           Tutoria          API Docs         Privacidade
-                        Relatórios       Suporte
-[ícones sociais?]       Chamados
-
-──────────────────────────────────────────────────────────
-© 2026 TradeHub. Propriedade privada. Todos os direitos reservados.
-
-Links: text-sm text-gray-500 hover:text-white transition
-Separador: border-t border-gray-800
-Copyright: text-xs text-gray-600
-```
+### 6.2 — Aguardar confirmação e executar
 
 ---
 
-### TAREFA 5 — i18n
+## FASE 7 — MAKEFILE
 
-Adicionar chaves `landing.*` nos 3 ficheiros de locale (PT, ES, EN). TODOS os textos visíveis na landing vêm do i18n, NUNCA hardcoded.
+Adicionar ao Makefile:
 
-### TAREFA 6 — Hooks auxiliares
+```makefile
+grafana-logs:      ## Logs do Grafana
+	docker compose logs -f tradehub-grafana
 
-```
-frontend/src/hooks/useInView.ts    → Intersection Observer para trigger de animações
-frontend/src/hooks/useCountUp.ts   → Count-up animation para stats
+grafana-shell:     ## Shell no Grafana
+	docker compose exec tradehub-grafana sh
+
+grafana-restart:   ## Reiniciar Grafana
+	docker compose restart tradehub-grafana
 ```
 
 ---
@@ -507,34 +591,62 @@ frontend/src/hooks/useCountUp.ts   → Count-up animation para stats
 ## VALIDAÇÃO
 
 ```
-✅ Landing renderiza em / (não autenticado)
-✅ Login e Register funcionam a partir dos CTAs
-✅ Redirect para portal após login funciona
-✅ TODAS as páginas autenticadas continuam iguais e funcionais
-✅ Dark mode funciona na landing
-✅ i18n funciona nos 3 idiomas
-✅ Responsive: 320px, 768px, 1280px
-✅ Navbar: transparente→glassmorphism ao scroll
-✅ Animações funcionam e respeitam prefers-reduced-motion
-✅ Count-up nos stats ao scroll
-✅ Cores Santander corretas (#EC0000 como accent)
-✅ Tipografia: Instrument Serif headlines + DM Sans body
-✅ Lighthouse > 90
-✅ Zero erros de consola
-✅ 341 testes backend passam
-✅ ZERO componentes/estilos da landing antiga reutilizados
+✅ GRAFANA
+   - Container tradehub-grafana healthy
+   - Acessível em /grafana/
+   - Datasource MySQL conecta e retorna dados
+   - 7 dashboards carregam sem erros SQL
+   - Template variables funcionam (filtros)
+   - Auto-refresh funciona
+   - Dark mode funciona
+
+✅ SSO MICROSOFT
+   - Botão "Sign in with Microsoft" aparece na página de login do Grafana
+   - Login com conta Microsoft corporativa funciona
+   - User é criado automaticamente no Grafana com email correto
+   - (Se configurado) Roles do Azure AD mapeiam para roles Grafana
+   - Logout funciona
+   - docs/GRAFANA_SSO_SETUP.md está completo e correto
+
+✅ EMBEDDING
+   - Dashboards embebidos no React via iframe carregam
+   - Tema sincroniza (dark/light)
+   - Kiosk mode activo (sem header Grafana nos iframes)
+   - Tabs de navegação funcionam
+
+✅ MIGRAÇÃO
+   - CADA relatório antigo tem equivalente em Grafana
+   - Grafana mostra MAIS do que os antigos (filtros, tendências, comparações)
+   - Componentes antigos de relatórios removidos
+   - Endpoints de API backend intactos
+   - 341 testes passam
+   - Zero erros de consola
+
+✅ .env.example
+   - Variáveis Grafana documentadas
+   - Variáveis Azure AD documentadas com instruções
 ```
 
-## NÃO FAZER
+---
+
+## RESUMO DO SSO
 
 ```
-❌ Reaproveitar QUALQUER coisa da landing actual
-❌ Tocar nas páginas autenticadas
-❌ Tocar no backend
-❌ Usar Inter/Roboto/Arial como headline
-❌ Imagens stock externas
-❌ Emojis como ícones
-❌ Layout simétrico genérico tipo Bootstrap
-❌ Gradientes roxos ou azuis
-❌ Animações bounce/jello
+┌─────────────────────────────────────────────────────────┐
+│ GRAFANA OSS + Microsoft Entra ID SSO                    │
+│                                                         │
+│ Custo Grafana:    0€ (open-source)                      │
+│ Custo SSO:        0€ (OAuth2 built-in, Entra ID Free)   │
+│ Licença Enterprise: NÃO necessária                       │
+│                                                         │
+│ Protocolo: OAuth2 / OpenID Connect (NÃO SAML)           │
+│ Config: variáveis GF_AUTH_AZUREAD_* no Docker Compose   │
+│ App Registration: 1x no Azure Portal (5 min setup)      │
+│                                                         │
+│ Fluxo: User → "Sign in with Microsoft" → Azure login    │
+│        → Token → Grafana cria user → Dashboards          │
+│                                                         │
+│ Roles: Azure AD App Roles → Grafana Admin/Editor/Viewer │
+│ Fallback: admin local com password (para emergências)   │
+└─────────────────────────────────────────────────────────┘
 ```
