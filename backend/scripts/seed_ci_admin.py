@@ -10,6 +10,7 @@ from app.migrate import run_migrations
 from app.models import User
 from app.auth import get_password_hash
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 # Ensure tables exist
 init_db()
@@ -46,6 +47,12 @@ USERS = [
 ]
 
 with Session(engine) as db:
+    # Fix NULL is_active on banks/products seeded by migration without the column
+    db.execute(text("UPDATE banks SET is_active = 1 WHERE is_active IS NULL"))
+    db.execute(text("UPDATE products SET is_active = 1 WHERE is_active IS NULL"))
+    db.commit()
+    print("Fixed NULL is_active on banks/products.")
+
     for u in USERS:
         existing = db.query(User).filter(User.email == u["email"]).first()
         if existing:

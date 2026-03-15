@@ -439,7 +439,7 @@ export default function AdminTrainingPlanForm() {
                   </label>
                   {formData.is_permanent ? (
                     <div className="w-full px-4 py-3 bg-white/5 border border-purple-500/30 rounded-xl text-purple-300 text-sm flex items-center gap-2">
-                      <InfinityIconclassName="w-4 h-4" />
+                      <InfinityIcon className="w-4 h-4" />
                       {t('trainingPlan.permanentEndDateAuto', `31/12/${new Date().getFullYear()} (renovação automática)`)}
                     </div>
                   ) : (
@@ -479,7 +479,7 @@ export default function AdminTrainingPlanForm() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <InfinityIconclassName={`w-5 h-5 ${formData.is_permanent ? 'text-purple-400' : 'text-gray-500'}`} />
+                    <InfinityIcon className={`w-5 h-5 ${formData.is_permanent ? 'text-purple-400' : 'text-gray-500'}`} />
                     <span className={`font-medium ${formData.is_permanent ? 'text-white' : 'text-gray-300'}`}>
                       {t('trainingPlan.permanentPlan', 'Plano de Formação Permanente')}
                     </span>

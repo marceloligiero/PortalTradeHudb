@@ -1,12 +1,11 @@
 """
 Rotas para Dashboard e Estatísticas
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.database import get_db
-from app.models import User, TrainingPlan, TrainingPlanAssignment, Course, Challenge, ChallengeSubmission
-from app.auth import get_current_active_user
+from app.models import TrainingPlan, TrainingPlanAssignment, Course, Challenge, ChallengeSubmission
 
 router = APIRouter(prefix="/api/stats", tags=["stats"])
 
@@ -14,7 +13,6 @@ router = APIRouter(prefix="/api/stats", tags=["stats"])
 @router.get("/kpis")
 async def get_kpis(
     db: Session = Depends(get_db),
-    _user: User = Depends(get_current_active_user),
 ):
     """Retorna KPIs principais da plataforma"""
     
@@ -64,7 +62,6 @@ async def get_kpis(
 async def get_featured_courses(
     db: Session = Depends(get_db),
     limit: int = 4,
-    _user: User = Depends(get_current_active_user),
 ):
     """Retorna os cursos mais populares"""
     
@@ -100,7 +97,6 @@ async def get_featured_courses(
 async def get_featured_training_plans(
     db: Session = Depends(get_db),
     limit: int = 4,
-    _user: User = Depends(get_current_active_user),
 ):
     """Retorna os planos de treinamento mais populares"""
     

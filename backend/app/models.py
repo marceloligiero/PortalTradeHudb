@@ -107,9 +107,9 @@ class Bank(Base):
     code = Column(String(10), unique=True, nullable=False)
     name = Column(String(100), nullable=False)
     country = Column(String(50), nullable=False)
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True, nullable=False, server_default='1')
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
+
     # Legacy relationship (for backward compatibility)
     courses = relationship("Course", back_populates="bank")
     # Many-to-many relationships
@@ -123,9 +123,9 @@ class Product(Base):
     code = Column(String(50), unique=True, nullable=False)
     name = Column(String(100), nullable=False)
     description = Column(Text)
-    is_active = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True, nullable=False, server_default='1')
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
+
     # Legacy relationship (for backward compatibility)
     courses = relationship("Course", back_populates="product")
     # Many-to-many relationships
