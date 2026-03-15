@@ -1,15 +1,20 @@
+import { useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue } from 'framer-motion';
 import { BookOpen, Users, BarChart3, LifeBuoy, Settings } from 'lucide-react';
-import { useInView } from '../../hooks/useInView';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { cn } from '../../lib/cn';
 
+gsap.registerPlugin(ScrollTrigger);
+
+// Cores corrigidas: apenas paleta Santander (vermelho, cinza, sky — sem azul/laranja/violeta)
 const FEATURES = [
   {
     key: 'courses',
     icon: BookOpen,
     colSpan: 'md:col-span-2 md:row-span-2',
-    gradient: 'bg-gradient-to-br from-red-50 to-white dark:from-red-950/30 dark:to-gray-900',
+    gradient: 'bg-gradient-to-br from-santander-50 to-white dark:from-red-950/30 dark:to-gray-900',
   },
   {
     key: 'tutoring',
@@ -21,54 +26,121 @@ const FEATURES = [
     key: 'reports',
     icon: BarChart3,
     colSpan: '',
-    gradient: 'bg-gradient-to-br from-orange-50 to-white dark:from-orange-950/20 dark:to-gray-900',
+    gradient: 'bg-gradient-to-br from-santander-50/60 to-white dark:from-red-950/20 dark:to-gray-900',
   },
   {
     key: 'tickets',
     icon: LifeBuoy,
     colSpan: '',
-    gradient: 'bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/20 dark:to-gray-900',
+    // sky é a terceira cor Santander (#DEEDF2)
+    gradient: 'bg-gradient-to-br from-[#DEEDF2]/60 to-white dark:from-gray-800/40 dark:to-gray-950',
   },
   {
     key: 'masterdata',
     icon: Settings,
     colSpan: '',
-    gradient: 'bg-gradient-to-br from-violet-50 to-white dark:from-violet-950/20 dark:to-gray-900',
+    gradient: 'bg-gradient-to-br from-gray-100 to-white dark:from-gray-800/60 dark:to-gray-950',
     badge: 'ADMIN',
   },
 ];
 
-export default function FeaturesGrid() {
-  const { t } = useTranslation();
-  const { ref, isInView } = useInView();
+// ANIM 10 — Glow Card
+function GlowCard({ children, className }: { children: React.ReactNode; className?: string }) {
+  const cardRef    = useRef<HTMLDivElement>(null);
+  const glowX      = useMotionValue(0);
+  const glowY      = useMotionValue(0);
+  const glowOpacity = useMotionValue(0);
+
+  const handleMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = cardRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    glowX.set(e.clientX - rect.left);
+    glowY.set(e.clientY - rect.top);
+    glowOpacity.set(1);
+  };
 
   return (
-    <section ref={ref} className="py-24 md:py-32 bg-white dark:bg-[#0A0A0A]">
+    <motion.div
+      ref={cardRef}
+      onMouseMove={handleMove}
+      onMouseLeave={() => glowOpacity.set(0)}
+      whileHover={{ scale: 1.02 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      className={className}
+      style={{ position: 'relative', overflow: 'hidden' }}
+    >
+      <motion.div
+        style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 0,
+          background: `radial-gradient(400px circle at ${glowX}px ${glowY}px, rgba(236,0,0,0.08), transparent 60%)`,
+          opacity: glowOpacity,
+        }}
+      />
+      <div style={{ position: 'relative', zIndex: 1 }}>{children}</div>
+    </motion.div>
+  );
+}
+
+export default function FeaturesGrid() {
+  const { t } = useTranslation();
+  const sectionRef = useRef<HTMLElement>(null);
+  const titleRef   = useRef<HTMLHeadingElement>(null);
+  const bentoRef   = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const ctx = gsap.context(() => {
+      if (prefersReduced) {
+        gsap.set([titleRef.current, '.bento-card'], { opacity: 1, y: 0, scale: 1 });
+        return;
+      }
+
+      // ANIM 4 — título
+      gsap.from(titleRef.current, {
+        y: 80, opacity: 0, duration: 1, ease: 'power3.out',
+        scrollTrigger: { trigger: titleRef.current, start: 'top 85%' },
+      });
+
+      // ANIM 6 — Bento Grid Stagger
+      gsap.from('.bento-card', {
+        y: 40, opacity: 0, scale: 0.95, duration: 0.7,
+        stagger: { each: 0.15, from: 'start' },
+        ease: 'power2.out',
+        scrollTrigger: { trigger: bentoRef.current, start: 'top 80%' },
+      });
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, []);
+
+  return (
+    <section ref={sectionRef} className="py-24 md:py-32 bg-white dark:bg-[#0A0A0A]">
       <div className="max-w-7xl mx-auto px-6">
-        <h2 className="font-display text-3xl md:text-4xl font-bold text-center text-gray-900 dark:text-gray-100 mb-16">
+        <h2
+          ref={titleRef}
+          className="font-headline text-3xl md:text-4xl font-bold text-center text-gray-900 dark:text-gray-100 mb-16"
+        >
           {t('landing.features.title')}
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4">
-          {FEATURES.map((feat, i) => {
+        <div ref={bentoRef} className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4">
+          {FEATURES.map((feat) => {
             const Icon = feat.icon;
             return (
-              <motion.div
+              <GlowCard
                 key={feat.key}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={isInView ? { opacity: 1, scale: 1 } : {}}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
                 className={cn(
-                  'rounded-2xl overflow-hidden p-8 border border-gray-200 dark:border-gray-800 hover:scale-[1.02] transition-transform duration-300',
+                  'bento-card rounded-2xl p-8 border border-gray-200 dark:border-gray-800 hover:border-santander-500/30 transition-colors duration-300 cursor-default',
                   feat.gradient,
                   feat.colSpan
                 )}
               >
                 <Icon className="w-8 h-8 text-santander-500 mb-4" />
-                <h3 className="font-display text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                <h3 className="font-headline text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                   {t(`landing.features.${feat.key}.title`)}
                 </h3>
-                <p className="font-body text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                <p className="font-text text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
                   {t(`landing.features.${feat.key}.description`)}
                 </p>
                 {feat.badge && (
@@ -76,7 +148,7 @@ export default function FeaturesGrid() {
                     {feat.badge}
                   </span>
                 )}
-              </motion.div>
+              </GlowCard>
             );
           })}
         </div>

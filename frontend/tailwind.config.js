@@ -43,11 +43,18 @@ export default {
         },
       },
       fontFamily: {
+        // Santander official fonts (woff2 in /public/fonts/ — fallback DM Sans until delivered by Branding)
+        headline: ['"Santander Headline"', '"DM Sans"', '"Helvetica Neue"', 'sans-serif'],
+        text:     ['"Santander Text"',     '"DM Sans"', 'system-ui',        'sans-serif'],
+        micro:    ['"Santander MicroText"','"DM Sans"', 'system-ui',        'sans-serif'],
+        // Legacy aliases (kept for non-landing pages)
         display: ['"Instrument Serif"', 'Georgia', 'serif'],
         body: ['"DM Sans"', 'system-ui', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       },
       animation: {
+        'marquee': 'marquee 30s linear infinite',
+        'bounce-down': 'bounce-down 2s ease-in-out infinite',
         'fade-in': 'fadeIn 1s ease-in',
         'slide-up': 'slideUp 0.5s ease-out',
         'slide-down': 'slideDown 0.3s ease-out',
@@ -59,6 +66,14 @@ export default {
         'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
       },
       keyframes: {
+        'marquee': {
+          from: { transform: 'translateX(0)' },
+          to:   { transform: 'translateX(-50%)' },
+        },
+        'bounce-down': {
+          '0%, 100%': { transform: 'translateY(0)',  opacity: '0.6' },
+          '50%':       { transform: 'translateY(8px)', opacity: '1' },
+        },
         fadeIn: {
           '0%': { opacity: '0', transform: 'translateY(20px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },

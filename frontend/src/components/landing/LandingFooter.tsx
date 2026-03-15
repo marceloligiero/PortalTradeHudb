@@ -12,52 +12,52 @@ export default function LandingFooter() {
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
               <img src="/logo-sds.png" alt="TradeHub" className="h-8 brightness-0 invert" />
-              <span className="font-display text-lg font-bold text-white">TradeHub</span>
+              <span className="font-headline text-lg font-bold text-white">TradeHub</span>
             </div>
-            <p className="font-body text-sm text-gray-500 leading-relaxed">
+            <p className="font-text text-sm text-gray-500 leading-relaxed">
               {t('landing.footer.tagline')}
             </p>
           </div>
 
           {/* Platform */}
           <div>
-            <h4 className="font-body text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">
+            <h4 className="font-headline text-sm font-bold text-gray-300 uppercase tracking-wider mb-4">
               {t('landing.footer.platform')}
             </h4>
             <ul className="space-y-3">
-              <li><Link to="/login" className="text-sm text-gray-500 hover:text-white transition-colors font-body">{t('landing.footer.courses')}</Link></li>
-              <li><Link to="/login" className="text-sm text-gray-500 hover:text-white transition-colors font-body">{t('landing.footer.tutoring')}</Link></li>
-              <li><Link to="/login" className="text-sm text-gray-500 hover:text-white transition-colors font-body">{t('landing.footer.reports')}</Link></li>
-              <li><Link to="/login" className="text-sm text-gray-500 hover:text-white transition-colors font-body">{t('landing.footer.tickets')}</Link></li>
+              <li><Link to="/login" className="text-sm text-gray-500 hover:text-white transition-colors font-text">{t('landing.footer.courses')}</Link></li>
+              <li><Link to="/login" className="text-sm text-gray-500 hover:text-white transition-colors font-text">{t('landing.footer.tutoring')}</Link></li>
+              <li><Link to="/login" className="text-sm text-gray-500 hover:text-white transition-colors font-text">{t('landing.footer.reports')}</Link></li>
+              <li><Link to="/login" className="text-sm text-gray-500 hover:text-white transition-colors font-text">{t('landing.footer.tickets')}</Link></li>
             </ul>
           </div>
 
           {/* Resources */}
           <div>
-            <h4 className="font-body text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">
+            <h4 className="font-headline text-sm font-bold text-gray-300 uppercase tracking-wider mb-4">
               {t('landing.footer.resources')}
             </h4>
             <ul className="space-y-3">
-              <li><Link to="/login" className="text-sm text-gray-500 hover:text-white transition-colors font-body">{t('landing.footer.docs')}</Link></li>
-              <li><Link to="/login" className="text-sm text-gray-500 hover:text-white transition-colors font-body">{t('landing.footer.apiDocs')}</Link></li>
-              <li><Link to="/login" className="text-sm text-gray-500 hover:text-white transition-colors font-body">{t('landing.footer.support')}</Link></li>
+              <li><Link to="/login" className="text-sm text-gray-500 hover:text-white transition-colors font-text">{t('landing.footer.docs')}</Link></li>
+              <li><Link to="/login" className="text-sm text-gray-500 hover:text-white transition-colors font-text">{t('landing.footer.apiDocs')}</Link></li>
+              <li><Link to="/login" className="text-sm text-gray-500 hover:text-white transition-colors font-text">{t('landing.footer.support')}</Link></li>
             </ul>
           </div>
 
           {/* Legal */}
           <div>
-            <h4 className="font-body text-sm font-semibold text-gray-300 uppercase tracking-wider mb-4">
+            <h4 className="font-headline text-sm font-bold text-gray-300 uppercase tracking-wider mb-4">
               {t('landing.footer.legal')}
             </h4>
             <ul className="space-y-3">
-              <li><span className="text-sm text-gray-500 cursor-default font-body">{t('landing.footer.terms')}</span></li>
-              <li><span className="text-sm text-gray-500 cursor-default font-body">{t('landing.footer.privacy')}</span></li>
+              <li><span className="text-sm text-gray-500 cursor-default font-text">{t('landing.footer.terms')}</span></li>
+              <li><span className="text-sm text-gray-500 cursor-default font-text">{t('landing.footer.privacy')}</span></li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-gray-800 pt-8">
-          <p className="text-xs text-gray-600 text-center font-body">
+          <p className="text-xs text-gray-600 text-center font-text">
             © 2026 TradeHub. {t('landing.footer.copyright')}
           </p>
         </div>

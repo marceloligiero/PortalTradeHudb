@@ -75,14 +75,10 @@
   animation: fadeInScale 0.2s ease-out;
 }
 
-/* Shimmer */
+/* Shimmer — ANIM 12: usado no hero titleHighlight e no .animate-shimmer genérico */
 @keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
-  }
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
 }
 
 .animate-shimmer {
@@ -317,6 +313,21 @@
     background: rgba(10, 10, 10, 0.7);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+  }
+}
+
+/* ==================== ACESSIBILIDADE — REDUCED MOTION ==================== */
+/* OBRIGATÓRIO (skill 10) — desliga todas as animações/transições */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-marquee,
+  .animate-bounce-down {
+    animation: none !important;
   }
 }
 
