@@ -1,7 +1,3 @@
-# ══════════════════════════════════════════════════════
-# CI — Lint + Type Check + Tests + SAST
-# Dispara em todo push e PR para main/develop
-# ══════════════════════════════════════════════════════
 name: CI
 
 on:
@@ -17,8 +13,12 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Password for the ephemeral CI MySQL container (no real data, safe to have fallback)
+  CI_DB_PASS: ${{ secrets.CI_MYSQL_ROOT_PASSWORD || 'ci-test-pass' }}
+
 jobs:
-  # ── Backend ────────────────────────────────────────
+  # ── Backend ────────────────────────────────────────────────────────────────
   backend-test:
     name: Backend — Lint & Tests
     runs-on: ubuntu-latest
@@ -28,14 +28,12 @@ jobs:
       mysql:
         image: mysql:8.0.39
         env:
-          # H17: NOTA — password para container efémero de CI (sem dados reais).
-          # Configurar secrets.CI_MYSQL_ROOT_PASSWORD no repositório para remover o fallback.
-          MYSQL_ROOT_PASSWORD: ${{ secrets.CI_MYSQL_ROOT_PASSWORD || 'ci-ephemeral-only' }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.CI_MYSQL_ROOT_PASSWORD || 'ci-test-pass' }}
           MYSQL_DATABASE: tradehub_test
         ports:
           - 3306:3306
         options: >-
-          --health-cmd "mysqladmin ping -h localhost -u root -p${{ secrets.CI_MYSQL_ROOT_PASSWORD || 'ci-ephemeral-only' }}"
+          --health-cmd "mysqladmin ping -h localhost -u root -pci-test-pass"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -54,42 +52,38 @@ jobs:
         working-directory: backend
         run: pip install -r requirements.txt
 
-      # H17: Gerar SECRET_KEY aleatória para este run de CI (não fica no código)
       - name: Generate ephemeral CI secret key
         run: echo "CI_SECRET_KEY=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
 
       - name: Wait for MySQL
         run: |
-          DB_PASS="${{ secrets.CI_MYSQL_ROOT_PASSWORD || 'ci-ephemeral-only' }}"
           for i in $(seq 1 30); do
-            mysqladmin ping -h 127.0.0.1 -u root -p"${DB_PASS}" 2>/dev/null && break
+            mysqladmin ping -h 127.0.0.1 -u root -p"$CI_DB_PASS" 2>/dev/null && break
             sleep 2
           done
 
       - name: Run tests
         working-directory: backend
         env:
-          DATABASE_URL: mysql+pymysql://root:${{ secrets.CI_MYSQL_ROOT_PASSWORD || 'ci-ephemeral-only' }}@127.0.0.1:3306/tradehub_test
+          DATABASE_URL: mysql+pymysql://root:${{ secrets.CI_MYSQL_ROOT_PASSWORD || 'ci-test-pass' }}@127.0.0.1:3306/tradehub_test
           SECRET_KEY: ${{ env.CI_SECRET_KEY }}
           ALLOWED_ORIGINS: "http://localhost"
           DEBUG: "true"
         run: python -m pytest -v --tb=short
 
-      # H19: SAST — Bandit (análise estática de segurança Python)
       - name: SAST — Bandit
         working-directory: backend
         run: |
           pip install bandit[toml]
           bandit -r app/ -ll -ii --exit-zero
 
-      # H20: Auditoria de dependências Python
       - name: Dependency audit — pip-audit
         working-directory: backend
         run: |
           pip install pip-audit
           pip-audit --requirement requirements.txt || true
 
-  # ── Frontend ───────────────────────────────────────
+  # ── Frontend ───────────────────────────────────────────────────────────────
   frontend-lint:
     name: Frontend — Lint & Type Check
     runs-on: ubuntu-latest
@@ -104,7 +98,6 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      # H22: npm ci em vez de npm install (builds reprodutíveis)
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
@@ -121,7 +114,6 @@ jobs:
         working-directory: frontend
         run: npm run build
 
-      # H20: Auditoria de dependências npm
       - name: Dependency audit — npm audit
         working-directory: frontend
         run: npm audit --audit-level=high || true
