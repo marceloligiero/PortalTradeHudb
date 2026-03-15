@@ -31,6 +31,9 @@ frontend/dist/
 .env.local
 .env.*.local
 backend/.env
+backend/.env.*
+!backend/.env.example
+!backend/.env.*.example
 frontend/.env
 frontend/.env.local
 frontend/.env.production
@@ -102,5 +105,6 @@ win-acme.zip
 
 # ── Outros artefactos ──────────────────────────────────
 backend/exception_trace.txt
+backend/error_trace.txt
 frontend/src/pages/admin/Reports_backup.tsx
 install-service-output.txt

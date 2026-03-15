@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import PyJWTError as JWTError
 import bcrypt
 from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException, status
@@ -54,7 +55,9 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
     
     password_ok = verify_password(password, user.hashed_password)
     if not password_ok:
-        logger.warning(f"Authentication failed: invalid password for {email}")
+        # Mask email to avoid exposing valid addresses in logs (M07)
+        masked = email[:3] + "***@" + email.split("@")[-1] if "@" in email else "***"
+        logger.warning(f"Authentication failed: invalid password for {masked}")
         return None
     
     logger.info(f"Authentication successful for {email}")
@@ -66,7 +69,6 @@ def create_access_token(data: dict) -> str:
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
-
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)

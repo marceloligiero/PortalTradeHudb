@@ -55,12 +55,6 @@ async def list_users(
         tb = traceback.format_exc()
         logger = __import__('logging').getLogger('admin.routes')
         logger.error(f"Error in list_users: {e}\n{tb}")
-        try:
-            with open("backend/error_trace.txt", "w", encoding="utf-8") as _f:
-                _f.write(tb)
-        except Exception:
-            # best-effort file logging for local debugging
-            pass
         return JSONResponse(status_code=500, content={"detail": "Erro interno do servidor"})
 
 @router.post("/users", response_model=schemas.User, status_code=status.HTTP_201_CREATED)

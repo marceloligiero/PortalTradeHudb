@@ -4,6 +4,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from app.config import settings
 from app.routes import auth, admin, student, trainer, training_plans, advanced_reports, certificates, student_reports, ratings, password_reset, knowledge_matrix, public
 from app.routers import challenges, stats, lessons, finalization
 from app.routers import tutoria
@@ -35,13 +36,19 @@ async def lifespan(app):
         logger.error("Migration failed: %s", e)
     yield
 
-app = FastAPI(title="Trade Data Hub API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(
+    title="Trade Data Hub API",
+    version="1.0.0",
+    lifespan=lifespan,
+    # Swagger/OpenAPI apenas em desenvolvimento (H02)
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
+    openapi_url="/openapi.json" if settings.DEBUG else None,
+)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware
-from app.config import settings
-
 def get_allowed_origins_and_regex():
     """Return a tuple (origins_list, origin_regex) where origins_list is
     the explicit allow_origins list parsed from settings and origin_regex
@@ -63,11 +70,11 @@ def get_allowed_origins_and_regex():
         r"^https?://10\.\d+\.\d+\.\d+(:\d+)?$",
     ]
 
-    allow_origin_regex = "(" + ")|(".join(regex_parts) + ")" if not settings.DEBUG else None
+    allow_origin_regex = "(" + ")|(".join(regex_parts) + ")"
 
-    # If DEBUG and no explicit origins provided, allow '*' for convenience
-    if settings.DEBUG and not origins:
-        return ["*"], None
+    # If DEBUG and no explicit origins provided, use localhost only (H06 — never use wildcard)
+    if not origins:
+        return [], allow_origin_regex
 
     return origins, allow_origin_regex
 
@@ -104,7 +111,15 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "object-src 'none'; "
+        "frame-ancestors 'none';"
+    )
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https":
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response

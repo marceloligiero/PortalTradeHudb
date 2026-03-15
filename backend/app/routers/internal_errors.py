@@ -513,6 +513,7 @@ def update_action_item(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    _require_tutor_or_admin(current_user)
     item = db.get(InternalErrorActionItem, item_id)
     if not item:
         raise HTTPException(404, "Ação não encontrada")
@@ -611,6 +612,7 @@ def internal_errors_dashboard(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    _require_tutor_or_admin(current_user)
     q = db.query(InternalError).filter(InternalError.is_active == True)
     if senso_id:
         q = q.filter(InternalError.senso_id == senso_id)

@@ -37,7 +37,9 @@ async def trigger_etl(
         result = run_full_etl(db)
         return {"status": "ok", "result": result}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.getLogger("app.dw").error("ETL failed: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="Erro interno de processamento ETL")
 
 
 # ---------- KPIs snapshot ----------
@@ -45,7 +47,7 @@ async def trigger_etl(
 @router.get("/snapshot/latest")
 async def snapshot_latest(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_active_user),
+    _user=Depends(require_role(["ADMIN", "MANAGER"])),
 ):
     """Latest daily snapshot with trend vs previous day."""
     rows = db.execute(text("""
@@ -68,7 +70,7 @@ async def snapshot_latest(
 @router.get("/training/by-month")
 async def training_by_month(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_active_user),
+    _user=Depends(require_role(["ADMIN", "MANAGER"])),
     year: int = Query(default=None),
 ):
     """Certificates issued grouped by month for Recharts."""
@@ -91,7 +93,7 @@ async def training_by_month(
 @router.get("/training/by-course")
 async def training_by_course(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_active_user),
+    _user=Depends(require_role(["ADMIN", "MANAGER"])),
     limit: int = Query(default=10, le=50),
 ):
     """Top courses by certificates issued."""
@@ -113,7 +115,7 @@ async def training_by_course(
 @router.get("/tutoria/by-category")
 async def tutoria_by_category(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_active_user),
+    _user=Depends(require_role(["ADMIN", "MANAGER"])),
 ):
     """Tutoring errors grouped by error category."""
     rows = db.execute(text("""
@@ -132,7 +134,7 @@ async def tutoria_by_category(
 @router.get("/tutoria/by-month")
 async def tutoria_by_month(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_active_user),
+    _user=Depends(require_role(["ADMIN", "MANAGER"])),
     year: int = Query(default=None),
 ):
     year_filter = "AND dd.year = :year" if year else ""
@@ -154,7 +156,7 @@ async def tutoria_by_month(
 @router.get("/tutoria/by-trainer")
 async def tutoria_by_trainer(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_active_user),
+    _user=Depends(require_role(["ADMIN", "MANAGER"])),
     limit: int = Query(default=10, le=50),
 ):
     rows = db.execute(text("""
@@ -176,7 +178,7 @@ async def tutoria_by_trainer(
 @router.get("/chamados/by-status")
 async def chamados_by_status(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_active_user),
+    _user=Depends(require_role(["ADMIN", "MANAGER"])),
 ):
     rows = db.execute(text("""
         SELECT ds.status_label, ds.status_code,
@@ -193,7 +195,7 @@ async def chamados_by_status(
 @router.get("/chamados/by-month")
 async def chamados_by_month(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_active_user),
+    _user=Depends(require_role(["ADMIN", "MANAGER"])),
     year: int = Query(default=None),
 ):
     year_filter = "AND dd.year = :year" if year else ""
@@ -215,7 +217,7 @@ async def chamados_by_month(
 @router.get("/chamados/by-type")
 async def chamados_by_type(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_active_user),
+    _user=Depends(require_role(["ADMIN", "MANAGER"])),
 ):
     rows = db.execute(text("""
         SELECT fc.type, fc.priority,
@@ -233,7 +235,7 @@ async def chamados_by_type(
 @router.get("/internal-errors/by-month")
 async def internal_errors_by_month(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_active_user),
+    _user=Depends(require_role(["ADMIN", "MANAGER"])),
     year: int = Query(default=None),
 ):
     year_filter = "AND dd.year = :year" if year else ""
@@ -255,7 +257,7 @@ async def internal_errors_by_month(
 @router.get("/internal-errors/by-team")
 async def internal_errors_by_team(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_active_user),
+    _user=Depends(require_role(["ADMIN", "MANAGER"])),
 ):
     rows = db.execute(text("""
         SELECT dt.team_name,
@@ -275,7 +277,7 @@ async def internal_errors_by_team(
 @router.get("/snapshot/trend")
 async def snapshot_trend(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_active_user),
+    _user=Depends(require_role(["ADMIN", "MANAGER"])),
     days: int = Query(default=30, le=365),
 ):
     """Daily snapshot trend for the last N days."""
@@ -295,7 +297,7 @@ async def snapshot_trend(
 @router.get("/teams/overview")
 async def teams_overview(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_active_user),
+    _user=Depends(require_role(["ADMIN", "MANAGER"])),
 ):
     rows = db.execute(text("""
         SELECT dt.team_name, dt.manager_name, dt.member_count,

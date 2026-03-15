@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export interface User {
   id: number;
@@ -33,6 +33,8 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
+      // sessionStorage: cleared on tab close, not accessible cross-tab (C04 fix)
+      storage: createJSONStorage(() => sessionStorage),
     }
   )
 );

@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 hours
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 30 min (H01 — was 480/8h)
     
     # Application
     APP_NAME: str = "TradeHub Formações"
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     SMTP_TLS: bool = True
     
     # Frontend URL for password reset links
-    FRONTEND_URL: str = "https://srv1242193.hstgr.cloud"
+    FRONTEND_URL: str = "http://localhost"
     
     class Config:
         # Ensure we always load the backend .env regardless of cwd

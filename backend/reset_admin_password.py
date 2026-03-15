@@ -24,13 +24,22 @@ if admin:
     admin.is_active = True
     admin.is_pending = False
     
-    # Resetar senha usando o mesmo método do auth.py
-    password = "admin123"
+    # A senha deve ser fornecida como argumento de linha de comandos
+    if len(sys.argv) < 2:
+        print("❌ Uso: python reset_admin_password.py <nova_senha>")
+        print("   Exemplo: python reset_admin_password.py 'MinhaNovaS3nh@Fort3!'")
+        db.close()
+        sys.exit(1)
+    password = sys.argv[1]
+    if len(password) < 12:
+        print("❌ A senha deve ter pelo menos 12 caracteres.")
+        db.close()
+        sys.exit(1)
     password_bytes = password.encode('utf-8')[:72]
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password_bytes, salt)
     admin.hashed_password = hashed.decode('utf-8')
-    
+
     # Validate before committing
     from app import auth as _auth
     if not _auth.is_valid_bcrypt_hash(admin.hashed_password):
@@ -40,15 +49,14 @@ if admin:
         db.commit()
         print(f"\n✅ Senha resetada com sucesso!")
     print(f"   Email: admin@tradehub.com")
-    print(f"   Senha: admin123")
     
     # Testar a senha
     test_password_bytes = password.encode('utf-8')[:72]
     hashed_bytes = admin.hashed_password.encode('utf-8')
     if bcrypt.checkpw(test_password_bytes, hashed_bytes):
-        print(f"\n✅ Verificação de senha: OK!")
+        print(f"✅ Verificação de senha: OK!")
     else:
-        print(f"\n❌ Verificação de senha: FALHOU!")
+        print(f"❌ Verificação de senha: FALHOU!")
 else:
     print("❌ Admin não encontrado!")
 

@@ -38,51 +38,67 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          port: ${{ secrets.SERVER_SSH_PORT || 22 }}
-          timeout: 120s
-          script: |
-            set -e
-            cd ${{ secrets.SERVER_APP_PATH || '/opt/tradehub' }}
+        env:
+          SSH_HOST: ${{ secrets.SERVER_HOST }}
+          SSH_USER: ${{ secrets.SERVER_USER }}
+          SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+          SSH_PORT: ${{ secrets.SERVER_SSH_PORT || '22' }}
+          APP_PATH: ${{ secrets.SERVER_APP_PATH || '/opt/tradehub' }}
+        run: |
+          # Write the private key to a temp file with strict permissions
+          echo "$SSH_KEY" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
 
-            echo "══════════════════════════════════════"
-            echo "  Deploy — Portal TradeHub"
-            echo "══════════════════════════════════════"
+          # Add server to known_hosts (TOFU on first run — replace with stored key for stricter policy)
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -p "${SSH_PORT}" "${SSH_HOST}" >> ~/.ssh/known_hosts 2>/dev/null
 
-            # Pull latest code
-            git pull origin main
+          SSH_OPTS="-i /tmp/deploy_key -p ${SSH_PORT} -o BatchMode=yes -o ConnectTimeout=30"
 
-            # Backup database before deploy
-            BACKUP_FILE="backups/pre-deploy-$(date +%Y%m%d-%H%M%S).sql"
-            mkdir -p backups
-            docker exec tradehub-db mysqldump -uroot -p"$MYSQL_ROOT_PASSWORD" tradehub_db > "$BACKUP_FILE" 2>/dev/null || true
-            echo "✅ Backup: $BACKUP_FILE"
+          # shellcheck disable=SC2086
+          ssh $SSH_OPTS "${SSH_USER}@${SSH_HOST}" "bash -s" << EOF
+          set -e
+          cd "${APP_PATH}"
 
-            # Build and restart
-            docker compose -f docker-compose.yml build --no-cache
-            docker compose -f docker-compose.yml up -d
+          echo "══════════════════════════════════════"
+          echo "  Deploy — Portal TradeHub"
+          echo "══════════════════════════════════════"
 
-            # Wait for health checks
-            echo "Aguardando health checks..."
-            sleep 15
+          # Pull latest code
+          git pull origin main
 
-            # Verify
-            BACKEND_STATUS=$(docker inspect --format='{{.State.Health.Status}}' tradehub-backend 2>/dev/null || echo "unknown")
-            FRONTEND_STATUS=$(docker inspect --format='{{.State.Running}}' tradehub-frontend 2>/dev/null || echo "false")
+          # Backup database before deploy
+          BACKUP_FILE="backups/pre-deploy-\$(date +%Y%m%d-%H%M%S).sql"
+          mkdir -p backups
+          docker exec tradehub-db mysqldump -uroot -p"\$MYSQL_ROOT_PASSWORD" tradehub_db > "\$BACKUP_FILE" 2>/dev/null || true
+          echo "✅ Backup: \$BACKUP_FILE"
 
-            if [ "$BACKEND_STATUS" = "healthy" ] && [ "$FRONTEND_STATUS" = "true" ]; then
-              echo "✅ Deploy concluído com sucesso!"
-            else
-              echo "⚠️ Deploy pode ter problemas:"
-              echo "   Backend: $BACKEND_STATUS"
-              echo "   Frontend: $FRONTEND_STATUS"
-              docker compose logs --tail 20
-              exit 1
-            fi
+          # Build and restart
+          docker compose -f docker-compose.yml build --no-cache
+          docker compose -f docker-compose.yml up -d
 
-            # Prune old images
-            docker image prune -f
+          # Wait for health checks
+          echo "Aguardando health checks..."
+          sleep 15
+
+          # Verify
+          BACKEND_STATUS=\$(docker inspect --format='{{.State.Health.Status}}' tradehub-backend 2>/dev/null || echo "unknown")
+          FRONTEND_STATUS=\$(docker inspect --format='{{.State.Running}}' tradehub-frontend 2>/dev/null || echo "false")
+
+          if [ "\$BACKEND_STATUS" = "healthy" ] && [ "\$FRONTEND_STATUS" = "true" ]; then
+            echo "✅ Deploy concluído com sucesso!"
+          else
+            echo "⚠️ Deploy pode ter problemas:"
+            echo "   Backend: \$BACKEND_STATUS"
+            echo "   Frontend: \$FRONTEND_STATUS"
+            docker compose logs --tail 20
+            exit 1
+          fi
+
+          # Prune old images
+          docker image prune -f
+          EOF
+
+          # Securely remove private key
+          rm -f /tmp/deploy_key
