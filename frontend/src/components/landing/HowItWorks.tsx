@@ -1,48 +1,77 @@
 import { useRef, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { FileEdit, ShieldCheck, BookOpen, TrendingDown } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const STEPS = [
-  { number: 1, key: 'register' },
-  { number: 2, key: 'access'   },
-  { number: 3, key: 'tutoring' },
-  { number: 4, key: 'evolve'   },
+  {
+    number: '01',
+    icon: FileEdit,
+    iconBg: 'bg-blue-50',
+    iconColor: 'text-blue-600',
+    title: 'Gravação',
+    description:
+      'As agências enviam pedidos. O gravador regista cada documento no sistema. As formações garantem que sabe exactamente como fazer.',
+    image: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=640&q=80',
+    imageAlt: 'Profissional a registar dados no computador',
+  },
+  {
+    number: '02',
+    icon: ShieldCheck,
+    iconBg: 'bg-amber-50',
+    iconColor: 'text-amber-600',
+    title: 'Conferência',
+    description:
+      'O liberador confere cada registo. Se encontra um erro, regista-o na tutoria. O gravador recebe um plano de acção para corrigir.',
+    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=640&q=80',
+    imageAlt: 'Profissional a rever documento no ecrã',
+  },
+  {
+    number: '03',
+    icon: BookOpen,
+    iconBg: 'bg-green-50',
+    iconColor: 'text-green-600',
+    title: 'Aprendizagem',
+    description:
+      'Cada erro vira uma ficha de aprendizagem. Cada padrão de erro gera uma nova formação. A equipa melhora continuamente.',
+    image: 'https://images.unsplash.com/photo-1531545514256-b1400bc00f31?w=640&q=80',
+    imageAlt: 'Formação e mentoring em equipa corporativa',
+  },
+  {
+    number: '04',
+    icon: TrendingDown,
+    iconBg: 'bg-red-50',
+    iconColor: 'text-santander-500',
+    title: 'Resultado',
+    description:
+      'Menos erros internos. Menos incidências no cliente. Mais eficiência operacional. Dados que provam a evolução.',
+    image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=640&q=80',
+    imageAlt: 'Dashboard com métricas e gráficos de performance',
+  },
 ];
 
 export default function HowItWorks() {
-  const { t } = useTranslation();
-  const sectionRef  = useRef<HTMLElement>(null);
-  const titleRef    = useRef<HTMLHeadingElement>(null);
-  const timelineRef = useRef<HTMLDivElement>(null);
-  const lineRef     = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const titleRef   = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
     const ctx = gsap.context(() => {
       if (prefersReduced) {
-        gsap.set([titleRef.current, '.timeline-step', lineRef.current], { opacity: 1, x: 0, scaleY: 1 });
+        gsap.set([titleRef.current, '.flow-step'], { opacity: 1, y: 0, x: 0 });
         return;
       }
 
-      // ANIM 4 — título
       gsap.from(titleRef.current, {
-        y: 80, opacity: 0, duration: 1, ease: 'power3.out',
+        y: 60, opacity: 0, duration: 0.9, ease: 'power3.out',
         scrollTrigger: { trigger: titleRef.current, start: 'top 85%' },
       });
 
-      // ANIM 8 — Timeline: linha cresce + steps entram da esquerda
-      gsap.from(lineRef.current, {
-        scaleY: 0, transformOrigin: 'top', duration: 1.2, ease: 'power2.inOut',
-        scrollTrigger: { trigger: timelineRef.current, start: 'top 70%' },
-      });
-
-      gsap.from('.timeline-step', {
-        x: -40, opacity: 0, duration: 0.6, stagger: 0.25, ease: 'power2.out',
-        scrollTrigger: { trigger: timelineRef.current, start: 'top 70%' },
+      gsap.from('.flow-step', {
+        y: 50, opacity: 0, duration: 0.7, stagger: 0.2, ease: 'power2.out',
+        scrollTrigger: { trigger: sectionRef.current, start: 'top 70%' },
       });
     }, sectionRef);
 
@@ -50,67 +79,63 @@ export default function HowItWorks() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-24 md:py-32 bg-gray-50 dark:bg-[#0A0A0A]">
-      <div className="max-w-4xl mx-auto px-6">
-        <h2 ref={titleRef} className="font-headline text-3xl md:text-4xl font-bold text-center text-gray-900 dark:text-gray-100 mb-16">
-          {t('landing.howItWorks.title')}
-        </h2>
+    <section id="como-funciona" ref={sectionRef} className="py-24 md:py-32 bg-white">
+      <div className="max-w-7xl mx-auto px-6">
+        {/* Header */}
+        <div ref={titleRef} className="text-center mb-20">
+          <span className="inline-block font-body text-xs font-bold uppercase tracking-widest text-santander-500 mb-4">
+            Fluxo da Operação
+          </span>
+          <h2 className="font-headline text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+            O sistema que intercepta erros{' '}
+            <span className="text-santander-500">antes do cliente.</span>
+          </h2>
+          <p className="font-body text-lg text-gray-500 max-w-2xl mx-auto">
+            Integrado em cada etapa do processamento de documentos.
+          </p>
+        </div>
 
-        <div ref={timelineRef} className="relative">
-          {/* Timeline line — animada com scaleY */}
-          <div
-            ref={lineRef}
-            className="absolute left-5 md:left-1/2 top-0 bottom-0 w-0.5 bg-santander-500/30 -translate-x-1/2"
-          />
-
-          {STEPS.map((step, i) => {
-            const isLeft = i % 2 === 0;
+        {/* Steps */}
+        <div className="space-y-20 md:space-y-28">
+          {STEPS.map((step, index) => {
+            const Icon = step.icon;
+            const isEven = index % 2 === 1;
             return (
-              <div key={step.key} className="timeline-step relative flex items-start mb-12 last:mb-0">
-                {/* Mobile: conteúdo sempre à direita */}
-                <div className="md:hidden flex items-start gap-4">
-                  <div className="relative z-10 w-10 h-10 rounded-full bg-santander-500 text-white font-mono font-bold flex items-center justify-center shrink-0">
-                    {step.number}
-                  </div>
-                  <div>
-                    <h3 className="font-headline text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                      {t(`landing.howItWorks.${step.key}.title`)}
-                    </h3>
-                    <p className="font-text text-gray-500 dark:text-gray-400">
-                      {t(`landing.howItWorks.${step.key}.description`)}
-                    </p>
+              <div
+                key={step.title}
+                className={`flow-step flex flex-col ${
+                  isEven ? 'md:flex-row-reverse' : 'md:flex-row'
+                } items-center gap-12 md:gap-16`}
+              >
+                {/* Image */}
+                <div className="w-full md:w-1/2 relative">
+                  <div className="relative rounded-2xl overflow-hidden aspect-[4/3] shadow-xl">
+                    <img
+                      src={step.image}
+                      alt={step.imageAlt}
+                      loading="lazy"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <div className="absolute bottom-4 left-4">
+                      <span className="bg-santander-500 text-white font-body text-xs font-bold uppercase tracking-widest px-3 py-1.5 rounded-full">
+                        Etapa {step.number}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Desktop: alternado esquerda/direita */}
-                <div className="hidden md:grid md:grid-cols-[1fr_auto_1fr] md:gap-8 md:items-center w-full">
-                  <div className={isLeft ? 'text-right' : ''}>
-                    {isLeft && (
-                      <>
-                        <h3 className="font-headline text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                          {t(`landing.howItWorks.${step.key}.title`)}
-                        </h3>
-                        <p className="font-text text-gray-500 dark:text-gray-400">
-                          {t(`landing.howItWorks.${step.key}.description`)}
-                        </p>
-                      </>
-                    )}
+                {/* Content */}
+                <div className="w-full md:w-1/2">
+                  <div className={`inline-flex w-12 h-12 ${step.iconBg} rounded-xl items-center justify-center mb-6`}>
+                    <Icon className={`w-6 h-6 ${step.iconColor}`} />
                   </div>
-                  <div className="relative z-10 w-10 h-10 rounded-full bg-santander-500 text-white font-mono font-bold flex items-center justify-center">
-                    {step.number}
-                  </div>
-                  <div>
-                    {!isLeft && (
-                      <>
-                        <h3 className="font-headline text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                          {t(`landing.howItWorks.${step.key}.title`)}
-                        </h3>
-                        <p className="font-text text-gray-500 dark:text-gray-400">
-                          {t(`landing.howItWorks.${step.key}.description`)}
-                        </p>
-                      </>
-                    )}
-                  </div>
+                  <h3 className="font-headline text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                    {step.title}
+                  </h3>
+                  <p className="font-body text-lg text-gray-600 leading-relaxed">
+                    {step.description}
+                  </p>
                 </div>
               </div>
             );

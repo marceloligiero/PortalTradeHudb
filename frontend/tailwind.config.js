@@ -43,14 +43,15 @@ export default {
         },
       },
       fontFamily: {
-        // Santander official fonts (woff2 in /public/fonts/ — fallback DM Sans until delivered by Branding)
-        headline: ['"Santander Headline"', '"DM Sans"', '"Helvetica Neue"', 'sans-serif'],
-        text:     ['"Santander Text"',     '"DM Sans"', 'system-ui',        'sans-serif'],
-        micro:    ['"Santander MicroText"','"DM Sans"', 'system-ui',        'sans-serif'],
-        // Legacy aliases (kept for non-landing pages)
-        display: ['"Instrument Serif"', 'Georgia', 'serif'],
-        body: ['"DM Sans"', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
+        // Santander official fonts — TODO: add .woff2 files to src/assets/fonts/
+        headline: ['"Santander Headline"', 'Arial', 'sans-serif'],
+        text:     ['"Santander Text"',     'Arial', 'sans-serif'],
+        body:     ['"Santander Text"',     'Arial', 'sans-serif'],
+        logo:     ['"Santander Logo"', '"Santander Headline"', 'Arial', 'sans-serif'],
+        micro:    ['"Santander MicroText"', 'Arial', 'sans-serif'],
+        // Non-landing pages
+        display:  ['"Instrument Serif"', 'Georgia', 'serif'],
+        mono:     ['"JetBrains Mono"', 'monospace'],
       },
       animation: {
         'marquee': 'marquee 30s linear infinite',

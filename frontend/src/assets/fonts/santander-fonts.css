@@ -1,0 +1,92 @@
+/*
+ * Santander Brand Typography — @font-face declarations
+ *
+ * TODO: Solicitar os ficheiros .woff2 ao departamento de Branding/IT Santander
+ *       e colocar nesta directoria (frontend/src/assets/fonts/).
+ *       Nomes esperados:
+ *         SantanderHeadline-Regular.woff2 / .woff
+ *         SantanderHeadline-Bold.woff2 / .woff
+ *         SantanderHeadline-Italic.woff2 / .woff
+ *         SantanderHeadline-BoldItalic.woff2 / .woff
+ *         SantanderText-Light.woff2 / .woff
+ *         SantanderText-Regular.woff2 / .woff
+ *         SantanderText-Bold.woff2 / .woff
+ *         SantanderLogo-Regular.woff2 / .woff
+ *
+ * Enquanto os ficheiros não existirem, Arial é usado como fallback.
+ */
+
+/* === Santander Headline === */
+@font-face {
+  font-family: 'Santander Headline';
+  src: url('./SantanderHeadline-Regular.woff2') format('woff2'),
+       url('./SantanderHeadline-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Santander Headline';
+  src: url('./SantanderHeadline-Bold.woff2') format('woff2'),
+       url('./SantanderHeadline-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Santander Headline';
+  src: url('./SantanderHeadline-Italic.woff2') format('woff2'),
+       url('./SantanderHeadline-Italic.woff') format('woff');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Santander Headline';
+  src: url('./SantanderHeadline-BoldItalic.woff2') format('woff2'),
+       url('./SantanderHeadline-BoldItalic.woff') format('woff');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* === Santander Text === */
+@font-face {
+  font-family: 'Santander Text';
+  src: url('./SantanderText-Light.woff2') format('woff2'),
+       url('./SantanderText-Light.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Santander Text';
+  src: url('./SantanderText-Regular.woff2') format('woff2'),
+       url('./SantanderText-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Santander Text';
+  src: url('./SantanderText-Bold.woff2') format('woff2'),
+       url('./SantanderText-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* === Santander Logo === */
+@font-face {
+  font-family: 'Santander Logo';
+  src: url('./SantanderLogo-Regular.woff2') format('woff2'),
+       url('./SantanderLogo-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
