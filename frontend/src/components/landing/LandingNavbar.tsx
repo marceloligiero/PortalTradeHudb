@@ -12,16 +12,33 @@ const LANGUAGES = [
 ];
 
 const NAV_LINKS = [
-  { label: 'Como Funciona',   href: '#como-funciona'   },
-  { label: 'Funcionalidades', href: '#funcionalidades'  },
-  { label: 'Para Quem',       href: '#para-quem'        },
+  { label: 'Como Funciona', href: '#como-funciona'   },
+  { label: 'Módulos',       href: '#funcionalidades' },
+  { label: 'Para Quem',     href: '#para-quem'       },
 ];
+
+function NavLink({ href, label }: { href: string; label: string }) {
+  return (
+    <a
+      href={href}
+      className="relative overflow-hidden group inline-flex flex-col font-body text-sm text-[#999] hover:text-white transition-colors duration-300"
+      style={{ height: '1.2em', lineHeight: '1.2em' }}
+    >
+      <span className="transition-transform duration-300 ease-out group-hover:-translate-y-full whitespace-nowrap">
+        {label}
+      </span>
+      <span className="absolute top-0 left-0 translate-y-full transition-transform duration-300 ease-out group-hover:translate-y-0 whitespace-nowrap">
+        {label}
+      </span>
+    </a>
+  );
+}
 
 export default function LandingNavbar() {
   const { i18n } = useTranslation();
-  const [scrolled,  setScrolled]  = useState(false);
-  const [menuOpen,  setMenuOpen]  = useState(false);
-  const [langOpen,  setLangOpen]  = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -47,67 +64,47 @@ export default function LandingNavbar() {
         className={cn(
           'fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b',
           scrolled
-            ? 'bg-white/95 backdrop-blur-md shadow-sm border-gray-100'
+            ? 'bg-black/90 backdrop-blur-xl border-white/[0.06]'
             : 'bg-transparent border-transparent'
         )}
       >
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 bg-santander-500 rounded-lg flex items-center justify-center shadow-sm">
-              <Flame className="w-4 h-4 text-white" strokeWidth={2.5} />
+            <div className="w-7 h-7 bg-santander-500 rounded-lg flex items-center justify-center">
+              <Flame className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
             </div>
-            <span className={cn(
-              'font-logo text-lg font-semibold tracking-tight transition-colors duration-300',
-              scrolled ? 'text-gray-900' : 'text-white'
-            )}>
+            <span className="font-logo text-base font-semibold text-white tracking-tight">
               TradeDataHub
             </span>
           </Link>
 
-          {/* Desktop nav links */}
+          {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-8">
             {NAV_LINKS.map(link => (
-              <a
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  'font-body text-sm transition-colors duration-200',
-                  scrolled
-                    ? 'text-gray-600 hover:text-santander-500'
-                    : 'text-white/80 hover:text-white'
-                )}
-              >
-                {link.label}
-              </a>
+              <NavLink key={link.href} href={link.href} label={link.label} />
             ))}
           </nav>
 
-          {/* Desktop right: lang + CTA */}
-          <div className="hidden md:flex items-center gap-3">
-            {/* Language selector */}
+          {/* Desktop right */}
+          <div className="hidden md:flex items-center gap-4">
             <div className="relative">
               <button
                 onClick={() => setLangOpen(!langOpen)}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-body transition-colors duration-300',
-                  scrolled
-                    ? 'text-gray-600 hover:bg-gray-100'
-                    : 'text-white/80 hover:text-white hover:bg-white/10'
-                )}
+                className="flex items-center gap-1.5 text-sm font-body text-[#555] hover:text-white transition-colors duration-300"
               >
-                <Globe className="w-4 h-4" />
+                <Globe className="w-3.5 h-3.5" />
                 {currentLang}
               </button>
               {langOpen && (
-                <div className="absolute right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[72px] z-10">
+                <div className="absolute right-0 mt-2 bg-[#111] border border-white/[0.06] rounded-lg py-1 min-w-[72px] z-10">
                   {LANGUAGES.map(lang => (
                     <button
                       key={lang.code}
                       onClick={() => changeLanguage(lang.code)}
                       className={cn(
-                        'block w-full text-left px-4 py-2 text-sm font-body hover:bg-gray-50 transition-colors',
-                        i18n.language === lang.code ? 'text-santander-500 font-bold' : 'text-gray-700'
+                        'block w-full text-left px-4 py-2 text-xs font-body transition-colors hover:bg-white/5',
+                        i18n.language === lang.code ? 'text-white font-bold' : 'text-[#555]'
                       )}
                     >
                       {lang.label}
@@ -116,20 +113,9 @@ export default function LandingNavbar() {
                 </div>
               )}
             </div>
-
             <Link
               to="/login"
-              className={cn(
-                'px-5 py-2 rounded-full text-sm font-body transition-colors duration-300',
-                scrolled ? 'text-gray-700 hover:bg-gray-100' : 'text-white hover:bg-white/10'
-              )}
-            >
-              Iniciar Sessão
-            </Link>
-
-            <Link
-              to="/login"
-              className="bg-santander-500 hover:bg-santander-600 text-white px-5 py-2.5 rounded-full text-sm font-body font-bold transition-all duration-200 shadow-md hover:shadow-lg hover:scale-[1.02]"
+              className="bg-santander-500 hover:bg-santander-400 text-white px-5 py-2.5 rounded-full text-sm font-body font-bold transition-all duration-200 shadow-[0_0_20px_rgba(236,0,0,0.2)] hover:shadow-[0_0_30px_rgba(236,0,0,0.4)]"
             >
               Acessar Plataforma
             </Link>
@@ -137,79 +123,56 @@ export default function LandingNavbar() {
 
           {/* Mobile toggle */}
           <button
-            className={cn(
-              'md:hidden p-2 rounded-lg transition-colors',
-              scrolled ? 'text-gray-700 hover:bg-gray-100' : 'text-white hover:bg-white/10'
-            )}
+            className="md:hidden text-[#999] hover:text-white p-2 transition-colors"
             onClick={() => setMenuOpen(true)}
-            aria-label="Abrir menu"
+            aria-label="Menu"
           >
             <Menu className="w-5 h-5" />
           </button>
         </div>
       </header>
 
-      {/* Mobile fullscreen menu */}
+      {/* Mobile menu */}
       <AnimatePresence>
         {menuOpen && (
           <motion.div
             key="mobile-menu"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="fixed inset-0 z-[60] bg-gradient-to-br from-santander-700 via-santander-800 to-[#1A0005] flex flex-col"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[60] bg-black flex flex-col"
           >
-            <div className="flex items-center justify-between px-6 h-16">
+            <div className="flex items-center justify-between px-6 h-16 border-b border-white/[0.06]">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                  <Flame className="w-4 h-4 text-white" strokeWidth={2.5} />
+                <div className="w-7 h-7 bg-santander-500 rounded-lg flex items-center justify-center">
+                  <Flame className="w-3.5 h-3.5 text-white" strokeWidth={2.5} />
                 </div>
-                <span className="font-logo text-lg font-semibold text-white">TradeDataHub</span>
+                <span className="font-logo text-base font-semibold text-white">TradeDataHub</span>
               </div>
-              <button
-                onClick={() => setMenuOpen(false)}
-                className="p-2 text-white/80 hover:text-white"
-                aria-label="Fechar menu"
-              >
-                <X className="w-6 h-6" />
+              <button onClick={() => setMenuOpen(false)} className="text-[#555] hover:text-white p-2">
+                <X className="w-5 h-5" />
               </button>
             </div>
-
-            <div className="flex flex-col items-center justify-center flex-1 gap-6 px-6">
+            <div className="flex flex-col items-start justify-center flex-1 gap-6 px-8">
               {NAV_LINKS.map(link => (
                 <a
                   key={link.href}
                   href={link.href}
                   onClick={() => setMenuOpen(false)}
-                  className="text-white/80 text-2xl font-headline font-bold hover:text-white transition-colors"
+                  className="font-headline font-bold text-3xl text-white/60 hover:text-white transition-colors"
                 >
                   {link.label}
                 </a>
               ))}
-              <div className="w-12 h-px bg-white/20 my-4" />
-              <Link
-                to="/login"
-                onClick={() => setMenuOpen(false)}
-                className="bg-white text-santander-500 rounded-full px-8 py-4 text-lg font-body font-bold hover:bg-gray-100 transition-colors"
-              >
-                Acessar Plataforma
-              </Link>
-              <div className="flex gap-3 mt-2">
-                {LANGUAGES.map(lang => (
-                  <button
-                    key={lang.code}
-                    onClick={() => { changeLanguage(lang.code); setMenuOpen(false); }}
-                    className={cn(
-                      'text-sm font-body px-3 py-1.5 rounded-full transition-colors',
-                      i18n.language === lang.code
-                        ? 'bg-white/20 text-white font-bold'
-                        : 'text-white/50 hover:text-white'
-                    )}
-                  >
-                    {lang.label}
-                  </button>
-                ))}
+              <div className="mt-4">
+                <Link
+                  to="/login"
+                  onClick={() => setMenuOpen(false)}
+                  className="bg-santander-500 text-white px-8 py-3 rounded-full font-body font-bold text-sm"
+                >
+                  Acessar Plataforma
+                </Link>
               </div>
             </div>
           </motion.div>

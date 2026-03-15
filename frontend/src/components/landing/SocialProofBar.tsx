@@ -1,42 +1,33 @@
-import { useTranslation } from 'react-i18next';
+import { GraduationCap, ShieldAlert, BarChart3, Headphones, Settings } from 'lucide-react';
 
-const PROOFS = [
-  { key: 'tests',     value: '341' },
-  { key: 'portals',   value: '5'   },
-  { key: 'languages', value: '3'   },
-  { key: 'api',       value: 'REST' },
-  { key: 'cicd',      value: 'CI/CD' },
+const ITEMS = [
+  { icon: GraduationCap, label: 'FORMAÇÕES'    },
+  { icon: ShieldAlert,   label: 'TUTORIA'      },
+  { icon: BarChart3,     label: 'RELATÓRIOS'   },
+  { icon: Headphones,    label: 'CHAMADOS'     },
+  { icon: Settings,      label: 'DADOS MESTRES'},
 ];
 
-// ANIM 13 — Marquee: duplicar itens para scroll contínuo sem salto
-function MarqueeTrack() {
-  const { t } = useTranslation();
-  const items = [...PROOFS, ...PROOFS];
-
-  return (
-    <div className="relative overflow-hidden">
-      <div className="flex animate-marquee whitespace-nowrap gap-12" style={{ width: 'max-content' }}>
-        {items.map((item, i) => (
-          <span
-            key={`${item.key}-${i}`}
-            className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 font-text shrink-0"
-          >
-            <span className="text-santander-500 font-bold">✓</span>
-            <span className="font-mono text-santander-500 font-bold">{item.value}</span>
-            {t(`landing.proof.${item.key}`)}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
+const REPEATED = [...ITEMS, ...ITEMS, ...ITEMS, ...ITEMS];
 
 export default function SocialProofBar() {
   return (
-    <section className="bg-white dark:bg-[#111] border-y border-gray-200 dark:border-gray-800 py-6 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6">
-        <MarqueeTrack />
+    <div className="border-y border-white/[0.06] py-5 overflow-hidden bg-black">
+      <div className="flex animate-marquee whitespace-nowrap" style={{ width: 'max-content' }}>
+        {REPEATED.map((item, i) => {
+          const Icon = item.icon;
+          return (
+            <span
+              key={i}
+              className="inline-flex items-center gap-2 mx-10 text-[#444] uppercase text-xs font-body tracking-[0.2em] shrink-0"
+            >
+              <Icon className="w-4 h-4 opacity-50" />
+              {item.label}
+              <span className="ml-8 text-white/[0.06]">·</span>
+            </span>
+          );
+        })}
       </div>
-    </section>
+    </div>
   );
 }

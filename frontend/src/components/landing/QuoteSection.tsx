@@ -1,77 +1,105 @@
-import { useRef } from 'react';
-import { useTranslation } from 'react-i18next';
-import { motion, useMotionValue, useSpring } from 'framer-motion';
-import { useInView } from '../../hooks/useInView';
+import { useState, useRef, useEffect } from 'react';
+import { Plus, Minus } from 'lucide-react';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-// ANIM 9 — Magnetic Button
-function MagneticButton({ href, className, children }: { href: string; className: string; children: React.ReactNode }) {
-  const prefersReduced = typeof window !== 'undefined'
-    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    : false;
+gsap.registerPlugin(ScrollTrigger);
 
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const springX = useSpring(x, { stiffness: 300, damping: 20 });
-  const springY = useSpring(y, { stiffness: 300, damping: 20 });
-  const ref = useRef<HTMLAnchorElement>(null);
-
-  const handleMouse = (e: React.MouseEvent) => {
-    if (prefersReduced || !ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    x.set((e.clientX - (rect.left + rect.width  / 2)) * 0.15);
-    y.set((e.clientY - (rect.top  + rect.height / 2)) * 0.15);
-  };
-
-  return (
-    <motion.a
-      ref={ref}
-      href={href}
-      style={{ x: springX, y: springY }}
-      onMouseMove={handleMouse}
-      onMouseLeave={() => { x.set(0); y.set(0); }}
-      className={className}
-    >
-      {children}
-    </motion.a>
-  );
-}
-
-// ANIM 1 — Blur Reveal (sem stagger, aplicado ao bloco todo)
-const blurReveal = {
-  hidden:  { opacity: 0, y: 30, filter: 'blur(10px)' },
-  visible: { opacity: 1, y: 0,  filter: 'blur(0px)',
-    transition: { duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] as [number,number,number,number] } },
-};
+const FAQS = [
+  {
+    question: 'O que é o TradeDataHub?',
+    answer:
+      'Plataforma integrada de formações, tutoria, relatórios e suporte para equipas de processamento de documentos. Do gravador ao gestor — tudo num só lugar.',
+  },
+  {
+    question: 'Quem usa o sistema?',
+    answer:
+      'Gravadores, liberadores, formadores, coordenadores e administradores. Cada utilizador vê exactamente o que precisa para fazer o seu trabalho melhor.',
+  },
+  {
+    question: 'O que acontece quando um erro é encontrado?',
+    answer:
+      'O liberador regista na tutoria, categoriza e atribui ao gravador. Gera-se automaticamente um plano de acção com prazos. O gravador executa, submete e o liberador aprova.',
+  },
+  {
+    question: 'E se o erro chegar ao cliente?',
+    answer:
+      'É classificado como incidência — erro grave. Gera automaticamente uma ficha de aprendizagem partilhada com toda a equipa. O padrão não se repete.',
+  },
+  {
+    question: 'O sistema suporta vários idiomas?',
+    answer:
+      'Sim — Português (PT), Espanhol (ES) e Inglês (EN). A interface adapta-se ao idioma do utilizador.',
+  },
+];
 
 export default function QuoteSection() {
-  const { t } = useTranslation();
-  const { ref, isInView } = useInView();
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const ctx = gsap.context(() => {
+      if (prefersReduced) {
+        gsap.set(['.faq-header', '.faq-item'], { opacity: 1, y: 0 });
+        return;
+      }
+      gsap.from('.faq-header', {
+        y: 40, opacity: 0, duration: 0.8, ease: 'power3.out',
+        scrollTrigger: { trigger: sectionRef.current, start: 'top 85%' },
+      });
+      gsap.from('.faq-item', {
+        y: 30, opacity: 0, duration: 0.6, stagger: 0.08, ease: 'power2.out',
+        scrollTrigger: { trigger: sectionRef.current, start: 'top 75%' },
+      });
+    }, sectionRef);
+    return () => ctx.revert();
+  }, []);
+
+  const toggle = (i: number) => setOpenIndex(openIndex === i ? null : i);
 
   return (
-    <section ref={ref} className="bg-santander-500 py-20 md:py-24">
-      <div className="max-w-4xl mx-auto px-6 text-center">
-        <motion.p
-          variants={blurReveal}
-          initial="hidden"
-          animate={isInView ? 'visible' : 'hidden'}
-          className="font-headline text-3xl md:text-5xl text-white leading-tight"
+    <section
+      ref={sectionRef}
+      className="bg-black px-6"
+      style={{ paddingTop: '160px', paddingBottom: '160px' }}
+    >
+      <div className="max-w-3xl mx-auto">
+        <h2
+          className="faq-header font-headline font-bold text-white leading-[1.0] mb-16"
+          style={{ fontSize: 'clamp(2rem, 4vw, 3rem)' }}
         >
-          {t('landing.quote.text')}
-        </motion.p>
+          Perguntas Frequentes
+        </h2>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={isInView ? { opacity: 1 } : {}}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          className="mt-8"
-        >
-          <MagneticButton
-            href="/register"
-            className="inline-block border border-white/40 text-white hover:bg-white/10 px-6 py-3 rounded-full font-text font-bold transition-colors duration-300 cursor-pointer"
-          >
-            {t('landing.quote.cta')} →
-          </MagneticButton>
-        </motion.div>
+        <div>
+          {FAQS.map((faq, i) => (
+            <div key={i} className="faq-item border-b border-white/[0.06]">
+              <button
+                onClick={() => toggle(i)}
+                className="w-full flex items-center justify-between py-6 text-left group"
+              >
+                <span className="font-body text-white text-base pr-8 group-hover:text-white/80 transition-colors">
+                  {faq.question}
+                </span>
+                <span className="shrink-0 text-[#444] group-hover:text-[#777] transition-colors">
+                  {openIndex === i ? (
+                    <Minus className="w-4 h-4" />
+                  ) : (
+                    <Plus className="w-4 h-4" />
+                  )}
+                </span>
+              </button>
+              {openIndex === i && (
+                <div className="pb-6">
+                  <p className="font-body text-[#555] text-sm leading-relaxed">
+                    {faq.answer}
+                  </p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
