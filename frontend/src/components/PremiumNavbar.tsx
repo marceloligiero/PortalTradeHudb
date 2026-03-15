@@ -51,7 +51,7 @@ interface PremiumNavbarProps {
   /** Additional right-side content (slot) */
   rightSlot?: React.ReactNode;
   /**
-   * Language change handler for pages with custom i18n (e.g. TradeDatahubLanding).
+   * Language change handler for pages with custom i18n.
    * If provided, bypasses react-i18next and calls this instead.
    */
   onLangChange?: (code: string) => void;
