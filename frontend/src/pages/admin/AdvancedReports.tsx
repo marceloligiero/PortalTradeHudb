@@ -122,30 +122,36 @@ export default function AdvancedReportsPage() {
     setLoading(true);
     try {
       switch (activeTab) {
-        case 'dashboard':
+        case 'dashboard': {
           const summaryRes = await api.get('/api/admin/advanced-reports/dashboard-summary');
           setSummary(summaryRes.data);
           break;
-        case 'students':
+        }
+        case 'students': {
           const studentsRes = await api.get('/api/admin/advanced-reports/student-performance');
           setStudentPerformance(studentsRes.data?.students || []);
           break;
-        case 'trainers':
+        }
+        case 'trainers': {
           const trainersRes = await api.get('/api/admin/advanced-reports/trainer-productivity');
           setTrainerProductivity(trainersRes.data?.trainers || []);
           break;
-        case 'courses':
+        }
+        case 'courses': {
           const coursesRes = await api.get('/api/admin/advanced-reports/course-analytics');
           setCourseAnalytics(coursesRes.data?.courses || []);
           break;
-        case 'certifications':
+        }
+        case 'certifications': {
           const certsRes = await api.get('/api/admin/advanced-reports/certifications');
           setCertifications(certsRes.data?.certifications || []);
           break;
-        case 'mpu':
+        }
+        case 'mpu': {
           const mpuRes = await api.get('/api/admin/advanced-reports/mpu-analytics');
           setMpuData(mpuRes.data || { by_bank: [], by_service: [], by_plan: [] });
           break;
+        }
       }
     } catch (error) {
       console.error('Error fetching data:', error);

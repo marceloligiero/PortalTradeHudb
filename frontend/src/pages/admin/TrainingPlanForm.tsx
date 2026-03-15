@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Target, Calendar, CheckCircle2, AlertCircle, Building2, Package, Check, Infinity } from 'lucide-react';
+import { Target, Calendar, CheckCircle2, AlertCircle, Building2, Package, Check, Infinity as InfinityIcon } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 import { getTranslatedProductName } from '../../utils/productTranslation';
@@ -439,7 +439,7 @@ export default function AdminTrainingPlanForm() {
                   </label>
                   {formData.is_permanent ? (
                     <div className="w-full px-4 py-3 bg-white/5 border border-purple-500/30 rounded-xl text-purple-300 text-sm flex items-center gap-2">
-                      <Infinity className="w-4 h-4" />
+                      <InfinityIconclassName="w-4 h-4" />
                       {t('trainingPlan.permanentEndDateAuto', `31/12/${new Date().getFullYear()} (renovação automática)`)}
                     </div>
                   ) : (
@@ -479,7 +479,7 @@ export default function AdminTrainingPlanForm() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <Infinity className={`w-5 h-5 ${formData.is_permanent ? 'text-purple-400' : 'text-gray-500'}`} />
+                    <InfinityIconclassName={`w-5 h-5 ${formData.is_permanent ? 'text-purple-400' : 'text-gray-500'}`} />
                     <span className={`font-medium ${formData.is_permanent ? 'text-white' : 'text-gray-300'}`}>
                       {t('trainingPlan.permanentPlan', 'Plano de Formação Permanente')}
                     </span>
