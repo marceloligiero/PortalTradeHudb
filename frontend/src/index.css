@@ -415,6 +415,12 @@ html.dark body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ══ CineFadeIn — VideoAntesDepues lower third entrance ══════════════ */
+@keyframes cineFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ══ Shine — used in LandingNavbar register button ═══════════════════ */
 @keyframes shine {
   0% { transform: translateX(-100%); }
