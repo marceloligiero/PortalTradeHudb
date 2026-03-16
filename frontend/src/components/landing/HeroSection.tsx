@@ -52,7 +52,7 @@ const RIGHT_TEXTS = [
   'Reportes en tiempo real',
 ];
 
-const INTERVAL = 1.3;
+const INTERVAL = 1.4;
 
 // ── Film grain SVG (inline, no external request) ──────────────────────────────
 const GRAIN_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
@@ -98,9 +98,9 @@ export default function HeroSection() {
     };
   }, [showVideo]);
 
-  const activeLeft  = Math.min(LEFT_TEXTS.length  - 1, Math.floor(Math.max(0, time - 0.5) / INTERVAL));
-  const activeRight = Math.min(RIGHT_TEXTS.length - 1, Math.floor(Math.max(0, time - 0.8) / INTERVAL));
-  const showTexts   = showVideo && isLoaded && time >= 0.5 && time < 7.5;
+  const activeLeft  = Math.min(LEFT_TEXTS.length  - 1, Math.floor(Math.max(0, time - 0.3) / INTERVAL));
+  const activeRight = Math.min(RIGHT_TEXTS.length - 1, Math.floor(Math.max(0, time - 0.6) / INTERVAL));
+  const showTexts   = showVideo && isLoaded && time >= 0.3 && time < 7.5;
   const showEffects = showVideo && isLoaded;
 
   return (
@@ -207,65 +207,86 @@ export default function HeroSection() {
         </div>
       )}
 
-      {/* ── CAMADA 8 — Labels topo "Sin sistema" / "Con TradeDataHub" ── */}
-      {showEffects && (
-        <div className="absolute left-0 right-0 flex pointer-events-none z-[6]" style={{ top: '88px' }}>
-          <div className="w-1/2 flex justify-center">
-            <span
-              className="text-[10px] sm:text-xs uppercase tracking-[0.25em] font-body text-white/55 px-3 py-1 rounded-full border border-white/10 backdrop-blur-sm bg-black/20"
-              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}
-            >
-              Sin sistema
-            </span>
-          </div>
-          <div className="w-1/2 flex justify-center">
-            <span
-              className="text-[10px] sm:text-xs uppercase tracking-[0.25em] font-body text-white/55 px-3 py-1 rounded-full border border-white/10 backdrop-blur-sm bg-black/20"
-              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}
-            >
-              Con TradeDataHub
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* ── CAMADA 9 — Lower thirds cinematográficos ─────────────────── */}
+      {/* ── CAMADA 8 — Pensamentos das personagens (glassmorphism) ─────── */}
       {showTexts && (
-        <div className="absolute inset-x-0 bottom-0 z-[7] flex pointer-events-none" style={{ paddingBottom: '8%' }}>
+        <div className="absolute inset-0 pointer-events-none z-[6]">
 
-          {/* Esquerda — problema */}
-          <div className="w-1/2 flex flex-col justify-end pl-[4%]">
-            <span
-              className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] font-body text-white/45 mb-1.5"
-              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}
+          {/* ESQUERDA — mulher stressada */}
+          <div className="absolute w-[44%] left-[3%]" style={{ top: '10%' }}>
+            <div className="mb-3">
+              <span
+                className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] font-body text-white/40"
+                style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+              >
+                Sin sistema
+              </span>
+            </div>
+            <div
+              key={`thought-L-${activeLeft}`}
+              className="relative animate-[thoughtBubbleLeft_0.7s_ease_forwards]"
             >
-              Sin sistema
-            </span>
-            <p
-              key={`left-${activeLeft}`}
-              className="text-xs sm:text-sm md:text-base font-body font-semibold text-white/[0.88] max-w-[85%] leading-snug animate-[cineFadeIn_0.5s_ease_forwards]"
-              style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7), 0 0 24px rgba(0,0,0,0.4)' }}
-            >
-              {LEFT_TEXTS[activeLeft]}
-            </p>
+              {/* Conectores — 3 pontos descendentes */}
+              <div className="absolute -bottom-5 left-[18%] flex flex-col items-center gap-1 opacity-35">
+                <div className="w-1 h-1 rounded-full bg-white/60" />
+                <div className="w-1.5 h-1.5 rounded-full bg-white/40" />
+                <div className="w-2 h-2 rounded-full bg-white/25" />
+              </div>
+              {/* Bolha glassmorphism */}
+              <div
+                className="relative bg-white/[0.08] backdrop-blur-md border border-white/[0.12] rounded-2xl rounded-bl-sm px-3 py-2.5 sm:px-4 sm:py-3 max-w-[90%] animate-[thoughtFloat_3.5s_ease-in-out_infinite_0.7s]"
+                style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)' }}
+              >
+                <p
+                  className="text-xs sm:text-sm font-body font-medium text-red-300/90 leading-relaxed"
+                  style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}
+                >
+                  {LEFT_TEXTS[activeLeft]}
+                </p>
+                <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500/20 border border-red-400/30 flex items-center justify-center animate-pulse">
+                  <span className="text-[10px] text-red-300">!</span>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Direita — solução */}
-          <div className="w-1/2 flex flex-col justify-end pr-[4%] items-end text-right">
-            <span
-              className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] font-body text-white/45 mb-1.5"
-              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}
+          {/* DIREITA — mulher confiante */}
+          <div className="absolute w-[44%] right-[3%] flex flex-col items-end" style={{ top: '10%' }}>
+            <div className="mb-3">
+              <span
+                className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] font-body text-white/40"
+                style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+              >
+                Con TradeDataHub
+              </span>
+            </div>
+            <div
+              key={`thought-R-${activeRight}`}
+              className="relative animate-[thoughtBubbleRight_0.7s_ease_forwards] flex flex-col items-end"
             >
-              Con TradeDataHub
-            </span>
-            <p
-              key={`right-${activeRight}`}
-              className="text-xs sm:text-sm md:text-base font-body font-semibold text-white/[0.88] max-w-[85%] leading-snug animate-[cineFadeIn_0.5s_ease_forwards]"
-              style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 0 24px rgba(0,0,0,0.3)' }}
-            >
-              {RIGHT_TEXTS[activeRight]}
-            </p>
+              {/* Conectores */}
+              <div className="absolute -bottom-5 right-[18%] flex flex-col items-center gap-1 opacity-35">
+                <div className="w-1 h-1 rounded-full bg-white/60" />
+                <div className="w-1.5 h-1.5 rounded-full bg-white/40" />
+                <div className="w-2 h-2 rounded-full bg-white/25" />
+              </div>
+              {/* Bolha glassmorphism */}
+              <div
+                className="relative bg-white/[0.08] backdrop-blur-md border border-white/[0.12] rounded-2xl rounded-br-sm px-3 py-2.5 sm:px-4 sm:py-3 max-w-[90%] animate-[thoughtFloat_3.5s_ease-in-out_infinite_0.7s]"
+                style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)' }}
+              >
+                <p
+                  className="text-xs sm:text-sm font-body font-medium text-green-300/90 leading-relaxed text-right"
+                  style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}
+                >
+                  {RIGHT_TEXTS[activeRight]}
+                </p>
+                <div className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-green-500/20 border border-green-400/30 flex items-center justify-center">
+                  <span className="text-[10px] text-green-300">✓</span>
+                </div>
+              </div>
+            </div>
           </div>
+
         </div>
       )}
 
