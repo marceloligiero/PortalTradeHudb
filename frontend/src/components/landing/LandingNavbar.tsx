@@ -55,6 +55,7 @@ export default function LandingNavbar() {
               src="/logo-sds.png"
               alt="TradeDataHub"
               className="h-8 w-auto transition-all duration-300 hover:drop-shadow-[0_0_12px_rgba(236,0,0,0.25)] hover:scale-[1.03]"
+              style={{ filter: theme === 'dark' ? 'none' : 'brightness(0)' }}
             />
             <span className="font-logo font-bold text-[#111827] dark:text-white text-base tracking-tight">
               TradeDataHub
@@ -160,6 +161,7 @@ export default function LandingNavbar() {
                 src="/logo-sds.png"
                 alt="TradeDataHub"
                 className="h-8 w-auto"
+                style={{ filter: theme === 'dark' ? 'none' : 'brightness(0)' }}
               />
               <span className="font-logo font-bold text-[#111827] dark:text-white text-base">TradeDataHub</span>
             </div>
