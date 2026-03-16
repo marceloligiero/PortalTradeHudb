@@ -58,22 +58,22 @@ export default function HowItWorks() {
             </p>
             <div className="flex items-center gap-3">
               <Link
-                to="/login"
+                to="/register"
                 className="font-body font-semibold text-sm px-5 py-2.5 rounded-lg text-white transition-colors duration-200"
                 style={{ background: '#EC0000' }}
                 onMouseEnter={e => (e.currentTarget.style.background = '#B80000')}
                 onMouseLeave={e => (e.currentTarget.style.background = '#EC0000')}
               >
-                {t('landing.howItWorks.cta')}
+                {t('landing.navbar.register')}
               </Link>
-              <a
-                href="#funcionalidades"
+              <Link
+                to="/login"
                 className="font-body font-semibold text-sm px-5 py-2.5 rounded-lg border border-gray-200 dark:border-white/20 text-[#111827] dark:text-white transition-colors duration-200 hover:text-[#EC0000] dark:hover:text-[#EC0000]"
                 onMouseEnter={e => (e.currentTarget.style.borderColor = '#EC0000')}
                 onMouseLeave={e => (e.currentTarget.style.borderColor = '')}
               >
-                {t('landing.howItWorks.ctaSecondary')}
-              </a>
+                {t('landing.navbar.login')}
+              </Link>
             </div>
           </div>
 
