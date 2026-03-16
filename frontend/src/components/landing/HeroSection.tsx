@@ -212,7 +212,7 @@ export default function HeroSection() {
         <div className="absolute inset-0 pointer-events-none z-[6]">
 
           {/* ESQUERDA — mulher stressada */}
-          <div className="absolute w-[44%] left-[3%]" style={{ top: '10%' }}>
+          <div className="absolute w-[44%] left-[3%] flex flex-col items-start" style={{ top: '10%' }}>
             <div className="mb-3">
               <span
                 className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] font-body text-white/40"
@@ -223,7 +223,7 @@ export default function HeroSection() {
             </div>
             <div
               key={`thought-L-${activeLeft}`}
-              className="relative animate-[thoughtBubbleLeft_0.7s_ease_forwards]"
+              className="relative animate-[thoughtBubbleLeft_0.7s_ease_forwards] flex flex-col items-start"
             >
               {/* Conectores — 3 pontos descendentes */}
               <div className="absolute -bottom-5 left-[18%] flex flex-col items-center gap-1 opacity-35">
