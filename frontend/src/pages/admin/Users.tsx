@@ -158,10 +158,11 @@ const UserDetailsContent = ({ user, onClose, t }: { user: UserDetails | null; on
 
   const getRoleLabel = (role: string) => {
     switch (role) {
-      case 'ADMIN': return t('usersPage.admin');
-      case 'TRAINER': return t('usersPage.trainer');
-      case 'MANAGER': return t('usersPage.teamLeader');
-      default: return t('usersPage.student');
+      case 'ADMIN':    return t('usersPage.admin');
+      case 'TRAINER':  return t('usersPage.trainer');
+      case 'MANAGER':  return t('usersPage.teamLeader');
+      case 'TRAINEE':  return t('usersPage.trainee');
+      default:         return t('usersPage.student');
     }
   };
 

@@ -960,9 +960,10 @@
   "usersPage": {
     "loading": "Loading...",
     "admin": "Administrator",
-    "trainer": "Trainer",
-    "student": "Student",
-    "teamLeader": "Team Leader",
+    "trainer": "Liberator / Trainer",
+    "trainee": "Recorder (Trainee)",
+    "student": "Recorder",
+    "teamLeader": "Coordinator",
     "pending": "Pending",
     "active": "Active",
     "inactive": "Inactive",
