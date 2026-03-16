@@ -1,22 +1,52 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getLandingImage } from '../../utils/landingImages';
 import ImagePlaceholder from '../ImagePlaceholder';
 
-// Vídeo de background — se não existir, fallback para bg branco
-const _videos = import.meta.glob(
-  '/src/assets/video/*',
-  { eager: true, import: 'default' }
-) as Record<string, string>;
+// ── Hooks ────────────────────────────────────────────────────────────────────
 
-function getVideo(filename: string): string | null {
-  const key = Object.keys(_videos).find((k) => k.endsWith(`/${filename}`));
-  return key ? (_videos[key] ?? null) : null;
+function useIsMobile(): boolean {
+  const [mobile, setMobile] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia('(max-width: 768px)').matches
+      : false
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const handler = (e: MediaQueryListEvent) => setMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return mobile;
 }
+
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return reduced;
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function HeroSection() {
   const contentRef = useRef<HTMLDivElement>(null);
-  const heroSrc   = getLandingImage('hero-dashboard.png');
-  const videoSrc  = getVideo('hero-bg.mp4');
+  const [videoError, setVideoError] = useState(false);
+
+  const isMobile          = useIsMobile();
+  const prefersReduced    = usePrefersReducedMotion();
+  const heroSrc           = getLandingImage('hero-dashboard.png');
+  const posterSrc         = getLandingImage('hero-bg-poster.jpg') ?? getLandingImage('hero-dashboard.png');
+
+  // Show video only when: desktop, no reduced motion, no load error
+  const showVideo = !isMobile && !prefersReduced && !videoError;
 
   useEffect(() => {
     const el = contentRef.current;
@@ -30,34 +60,53 @@ export default function HeroSection() {
 
   return (
     <section
-      className="relative overflow-hidden bg-white"
-      style={{ paddingTop: '96px' }}
+      className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-white"
+      style={{ paddingTop: '80px' }}
     >
-      {/* ── Vídeo de background (só carrega se o ficheiro existir) ── */}
-      {videoSrc && (
-        <>
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-            style={{ filter: 'brightness(0.9) saturate(0.8)' }}
-          >
-            <source src={videoSrc} type="video/mp4" />
-          </video>
-          {/* Overlay branco para manter legibilidade do texto */}
-          <div className="absolute inset-0 bg-white/80 pointer-events-none" />
-        </>
+      {/* CAMADA 1 — Vídeo de background */}
+      {showVideo && (
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          poster={posterSrc ?? undefined}
+          onError={() => setVideoError(true)}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          aria-hidden="true"
+        >
+          <source src="/video/hero-bg.mp4" type="video/mp4" />
+          <source src="/video/hero-bg.webm" type="video/webm" />
+        </video>
       )}
 
-      {/* ── Conteúdo ── */}
+      {/* Poster estático (mobile / reduced-motion / sem vídeo) */}
+      {!showVideo && posterSrc && (
+        <img
+          src={posterSrc}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none opacity-20"
+        />
+      )}
+
+      {/* CAMADA 2 — Overlay branco com blur para legibilidade */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: showVideo ? 'blur(2px)' : 'none' }}
+      />
+
+      {/* CAMADA 3 — Gradiente fade inferior */}
+      <div
+        className="absolute inset-x-0 bottom-0 pointer-events-none"
+        style={{ height: '200px', background: 'linear-gradient(to bottom, transparent, rgba(248,249,251,0.95))' }}
+      />
+
+      {/* CAMADA 4 — Conteúdo */}
       <div
         ref={contentRef}
-        className="relative z-10 max-w-5xl mx-auto px-6 text-center"
+        className="relative z-10 w-full max-w-5xl mx-auto px-6 text-center py-20"
         style={{
-          paddingTop: '72px',
-          paddingBottom: '64px',
           opacity: 0,
           transform: 'translateY(24px)',
           transition: 'opacity 0.7s ease, transform 0.7s ease',
@@ -117,7 +166,7 @@ export default function HeroSection() {
           </a>
         </div>
 
-        {/* Product visual (dashboard) */}
+        {/* Product dashboard image */}
         <div
           className="relative rounded-2xl overflow-hidden mx-auto"
           style={{ maxWidth: '900px', boxShadow: '0 24px 80px rgba(0,0,0,0.12)', border: '1px solid #E5E7EB' }}
@@ -143,12 +192,6 @@ export default function HeroSection() {
           />
         </div>
       </div>
-
-      {/* Gradient to next section */}
-      <div
-        className="relative z-10"
-        style={{ height: '60px', background: 'linear-gradient(to bottom, #fff, #F8F9FB)' }}
-      />
     </section>
   );
 }

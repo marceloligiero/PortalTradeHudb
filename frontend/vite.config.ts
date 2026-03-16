@@ -31,6 +31,8 @@ export default defineConfig(({ mode }) => {
       // Pre-compress assets at build time (saves CPU at runtime)
       viteCompression({ algorithm: 'gzip', ext: '.gz', threshold: 1024 }),
     ],
+    // Allows direct `import heroVideo from '@/assets/video/hero-bg.mp4'`
+    assetsInclude: ['**/*.mp4', '**/*.webm'],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
