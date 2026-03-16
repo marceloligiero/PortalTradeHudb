@@ -215,10 +215,10 @@
   "overview": {
     "title": "Overview",
     "subtitle": "KPIs cruzados dos portais de Formações e Tutoria",
-    "roleAdmin": "Visão global — todos os dados",
-    "roleManager": "Dados da sua equipa",
-    "roleTrainer": "Dados dos seus tutorados",
-    "roleStudent": "Os seus dados",
+    "roleAdmin": "Administrador — visão global",
+    "roleManager": "Coordenador — dados da sua equipa",
+    "roleTrainer": "Liberador / Formador — dados dos seus gravadores",
+    "roleStudent": "Gravador — os seus dados",
     "users": "Utilizadores",
     "teams": "equipas",
     "trainingPlans": "Planos de Formação",
@@ -237,10 +237,11 @@
   },
   "roles": {
     "ADMIN": "Administrador",
-    "TRAINER": "Formador",
-    "TRAINEE": "Formando",
-    "STUDENT": "Formando",
-    "trainer": "Formador"
+    "TRAINER": "Liberador / Formador",
+    "TRAINEE": "Gravador em Formação",
+    "STUDENT": "Gravador",
+    "MANAGER": "Coordenador",
+    "trainer": "Liberador / Formador"
   },
   "dashboard": {
     "student": {
@@ -1186,9 +1187,9 @@
   "usersPage": {
     "loading": "A carregar...",
     "admin": "Administrador",
-    "trainer": "Formador",
-    "student": "Formando",
-    "teamLeader": "Chefe de Equipa",
+    "trainer": "Liberador / Formador",
+    "student": "Gravador",
+    "teamLeader": "Coordenador",
     "pending": "Pendente",
     "active": "Ativo",
     "inactive": "Inativo",
@@ -2230,8 +2231,8 @@
     "noActivity": "Sem actividade",
     "noOrigin": "Sem origem",
     "allRoles": "Todos",
-    "roleTraineeOption": "Formando",
-    "roleTrainerOption": "Formador",
+    "roleTraineeOption": "Gravador em Formação",
+    "roleTrainerOption": "Liberador / Formador",
     "namePlaceholder": "Nome…",
     "descriptionOptionalPlaceholder": "Descrição (opcional)…",
     "teamMembers": "Membros da Equipa",
@@ -2256,10 +2257,10 @@
   },
   "tutoriaDetail": {
     "severity": {
-      "BAIXA": "Baixa",
-      "MEDIA": "Média",
-      "ALTA": "Alta",
-      "CRITICA": "Crítica"
+      "BAIXA": "Tutoria — Baixa",
+      "MEDIA": "Tutoria — Média",
+      "ALTA": "Tutoria — Alta",
+      "CRITICA": "Incidência"
     },
     "status": {
       "ABERTO": "Aberto",
@@ -3203,12 +3204,12 @@
   "chamados": {
     "pageTitle": "Portal de Chamados · Trade Data Hub",
     "title": "Quadro de Chamados",
-    "subtitle": "Gestão de bugs e melhorias dos portais",
+    "subtitle": "Suporte interno da operação — abra, acompanhe e resolva sem e-mails perdidos",
     "newTicket": "Novo Chamado",
     "allPortals": "Todos os Portais",
     "allTypes": "Todos os Tipos",
-    "typeBug": "Bug",
-    "typeImprovement": "Melhoria",
+    "typeBug": "Problema / Incidente",
+    "typeImprovement": "Pedido / Melhoria",
     "status_ABERTO": "Aberto",
     "status_EM_ANDAMENTO": "Em Andamento",
     "status_EM_REVISAO": "Em Revisão",
@@ -3246,8 +3247,8 @@
     "priorityLabel": "Prioridade",
     "portalLabel": "Portal",
     "createBtn": "Criar Chamado",
-    "typeBugDesc": "Algo não está a funcionar como esperado",
-    "typeImprovementDesc": "Sugestão de nova funcionalidade ou melhoria",
+    "typeBugDesc": "Sistema, acesso, procedimento ou equipamento com problema",
+    "typeImprovementDesc": "Pedido de acesso, nova funcionalidade ou melhoria operacional",
     "wizardStep": "Passo {{step}} de {{total}}",
     "wizardStep1Title": "Classificação",
     "wizardStep2Title": "Detalhes",

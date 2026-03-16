@@ -1077,8 +1077,8 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
                     <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('masterData.allRoles')}</option>
                     <option value="TRAINEE" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('masterData.roleTraineeOption')}</option>
                     <option value="TRAINER" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('masterData.roleTrainerOption')}</option>
-                    <option value="ADMIN" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>Admin</option>
-                    <option value="MANAGER" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>Manager</option>
+                    <option value="ADMIN" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>Administrador</option>
+                    <option value="MANAGER" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>Coordenador</option>
                   </select>
                 </Field>
                 <Field label={t('masterData.priority')}>

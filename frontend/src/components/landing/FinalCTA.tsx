@@ -1,107 +1,69 @@
-import { useRef } from 'react';
-import { motion, useMotionValue, useSpring } from 'framer-motion';
-import { useInView } from '../../hooks/useInView';
-
-const container = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.2, delayChildren: 0.1 } },
-};
-
-const child = {
-  hidden:  { opacity: 0, y: 40 },
-  visible: {
-    opacity: 1, y: 0,
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
-  },
-};
-
-function MagneticButton({ href, className, children }: { href: string; className: string; children: React.ReactNode }) {
-  const prefersReduced = typeof window !== 'undefined'
-    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    : false;
-
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const springX = useSpring(x, { stiffness: 300, damping: 20 });
-  const springY = useSpring(y, { stiffness: 300, damping: 20 });
-  const ref = useRef<HTMLAnchorElement>(null);
-
-  const handleMouse = (e: React.MouseEvent) => {
-    if (prefersReduced || !ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    x.set((e.clientX - (rect.left + rect.width  / 2)) * 0.15);
-    y.set((e.clientY - (rect.top  + rect.height / 2)) * 0.15);
-  };
-
-  return (
-    <motion.a
-      ref={ref}
-      href={href}
-      style={{ x: springX, y: springY }}
-      onMouseMove={handleMouse}
-      onMouseLeave={() => { x.set(0); y.set(0); }}
-      className={className}
-    >
-      {children}
-    </motion.a>
-  );
-}
+import { useState, useEffect, useRef } from 'react';
 
 export default function FinalCTA() {
-  const { ref, isInView } = useInView();
+  const [visible, setVisible] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) setVisible(true); },
+      { threshold: 0.15 }
+    );
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <section
-      ref={ref}
-      className="relative bg-black overflow-hidden"
-      style={{ paddingTop: '200px', paddingBottom: '200px' }}
-    >
-      {/* Subtle radial glow */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse at center, rgba(236,0,0,0.07) 0%, transparent 60%)',
-        }}
-      />
-
-      <motion.div
-        variants={container}
-        initial="hidden"
-        animate={isInView ? 'visible' : 'hidden'}
-        className="relative z-10 max-w-5xl mx-auto px-6 text-center"
-      >
-        <motion.h2
-          variants={child}
-          className="font-headline font-bold text-white leading-[1.0] mb-8"
-          style={{ fontSize: 'clamp(3rem, 8vw, 6rem)' }}
+    <section ref={sectionRef} className="bg-white" style={{ padding: '80px 24px' }}>
+      <div className="max-w-5xl mx-auto">
+        <div
+          className="rounded-2xl text-center relative overflow-hidden"
+          style={{
+            background: '#EC0000',
+            padding: '80px 40px',
+            opacity: visible ? 1 : 0,
+            transform: visible ? 'translateY(0)' : 'translateY(20px)',
+            transition: 'opacity 0.6s ease, transform 0.6s ease',
+          }}
         >
-          Pronto para o
-          <br />
-          que vem a seguir?
-        </motion.h2>
+          {/* Grid pattern overlay */}
+          <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.08 }} aria-hidden>
+            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="cta-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#cta-grid)" />
+            </svg>
+          </div>
 
-        <motion.p
-          variants={child}
-          className="font-body text-[#444] text-base mb-14 max-w-md mx-auto leading-relaxed"
-        >
-          O TradeDataHub transforma cada erro numa equipa melhor.
-        </motion.p>
-
-        <motion.div variants={child} className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <MagneticButton
-            href="/login"
-            className="bg-santander-500 hover:bg-santander-400 text-white font-body font-bold uppercase tracking-wide text-sm px-8 py-4 rounded-full transition-all duration-300 shadow-[0_0_40px_rgba(236,0,0,0.25)] hover:shadow-[0_0_60px_rgba(236,0,0,0.5)]"
-          >
-            Acessar Plataforma →
-          </MagneticButton>
-          <a
-            href="#funcionalidades"
-            className="border border-white/[0.12] text-[#555] hover:text-white hover:border-white/25 font-body text-sm px-8 py-4 rounded-full transition-all duration-300"
-          >
-            Explorar Módulos
-          </a>
-        </motion.div>
-      </motion.div>
+          <div className="relative">
+            <h2
+              className="font-headline font-bold text-white leading-[1.15] mb-4"
+              style={{ fontSize: 'clamp(1.875rem, 4vw, 2.75rem)' }}
+            >
+              Dados de qualidade em horas, não em meses.
+            </h2>
+            <p
+              className="font-body mx-auto mb-8"
+              style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.85)', maxWidth: '520px' }}
+            >
+              Junte-se às equipas que já usam o TradeDataHub para tornar a qualidade operacional
+              proactiva, automatizada e partilhada.
+            </p>
+            <a
+              href="/login"
+              className="inline-flex font-body font-semibold px-8 py-3 rounded-lg transition-colors duration-200"
+              style={{ background: '#fff', color: '#EC0000' }}
+              onMouseEnter={e => (e.currentTarget.style.background = '#f1f1f1')}
+              onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+            >
+              Agendar Demo
+            </a>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

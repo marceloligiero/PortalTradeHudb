@@ -1,91 +1,106 @@
-import { motion } from 'framer-motion';
-
-const container = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.2, delayChildren: 0.1 } },
-};
-
-const child = {
-  hidden:  { opacity: 0, y: 40 },
-  visible: {
-    opacity: 1, y: 0,
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
-  },
-};
+import { useEffect, useRef } from 'react';
 
 export default function HeroSection() {
-  return (
-    <section className="relative min-h-screen flex items-center justify-center bg-black overflow-hidden">
-      {/* Radial glow */}
-      <div
-        className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse at center top, rgba(236,0,0,0.1) 0%, transparent 70%)',
-        }}
-      />
+  const contentRef = useRef<HTMLDivElement>(null);
 
-      <motion.div
-        variants={container}
-        initial="hidden"
-        animate="visible"
-        className="relative z-10 text-center px-6 max-w-6xl mx-auto"
-        style={{ paddingTop: '160px', paddingBottom: '120px' }}
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el) return;
+    const t = setTimeout(() => {
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+    }, 80);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <section className="bg-white" style={{ paddingTop: '96px' }}>
+      <div
+        ref={contentRef}
+        className="max-w-5xl mx-auto px-6 text-center"
+        style={{
+          paddingTop: '72px',
+          paddingBottom: '64px',
+          opacity: 0,
+          transform: 'translateY(24px)',
+          transition: 'opacity 0.7s ease, transform 0.7s ease',
+        }}
       >
         {/* Badge */}
-        <motion.div variants={child}>
-          <span className="inline-flex items-center gap-2 border border-white/[0.08] text-[#666] text-xs font-body uppercase tracking-[0.2em] rounded-full px-5 py-2 mb-12">
-            <span className="w-1.5 h-1.5 rounded-full bg-santander-500 animate-pulse" />
-            5 portais integrados · 3 idiomas
+        <div
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8"
+          style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}
+        >
+          <span
+            className="w-1.5 h-1.5 rounded-full animate-pulse"
+            style={{ background: '#EC0000' }}
+          />
+          <span className="font-body text-xs font-semibold uppercase tracking-widest" style={{ color: '#EC0000' }}>
+            Plataforma Operacional Interna · 5 Portais · 3 Idiomas
           </span>
-        </motion.div>
+        </div>
 
         {/* H1 */}
-        <motion.h1
-          variants={child}
-          className="font-headline font-bold text-white leading-[1.0] mb-6"
-          style={{ fontSize: 'clamp(3rem, 8vw, 6rem)' }}
+        <h1
+          className="font-headline font-bold text-[#111827] leading-[1.1] mb-6"
+          style={{ fontSize: 'clamp(2.25rem, 5vw, 3.5rem)', maxWidth: '800px', margin: '0 auto 24px' }}
         >
-          Cada erro que passa
-          <br />
-          custa caro.
-        </motion.h1>
-
-        <motion.p
-          variants={child}
-          className="font-headline font-bold text-santander-500 leading-[1.0] mb-12"
-          style={{ fontSize: 'clamp(1.75rem, 4vw, 3rem)' }}
-        >
-          Cada erro que se repete
-          <br />
-          custa mais.
-        </motion.p>
+          Corrija problemas de qualidade antes que se tornem problemas de negócio.
+        </h1>
 
         {/* Subtitle */}
-        <motion.p
-          variants={child}
-          className="font-body text-[#666] max-w-[580px] mx-auto mb-16 leading-relaxed"
-          style={{ fontSize: 'clamp(1rem, 1.5vw, 1.2rem)' }}
+        <p
+          className="font-body text-[#6B7280] leading-relaxed mx-auto mb-10"
+          style={{ fontSize: '1.125rem', maxWidth: '660px' }}
         >
-          A plataforma que transforma erros em aprendizagem, formação em resultado e dados
-          em decisões. Do gravador ao liberador — tudo num só lugar.
-        </motion.p>
+          O TradeDataHub substitui o combate reactivo a erros por gestão proactiva e automatizada
+          da qualidade operacional. Gravadores, liberadores e gestores trabalham juntos numa única
+          plataforma. Proteja os seus clientes, melhore os seus processos.
+        </p>
 
         {/* CTAs */}
-        <motion.div variants={child} className="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
           <a
             href="/login"
-            className="bg-santander-500 hover:bg-santander-400 text-white font-body font-bold uppercase tracking-wide text-sm px-8 py-4 rounded-full transition-all duration-300 shadow-[0_0_40px_rgba(236,0,0,0.25)] hover:shadow-[0_0_60px_rgba(236,0,0,0.5)]"
+            className="font-body font-semibold px-7 py-3 rounded-lg text-white transition-colors duration-200"
+            style={{ background: '#EC0000', fontSize: '0.9375rem' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#B80000')}
+            onMouseLeave={e => (e.currentTarget.style.background = '#EC0000')}
           >
-            Começar Agora →
+            Agendar Demo
           </a>
           <a
             href="#como-funciona"
-            className="border border-white/[0.12] text-[#999] hover:text-white hover:border-white/25 font-body text-sm px-8 py-4 rounded-full transition-all duration-300"
+            className="font-body font-semibold px-7 py-3 rounded-lg border transition-colors duration-200 text-[#111827] hover:text-[#EC0000]"
+            style={{ borderColor: '#E5E7EB', fontSize: '0.9375rem' }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = '#EC0000')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = '#E5E7EB')}
           >
-            Ver Como Funciona
+            Tour do Produto
           </a>
-        </motion.div>
-      </motion.div>
+        </div>
+
+        {/* Product visual */}
+        <div
+          className="relative rounded-2xl overflow-hidden mx-auto"
+          style={{ maxWidth: '900px', boxShadow: '0 24px 80px rgba(0,0,0,0.12)', border: '1px solid #E5E7EB' }}
+        >
+          <img
+            src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1400&q=80"
+            alt="Dashboard analítico do TradeDataHub"
+            loading="lazy"
+            className="w-full object-cover"
+            style={{ aspectRatio: '16/9' }}
+          />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'linear-gradient(to bottom, transparent 50%, rgba(248,249,251,0.6))' }}
+          />
+        </div>
+      </div>
+
+      {/* Gradient to next section */}
+      <div style={{ height: '60px', background: 'linear-gradient(to bottom, #fff, #F8F9FB)' }} />
     </section>
   );
 }

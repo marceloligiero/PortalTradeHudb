@@ -237,10 +237,11 @@
   },
   "roles": {
     "ADMIN": "Administrator",
-    "TRAINER": "Trainer",
-    "TRAINEE": "Student",
-    "STUDENT": "Student",
-    "trainer": "Trainer"
+    "TRAINER": "Liberator / Trainer",
+    "TRAINEE": "Recorder (Trainee)",
+    "STUDENT": "Recorder",
+    "MANAGER": "Coordinator",
+    "trainer": "Liberator / Trainer"
   },
   "dashboard": {
     "student": {
@@ -2232,8 +2233,8 @@
     "noActivity": "No activity",
     "noOrigin": "No origin",
     "allRoles": "All",
-    "roleTraineeOption": "Trainee",
-    "roleTrainerOption": "Trainer",
+    "roleTraineeOption": "Recorder (Trainee)",
+    "roleTrainerOption": "Liberator / Trainer",
     "namePlaceholder": "Name…",
     "descriptionOptionalPlaceholder": "Description (optional)…",
     "teamMembers": "Team Members",
@@ -3209,8 +3210,8 @@
     "newTicket": "New Ticket",
     "allPortals": "All Portals",
     "allTypes": "All Types",
-    "typeBug": "Bug",
-    "typeImprovement": "Improvement",
+    "typeBug": "Problem / Incident",
+    "typeImprovement": "Request / Improvement",
     "status_ABERTO": "Open",
     "status_EM_ANDAMENTO": "In Progress",
     "status_EM_REVISAO": "In Review",

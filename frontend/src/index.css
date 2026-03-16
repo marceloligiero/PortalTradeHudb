@@ -399,7 +399,13 @@
   }
 }
 
-/* ══ Refract-style scroll reveal ══════════════════════════════════════ */
+/* ══ Tab fade-in animation (SolutionTabs) ═════════════════════════════ */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ══ Scroll reveal ════════════════════════════════════════════════════ */
 .reveal {
   opacity: 0;
   transform: translateY(40px);

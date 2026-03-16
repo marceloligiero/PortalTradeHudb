@@ -1,119 +1,140 @@
-import { useRef, useEffect } from 'react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { FileEdit, ShieldCheck, BookOpen, TrendingDown } from 'lucide-react';
-
-gsap.registerPlugin(ScrollTrigger);
+import { useState, useEffect, useRef } from 'react';
+import { Edit, ShieldCheck, BookOpen, TrendingUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const STEPS = [
   {
-    number: '01',
-    icon: FileEdit,
-    title: 'Gravação',
+    number: 1,
+    icon: Edit,
+    title: 'Gravar com Formação',
     description:
-      'As agências enviam pedidos. O gravador regista cada documento no sistema. As formações garantem que sabe exactamente como fazer.',
-    image: 'https://images.unsplash.com/photo-1551434678-e076c223a692?w=600&q=70',
-    imageAlt: 'Profissional a registar dados no computador',
+      'As agências enviam documentos. O gravador regista cada pedido no sistema. As formações garantem que sabe exactamente como fazer — desde o primeiro dia, com plano de treino personalizado.',
   },
   {
-    number: '02',
+    number: 2,
     icon: ShieldCheck,
-    title: 'Conferência',
+    title: 'Conferir com Registo',
     description:
-      'O liberador confere cada registo. Se encontra um erro, regista-o na tutoria. O gravador recebe um plano de acção para corrigir.',
-    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600&q=70',
-    imageAlt: 'Profissional a rever documento no ecrã',
+      'O liberador confere cada registo. Se encontra um erro, regista-o na tutoria com categoria e tipo (interno vs incidência). O gravador recebe notificação e plano de acção. Nada se perde.',
   },
   {
-    number: '03',
+    number: 3,
     icon: BookOpen,
-    title: 'Aprendizagem',
+    title: 'Aprender com os Erros',
     description:
-      'Cada erro vira uma ficha de aprendizagem. Cada padrão de erro gera uma nova formação. A equipa melhora continuamente.',
-    image: 'https://images.unsplash.com/photo-1531545514256-b1400bc00f31?w=600&q=70',
-    imageAlt: 'Formação corporativa em equipa',
+      'Cada erro gera ficha de aprendizagem. Cada padrão de erro alimenta novas formações. As incidências — erros que chegaram ao cliente — são documentadas e partilhadas com a equipa.',
   },
   {
-    number: '04',
-    icon: TrendingDown,
-    title: 'Resultado',
+    number: 4,
+    icon: TrendingUp,
+    title: 'Melhorar com Dados',
     description:
-      'Menos erros internos. Menos incidências no cliente. Mais eficiência operacional. Dados que provam a evolução.',
-    image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&q=70',
-    imageAlt: 'Dashboard com métricas e gráficos',
+      'Relatórios cruzam formações e erros. Mostram quem melhora, quem precisa de atenção, e se as formações estão a funcionar. Decisões baseadas em dados, não em intuição.',
   },
 ];
 
 export default function HowItWorks() {
+  const [visible, setVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const ctx = gsap.context(() => {
-      if (prefersReduced) {
-        gsap.set(['.flow-header', '.pipeline-card'], { opacity: 1, y: 0 });
-        return;
-      }
-      gsap.from('.flow-header', {
-        y: 60, opacity: 0, duration: 0.9, ease: 'power3.out',
-        scrollTrigger: { trigger: sectionRef.current, start: 'top 80%' },
-      });
-      gsap.from('.pipeline-card', {
-        y: 50, opacity: 0, duration: 0.7, stagger: 0.12, ease: 'power2.out',
-        scrollTrigger: { trigger: sectionRef.current, start: 'top 70%' },
-      });
-    }, sectionRef);
-    return () => ctx.revert();
+    const observer = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) setVisible(true); },
+      { threshold: 0.1 }
+    );
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
   }, []);
 
-  return (
-    <section id="como-funciona" ref={sectionRef} className="bg-black px-6" style={{ paddingTop: '160px', paddingBottom: '160px' }}>
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flow-header text-center mb-20">
-          <h2
-            className="font-headline font-bold text-white leading-[1.05] mb-4"
-            style={{ fontSize: 'clamp(2.25rem, 5vw, 4rem)' }}
-          >
-            O sistema que intercepta erros{' '}
-            <span className="text-santander-500">antes do cliente.</span>
-          </h2>
-          <p className="font-body text-[#555] text-lg max-w-xl mx-auto">
-            Integrado em cada etapa do processamento de documentos.
-          </p>
-        </div>
+  const reveal: React.CSSProperties = {
+    opacity: visible ? 1 : 0,
+    transform: visible ? 'translateY(0)' : 'translateY(20px)',
+    transition: 'opacity 0.6s ease, transform 0.6s ease',
+  };
 
-        {/* Cards grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {STEPS.map((step) => {
-            const Icon = step.icon;
-            return (
-              <div
-                key={step.title}
-                className="pipeline-card group relative bg-[#0A0A0A] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.12] hover:-translate-y-1 hover:bg-[#0F0F0F] transition-all duration-300 cursor-default"
+  return (
+    <section
+      id="como-funciona"
+      ref={sectionRef}
+      className="bg-white"
+      style={{ padding: '100px 24px' }}
+    >
+      <div className="max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16" style={reveal}>
+          {/* Left — sticky header + CTAs */}
+          <div className="lg:sticky lg:top-24 self-start">
+            <span
+              className="font-body text-xs font-bold uppercase tracking-widest"
+              style={{ color: '#EC0000' }}
+            >
+              Como Funciona
+            </span>
+            <h2
+              className="font-headline font-bold text-[#111827] leading-[1.15] mt-3 mb-4"
+              style={{ fontSize: 'clamp(1.875rem, 4vw, 2.75rem)' }}
+            >
+              O TradeDataHub integra contexto, automação e colaboração num ciclo contínuo de qualidade.
+            </h2>
+            <p className="font-body text-[#6B7280] mb-8" style={{ fontSize: '1rem' }}>
+              A plataforma aprende com os erros, mantém as regras certas e alerta as pessoas certas
+              antes que os problemas se espalhem.
+            </p>
+            <div className="flex items-center gap-3">
+              <Link
+                to="/login"
+                className="font-body font-semibold text-sm px-5 py-2.5 rounded-lg text-white transition-colors duration-200"
+                style={{ background: '#EC0000' }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#B80000')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#EC0000')}
               >
-                {/* Photo */}
-                <div className="relative h-48 overflow-hidden">
-                  <img
-                    src={step.image}
-                    alt={step.imageAlt}
-                    loading="lazy"
-                    className="w-full h-full object-cover grayscale opacity-40 group-hover:opacity-55 group-hover:grayscale-0 transition-all duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] via-[#0A0A0A]/50 to-transparent" />
-                  <div className="absolute bottom-3 left-4 flex items-center gap-2">
-                    <Icon className="w-4 h-4 text-santander-500" />
-                    <span className="font-body text-[#444] text-xs uppercase tracking-widest">{step.number}</span>
+                Ver o Produto
+              </Link>
+              <a
+                href="#funcionalidades"
+                className="font-body font-semibold text-sm px-5 py-2.5 rounded-lg border text-[#111827] transition-colors duration-200 hover:text-[#EC0000]"
+                style={{ borderColor: '#E5E7EB' }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = '#EC0000')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = '#E5E7EB')}
+              >
+                Tour do Produto
+              </a>
+            </div>
+          </div>
+
+          {/* Right — stepper */}
+          <div>
+            {STEPS.map((step, i) => {
+              const Icon = step.icon;
+              return (
+                <div key={step.number} className="flex gap-5">
+                  {/* Connector */}
+                  <div className="flex flex-col items-center shrink-0">
+                    <div
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-white font-headline font-bold text-sm shrink-0"
+                      style={{ background: '#EC0000' }}
+                    >
+                      {step.number}
+                    </div>
+                    {i < STEPS.length - 1 && (
+                      <div className="w-px grow mt-2 mb-2" style={{ background: '#E5E7EB' }} />
+                    )}
+                  </div>
+                  {/* Content */}
+                  <div style={{ paddingBottom: i < STEPS.length - 1 ? '32px' : 0 }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Icon className="w-4 h-4 shrink-0" style={{ color: '#EC0000' }} />
+                      <h3 className="font-headline font-bold text-[#111827] text-base">
+                        {step.title}
+                      </h3>
+                    </div>
+                    <p className="font-body text-[#6B7280] text-sm leading-relaxed">
+                      {step.description}
+                    </p>
                   </div>
                 </div>
-                {/* Text */}
-                <div className="p-6">
-                  <h3 className="font-headline font-bold text-white text-xl mb-3">{step.title}</h3>
-                  <p className="font-body text-[#555] text-sm leading-relaxed">{step.description}</p>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     </section>
