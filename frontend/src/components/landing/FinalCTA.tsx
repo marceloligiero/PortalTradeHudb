@@ -15,52 +15,159 @@ export default function FinalCTA() {
 
   return (
     <section ref={sectionRef} className="bg-white" style={{ padding: '80px 24px' }}>
+
+      {/* Keyframes inline */}
+      <style>{`
+        @keyframes patternDrift {
+          0%   { background-position: 0 0; }
+          100% { background-position: 60px 60px; }
+        }
+        @keyframes glowPulse {
+          0%, 100% { box-shadow: 0 0 20px rgba(255,255,255,0.10); }
+          50%       { box-shadow: 0 0 40px rgba(255,255,255,0.28); }
+        }
+        @keyframes floatGlow {
+          0%, 100% { transform: translateY(0); }
+          50%       { transform: translateY(-12px); }
+        }
+        .cta-pattern      { animation: patternDrift 20s linear infinite; }
+        .cta-btn-primary  { animation: glowPulse 3s ease-in-out infinite; }
+        .cta-glow-top     { animation: floatGlow 7s ease-in-out infinite; }
+        .cta-glow-bottom  { animation: floatGlow 9s ease-in-out infinite reverse; }
+      `}</style>
+
       <div className="max-w-5xl mx-auto">
         <div
-          className="rounded-2xl text-center relative overflow-hidden"
+          className="rounded-3xl text-center relative overflow-hidden"
           style={{
-            background: '#EC0000',
-            padding: '80px 40px',
+            padding: '96px 48px',
+            boxShadow: '0 32px 80px rgba(180,0,0,0.25)',
             opacity: visible ? 1 : 0,
-            transform: visible ? 'translateY(0)' : 'translateY(20px)',
-            transition: 'opacity 0.6s ease, transform 0.6s ease',
+            transform: visible ? 'translateY(0)' : 'translateY(28px)',
+            transition: 'opacity 0.7s ease, transform 0.7s ease',
           }}
         >
-          {/* Grid pattern overlay */}
-          <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.08 }} aria-hidden>
-            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <pattern id="cta-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="1" />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#cta-grid)" />
-            </svg>
-          </div>
+          {/* CAMADA 1 — Gradient diagonal */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(135deg, #EC0000 0%, #B80000 40%, #CC0000 70%, #EC0000 100%)',
+            }}
+          />
 
-          <div className="relative">
-            <h2
-              className="font-headline font-bold text-white leading-[1.15] mb-4"
-              style={{ fontSize: 'clamp(1.875rem, 4vw, 2.75rem)' }}
+          {/* CAMADA 2 — Pattern SVG animado */}
+          <div
+            className="cta-pattern absolute inset-0 opacity-[0.07]"
+            style={{
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            }}
+          />
+
+          {/* CAMADA 3 — Glow radial central */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'radial-gradient(ellipse at 50% 30%, rgba(255,255,255,0.15) 0%, transparent 60%)',
+            }}
+          />
+
+          {/* CAMADA 4 — Círculos decorativos flutuantes */}
+          <div
+            className="cta-glow-top absolute -top-24 -right-24 w-96 h-96 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%)' }}
+          />
+          <div
+            className="cta-glow-bottom absolute -bottom-20 -left-20 w-80 h-80 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%)' }}
+          />
+
+          {/* CAMADA 5 — Conteúdo */}
+          <div className="relative z-10 max-w-3xl mx-auto">
+
+            {/* Label pill */}
+            <span
+              className="inline-block px-4 py-1.5 mb-8 text-xs font-body font-bold uppercase tracking-[0.2em] rounded-full"
+              style={{
+                color: 'rgba(255,255,255,0.75)',
+                border: '1px solid rgba(255,255,255,0.25)',
+              }}
             >
-              Dados de qualidade em horas, não em meses.
+              Comece hoje
+            </span>
+
+            {/* Título */}
+            <h2
+              className="font-headline font-bold text-white leading-[1.1] mb-6"
+              style={{ fontSize: 'clamp(2rem, 4.5vw, 3.25rem)' }}
+            >
+              Dados de qualidade em horas,
+              <br />
+              <span style={{ color: 'rgba(255,255,255,0.88)' }}>não em meses.</span>
             </h2>
+
+            {/* Subtítulo */}
             <p
-              className="font-body mx-auto mb-8"
-              style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.85)', maxWidth: '520px' }}
+              className="font-body leading-relaxed mx-auto mb-10"
+              style={{ fontSize: '1.0625rem', color: 'rgba(255,255,255,0.72)', maxWidth: '520px' }}
             >
               Junte-se às equipas que já usam o TradeDataHub para tornar a qualidade operacional
               proactiva, automatizada e partilhada.
             </p>
-            <a
-              href="/login"
-              className="inline-flex font-body font-semibold px-8 py-3 rounded-lg transition-colors duration-200"
-              style={{ background: '#fff', color: '#EC0000' }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#f1f1f1')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+
+            {/* Botões */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+
+              {/* Primário — branco com seta */}
+              <a
+                href="/login"
+                className="cta-btn-primary group inline-flex items-center gap-2 font-body font-bold text-sm uppercase tracking-wider rounded-lg transition-all duration-300 hover:scale-[1.04]"
+                style={{
+                  background: '#fff',
+                  color: '#EC0000',
+                  padding: '14px 32px',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#f5f5f5')}
+                onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+              >
+                Agendar Demo
+                <svg
+                  className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1"
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+
+              {/* Secundário — outline branco */}
+              <a
+                href="#como-funciona"
+                className="inline-flex items-center gap-2 font-body font-bold text-sm uppercase tracking-wider rounded-lg transition-all duration-300"
+                style={{
+                  color: '#fff',
+                  border: '1px solid rgba(255,255,255,0.35)',
+                  padding: '14px 32px',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.10)';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.55)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)';
+                }}
+              >
+                Explorar Módulos
+              </a>
+            </div>
+
+            {/* Texto de confiança */}
+            <p
+              className="mt-8 font-body tracking-wide"
+              style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.40)' }}
             >
-              Agendar Demo
-            </a>
+              Sem compromisso · Configuração em minutos · Suporte dedicado
+            </p>
+
           </div>
         </div>
       </div>
