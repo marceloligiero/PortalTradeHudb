@@ -212,7 +212,7 @@ export default function HeroSection() {
         <div className="absolute inset-0 pointer-events-none z-[6]">
 
           {/* ESQUERDA — mulher stressada */}
-          <div className="absolute w-[44%] left-[3%] flex flex-col items-start" style={{ top: '10%' }}>
+          <div className="absolute w-[48%] left-[2%]" style={{ top: '10%' }}>
             <div className="mb-3">
               <span
                 className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] font-body text-white/40"
@@ -223,7 +223,7 @@ export default function HeroSection() {
             </div>
             <div
               key={`thought-L-${activeLeft}`}
-              className="relative animate-[thoughtBubbleLeft_0.7s_ease_forwards] flex flex-col items-start"
+              className="relative animate-[thoughtBubbleLeft_0.7s_ease_forwards]"
             >
               {/* Conectores — 3 pontos descendentes */}
               <div className="absolute -bottom-5 left-[18%] flex flex-col items-center gap-1 opacity-35">
@@ -233,7 +233,7 @@ export default function HeroSection() {
               </div>
               {/* Bolha glassmorphism */}
               <div
-                className="relative bg-white/[0.08] backdrop-blur-md border border-white/[0.12] rounded-2xl rounded-bl-sm px-3 py-2.5 sm:px-4 sm:py-3 max-w-[90%] animate-[thoughtFloat_3.5s_ease-in-out_infinite_0.7s]"
+                className="relative w-full bg-white/[0.08] backdrop-blur-md border border-white/[0.12] rounded-2xl rounded-bl-sm px-3 py-2.5 sm:px-4 sm:py-3 animate-[thoughtFloat_3.5s_ease-in-out_infinite_0.7s]"
                 style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)' }}
               >
                 <p
@@ -250,8 +250,8 @@ export default function HeroSection() {
           </div>
 
           {/* DIREITA — mulher confiante */}
-          <div className="absolute w-[44%] right-[3%] flex flex-col items-end" style={{ top: '10%' }}>
-            <div className="mb-3">
+          <div className="absolute w-[48%] right-[2%]" style={{ top: '10%' }}>
+            <div className="mb-3 text-right">
               <span
                 className="text-[9px] sm:text-[10px] uppercase tracking-[0.25em] font-body text-white/40"
                 style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
@@ -261,7 +261,7 @@ export default function HeroSection() {
             </div>
             <div
               key={`thought-R-${activeRight}`}
-              className="relative animate-[thoughtBubbleRight_0.7s_ease_forwards] flex flex-col items-end"
+              className="relative animate-[thoughtBubbleRight_0.7s_ease_forwards]"
             >
               {/* Conectores */}
               <div className="absolute -bottom-5 right-[18%] flex flex-col items-center gap-1 opacity-35">
@@ -271,7 +271,7 @@ export default function HeroSection() {
               </div>
               {/* Bolha glassmorphism */}
               <div
-                className="relative bg-white/[0.08] backdrop-blur-md border border-white/[0.12] rounded-2xl rounded-br-sm px-3 py-2.5 sm:px-4 sm:py-3 max-w-[90%] animate-[thoughtFloat_3.5s_ease-in-out_infinite_0.7s]"
+                className="relative w-full bg-white/[0.08] backdrop-blur-md border border-white/[0.12] rounded-2xl rounded-br-sm px-3 py-2.5 sm:px-4 sm:py-3 animate-[thoughtFloat_3.5s_ease-in-out_infinite_0.7s]"
                 style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)' }}
               >
                 <p
