@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, useMotionValue } from 'framer-motion';
 import { GraduationCap, ShieldAlert, BarChart3, Headphones, Settings } from 'lucide-react';
 import { gsap } from 'gsap';
@@ -7,14 +8,13 @@ import { cn } from '../../lib/cn';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const FEATURES = [
+const FEATURE_DEFS = [
   {
     key: 'formacoes',
     icon: GraduationCap,
     colSpan: 'md:col-span-2',
-    title: 'Formações',
-    description:
-      'Cursos e planos de treino para gravadores e liberadores. Desde o onboarding até formações avançadas por categoria de documento. Certificados incluídos.',
+    titleKey: 'trainingTitle',
+    descKey: 'trainingDesc',
     image: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&q=70',
     hasPhoto: true,
   },
@@ -22,27 +22,24 @@ const FEATURES = [
     key: 'tutoria',
     icon: ShieldAlert,
     colSpan: 'md:col-span-1',
-    title: 'Tutoria',
-    description:
-      'O liberador regista erros aqui. O sistema categoriza, atribui ao gravador e gera plano de acção. O erro transforma-se em aprendizagem.',
+    titleKey: 'tutoringTitle',
+    descKey: 'tutoringDesc',
     hasPhoto: false,
   },
   {
     key: 'relatorios',
     icon: BarChart3,
     colSpan: 'md:col-span-1',
-    title: 'Relatórios',
-    description:
-      'Quem erra mais? Em quê? As formações funcionam? Relatórios por equipa, gravador e categoria de erro.',
+    titleKey: 'reportsTitle',
+    descKey: 'reportsDesc',
     hasPhoto: false,
   },
   {
     key: 'chamados',
     icon: Headphones,
     colSpan: 'md:col-span-2',
-    title: 'Chamados',
-    description:
-      'Dúvida, problema técnico ou pedido de acesso? Kanban simples para resolver sem e-mails perdidos.',
+    titleKey: 'ticketsTitle',
+    descKey: 'ticketsDesc',
     image: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&q=70',
     hasPhoto: true,
   },
@@ -50,9 +47,8 @@ const FEATURES = [
     key: 'dados-mestres',
     icon: Settings,
     colSpan: 'md:col-span-3',
-    title: 'Dados Mestres',
-    description:
-      'Gestão de utilizadores, equipas, roles e permissões. O painel de controlo do administrador.',
+    titleKey: 'masterDataTitle',
+    descKey: 'masterDataDesc',
     hasPhoto: false,
   },
 ];
@@ -94,6 +90,7 @@ function GlowCard({ children, className }: { children: React.ReactNode; classNam
 }
 
 export default function FeaturesGrid() {
+  const { t } = useTranslation();
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -123,18 +120,18 @@ export default function FeaturesGrid() {
             className="font-headline font-bold text-white leading-[1.0] mb-1"
             style={{ fontSize: 'clamp(2.25rem, 5vw, 4rem)' }}
           >
-            Tudo o que a operação precisa.
+            {t('landing.features.titleLine1')}
           </h2>
           <p
             className="font-headline font-bold text-[#333] leading-[1.0]"
             style={{ fontSize: 'clamp(2.25rem, 5vw, 4rem)' }}
           >
-            Nada que não precise.
+            {t('landing.features.titleLine2')}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {FEATURES.map((feat) => {
+          {FEATURE_DEFS.map((feat) => {
             const Icon = feat.icon;
             return (
               <GlowCard
@@ -148,7 +145,7 @@ export default function FeaturesGrid() {
                   <div className="relative h-48 overflow-hidden">
                     <img
                       src={(feat as { image: string }).image}
-                      alt={feat.title}
+                      alt={t(`landing.features.${feat.titleKey}`)}
                       loading="lazy"
                       className="w-full h-full object-cover opacity-30"
                     />
@@ -157,8 +154,12 @@ export default function FeaturesGrid() {
                 ) : null}
                 <div className="p-7">
                   <Icon className="w-7 h-7 text-santander-500 mb-4" />
-                  <h3 className="font-headline text-white font-bold text-xl mb-2">{feat.title}</h3>
-                  <p className="font-body text-[#555] text-sm leading-relaxed">{feat.description}</p>
+                  <h3 className="font-headline text-white font-bold text-xl mb-2">
+                    {t(`landing.features.${feat.titleKey}`)}
+                  </h3>
+                  <p className="font-body text-[#555] text-sm leading-relaxed">
+                    {t(`landing.features.${feat.descKey}`)}
+                  </p>
                 </div>
               </GlowCard>
             );

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function FinalCTA() {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -92,7 +94,7 @@ export default function FinalCTA() {
                 border: '1px solid rgba(255,255,255,0.25)',
               }}
             >
-              Comece hoje
+              {t('landing.finalCta.label')}
             </span>
 
             {/* Título */}
@@ -100,9 +102,9 @@ export default function FinalCTA() {
               className="font-headline font-bold text-white leading-[1.1] mb-6"
               style={{ fontSize: 'clamp(2rem, 4.5vw, 3.25rem)' }}
             >
-              Dados de qualidade em horas,
+              {t('landing.finalCta.titleLine1')}
               <br />
-              <span style={{ color: 'rgba(255,255,255,0.88)' }}>não em meses.</span>
+              <span style={{ color: 'rgba(255,255,255,0.88)' }}>{t('landing.finalCta.titleLine2')}</span>
             </h2>
 
             {/* Subtítulo */}
@@ -110,8 +112,7 @@ export default function FinalCTA() {
               className="font-body leading-relaxed mx-auto mb-10"
               style={{ fontSize: '1.0625rem', color: 'rgba(255,255,255,0.72)', maxWidth: '520px' }}
             >
-              Junte-se às equipas que já usam o TradeDataHub para tornar a qualidade operacional
-              proactiva, automatizada e partilhada.
+              {t('landing.finalCta.subtitle')}
             </p>
 
             {/* Botões */}
@@ -129,7 +130,7 @@ export default function FinalCTA() {
                 onMouseEnter={e => (e.currentTarget.style.background = '#f5f5f5')}
                 onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
               >
-                Agendar Demo
+                {t('landing.finalCta.cta')}
                 <svg
                   className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1"
                   fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
@@ -156,7 +157,7 @@ export default function FinalCTA() {
                   e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)';
                 }}
               >
-                Explorar Módulos
+                {t('landing.finalCta.ctaSecondary')}
               </a>
             </div>
 
@@ -165,7 +166,7 @@ export default function FinalCTA() {
               className="mt-8 font-body tracking-wide"
               style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.40)' }}
             >
-              Sem compromisso · Configuração em minutos · Suporte dedicado
+              {t('landing.finalCta.trust')}
             </p>
 
           </div>

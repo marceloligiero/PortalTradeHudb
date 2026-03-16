@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function ProblemSection() {
+  const { t } = useTranslation();
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -28,11 +30,18 @@ export default function ProblemSection() {
     transition: 'opacity 0.6s ease, transform 0.6s ease',
   };
 
+  const flowRows = [
+    { emoji: '🏦', title: t('landing.problem.agency'),   sub: t('landing.problem.agencySubtitle'),   borderColor: '#E5E7EB', titleColor: '#111827' },
+    { emoji: '❌', title: t('landing.problem.recorder'),  sub: t('landing.problem.recorderSubtitle'), borderColor: '#FECACA', titleColor: '#DC2626' },
+    { emoji: '❌', title: t('landing.problem.verifier'),  sub: t('landing.problem.verifierSubtitle'), borderColor: '#FECACA', titleColor: '#DC2626' },
+    { emoji: '💥', title: t('landing.problem.client'),    sub: t('landing.problem.clientSubtitle'),   borderColor: '#DC2626', titleColor: '#DC2626' },
+  ];
+
   return (
     <section ref={sectionRef} className="bg-white" style={{ padding: '100px 24px' }}>
       <div className="max-w-6xl mx-auto">
         <span className="fade-up font-body text-xs font-bold uppercase tracking-widest inline-block mb-4" style={{ ...fadeStyle, color: '#EC0000' }}>
-          O Problema
+          {t('landing.problem.label')}
         </span>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -42,23 +51,19 @@ export default function ProblemSection() {
               className="fade-up font-headline font-bold text-[#111827] leading-[1.15] mb-6"
               style={{ ...fadeStyle, fontSize: 'clamp(1.875rem, 4vw, 2.75rem)' }}
             >
-              Erros operacionais são um problema de negócio preso em ferramentas técnicas.
+              {t('landing.problem.title')}
             </h2>
             <p
               className="fade-up font-body text-[#6B7280] leading-relaxed mb-5"
               style={{ ...fadeStyle, fontSize: '1rem' }}
             >
-              Todos os coordenadores conhecem o padrão: erros são descobertos tarde demais, equipas
-              correm para diagnosticar, e correcções chegam muito depois de o cliente já ter sido
-              impactado.
+              {t('landing.problem.p1')}
             </p>
             <p
               className="fade-up font-body text-[#6B7280] leading-relaxed"
               style={{ ...fadeStyle, fontSize: '1rem' }}
             >
-              Registos em Excel não escalam, conferências informais não deixam rastro, e novos
-              gravadores aprendem "fazendo" sem plano de formação estruturado. O resultado: os mesmos
-              erros repetem-se, incidências chegam ao cliente, e ninguém tem dados para medir a evolução.
+              {t('landing.problem.p2')}
             </p>
           </div>
 
@@ -68,15 +73,10 @@ export default function ProblemSection() {
             style={{ ...fadeStyle, background: '#F8F9FB', border: '1px solid #E5E7EB' }}
           >
             <p className="font-body text-xs font-bold uppercase tracking-widest text-[#9CA3AF] mb-6">
-              Sem sistema
+              {t('landing.problem.flowLabel')}
             </p>
             <div className="space-y-0">
-              {[
-                { emoji: '🏦', title: 'Agência', sub: 'Envia documentos',           borderColor: '#E5E7EB', titleColor: '#111827' },
-                { emoji: '❌', title: 'Gravador', sub: 'Sem formação estruturada',  borderColor: '#FECACA', titleColor: '#DC2626' },
-                { emoji: '❌', title: 'Liberador', sub: 'Sem registo de erros',     borderColor: '#FECACA', titleColor: '#DC2626' },
-                { emoji: '💥', title: 'Cliente',  sub: 'Incidência — já tarde',     borderColor: '#DC2626', titleColor: '#DC2626' },
-              ].map((row, i, arr) => (
+              {flowRows.map((row, i, arr) => (
                 <div key={row.title}>
                   <div
                     className="flex items-center gap-3 p-3 rounded-lg bg-white"

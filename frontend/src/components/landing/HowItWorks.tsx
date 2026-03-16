@@ -1,39 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Edit, ShieldCheck, BookOpen, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const STEPS = [
-  {
-    number: 1,
-    icon: Edit,
-    title: 'Gravar com Formação',
-    description:
-      'As agências enviam documentos. O gravador regista cada pedido no sistema. As formações garantem que sabe exactamente como fazer — desde o primeiro dia, com plano de treino personalizado.',
-  },
-  {
-    number: 2,
-    icon: ShieldCheck,
-    title: 'Conferir com Registo',
-    description:
-      'O liberador confere cada registo. Se encontra um erro, regista-o na tutoria com categoria e tipo (interno vs incidência). O gravador recebe notificação e plano de acção. Nada se perde.',
-  },
-  {
-    number: 3,
-    icon: BookOpen,
-    title: 'Aprender com os Erros',
-    description:
-      'Cada erro gera ficha de aprendizagem. Cada padrão de erro alimenta novas formações. As incidências — erros que chegaram ao cliente — são documentadas e partilhadas com a equipa.',
-  },
-  {
-    number: 4,
-    icon: TrendingUp,
-    title: 'Melhorar com Dados',
-    description:
-      'Relatórios cruzam formações e erros. Mostram quem melhora, quem precisa de atenção, e se as formações estão a funcionar. Decisões baseadas em dados, não em intuição.',
-  },
+const STEP_DEFS = [
+  { number: 1, icon: Edit,        titleKey: 'step1Title', descKey: 'step1Desc' },
+  { number: 2, icon: ShieldCheck, titleKey: 'step2Title', descKey: 'step2Desc' },
+  { number: 3, icon: BookOpen,    titleKey: 'step3Title', descKey: 'step3Desc' },
+  { number: 4, icon: TrendingUp,  titleKey: 'step4Title', descKey: 'step4Desc' },
 ];
 
 export default function HowItWorks() {
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -67,17 +45,16 @@ export default function HowItWorks() {
               className="font-body text-xs font-bold uppercase tracking-widest"
               style={{ color: '#EC0000' }}
             >
-              Como Funciona
+              {t('landing.howItWorks.label')}
             </span>
             <h2
               className="font-headline font-bold text-[#111827] leading-[1.15] mt-3 mb-4"
               style={{ fontSize: 'clamp(1.875rem, 4vw, 2.75rem)' }}
             >
-              O TradeDataHub integra contexto, automação e colaboração num ciclo contínuo de qualidade.
+              {t('landing.howItWorks.title')}
             </h2>
             <p className="font-body text-[#6B7280] mb-8" style={{ fontSize: '1rem' }}>
-              A plataforma aprende com os erros, mantém as regras certas e alerta as pessoas certas
-              antes que os problemas se espalhem.
+              {t('landing.howItWorks.subtitle')}
             </p>
             <div className="flex items-center gap-3">
               <Link
@@ -87,7 +64,7 @@ export default function HowItWorks() {
                 onMouseEnter={e => (e.currentTarget.style.background = '#B80000')}
                 onMouseLeave={e => (e.currentTarget.style.background = '#EC0000')}
               >
-                Ver o Produto
+                {t('landing.howItWorks.cta')}
               </Link>
               <a
                 href="#funcionalidades"
@@ -96,14 +73,14 @@ export default function HowItWorks() {
                 onMouseEnter={e => (e.currentTarget.style.borderColor = '#EC0000')}
                 onMouseLeave={e => (e.currentTarget.style.borderColor = '#E5E7EB')}
               >
-                Tour do Produto
+                {t('landing.howItWorks.ctaSecondary')}
               </a>
             </div>
           </div>
 
           {/* Right — stepper */}
           <div>
-            {STEPS.map((step, i) => {
+            {STEP_DEFS.map((step, i) => {
               const Icon = step.icon;
               return (
                 <div key={step.number} className="flex gap-5">
@@ -115,20 +92,20 @@ export default function HowItWorks() {
                     >
                       {step.number}
                     </div>
-                    {i < STEPS.length - 1 && (
+                    {i < STEP_DEFS.length - 1 && (
                       <div className="w-px grow mt-2 mb-2" style={{ background: '#E5E7EB' }} />
                     )}
                   </div>
                   {/* Content */}
-                  <div style={{ paddingBottom: i < STEPS.length - 1 ? '32px' : 0 }}>
+                  <div style={{ paddingBottom: i < STEP_DEFS.length - 1 ? '32px' : 0 }}>
                     <div className="flex items-center gap-2 mb-2">
                       <Icon className="w-4 h-4 shrink-0" style={{ color: '#EC0000' }} />
                       <h3 className="font-headline font-bold text-[#111827] text-base">
-                        {step.title}
+                        {t(`landing.howItWorks.${step.titleKey}`)}
                       </h3>
                     </div>
                     <p className="font-body text-[#6B7280] text-sm leading-relaxed">
-                      {step.description}
+                      {t(`landing.howItWorks.${step.descKey}`)}
                     </p>
                   </div>
                 </div>

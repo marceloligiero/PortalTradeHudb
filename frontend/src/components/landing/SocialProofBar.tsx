@@ -1,16 +1,19 @@
+import { useTranslation } from 'react-i18next';
 import { GraduationCap, ShieldAlert, BarChart3, Headphones, Settings } from 'lucide-react';
 
-const ITEMS = [
-  { icon: GraduationCap, label: 'Formações'    },
-  { icon: ShieldAlert,   label: 'Tutoria'      },
-  { icon: BarChart3,     label: 'Relatórios'   },
-  { icon: Headphones,    label: 'Chamados'     },
-  { icon: Settings,      label: 'Dados Mestres'},
-];
-
-const REPEATED = [...ITEMS, ...ITEMS, ...ITEMS, ...ITEMS];
+const ITEM_ICONS = [GraduationCap, ShieldAlert, BarChart3, Headphones, Settings];
+const ITEM_KEYS = ['training', 'tutoring', 'reports', 'tickets', 'masterData'] as const;
 
 export default function SocialProofBar() {
+  const { t } = useTranslation();
+
+  const ITEMS = ITEM_KEYS.map((key, i) => ({
+    icon: ITEM_ICONS[i],
+    label: t(`landing.socialProof.${key}`),
+  }));
+
+  const REPEATED = [...ITEMS, ...ITEMS, ...ITEMS, ...ITEMS];
+
   return (
     <div
       className="overflow-hidden bg-[#F8F9FB] py-5"

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getLandingImage } from '../../utils/landingImages';
 import ImagePlaceholder from '../ImagePlaceholder';
 
@@ -37,6 +38,7 @@ function usePrefersReducedMotion(): boolean {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function HeroSection() {
+  const { t } = useTranslation();
   const contentRef = useRef<HTMLDivElement>(null);
   const [videoError, setVideoError] = useState(false);
 
@@ -50,11 +52,11 @@ export default function HeroSection() {
   useEffect(() => {
     const el = contentRef.current;
     if (!el) return;
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       el.style.opacity = '1';
       el.style.transform = 'translateY(0)';
     }, 80);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
@@ -111,7 +113,7 @@ export default function HeroSection() {
             style={{ background: '#EC0000' }}
           />
           <span className="font-body text-xs font-semibold uppercase tracking-widest" style={{ color: '#EC0000' }}>
-            Plataforma Operacional Interna · 5 Portais · 3 Idiomas
+            {t('landing.hero.badge')}
           </span>
         </div>
 
@@ -120,7 +122,7 @@ export default function HeroSection() {
           className="font-headline font-bold text-[#111827] leading-[1.1] mb-6"
           style={{ fontSize: 'clamp(2.25rem, 5vw, 3.5rem)', maxWidth: '800px', margin: '0 auto 24px' }}
         >
-          Corrija problemas de qualidade antes que se tornem problemas de negócio.
+          {t('landing.hero.title')}
         </h1>
 
         {/* Subtitle */}
@@ -128,9 +130,7 @@ export default function HeroSection() {
           className="font-body text-[#6B7280] leading-relaxed mx-auto mb-10"
           style={{ fontSize: '1.125rem', maxWidth: '660px' }}
         >
-          O TradeDataHub substitui o combate reactivo a erros por gestão proactiva e automatizada
-          da qualidade operacional. Gravadores, liberadores e gestores trabalham juntos numa única
-          plataforma. Proteja os seus clientes, melhore os seus processos.
+          {t('landing.hero.subtitle')}
         </p>
 
         {/* CTAs */}
@@ -142,7 +142,7 @@ export default function HeroSection() {
             onMouseEnter={e => (e.currentTarget.style.background = '#B80000')}
             onMouseLeave={e => (e.currentTarget.style.background = '#EC0000')}
           >
-            Agendar Demo
+            {t('landing.hero.cta')}
           </a>
           <a
             href="#como-funciona"
@@ -151,7 +151,7 @@ export default function HeroSection() {
             onMouseEnter={e => (e.currentTarget.style.borderColor = '#EC0000')}
             onMouseLeave={e => (e.currentTarget.style.borderColor = '#E5E7EB')}
           >
-            Tour do Produto
+            {t('landing.hero.ctaSecondary')}
           </a>
         </div>
 
@@ -163,14 +163,14 @@ export default function HeroSection() {
           {heroSrc ? (
             <img
               src={heroSrc}
-              alt="Dashboard analítico do TradeDataHub"
+              alt={t('landing.hero.dashboardAlt')}
               loading="lazy"
               className="w-full object-cover"
               style={{ aspectRatio: '16/9' }}
             />
           ) : (
             <ImagePlaceholder
-              alt="Dashboard analítico do TradeDataHub"
+              alt={t('landing.hero.dashboardAlt')}
               aspectRatio="16/9"
               className="rounded-2xl"
             />

@@ -1,40 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useInView } from '../../hooks/useInView';
 import { useCountUp } from '../../hooks/useCountUp';
 
-const METRICS = [
-  {
-    prefix: '↓',
-    value: 60,
-    suffix: '%',
-    label: 'Erros Repetidos',
-    description: 'Planos de acção estruturados quebram ciclos de erro recorrentes',
-  },
-  {
-    prefix: '',
-    value: 100,
-    suffix: '%',
-    label: 'Rastreável',
-    description: 'Cada erro registado, cada acção documentada, cada resultado medido',
-  },
-  {
-    prefix: '',
-    value: 4,
-    suffix: '×',
-    label: 'Mais Rápido',
-    description: 'Onboarding com plano de treino formal em vez de aprender fazendo',
-  },
-  {
-    prefix: '',
-    value: 5,
-    suffix: '',
-    label: 'Portais Integrados',
-    description: 'Formação, tutoria, relatórios, chamados e gestão num só lugar',
-  },
+const METRIC_DEFS = [
+  { prefix: '↓', value: 60,  suffix: '%', labelKey: 'errorsLabel',  descKey: 'errorsDesc' },
+  { prefix: '',  value: 100, suffix: '%', labelKey: 'traceLabel',   descKey: 'traceDesc' },
+  { prefix: '',  value: 4,   suffix: '×', labelKey: 'fasterLabel',  descKey: 'fasterDesc' },
+  { prefix: '',  value: 5,   suffix: '',  labelKey: 'portalsLabel', descKey: 'portalsDesc' },
 ];
 
-function MetricCard({ metric, started }: { metric: typeof METRICS[0]; started: boolean }) {
-  const count = useCountUp(metric.value, 1500, started);
+function MetricCard({ metricDef, started }: { metricDef: typeof METRIC_DEFS[0]; started: boolean }) {
+  const { t } = useTranslation();
+  const count = useCountUp(metricDef.value, 1500, started);
   return (
     <div
       className="bg-white rounded-xl p-8"
@@ -44,19 +22,20 @@ function MetricCard({ metric, started }: { metric: typeof METRICS[0]; started: b
         className="font-headline font-bold leading-none mb-3"
         style={{ fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', color: '#EC0000' }}
       >
-        {metric.prefix}{count}{metric.suffix}
+        {metricDef.prefix}{count}{metricDef.suffix}
       </div>
       <div className="font-body text-xs font-bold uppercase tracking-widest text-[#111827] mb-2">
-        {metric.label}
+        {t(`landing.metrics.${metricDef.labelKey}`)}
       </div>
       <div className="font-body text-xs text-[#6B7280] leading-relaxed">
-        {metric.description}
+        {t(`landing.metrics.${metricDef.descKey}`)}
       </div>
     </div>
   );
 }
 
 export default function MetricsSection() {
+  const { t } = useTranslation();
   const { ref: inViewRef, isInView } = useInView();
   const [visible, setVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
@@ -92,13 +71,13 @@ export default function MetricsSection() {
             className="font-body text-xs font-bold uppercase tracking-widest"
             style={{ color: '#EC0000' }}
           >
-            Resultados
+            {t('landing.metrics.label')}
           </span>
           <h2
             className="font-headline font-bold text-[#111827] leading-[1.15] mt-3 mb-12"
             style={{ fontSize: 'clamp(1.875rem, 4vw, 2.75rem)', maxWidth: '700px' }}
           >
-            Por que equipas de processamento escolhem o TradeDataHub
+            {t('landing.metrics.title')}
           </h2>
         </div>
 
@@ -109,8 +88,8 @@ export default function MetricsSection() {
             transition: 'opacity 0.6s ease 0.2s',
           }}
         >
-          {METRICS.map((metric) => (
-            <MetricCard key={metric.label} metric={metric} started={isInView} />
+          {METRIC_DEFS.map((metricDef) => (
+            <MetricCard key={metricDef.labelKey} metricDef={metricDef} started={isInView} />
           ))}
         </div>
       </div>

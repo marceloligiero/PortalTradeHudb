@@ -9,14 +9,8 @@ const LANGUAGES = [
   { code: 'es',    label: 'ES' },
 ];
 
-const NAV_LINKS = [
-  { label: 'A Plataforma', href: '#funcionalidades' },
-  { label: 'Como Funciona', href: '#como-funciona' },
-  { label: 'Resultados',    href: '#resultados' },
-];
-
 export default function LandingNavbar() {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [scrolled, setScrolled]   = useState(false);
   const [menuOpen, setMenuOpen]   = useState(false);
   const [langOpen, setLangOpen]   = useState(false);
@@ -35,6 +29,12 @@ export default function LandingNavbar() {
   const changeLanguage = (code: string) => { i18n.changeLanguage(code); setLangOpen(false); };
   const currentLabel   = LANGUAGES.find(l => l.code === i18n.language)?.label ?? 'PT';
   const isActive       = (code: string) => i18n.language === code || (code === 'pt-PT' && i18n.language.startsWith('pt'));
+
+  const NAV_LINKS = [
+    { label: t('landing.navbar.platform'),   href: '#funcionalidades' },
+    { label: t('landing.navbar.howItWorks'), href: '#como-funciona' },
+    { label: t('landing.navbar.results'),    href: '#resultados' },
+  ];
 
   return (
     <>
@@ -102,7 +102,7 @@ export default function LandingNavbar() {
               className="font-body text-sm px-4 py-2 rounded-lg border transition-colors duration-200 text-[#111827] hover:border-[#EC0000] hover:text-[#EC0000]"
               style={{ borderColor: '#E5E7EB' }}
             >
-              Agendar Demo
+              {t('landing.navbar.scheduleDemo')}
             </Link>
             <Link
               to="/login"
@@ -111,7 +111,7 @@ export default function LandingNavbar() {
               onMouseEnter={e => (e.currentTarget.style.background = '#B80000')}
               onMouseLeave={e => (e.currentTarget.style.background = '#EC0000')}
             >
-              Tour do Produto
+              {t('landing.navbar.productTour')}
             </Link>
           </div>
 
@@ -155,7 +155,7 @@ export default function LandingNavbar() {
               className="mt-4 font-body font-semibold px-6 py-3 rounded-lg text-white text-sm"
               style={{ background: '#EC0000' }}
             >
-              Entrar na Plataforma
+              {t('landing.navbar.enterPlatform')}
             </Link>
           </div>
         </div>

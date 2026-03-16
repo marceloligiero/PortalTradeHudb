@@ -1243,117 +1243,177 @@
   },
   "landing": {
     "navbar": {
-      "login": "Iniciar Sessão",
-      "start": "Começar"
+      "platform": "A Plataforma",
+      "howItWorks": "Como Funciona",
+      "results": "Resultados",
+      "scheduleDemo": "Agendar Demo",
+      "productTour": "Tour do Produto",
+      "enterPlatform": "Entrar na Plataforma"
     },
     "hero": {
-      "badge": "Plataforma de formação para trading",
-      "title": "A sua equipa. Pronta para o",
-      "titleHighlight": "mercado.",
-      "subtitle": "Formações estruturadas, tutoria personalizada, relatórios com insights e suporte integrado — tudo numa plataforma.",
-      "cta": "Começar Agora",
-      "ctaSecondary": "Iniciar Sessão"
+      "badge": "Plataforma Operacional Interna · 5 Portais · 3 Idiomas",
+      "title": "Corrija problemas de qualidade antes que se tornem problemas de negócio.",
+      "subtitle": "O TradeDataHub substitui o combate reactivo a erros por gestão proactiva e automatizada da qualidade operacional. Gravadores, liberadores e gestores trabalham juntos numa única plataforma. Proteja os seus clientes, melhore os seus processos.",
+      "cta": "Agendar Demo",
+      "ctaSecondary": "Tour do Produto",
+      "dashboardAlt": "Dashboard analítico do TradeDataHub"
     },
-    "proof": {
-      "tests": "341 testes validados",
-      "portals": "5 portais integrados",
-      "languages": "3 idiomas",
-      "api": "API REST completa",
-      "cicd": "CI/CD automatizado"
-    },
-    "pillars": {
-      "title": "Tudo o que a sua equipa precisa",
-      "subtitle": "Uma plataforma. Três pilares. Resultados reais.",
-      "learnMore": "Saber mais",
-      "train": {
-        "title": "Forme",
-        "description": "Cursos, desafios e certificações para a sua equipa dominar o mercado."
-      },
-      "evaluate": {
-        "title": "Avalie",
-        "description": "Dashboards com KPIs e insights acionáveis para cada decisão."
-      },
-      "evolve": {
-        "title": "Evolua",
-        "description": "Tutoria e planos de ação que transformam erros em aprendizagem."
-      }
-    },
-    "features": {
-      "title": "5 portais. Uma plataforma.",
-      "courses": {
-        "title": "Formações",
-        "description": "Cursos estruturados, lições, desafios práticos, planos de treino e certificados."
-      },
-      "tutoring": {
-        "title": "Tutoria",
-        "description": "Gestão de erros, planos de ação, acompanhamento personalizado."
-      },
-      "reports": {
-        "title": "Relatórios",
-        "description": "Dashboards com insights, KPIs, tendências e comparações."
-      },
-      "tickets": {
-        "title": "Chamados",
-        "description": "Suporte com Kanban, tracking de tickets e histórico."
-      },
-      "masterdata": {
-        "title": "Dados Mestres",
-        "description": "Gestão de utilizadores, equipas e categorias."
-      }
-    },
-    "stats": {
-      "portals": "Portais Integrados",
-      "tests": "Testes Validados",
-      "roles": "Roles de Acesso",
-      "languages": "Idiomas"
-    },
-    "howItWorks": {
-      "title": "Do registo à evolução em 4 passos",
-      "register": {
-        "title": "Registe-se",
-        "description": "Crie a sua conta em segundos. Sem complicações."
-      },
-      "access": {
-        "title": "Aceda às Formações",
-        "description": "Cursos estruturados com desafios práticos e certificação."
-      },
-      "tutoring": {
-        "title": "Receba Tutoria",
-        "description": "Acompanhamento personalizado. Erros viram aprendizagem."
-      },
-      "evolve": {
-        "title": "Analise e Evolua",
-        "description": "Dashboards com insights. Veja o progresso da equipa."
-      }
-    },
-    "quote": {
-      "text": "Não formamos traders. Formamos equipas que vencem.",
-      "cta": "Começar Agora"
-    },
-    "tech": {
-      "title": "Construído com tecnologia de ponta"
-    },
-    "finalCta": {
-      "title": "Pronto para transformar a sua equipa?",
-      "subtitle": "Junte-se às equipas que já usam o TradeHub para formar, avaliar e evoluir.",
-      "cta": "Criar Conta",
-      "login": "Iniciar Sessão"
-    },
-    "footer": {
-      "tagline": "A sua plataforma de evolução",
-      "platform": "Plataforma",
-      "courses": "Formações",
+    "socialProof": {
+      "training": "Formações",
       "tutoring": "Tutoria",
       "reports": "Relatórios",
       "tickets": "Chamados",
+      "masterData": "Dados Mestres"
+    },
+    "problem": {
+      "label": "O Problema",
+      "title": "Erros operacionais são um problema de negócio preso em ferramentas técnicas.",
+      "p1": "Todos os coordenadores conhecem o padrão: erros são descobertos tarde demais, equipas correm para diagnosticar, e correcções chegam muito depois de o cliente já ter sido impactado.",
+      "p2": "Registos em Excel não escalam, conferências informais não deixam rastro, e novos gravadores aprendem \"fazendo\" sem plano de formação estruturado. O resultado: os mesmos erros repetem-se, incidências chegam ao cliente, e ninguém tem dados para medir a evolução.",
+      "flowLabel": "Sem sistema",
+      "agency": "Agência",
+      "agencySubtitle": "Envia documentos",
+      "recorder": "Gravador",
+      "recorderSubtitle": "Sem formação estruturada",
+      "verifier": "Liberador",
+      "verifierSubtitle": "Sem registo de erros",
+      "client": "Cliente",
+      "clientSubtitle": "Incidência — já tarde"
+    },
+    "solution": {
+      "label": "A Solução",
+      "title": "Equipas de processamento precisam de qualidade que acompanhe o ritmo.",
+      "subtitle": "Formação estruturada, tutoria rastreada, relatórios cruzados e suporte integrado. Quando tudo funciona junto, a qualidade escala.",
+      "tabTraining": "Formações",
+      "tabTutoring": "Tutoria",
+      "tabReports": "Relatórios",
+      "tabTickets": "Chamados",
+      "trainingTitle": "Formação Proactiva e Contínua",
+      "trainingDesc": "Cursos e planos de treino para gravadores e liberadores. Desde o onboarding de novos colaboradores até formações avançadas por categoria de documento. O sistema vincula formações a categorias de erro — quem erra em X, recebe formação sobre X. Certificados incluídos.",
+      "trainingAlt": "Formação corporativa em sala",
+      "tutoringTitle": "Registo e Correcção Estruturada de Erros",
+      "tutoringDesc": "Quando o liberador encontra um erro, regista-o com categoria, gravador e tipo (interno vs incidência). O sistema gera plano de acção com itens, prazos e fluxo de aprovação. Cada erro vira aprendizagem — nunca se perde.",
+      "tutoringAlt": "Mentora revendo documentos com colaborador",
+      "reportsTitle": "Dados que Orientam Decisões",
+      "reportsDesc": "Quem erra mais? Em quê? As formações funcionam? Relatórios por equipa, gravador, categoria. Cruzamento formações × erros para medir impacto real. Filtros por período, equipa, tipo de erro.",
+      "reportsAlt": "Dashboard com gráficos de análise de dados",
+      "ticketsTitle": "Suporte Interno sem Atrito",
+      "ticketsDesc": "Sistema fora do ar? Dúvida operacional? Pedido de acesso? Kanban simples — abra, acompanhe e resolva. Sem e-mails perdidos, sem conversas informais sem registo.",
+      "ticketsAlt": "Equipa de suporte colaborando",
+      "explore": "Explorar"
+    },
+    "features": {
+      "titleLine1": "Tudo o que a operação precisa.",
+      "titleLine2": "Nada que não precise.",
+      "trainingTitle": "Formações",
+      "trainingDesc": "Cursos e planos de treino para gravadores e liberadores. Desde o onboarding até formações avançadas por categoria de documento. Certificados incluídos.",
+      "tutoringTitle": "Tutoria",
+      "tutoringDesc": "O liberador regista erros aqui. O sistema categoriza, atribui ao gravador e gera plano de acção. O erro transforma-se em aprendizagem.",
+      "reportsTitle": "Relatórios",
+      "reportsDesc": "Quem erra mais? Em quê? As formações funcionam? Relatórios por equipa, gravador e categoria de erro.",
+      "ticketsTitle": "Chamados",
+      "ticketsDesc": "Dúvida, problema técnico ou pedido de acesso? Kanban simples para resolver sem e-mails perdidos.",
+      "masterDataTitle": "Dados Mestres",
+      "masterDataDesc": "Gestão de utilizadores, equipas, roles e permissões. O painel de controlo do administrador."
+    },
+    "stats": {
+      "titleLine1": "Opiniões são subjectivas.",
+      "titleLine2": "Resultados não.",
+      "errorsLabel": "Erros Repetidos",
+      "errorsDesc": "Planos de acção estruturados quebram ciclos de erro recorrentes",
+      "incidentsLabel": "Incidências",
+      "incidentsDesc": "Menos erros chegam ao cliente com formação contínua da equipa",
+      "traceLabel": "Rastreabilidade",
+      "traceDesc": "Cada erro registado, cada acção documentada, cada resultado medido"
+    },
+    "pillars": {
+      "title": "Pensado para cada papel na operação.",
+      "recorderQuote": "\"Acesso formações, recebo feedback dos meus erros, acompanho o plano de acção e evoluo com dados concretos sobre a minha performance.\"",
+      "recorderRole": "Gravador",
+      "recorderSubtitle": "Colaborador de Processamento",
+      "verifierQuote": "\"Registo erros, crio planos de acção, acompanho a evolução de cada gravador e acesso relatórios de performance da equipa.\"",
+      "verifierRole": "Liberador / Formador",
+      "verifierSubtitle": "Verificador & Formador",
+      "managerQuote": "\"Visão total da operação. Relatórios cruzados, KPIs de qualidade e controlo sobre formações, tutoria e suporte.\"",
+      "managerRole": "Gestor / Administrador",
+      "managerSubtitle": "Coordenador de Operações"
+    },
+    "howItWorks": {
+      "label": "Como Funciona",
+      "title": "O TradeDataHub integra contexto, automação e colaboração num ciclo contínuo de qualidade.",
+      "subtitle": "A plataforma aprende com os erros, mantém as regras certas e alerta as pessoas certas antes que os problemas se espalhem.",
+      "cta": "Ver o Produto",
+      "ctaSecondary": "Tour do Produto",
+      "step1Title": "Gravar com Formação",
+      "step1Desc": "As agências enviam documentos. O gravador regista cada pedido no sistema. As formações garantem que sabe exactamente como fazer — desde o primeiro dia, com plano de treino personalizado.",
+      "step2Title": "Conferir com Registo",
+      "step2Desc": "O liberador confere cada registo. Se encontra um erro, regista-o na tutoria com categoria e tipo (interno vs incidência). O gravador recebe notificação e plano de acção. Nada se perde.",
+      "step3Title": "Aprender com os Erros",
+      "step3Desc": "Cada erro gera ficha de aprendizagem. Cada padrão de erro alimenta novas formações. As incidências — erros que chegaram ao cliente — são documentadas e partilhadas com a equipa.",
+      "step4Title": "Melhorar com Dados",
+      "step4Desc": "Relatórios cruzam formações e erros. Mostram quem melhora, quem precisa de atenção, e se as formações estão a funcionar. Decisões baseadas em dados, não em intuição."
+    },
+    "metrics": {
+      "label": "Resultados",
+      "title": "Por que equipas de processamento escolhem o TradeDataHub",
+      "errorsLabel": "Erros Repetidos",
+      "errorsDesc": "Planos de acção estruturados quebram ciclos de erro recorrentes",
+      "traceLabel": "Rastreável",
+      "traceDesc": "Cada erro registado, cada acção documentada, cada resultado medido",
+      "fasterLabel": "Mais Rápido",
+      "fasterDesc": "Onboarding com plano de treino formal em vez de aprender fazendo",
+      "portalsLabel": "Portais Integrados",
+      "portalsDesc": "Formação, tutoria, relatórios, chamados e gestão num só lugar"
+    },
+    "faq": {
+      "title": "Perguntas Frequentes",
+      "q1": "O que é o TradeDataHub?",
+      "a1": "Plataforma integrada de formações, tutoria, relatórios e suporte para equipas de processamento de documentos. Do gravador ao gestor — tudo num só lugar.",
+      "q2": "Quem usa o sistema?",
+      "a2": "Gravadores, liberadores, formadores, coordenadores e administradores. Cada utilizador vê exactamente o que precisa para fazer o seu trabalho melhor.",
+      "q3": "O que acontece quando um erro é encontrado?",
+      "a3": "O liberador regista na tutoria, categoriza e atribui ao gravador. Gera-se automaticamente um plano de acção com prazos. O gravador executa, submete e o liberador aprova.",
+      "q4": "E se o erro chegar ao cliente?",
+      "a4": "É classificado como incidência — erro grave. Gera automaticamente uma ficha de aprendizagem partilhada com toda a equipa. O padrão não se repete.",
+      "q5": "O sistema suporta vários idiomas?",
+      "a5": "Sim — Português (PT), Espanhol (ES) e Inglês (EN). A interface adapta-se ao idioma do utilizador."
+    },
+    "tech": {
+      "title": "O ambiente de construção.",
+      "subtitle": "Stack comprovada para velocidade e escala."
+    },
+    "finalCta": {
+      "label": "Comece hoje",
+      "titleLine1": "Dados de qualidade em horas,",
+      "titleLine2": "não em meses.",
+      "subtitle": "Junte-se às equipas que já usam o TradeDataHub para tornar a qualidade operacional proactiva, automatizada e partilhada.",
+      "cta": "Agendar Demo",
+      "ctaSecondary": "Explorar Módulos",
+      "trust": "Sem compromisso · Configuração em minutos · Suporte dedicado"
+    },
+    "footer": {
+      "tagline": "Qualidade operacional proactiva, automatizada e partilhada.",
+      "platform": "Plataforma",
+      "about": "Sobre",
       "resources": "Recursos",
-      "docs": "Documentação",
-      "apiDocs": "API Docs",
       "support": "Suporte",
-      "legal": "Legal",
-      "terms": "Termos de Uso",
-      "privacy": "Privacidade",
-      "copyright": "Propriedade privada. Todos os direitos reservados."
+      "training": "Formações",
+      "tutoring": "Tutoria",
+      "reports": "Relatórios",
+      "tickets": "Chamados",
+      "masterData": "Dados Mestres",
+      "aboutUs": "Sobre nós",
+      "contact": "Contacto",
+      "careers": "Carreiras",
+      "blog": "Blog",
+      "apiDocs": "Documentação API",
+      "news": "Novidades",
+      "helpCenter": "Central de Ajuda",
+      "faq": "FAQ",
+      "systemStatus": "Status do Sistema",
+      "copyright": "© 2026 TradeDataHub. Todos os direitos reservados.",
+      "terms": "Termos de Serviço",
+      "privacy": "Política de Privacidade"
     }
   },
   "lessonManagement": {

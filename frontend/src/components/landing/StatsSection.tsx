@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useInView } from '../../hooks/useInView';
@@ -6,34 +7,17 @@ import { useCountUp } from '../../hooks/useCountUp';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const STATS = [
-  {
-    prefix: '−',
-    value: 60,
-    suffix: '%',
-    label: 'Erros Repetidos',
-    description: 'Planos de acção estruturados quebram ciclos de erro recorrentes',
-  },
-  {
-    prefix: '−',
-    value: 45,
-    suffix: '%',
-    label: 'Incidências',
-    description: 'Menos erros chegam ao cliente com formação contínua da equipa',
-  },
-  {
-    prefix: '',
-    value: 100,
-    suffix: '%',
-    label: 'Rastreabilidade',
-    description: 'Cada erro registado, cada acção documentada, cada resultado medido',
-  },
+const STAT_DEFS = [
+  { prefix: '−', value: 60, suffix: '%', labelKey: 'errorsLabel', descKey: 'errorsDesc' },
+  { prefix: '−', value: 45, suffix: '%', labelKey: 'incidentsLabel', descKey: 'incidentsDesc' },
+  { prefix: '',  value: 100, suffix: '%', labelKey: 'traceLabel', descKey: 'traceDesc' },
 ];
 
-function StatItem({ stat, started, isLast }: {
-  stat: typeof STATS[0]; started: boolean; isLast: boolean;
+function StatItem({ statDef, started, isLast }: {
+  statDef: typeof STAT_DEFS[0]; started: boolean; isLast: boolean;
 }) {
-  const count = useCountUp(stat.value, 2000, started);
+  const { t } = useTranslation();
+  const count = useCountUp(statDef.value, 2000, started);
   return (
     <div className="flex items-stretch">
       <div className="flex-1 px-4 text-center md:text-left">
@@ -41,13 +25,13 @@ function StatItem({ stat, started, isLast }: {
           className="font-headline font-bold text-white leading-[1.0] mb-4"
           style={{ fontSize: 'clamp(3rem, 8vw, 6rem)' }}
         >
-          {stat.prefix}{count}{stat.suffix}
+          {statDef.prefix}{count}{statDef.suffix}
         </div>
         <div className="font-body text-xs font-bold uppercase tracking-[0.15em] text-white/50 mb-2">
-          {stat.label}
+          {t(`landing.stats.${statDef.labelKey}`)}
         </div>
         <div className="font-body text-xs text-[#444] leading-relaxed max-w-[220px]">
-          {stat.description}
+          {t(`landing.stats.${statDef.descKey}`)}
         </div>
       </div>
       {!isLast && (
@@ -58,6 +42,7 @@ function StatItem({ stat, started, isLast }: {
 }
 
 export default function StatsSection() {
+  const { t } = useTranslation();
   const { ref: inViewRef, isInView } = useInView();
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -90,17 +75,17 @@ export default function StatsSection() {
           className="font-headline font-bold text-white text-center leading-[1.0] mb-24"
           style={{ fontSize: 'clamp(2.25rem, 5vw, 4rem)' }}
         >
-          Opiniões são subjectivas.
+          {t('landing.stats.titleLine1')}
           <br />
-          <span className="text-[#333]">Resultados não.</span>
+          <span className="text-[#333]">{t('landing.stats.titleLine2')}</span>
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-0">
-          {STATS.map((stat, i) => (
+          {STAT_DEFS.map((statDef, i) => (
             <StatItem
-              key={stat.label}
-              stat={stat}
+              key={statDef.labelKey}
+              statDef={statDef}
               started={isInView}
-              isLast={i === STATS.length - 1}
+              isLast={i === STAT_DEFS.length - 1}
             />
           ))}
         </div>

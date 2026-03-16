@@ -1,52 +1,50 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { GraduationCap, ShieldAlert, BarChart3, Headphones } from 'lucide-react';
 import { getLandingImage } from '../../utils/landingImages';
 import ImagePlaceholder from '../ImagePlaceholder';
 
-const TABS = [
+const TAB_DEFS = [
   {
     key: 'formacoes',
+    tabKey: 'tabTraining',
+    titleKey: 'trainingTitle',
+    descKey: 'trainingDesc',
+    altKey: 'trainingAlt',
     icon: GraduationCap,
-    label: 'Formações',
-    title: 'Formação Proactiva e Contínua',
-    description:
-      'Cursos e planos de treino para gravadores e liberadores. Desde o onboarding de novos colaboradores até formações avançadas por categoria de documento. O sistema vincula formações a categorias de erro — quem erra em X, recebe formação sobre X. Certificados incluídos.',
     imageFile: 'tab-formacoes.jpg',
-    imageAlt: 'Formação corporativa em sala',
   },
   {
     key: 'tutoria',
+    tabKey: 'tabTutoring',
+    titleKey: 'tutoringTitle',
+    descKey: 'tutoringDesc',
+    altKey: 'tutoringAlt',
     icon: ShieldAlert,
-    label: 'Tutoria',
-    title: 'Registo e Correcção Estruturada de Erros',
-    description:
-      'Quando o liberador encontra um erro, regista-o com categoria, gravador e tipo (interno vs incidência). O sistema gera plano de acção com itens, prazos e fluxo de aprovação. Cada erro vira aprendizagem — nunca se perde.',
     imageFile: 'tab-tutoria.jpg',
-    imageAlt: 'Mentora revendo documentos com colaborador',
   },
   {
     key: 'relatorios',
+    tabKey: 'tabReports',
+    titleKey: 'reportsTitle',
+    descKey: 'reportsDesc',
+    altKey: 'reportsAlt',
     icon: BarChart3,
-    label: 'Relatórios',
-    title: 'Dados que Orientam Decisões',
-    description:
-      'Quem erra mais? Em quê? As formações funcionam? Relatórios por equipa, gravador, categoria. Cruzamento formações × erros para medir impacto real. Filtros por período, equipa, tipo de erro.',
     imageFile: 'tab-relatorios.jpg',
-    imageAlt: 'Dashboard com gráficos de análise de dados',
   },
   {
     key: 'chamados',
+    tabKey: 'tabTickets',
+    titleKey: 'ticketsTitle',
+    descKey: 'ticketsDesc',
+    altKey: 'ticketsAlt',
     icon: Headphones,
-    label: 'Chamados',
-    title: 'Suporte Interno sem Atrito',
-    description:
-      'Sistema fora do ar? Dúvida operacional? Pedido de acesso? Kanban simples — abra, acompanhe e resolva. Sem e-mails perdidos, sem conversas informais sem registo.',
     imageFile: 'tab-chamados.jpg',
-    imageAlt: 'Equipa de suporte colaborando',
   },
 ];
 
 export default function SolutionTabs() {
+  const { t } = useTranslation();
   const [active, setActive] = useState(0);
   const [visible, setVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
@@ -60,8 +58,8 @@ export default function SolutionTabs() {
     return () => observer.disconnect();
   }, []);
 
-  const tab = TABS[active];
-  const tabImageSrc = getLandingImage(tab.imageFile);
+  const tabDef = TAB_DEFS[active];
+  const tabImageSrc = getLandingImage(tabDef.imageFile);
 
   const reveal: React.CSSProperties = {
     opacity: visible ? 1 : 0,
@@ -80,20 +78,19 @@ export default function SolutionTabs() {
         {/* Header */}
         <div style={reveal}>
           <span className="font-body text-xs font-bold uppercase tracking-widest" style={{ color: '#EC0000' }}>
-            A Solução
+            {t('landing.solution.label')}
           </span>
           <h2
             className="font-headline font-bold text-[#111827] leading-[1.15] mt-3 mb-3"
             style={{ fontSize: 'clamp(1.875rem, 4vw, 2.75rem)', maxWidth: '700px' }}
           >
-            Equipas de processamento precisam de qualidade que acompanhe o ritmo.
+            {t('landing.solution.title')}
           </h2>
           <p
             className="font-body text-[#6B7280] mb-10"
             style={{ fontSize: '1rem', maxWidth: '580px' }}
           >
-            Formação estruturada, tutoria rastreada, relatórios cruzados e suporte integrado.
-            Quando tudo funciona junto, a qualidade escala.
+            {t('landing.solution.subtitle')}
           </p>
         </div>
 
@@ -106,12 +103,12 @@ export default function SolutionTabs() {
             borderBottom: '1px solid #E5E7EB',
           }}
         >
-          {TABS.map((t, i) => {
-            const Icon = t.icon;
+          {TAB_DEFS.map((td, i) => {
+            const Icon = td.icon;
             const isActive = active === i;
             return (
               <button
-                key={t.key}
+                key={td.key}
                 onClick={() => setActive(i)}
                 className="flex items-center gap-2 px-5 py-3 font-body text-sm font-medium whitespace-nowrap transition-colors duration-200"
                 style={{
@@ -123,7 +120,7 @@ export default function SolutionTabs() {
                 }}
               >
                 <Icon className="w-4 h-4 shrink-0" />
-                {t.label}
+                {t(`landing.solution.${td.tabKey}`)}
               </button>
             );
           })}
@@ -141,10 +138,10 @@ export default function SolutionTabs() {
               className="font-headline font-bold text-[#111827] mb-4"
               style={{ fontSize: 'clamp(1.375rem, 2.5vw, 1.875rem)' }}
             >
-              {tab.title}
+              {t(`landing.solution.${tabDef.titleKey}`)}
             </h3>
             <p className="font-body text-[#6B7280] leading-relaxed mb-6" style={{ fontSize: '1rem' }}>
-              {tab.description}
+              {t(`landing.solution.${tabDef.descKey}`)}
             </p>
             <a
               href="/login"
@@ -153,7 +150,7 @@ export default function SolutionTabs() {
               onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
               onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
             >
-              Explorar {tab.label} →
+              {t('landing.solution.explore')} {t(`landing.solution.${tabDef.tabKey}`)} →
             </a>
           </div>
 
@@ -165,14 +162,14 @@ export default function SolutionTabs() {
             {tabImageSrc ? (
               <img
                 src={tabImageSrc}
-                alt={tab.imageAlt}
+                alt={t(`landing.solution.${tabDef.altKey}`)}
                 loading="lazy"
                 className="w-full object-cover"
                 style={{ aspectRatio: '4/3', borderRadius: '12px' }}
               />
             ) : (
               <ImagePlaceholder
-                alt={tab.imageAlt}
+                alt={t(`landing.solution.${tabDef.altKey}`)}
                 aspectRatio="4/3"
                 className="rounded-xl"
               />

@@ -1243,117 +1243,177 @@
   },
   "landing": {
     "navbar": {
-      "login": "Sign In",
-      "start": "Get Started"
+      "platform": "The Platform",
+      "howItWorks": "How It Works",
+      "results": "Results",
+      "scheduleDemo": "Schedule Demo",
+      "productTour": "Product Tour",
+      "enterPlatform": "Enter Platform"
     },
     "hero": {
-      "badge": "Trading training platform",
-      "title": "Your team. Ready for the",
-      "titleHighlight": "market.",
-      "subtitle": "Structured courses, personalised tutoring, insightful reports and integrated support — all in one platform.",
-      "cta": "Get Started",
-      "ctaSecondary": "Sign In"
+      "badge": "Internal Operational Platform · 5 Portals · 3 Languages",
+      "title": "Fix quality issues before they become business problems.",
+      "subtitle": "TradeDataHub replaces reactive error-fighting with proactive, automated operational quality management. Recorders, verifiers, and managers work together on a single platform. Protect your clients, improve your processes.",
+      "cta": "Schedule Demo",
+      "ctaSecondary": "Product Tour",
+      "dashboardAlt": "TradeDataHub analytics dashboard"
     },
-    "proof": {
-      "tests": "341 tests validated",
-      "portals": "5 integrated portals",
-      "languages": "3 languages",
-      "api": "Full REST API",
-      "cicd": "Automated CI/CD"
-    },
-    "pillars": {
-      "title": "Everything your team needs",
-      "subtitle": "One platform. Three pillars. Real results.",
-      "learnMore": "Learn more",
-      "train": {
-        "title": "Train",
-        "description": "Courses, challenges and certifications for your team to master the market."
-      },
-      "evaluate": {
-        "title": "Evaluate",
-        "description": "Dashboards with KPIs and actionable insights for every decision."
-      },
-      "evolve": {
-        "title": "Evolve",
-        "description": "Tutoring and action plans that turn mistakes into learning."
-      }
-    },
-    "features": {
-      "title": "5 portals. One platform.",
-      "courses": {
-        "title": "Training",
-        "description": "Structured courses, lessons, hands-on challenges, training plans and certificates."
-      },
-      "tutoring": {
-        "title": "Tutoring",
-        "description": "Error management, action plans, personalised follow-up."
-      },
-      "reports": {
-        "title": "Reports",
-        "description": "Dashboards with insights, KPIs, trends and comparisons."
-      },
-      "tickets": {
-        "title": "Tickets",
-        "description": "Support with Kanban, ticket tracking and history."
-      },
-      "masterdata": {
-        "title": "Master Data",
-        "description": "User, team and category management."
-      }
-    },
-    "stats": {
-      "portals": "Integrated Portals",
-      "tests": "Validated Tests",
-      "roles": "Access Roles",
-      "languages": "Languages"
-    },
-    "howItWorks": {
-      "title": "From sign-up to growth in 4 steps",
-      "register": {
-        "title": "Sign Up",
-        "description": "Create your account in seconds. No hassle."
-      },
-      "access": {
-        "title": "Access Training",
-        "description": "Structured courses with hands-on challenges and certification."
-      },
-      "tutoring": {
-        "title": "Get Tutoring",
-        "description": "Personalised follow-up. Mistakes become learning."
-      },
-      "evolve": {
-        "title": "Analyse and Evolve",
-        "description": "Dashboards with insights. Track your team progress."
-      }
-    },
-    "quote": {
-      "text": "We don't train traders. We train teams that win.",
-      "cta": "Get Started"
-    },
-    "tech": {
-      "title": "Built with cutting-edge technology"
-    },
-    "finalCta": {
-      "title": "Ready to transform your team?",
-      "subtitle": "Join the teams already using TradeHub to train, evaluate and evolve.",
-      "cta": "Create Account",
-      "login": "Sign In"
-    },
-    "footer": {
-      "tagline": "Your platform for growth",
-      "platform": "Platform",
-      "courses": "Training",
+    "socialProof": {
+      "training": "Training",
       "tutoring": "Tutoring",
       "reports": "Reports",
       "tickets": "Tickets",
+      "masterData": "Master Data"
+    },
+    "problem": {
+      "label": "The Problem",
+      "title": "Operational errors are a business problem trapped in technical tools.",
+      "p1": "Every coordinator knows the pattern: errors are discovered too late, teams scramble to diagnose, and fixes arrive long after the client has already been impacted.",
+      "p2": "Excel logs don't scale, informal reviews leave no trail, and new recorders learn \"by doing\" without a structured training plan. The result: the same errors repeat, incidents reach the client, and no one has data to measure progress.",
+      "flowLabel": "Without a system",
+      "agency": "Agency",
+      "agencySubtitle": "Sends documents",
+      "recorder": "Recorder",
+      "recorderSubtitle": "No structured training",
+      "verifier": "Verifier",
+      "verifierSubtitle": "No error logging",
+      "client": "Client",
+      "clientSubtitle": "Incident — too late"
+    },
+    "solution": {
+      "label": "The Solution",
+      "title": "Processing teams need quality that keeps up with the pace.",
+      "subtitle": "Structured training, tracked tutoring, cross-referenced reports and integrated support. When everything works together, quality scales.",
+      "tabTraining": "Training",
+      "tabTutoring": "Tutoring",
+      "tabReports": "Reports",
+      "tabTickets": "Tickets",
+      "trainingTitle": "Proactive and Continuous Training",
+      "trainingDesc": "Courses and training plans for recorders and verifiers. From onboarding new employees to advanced training by document category. The system links training to error categories — whoever fails at X, receives training on X. Certificates included.",
+      "trainingAlt": "Corporate training in a classroom",
+      "tutoringTitle": "Structured Error Registration and Correction",
+      "tutoringDesc": "When the verifier finds an error, they register it with category, recorder and type (internal vs incident). The system generates an action plan with items, deadlines and approval flow. Every error becomes learning — never lost.",
+      "tutoringAlt": "Mentor reviewing documents with employee",
+      "reportsTitle": "Data That Drives Decisions",
+      "reportsDesc": "Who makes the most errors? In what? Are trainings working? Reports by team, recorder, category. Cross-referencing training × errors to measure real impact. Filters by period, team, error type.",
+      "reportsAlt": "Dashboard with data analysis charts",
+      "ticketsTitle": "Internal Support Without Friction",
+      "ticketsDesc": "System down? Operational question? Access request? Simple Kanban — open, track and resolve. No lost emails, no informal conversations without a record.",
+      "ticketsAlt": "Support team collaborating",
+      "explore": "Explore"
+    },
+    "features": {
+      "titleLine1": "Everything the operation needs.",
+      "titleLine2": "Nothing it doesn't.",
+      "trainingTitle": "Training",
+      "trainingDesc": "Courses and training plans for recorders and verifiers. From onboarding to advanced training by document category. Certificates included.",
+      "tutoringTitle": "Tutoring",
+      "tutoringDesc": "The verifier registers errors here. The system categorizes, assigns to the recorder and generates an action plan. The error becomes learning.",
+      "reportsTitle": "Reports",
+      "reportsDesc": "Who makes the most errors? In what? Are trainings working? Reports by team, recorder and error category.",
+      "ticketsTitle": "Tickets",
+      "ticketsDesc": "Question, technical problem or access request? Simple Kanban to resolve without lost emails.",
+      "masterDataTitle": "Master Data",
+      "masterDataDesc": "Management of users, teams, roles and permissions. The administrator control panel."
+    },
+    "stats": {
+      "titleLine1": "Opinions are subjective.",
+      "titleLine2": "Results are not.",
+      "errorsLabel": "Repeated Errors",
+      "errorsDesc": "Structured action plans break recurring error cycles",
+      "incidentsLabel": "Incidents",
+      "incidentsDesc": "Fewer errors reach the client with continuous team training",
+      "traceLabel": "Traceability",
+      "traceDesc": "Every error logged, every action documented, every result measured"
+    },
+    "pillars": {
+      "title": "Built for each role in the operation.",
+      "recorderQuote": "\"I access training, receive feedback on my errors, track the action plan and grow with concrete data on my performance.\"",
+      "recorderRole": "Recorder",
+      "recorderSubtitle": "Processing Employee",
+      "verifierQuote": "\"I log errors, create action plans, track the progress of each recorder and access team performance reports.\"",
+      "verifierRole": "Verifier / Trainer",
+      "verifierSubtitle": "Verifier & Trainer",
+      "managerQuote": "\"Full view of the operation. Cross-referenced reports, quality KPIs and control over training, tutoring and support.\"",
+      "managerRole": "Manager / Administrator",
+      "managerSubtitle": "Operations Coordinator"
+    },
+    "howItWorks": {
+      "label": "How It Works",
+      "title": "TradeDataHub integrates context, automation and collaboration in a continuous quality cycle.",
+      "subtitle": "The platform learns from errors, maintains the right rules and alerts the right people before problems spread.",
+      "cta": "See the Product",
+      "ctaSecondary": "Product Tour",
+      "step1Title": "Record with Training",
+      "step1Desc": "Agencies send documents. The recorder registers each request in the system. Training ensures they know exactly how to do it — from day one, with a personalized training plan.",
+      "step2Title": "Verify with Logging",
+      "step2Desc": "The verifier checks each record. If they find an error, they register it in tutoring with category and type (internal vs incident). The recorder receives a notification and action plan. Nothing is lost.",
+      "step3Title": "Learn from Errors",
+      "step3Desc": "Each error generates a learning sheet. Each error pattern feeds new training. Incidents — errors that reached the client — are documented and shared with the team.",
+      "step4Title": "Improve with Data",
+      "step4Desc": "Reports cross-reference training and errors. They show who improves, who needs attention, and if trainings are working. Decisions based on data, not intuition."
+    },
+    "metrics": {
+      "label": "Results",
+      "title": "Why processing teams choose TradeDataHub",
+      "errorsLabel": "Repeated Errors",
+      "errorsDesc": "Structured action plans break recurring error cycles",
+      "traceLabel": "Traceable",
+      "traceDesc": "Every error logged, every action documented, every result measured",
+      "fasterLabel": "Faster",
+      "fasterDesc": "Onboarding with a formal training plan instead of learning by doing",
+      "portalsLabel": "Integrated Portals",
+      "portalsDesc": "Training, tutoring, reports, tickets and management in one place"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "q1": "What is TradeDataHub?",
+      "a1": "Integrated platform for training, tutoring, reports and support for document processing teams. From recorder to manager — everything in one place.",
+      "q2": "Who uses the system?",
+      "a2": "Recorders, verifiers, trainers, coordinators and administrators. Each user sees exactly what they need to do their job better.",
+      "q3": "What happens when an error is found?",
+      "a3": "The verifier registers it in tutoring, categorizes and assigns it to the recorder. An action plan with deadlines is automatically generated. The recorder executes, submits and the verifier approves.",
+      "q4": "What if the error reaches the client?",
+      "a4": "It is classified as an incident — serious error. It automatically generates a learning sheet shared with the entire team. The pattern does not repeat.",
+      "q5": "Does the system support multiple languages?",
+      "a5": "Yes — Portuguese (PT), Spanish (ES) and English (EN). The interface adapts to the user's language."
+    },
+    "tech": {
+      "title": "The build environment.",
+      "subtitle": "Proven stack for speed and scale."
+    },
+    "finalCta": {
+      "label": "Start today",
+      "titleLine1": "Quality data in hours,",
+      "titleLine2": "not months.",
+      "subtitle": "Join the teams already using TradeDataHub to make operational quality proactive, automated and shared.",
+      "cta": "Schedule Demo",
+      "ctaSecondary": "Explore Modules",
+      "trust": "No commitment · Setup in minutes · Dedicated support"
+    },
+    "footer": {
+      "tagline": "Proactive, automated and shared operational quality.",
+      "platform": "Platform",
+      "about": "About",
       "resources": "Resources",
-      "docs": "Documentation",
-      "apiDocs": "API Docs",
       "support": "Support",
-      "legal": "Legal",
-      "terms": "Terms of Use",
-      "privacy": "Privacy",
-      "copyright": "Private property. All rights reserved."
+      "training": "Training",
+      "tutoring": "Tutoring",
+      "reports": "Reports",
+      "tickets": "Tickets",
+      "masterData": "Master Data",
+      "aboutUs": "About us",
+      "contact": "Contact",
+      "careers": "Careers",
+      "blog": "Blog",
+      "apiDocs": "API Documentation",
+      "news": "News",
+      "helpCenter": "Help Center",
+      "faq": "FAQ",
+      "systemStatus": "System Status",
+      "copyright": "© 2026 TradeDataHub. All rights reserved.",
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy"
     }
   },
   "lessonManagement": {

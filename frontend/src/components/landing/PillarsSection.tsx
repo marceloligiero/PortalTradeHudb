@@ -1,34 +1,33 @@
 import { useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const ROLES = [
+const ROLE_DEFS = [
   {
-    quote:
-      '"Acesso formações, recebo feedback dos meus erros, acompanho o plano de acção e evoluo com dados concretos sobre a minha performance."',
-    role: 'Gravador',
-    subtitle: 'Colaborador de Processamento',
+    quoteKey: 'recorderQuote',
+    roleKey: 'recorderRole',
+    subtitleKey: 'recorderSubtitle',
     image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=160&q=80',
   },
   {
-    quote:
-      '"Registo erros, crio planos de acção, acompanho a evolução de cada gravador e acesso relatórios de performance da equipa."',
-    role: 'Liberador / Formador',
-    subtitle: 'Verificador & Formador',
+    quoteKey: 'verifierQuote',
+    roleKey: 'verifierRole',
+    subtitleKey: 'verifierSubtitle',
     image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=160&q=80',
   },
   {
-    quote:
-      '"Visão total da operação. Relatórios cruzados, KPIs de qualidade e controlo sobre formações, tutoria e suporte."',
-    role: 'Gestor / Administrador',
-    subtitle: 'Coordenador de Operações',
+    quoteKey: 'managerQuote',
+    roleKey: 'managerRole',
+    subtitleKey: 'managerSubtitle',
     image: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=160&q=80',
   },
 ];
 
 export default function PillarsSection() {
+  const { t } = useTranslation();
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -62,13 +61,13 @@ export default function PillarsSection() {
           className="testi-header font-headline font-bold text-white leading-[1.0] mb-20"
           style={{ fontSize: 'clamp(2.25rem, 5vw, 4rem)' }}
         >
-          Pensado para cada papel na operação.
+          {t('landing.pillars.title')}
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {ROLES.map((role) => (
+          {ROLE_DEFS.map((roleDef) => (
             <div
-              key={role.role}
+              key={roleDef.roleKey}
               className="testimonial-card bg-[#0A0A0A] border border-white/[0.06] rounded-2xl p-8 hover:border-white/[0.12] hover:bg-[#0F0F0F] transition-all duration-300 group cursor-default"
             >
               {/* Decorative quote mark */}
@@ -80,19 +79,23 @@ export default function PillarsSection() {
               </div>
               {/* Quote */}
               <p className="font-body text-[#666] text-base leading-relaxed mb-8 group-hover:text-[#888] transition-colors duration-300">
-                {role.quote}
+                {t(`landing.pillars.${roleDef.quoteKey}`)}
               </p>
               {/* Author */}
               <div className="flex items-center gap-3">
                 <img
-                  src={role.image}
-                  alt={role.role}
+                  src={roleDef.image}
+                  alt={t(`landing.pillars.${roleDef.roleKey}`)}
                   loading="lazy"
                   className="w-11 h-11 rounded-full object-cover object-top grayscale opacity-70"
                 />
                 <div>
-                  <div className="font-headline font-bold text-white text-sm">{role.role}</div>
-                  <div className="font-body text-[#444] text-xs">{role.subtitle}</div>
+                  <div className="font-headline font-bold text-white text-sm">
+                    {t(`landing.pillars.${roleDef.roleKey}`)}
+                  </div>
+                  <div className="font-body text-[#444] text-xs">
+                    {t(`landing.pillars.${roleDef.subtitleKey}`)}
+                  </div>
                 </div>
               </div>
             </div>

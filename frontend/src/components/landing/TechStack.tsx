@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -20,6 +21,7 @@ const TECH = [
 ];
 
 export default function TechStack() {
+  const { t } = useTranslation();
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -53,10 +55,10 @@ export default function TechStack() {
             className="font-headline font-bold text-white leading-[1.0] mb-2"
             style={{ fontSize: 'clamp(1.75rem, 3vw, 2.5rem)' }}
           >
-            O ambiente de construção.
+            {t('landing.tech.title')}
           </h2>
           <p className="font-body text-[#444] text-sm">
-            Stack comprovada para velocidade e escala.
+            {t('landing.tech.subtitle')}
           </p>
         </div>
 
