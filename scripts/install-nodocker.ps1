@@ -1,12 +1,12 @@
 # =============================================================================
-# install-nodocker.ps1 — Instalaçao nativa Windows (sem Docker)
+# install-nodocker.ps1 -- Instalacao nativa Windows (sem Docker)
 # Uso:  .\scripts\install-nodocker.ps1
 # Requer: Python 3.11+, Node.js 18+, Git, MySQL 8.0, Nginx, NSSM
 # =============================================================================
 
 param(
     [string]$NginxPath  = "C:\nginx",
-    [string]$NssmExe    = "nssm",          # nssm no PATH, ou caminho completo
+    [string]$NssmExe    = "nssm",
     [string]$BackendPort = "8000",
     [string]$FrontendPort = "80"
 )
@@ -21,18 +21,18 @@ function Write-Warn($msg)      { Write-Host "  !!  $msg" -ForegroundColor Yellow
 function Write-Fail($msg)      { Write-Host "  XX  $msg" -ForegroundColor Red; exit 1 }
 
 Write-Host ""
-Write-Host "══════════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "  PortalTradeHub — Instalaçao Nativa Windows"           -ForegroundColor Cyan
-Write-Host "  Diretório: $Root"                                      -ForegroundColor Cyan
-Write-Host "══════════════════════════════════════════════════════" -ForegroundColor Cyan
+Write-Host "======================================================" -ForegroundColor Cyan
+Write-Host "  PortalTradeHub -- Instalacao Nativa Windows"           -ForegroundColor Cyan
+Write-Host "  Diretorio: $Root"                                      -ForegroundColor Cyan
+Write-Host "======================================================" -ForegroundColor Cyan
 
-# ── 0. Admin check ───────────────────────────────────────────────────────────
+# -- 0. Admin check ----------------------------------------------------------
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) { Write-Fail "Execute como Administrador (PowerShell > Executar como administrador)" }
 Write-OK "A correr como Administrador"
 
-# ── 1. Verificar pré-requisitos ──────────────────────────────────────────────
-Write-Step "1/7" "Verificando pré-requisitos..."
+# -- 1. Verificar pre-requisitos ---------------------------------------------
+Write-Step "1/7" "Verificando pre-requisitos..."
 
 # Python
 try {
@@ -53,11 +53,11 @@ try {
     Write-OK "Git: $gitVer"
 } catch { Write-Fail "Git nao encontrado. Instale em https://git-scm.com" }
 
-# MySQL (mysqldump para backup — mysql server pode ja estar como servico Windows)
+# MySQL (mysqldump para backup -- mysql server pode ja estar como servico Windows)
 try {
     $mysqlVer = mysql --version 2>&1
     Write-OK "MySQL client: $mysqlVer"
-} catch { Write-Warn "mysql nao encontrado no PATH. Backup da DB nao funcionará. Adicione o bin do MySQL ao PATH." }
+} catch { Write-Warn "mysql nao encontrado no PATH. Backup da DB nao funcionara. Adicione o bin do MySQL ao PATH." }
 
 # Nginx
 if (Test-Path "$NginxPath\nginx.exe") {
@@ -74,7 +74,7 @@ try {
     Write-Fail "NSSM nao encontrado. Baixe em https://nssm.cc/download e coloque nssm.exe em C:\Windows\System32\ ou passe -NssmExe 'C:\caminho\nssm.exe'"
 }
 
-# ── 2. Configurar .env do backend ────────────────────────────────────────────
+# -- 2. Configurar .env do backend -------------------------------------------
 Write-Step "2/7" "Verificando .env do backend..."
 
 $envFile = Join-Path $Root "backend\.env"
@@ -83,9 +83,9 @@ if (-not (Test-Path $envFile)) {
     $envExample = Join-Path $Root "backend\.env.example"
     if (Test-Path $envExample) {
         Copy-Item $envExample $envFile
-        Write-Warn "Edite '$envFile' antes de continuar (DB_HOST=localhost, SECRET_KEY, etc.)"
+        Write-Warn "Edite '$envFile' antes de continuar (DATABASE_URL com localhost, SECRET_KEY, etc.)"
         notepad $envFile
-        Read-Host "Pressione ENTER após guardar o .env"
+        Read-Host "Pressione ENTER apos guardar o .env"
     } else {
         Write-Fail "backend\.env e backend\.env.example nao encontrados. Crie o .env manualmente."
     }
@@ -101,7 +101,7 @@ if (-not (Test-Path $envFile)) {
     }
 }
 
-# ── 3. Python venv + dependencias ───────────────────────────────────────────
+# -- 3. Python venv + dependencias -------------------------------------------
 Write-Step "3/7" "Configurando ambiente Python..."
 
 $venvPath = Join-Path $Root "backend\.venv"
@@ -117,7 +117,7 @@ Write-Host "  Instalando dependencias (pode demorar)..." -ForegroundColor Gray
 & $pip install -r (Join-Path $Root "backend\requirements.txt") --quiet
 Write-OK "Dependencias Python instaladas"
 
-# ── 4. Build do frontend ─────────────────────────────────────────────────────
+# -- 4. Build do frontend ----------------------------------------------------
 Write-Step "4/7" "Build do frontend React..."
 
 Push-Location (Join-Path $Root "frontend")
@@ -128,7 +128,7 @@ npm run build
 Pop-Location
 Write-OK "Frontend compilado em frontend\dist"
 
-# ── 5. Gerar e instalar config do Nginx ──────────────────────────────────────
+# -- 5. Gerar e instalar config do Nginx -------------------------------------
 Write-Step "5/7" "Configurando Nginx..."
 
 $distPath = (Join-Path $Root "frontend\dist").Replace("\", "/")
@@ -147,7 +147,7 @@ server {
         try_files `$uri `$uri/ /index.html;
     }
 
-    # API proxy -> FastAPI (sem trailing slash para preservar /api prefix)
+    # API proxy -> FastAPI (preserva /api prefix)
     location /api {
         proxy_pass         http://127.0.0.1:$BackendPort;
         proxy_http_version 1.1;
@@ -195,8 +195,8 @@ if (Test-Path $nginxMainConf) {
 & "$NginxPath\nginx.exe" -t -p $NginxPath
 Write-OK "Config Nginx valida"
 
-# ── 6. Registar servicos Windows via NSSM ────────────────────────────────────
-Write-Step "6/7" "Registando serviços Windows..."
+# -- 6. Registar servicos Windows via NSSM -----------------------------------
+Write-Step "6/7" "Registando servicos Windows..."
 
 $uvicorn = Join-Path $venvPath "Scripts\uvicorn.exe"
 
@@ -215,7 +215,7 @@ if ($existingBackend -notmatch "SERVICE_") {
     & $NssmExe set $svcBackend AppRotateBytes 10485760
     Write-OK "Servico '$svcBackend' registado"
 } else {
-    Write-OK "Servico '$svcBackend' ja existe — atualizado"
+    Write-OK "Servico '$svcBackend' ja existe -- atualizado"
     & $NssmExe set $svcBackend AppParameters "main:app --host 127.0.0.1 --port $BackendPort --workers 2"
     & $NssmExe set $svcBackend AppDirectory (Join-Path $Root "backend")
 }
@@ -239,8 +239,8 @@ if ($existingNginx -notmatch "SERVICE_") {
 $logsDir = Join-Path $Root "logs"
 if (-not (Test-Path $logsDir)) { New-Item -ItemType Directory $logsDir -Force | Out-Null }
 
-# ── 7. Iniciar serviços ───────────────────────────────────────────────────────
-Write-Step "7/7" "Iniciando serviços..."
+# -- 7. Iniciar servicos -----------------------------------------------------
+Write-Step "7/7" "Iniciando servicos..."
 
 foreach ($svc in @($svcBackend, $svcNginx)) {
     $status = & $NssmExe status $svc 2>&1
@@ -254,12 +254,12 @@ foreach ($svc in @($svcBackend, $svcNginx)) {
     if ($newStatus -eq "SERVICE_RUNNING") {
         Write-OK "$svc running"
     } else {
-        Write-Warn "$svc status: $newStatus — verifique logs em $logsDir"
+        Write-Warn "$svc status: $newStatus - verifique logs em $logsDir"
     }
 }
 
 Write-Host ""
-Write-Host "══════════════════════════════════════════════════════" -ForegroundColor Green
+Write-Host "======================================================" -ForegroundColor Green
 Write-Host "  Instalacao concluida!" -ForegroundColor Green
 Write-Host "  Frontend : http://localhost:$FrontendPort" -ForegroundColor Green
 Write-Host "  Backend  : http://localhost:$BackendPort/docs" -ForegroundColor Green
@@ -269,4 +269,4 @@ Write-Host "  Para atualizar:" -ForegroundColor Cyan
 Write-Host "    .\scripts\deploy-nodocker.ps1" -ForegroundColor Cyan
 Write-Host "  Para parar tudo:" -ForegroundColor Cyan
 Write-Host "    nssm stop tradehub-backend; nssm stop tradehub-nginx" -ForegroundColor Cyan
-Write-Host "══════════════════════════════════════════════════════" -ForegroundColor Green
+Write-Host "======================================================" -ForegroundColor Green

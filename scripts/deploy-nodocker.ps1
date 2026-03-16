@@ -1,7 +1,7 @@
 # =============================================================================
-# deploy-nodocker.ps1 — Atualizar e redesploiar (sem Docker)
+# deploy-nodocker.ps1 -- Atualizar e redesploiar (sem Docker)
 # Uso:  .\scripts\deploy-nodocker.ps1 [-SkipBackup] [-SkipPull]
-# Pré-requisito: install-nodocker.ps1 já executado uma vez
+# Pre-requisito: install-nodocker.ps1 ja executado uma vez
 # =============================================================================
 
 param(
@@ -22,12 +22,12 @@ function Write-Warn($msg)      { Write-Host "  !!  $msg" -ForegroundColor Yellow
 function Write-Fail($msg)      { Write-Host "  XX  $msg" -ForegroundColor Red; exit 1 }
 
 Write-Host ""
-Write-Host "══════════════════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "  PortalTradeHub — Deploy Nativo Windows"               -ForegroundColor Cyan
+Write-Host "======================================================" -ForegroundColor Cyan
+Write-Host "  PortalTradeHub -- Deploy Nativo Windows"               -ForegroundColor Cyan
 Write-Host "  Data: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"      -ForegroundColor Cyan
-Write-Host "══════════════════════════════════════════════════════" -ForegroundColor Cyan
+Write-Host "======================================================" -ForegroundColor Cyan
 
-# ── 1. Backup da base de dados ───────────────────────────────────────────────
+# -- 1. Backup da base de dados ----------------------------------------------
 Write-Step "1/5" "Backup da base de dados..."
 
 if (-not $SkipBackup) {
@@ -45,7 +45,7 @@ if (-not $SkipBackup) {
                 $dbPass = $Matches[2].Trim()
                 $dbHost = $Matches[3].Trim()
                 $dbPort = $Matches[4].Trim()
-                $dbName = $Matches[5].Trim() -replace "\?.*$", ""  # remove query params
+                $dbName = $Matches[5].Trim() -replace "\?.*$", ""
             }
         }
     }
@@ -63,7 +63,7 @@ if (-not $SkipBackup) {
         Write-Warn "Falha no backup: $_. Continuando..."
     }
 
-    # Manter apenas os últimos 10 backups
+    # Manter apenas os ultimos 10 backups
     Get-ChildItem $backupDir -Filter "pre-deploy-*.sql" |
         Sort-Object CreationTime -Descending |
         Select-Object -Skip 10 |
@@ -72,22 +72,22 @@ if (-not $SkipBackup) {
     Write-OK "Backup ignorado (--SkipBackup)"
 }
 
-# ── 2. Pull do código ────────────────────────────────────────────────────────
-Write-Step "2/5" "Atualizando código..."
+# -- 2. Pull do codigo -------------------------------------------------------
+Write-Step "2/5" "Atualizando codigo..."
 
 if (-not $SkipPull) {
     Push-Location $Root
     git pull origin main 2>&1 | ForEach-Object { Write-Host "  $_" -ForegroundColor Gray }
     Pop-Location
-    Write-OK "Código atualizado"
+    Write-OK "Codigo atualizado"
 } else {
     Write-OK "Pull ignorado (--SkipPull)"
 }
 
-# ── 3. Atualizar dependencias + build frontend ───────────────────────────────
+# -- 3. Atualizar dependencias + build frontend ------------------------------
 Write-Step "3/5" "Atualizando dependencias e compilando frontend..."
 
-# Python deps (só instala se requirements mudou)
+# Python deps
 $pip = Join-Path $Root "backend\.venv\Scripts\pip.exe"
 if (-not (Test-Path $pip)) { Write-Fail "venv nao encontrado. Execute install-nodocker.ps1 primeiro." }
 
@@ -143,8 +143,8 @@ server {
 "@
 $nginxConf | Set-Content "$NginxPath\conf\conf.d\tradehub.conf" -Encoding UTF8
 
-# ── 4. Reiniciar serviços ─────────────────────────────────────────────────────
-Write-Step "4/5" "Reiniciando servisos..."
+# -- 4. Reiniciar servicos ---------------------------------------------------
+Write-Step "4/5" "Reiniciando servicos..."
 
 # Backend
 Write-Host "  Reiniciando tradehub-backend..." -ForegroundColor Gray
@@ -155,10 +155,10 @@ Start-Sleep -Seconds 3
 Write-Host "  Recarregando Nginx..." -ForegroundColor Gray
 & "$NginxPath\nginx.exe" -p $NginxPath -s reload
 Start-Sleep -Seconds 1
-Write-OK "Serviços reiniciados"
+Write-OK "Servicos reiniciados"
 
-# ── 5. Health check ───────────────────────────────────────────────────────────
-Write-Step "5/5" "Verificando saúde..."
+# -- 5. Health check ---------------------------------------------------------
+Write-Step "5/5" "Verificando saude..."
 
 Start-Sleep -Seconds 5
 
@@ -175,7 +175,7 @@ try {
         $resp2 = Invoke-WebRequest -Uri "http://localhost:$BackendPort/docs" -TimeoutSec 10 -UseBasicParsing -ErrorAction Stop
         Write-OK "Backend: respondendo (HTTP $($resp2.StatusCode))"
     } catch {
-        Write-Warn "Backend: nao responde — verifique logs\backend-stderr.log"
+        Write-Warn "Backend: nao responde - verifique logs\backend-stderr.log"
         $allGood = $false
     }
 }
@@ -186,22 +186,22 @@ try {
     if ($resp.StatusCode -eq 200) { Write-OK "Frontend: healthy" }
     else { Write-Warn "Frontend: HTTP $($resp.StatusCode)"; $allGood = $false }
 } catch {
-    Write-Warn "Frontend: nao responde — verifique logs\nginx-stderr.log"
+    Write-Warn "Frontend: nao responde - verifique logs\nginx-stderr.log"
     $allGood = $false
 }
 
 Write-Host ""
 if ($allGood) {
-    Write-Host "══════════════════════════════════════════════════════" -ForegroundColor Green
+    Write-Host "======================================================" -ForegroundColor Green
     Write-Host "  Deploy concluido com sucesso!" -ForegroundColor Green
     Write-Host "  http://localhost" -ForegroundColor Green
-    Write-Host "══════════════════════════════════════════════════════" -ForegroundColor Green
+    Write-Host "======================================================" -ForegroundColor Green
 } else {
-    Write-Host "══════════════════════════════════════════════════════" -ForegroundColor Red
-    Write-Host "  Deploy com avisos — verifique:" -ForegroundColor Yellow
+    Write-Host "======================================================" -ForegroundColor Red
+    Write-Host "  Deploy com avisos - verifique:" -ForegroundColor Yellow
     Write-Host "    logs\backend-stderr.log" -ForegroundColor Yellow
     Write-Host "    logs\nginx-stderr.log" -ForegroundColor Yellow
     Write-Host "  Logs em tempo real:" -ForegroundColor Yellow
     Write-Host "    Get-Content logs\backend-stderr.log -Wait" -ForegroundColor Yellow
-    Write-Host "══════════════════════════════════════════════════════" -ForegroundColor Red
+    Write-Host "======================================================" -ForegroundColor Red
 }
