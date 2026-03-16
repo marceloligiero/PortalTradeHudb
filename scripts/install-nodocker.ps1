@@ -90,13 +90,12 @@ if (-not (Test-Path $envFile)) {
         Write-Fail "backend\.env e backend\.env.example nao encontrados. Crie o .env manualmente."
     }
 } else {
-    # Avisar sobre DB_HOST se ainda tem nome de servico Docker
+    # Corrigir DATABASE_URL se ainda tem hostname Docker (db, tradehub-db)
     $envContent = Get-Content $envFile -Raw
-    if ($envContent -match "DB_HOST\s*=\s*tradehub-db") {
-        Write-Warn "DB_HOST=tradehub-db detectado. Para modo nativo, mude para DB_HOST=localhost"
-        Write-Warn "Editando .env..."
-        (Get-Content $envFile) -replace "DB_HOST=tradehub-db", "DB_HOST=localhost" | Set-Content $envFile
-        Write-OK "DB_HOST atualizado para localhost"
+    if ($envContent -match "DATABASE_URL=.*@(tradehub-db|db):") {
+        Write-Warn "DATABASE_URL com hostname Docker detectado. Corrigindo para localhost..."
+        (Get-Content $envFile) -replace "@tradehub-db:", "@localhost:" -replace "@db:", "@localhost:" | Set-Content $envFile
+        Write-OK "DATABASE_URL atualizado para localhost"
     } else {
         Write-OK ".env encontrado"
     }
@@ -148,9 +147,9 @@ server {
         try_files `$uri `$uri/ /index.html;
     }
 
-    # API proxy -> FastAPI
-    location /api/ {
-        proxy_pass         http://127.0.0.1:$BackendPort/;
+    # API proxy -> FastAPI (sem trailing slash para preservar /api prefix)
+    location /api {
+        proxy_pass         http://127.0.0.1:$BackendPort;
         proxy_http_version 1.1;
         proxy_set_header   Upgrade `$http_upgrade;
         proxy_set_header   Connection keep-alive;

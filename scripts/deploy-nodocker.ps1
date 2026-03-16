@@ -34,16 +34,19 @@ if (-not $SkipBackup) {
     $backupDir = Join-Path $Root "backups"
     if (-not (Test-Path $backupDir)) { New-Item -ItemType Directory $backupDir -Force | Out-Null }
 
-    # Ler credenciais do .env
+    # Ler DATABASE_URL do .env e extrair credenciais
     $envFile = Join-Path $Root "backend\.env"
     $dbUser = "root"; $dbPass = ""; $dbName = "tradehub_db"; $dbHost = "localhost"; $dbPort = "3306"
     if (Test-Path $envFile) {
         Get-Content $envFile | ForEach-Object {
-            if ($_ -match "^DB_USER=(.+)")     { $dbUser  = $Matches[1].Trim() }
-            if ($_ -match "^DB_PASSWORD=(.+)") { $dbPass  = $Matches[1].Trim() }
-            if ($_ -match "^DB_NAME=(.+)")     { $dbName  = $Matches[1].Trim() }
-            if ($_ -match "^DB_HOST=(.+)")     { $dbHost  = $Matches[1].Trim() }
-            if ($_ -match "^DB_PORT=(.+)")     { $dbPort  = $Matches[1].Trim() }
+            # Parse DATABASE_URL=mysql+pymysql://user:pass@host:port/dbname
+            if ($_ -match "^DATABASE_URL=.*://([^:]+):([^@]*)@([^:]+):(\d+)/(.+)") {
+                $dbUser = $Matches[1].Trim()
+                $dbPass = $Matches[2].Trim()
+                $dbHost = $Matches[3].Trim()
+                $dbPort = $Matches[4].Trim()
+                $dbName = $Matches[5].Trim() -replace "\?.*$", ""  # remove query params
+            }
         }
     }
 
@@ -113,8 +116,8 @@ server {
         try_files `$uri `$uri/ /index.html;
     }
 
-    location /api/ {
-        proxy_pass         http://127.0.0.1:$BackendPort/;
+    location /api {
+        proxy_pass         http://127.0.0.1:$BackendPort;
         proxy_http_version 1.1;
         proxy_set_header   Upgrade `$http_upgrade;
         proxy_set_header   Connection keep-alive;
