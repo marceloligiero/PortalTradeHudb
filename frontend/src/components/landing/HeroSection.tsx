@@ -43,7 +43,7 @@ export default function HeroSection() {
   const isMobile          = useIsMobile();
   const prefersReduced    = usePrefersReducedMotion();
   const heroSrc           = getLandingImage('hero-dashboard.png');
-  const posterSrc         = getLandingImage('hero-bg-poster.jpg') ?? getLandingImage('hero-dashboard.png');
+  const posterSrc         = getLandingImage('hero-bg-poster.png') ?? getLandingImage('hero-bg-poster.jpg') ?? getLandingImage('hero-dashboard.png');
 
   // Show video only when: desktop, no reduced motion, no load error
   const showVideo = !isMobile && !prefersReduced && !videoError;
