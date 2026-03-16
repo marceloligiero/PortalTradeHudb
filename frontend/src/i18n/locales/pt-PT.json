@@ -3152,11 +3152,11 @@
     "plans": "Planos",
     "noMemberFound": "Nenhum membro encontrado",
     "roles": {
-      "STUDENT": "Estudante",
-      "TRAINEE": "Tutorado",
-      "TRAINER": "Tutor",
-      "MANAGER": "Manager",
-      "ADMIN": "Admin"
+      "STUDENT": "Gravador",
+      "TRAINEE": "Gravador em Formação",
+      "TRAINER": "Liberador / Formador",
+      "MANAGER": "Coordenador",
+      "ADMIN": "Administrador"
     }
   },
   "relTeams": {

@@ -65,7 +65,7 @@ export default function LandingFooter() {
           style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}
         >
           <p className="font-body text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-            © 2025 TradeDataHub. Todos os direitos reservados.
+            © 2026 TradeDataHub. Todos os direitos reservados.
           </p>
           <div className="flex items-center gap-6">
             {['Termos de Serviço', 'Política de Privacidade'].map((item) => (

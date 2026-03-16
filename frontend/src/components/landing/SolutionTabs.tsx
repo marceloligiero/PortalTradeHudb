@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { GraduationCap, ShieldAlert, BarChart3, Headphones } from 'lucide-react';
+import { getLandingImage } from '../../utils/landingImages';
+import ImagePlaceholder from '../ImagePlaceholder';
 
 const TABS = [
   {
@@ -9,7 +11,7 @@ const TABS = [
     title: 'Formação Proactiva e Contínua',
     description:
       'Cursos e planos de treino para gravadores e liberadores. Desde o onboarding de novos colaboradores até formações avançadas por categoria de documento. O sistema vincula formações a categorias de erro — quem erra em X, recebe formação sobre X. Certificados incluídos.',
-    image: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=900&q=80',
+    imageFile: 'tab-formacoes.jpg',
     imageAlt: 'Formação corporativa em sala',
   },
   {
@@ -19,7 +21,7 @@ const TABS = [
     title: 'Registo e Correcção Estruturada de Erros',
     description:
       'Quando o liberador encontra um erro, regista-o com categoria, gravador e tipo (interno vs incidência). O sistema gera plano de acção com itens, prazos e fluxo de aprovação. Cada erro vira aprendizagem — nunca se perde.',
-    image: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=900&q=80',
+    imageFile: 'tab-tutoria.jpg',
     imageAlt: 'Mentora revendo documentos com colaborador',
   },
   {
@@ -29,7 +31,7 @@ const TABS = [
     title: 'Dados que Orientam Decisões',
     description:
       'Quem erra mais? Em quê? As formações funcionam? Relatórios por equipa, gravador, categoria. Cruzamento formações × erros para medir impacto real. Filtros por período, equipa, tipo de erro.',
-    image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=900&q=80',
+    imageFile: 'tab-relatorios.jpg',
     imageAlt: 'Dashboard com gráficos de análise de dados',
   },
   {
@@ -39,7 +41,7 @@ const TABS = [
     title: 'Suporte Interno sem Atrito',
     description:
       'Sistema fora do ar? Dúvida operacional? Pedido de acesso? Kanban simples — abra, acompanhe e resolva. Sem e-mails perdidos, sem conversas informais sem registo.',
-    image: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=900&q=80',
+    imageFile: 'tab-chamados.jpg',
     imageAlt: 'Equipa de suporte colaborando',
   },
 ];
@@ -59,6 +61,7 @@ export default function SolutionTabs() {
   }, []);
 
   const tab = TABS[active];
+  const tabImageSrc = getLandingImage(tab.imageFile);
 
   const reveal: React.CSSProperties = {
     opacity: visible ? 1 : 0,
@@ -159,13 +162,21 @@ export default function SolutionTabs() {
             className="rounded-xl overflow-hidden"
             style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.1)', border: '1px solid #E5E7EB' }}
           >
-            <img
-              src={tab.image}
-              alt={tab.imageAlt}
-              loading="lazy"
-              className="w-full object-cover"
-              style={{ aspectRatio: '4/3', borderRadius: '12px' }}
-            />
+            {tabImageSrc ? (
+              <img
+                src={tabImageSrc}
+                alt={tab.imageAlt}
+                loading="lazy"
+                className="w-full object-cover"
+                style={{ aspectRatio: '4/3', borderRadius: '12px' }}
+              />
+            ) : (
+              <ImagePlaceholder
+                alt={tab.imageAlt}
+                aspectRatio="4/3"
+                className="rounded-xl"
+              />
+            )}
           </div>
         </div>
       </div>

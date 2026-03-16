@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react';
+import { getLandingImage } from '../../utils/landingImages';
+import ImagePlaceholder from '../ImagePlaceholder';
 
 export default function HeroSection() {
   const contentRef = useRef<HTMLDivElement>(null);
+  const heroSrc = getLandingImage('hero-dashboard.png');
 
   useEffect(() => {
     const el = contentRef.current;
@@ -85,13 +88,21 @@ export default function HeroSection() {
           className="relative rounded-2xl overflow-hidden mx-auto"
           style={{ maxWidth: '900px', boxShadow: '0 24px 80px rgba(0,0,0,0.12)', border: '1px solid #E5E7EB' }}
         >
-          <img
-            src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1400&q=80"
-            alt="Dashboard analítico do TradeDataHub"
-            loading="lazy"
-            className="w-full object-cover"
-            style={{ aspectRatio: '16/9' }}
-          />
+          {heroSrc ? (
+            <img
+              src={heroSrc}
+              alt="Dashboard analítico do TradeDataHub"
+              loading="lazy"
+              className="w-full object-cover"
+              style={{ aspectRatio: '16/9' }}
+            />
+          ) : (
+            <ImagePlaceholder
+              alt="Dashboard analítico do TradeDataHub"
+              aspectRatio="16/9"
+              className="rounded-2xl"
+            />
+          )}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{ background: 'linear-gradient(to bottom, transparent 50%, rgba(248,249,251,0.6))' }}
