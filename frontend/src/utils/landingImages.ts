@@ -4,13 +4,13 @@
  * Place image files in: src/assets/images/landing/
  */
 
-// Glob import — only includes files that actually exist. Empty when folder is empty.
+// Vite 7: eager + import:'default' extrai o URL directamente (sem precisar de .default)
 const _modules = import.meta.glob(
   '/src/assets/images/landing/*',
-  { eager: true }
-) as Record<string, { default: string }>;
+  { eager: true, import: 'default' }
+) as Record<string, string>;
 
 export function getLandingImage(filename: string): string | null {
   const key = Object.keys(_modules).find((k) => k.endsWith(`/${filename}`));
-  return key ? _modules[key]?.default ?? null : null;
+  return key ? (_modules[key] ?? null) : null;
 }
