@@ -34,7 +34,7 @@ function usePrefersReducedMotion(): boolean {
   return reduced;
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const LEFT_TEXTS = [
   'El mismo error, otra vez',
@@ -54,18 +54,26 @@ const RIGHT_TEXTS = [
 
 const INTERVAL = 1.3;
 
+// ── Film grain SVG (inline, no external request) ──────────────────────────────
+const GRAIN_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function HeroSection() {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const contentRef = useRef<HTMLDivElement>(null);
   const videoRef   = useRef<HTMLVideoElement>(null);
+
   const [videoError, setVideoError] = useState(false);
-  const [time, setTime] = useState(0);
+  const [isLoaded,   setIsLoaded]   = useState(false);
+  const [time,       setTime]       = useState(0);
 
   const isMobile       = useIsMobile();
   const prefersReduced = usePrefersReducedMotion();
   const showVideo      = !isMobile && !prefersReduced && !videoError;
 
+  // Content fade-in on mount
   useEffect(() => {
     const el = contentRef.current;
     if (!el) return;
@@ -76,24 +84,31 @@ export default function HeroSection() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Video events: timeupdate + loadeddata
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    const handler = () => setTime(v.currentTime);
-    v.addEventListener('timeupdate', handler);
-    return () => v.removeEventListener('timeupdate', handler);
+    const onTime   = () => setTime(v.currentTime);
+    const onLoaded = () => setIsLoaded(true);
+    v.addEventListener('timeupdate', onTime);
+    v.addEventListener('loadeddata', onLoaded);
+    return () => {
+      v.removeEventListener('timeupdate', onTime);
+      v.removeEventListener('loadeddata', onLoaded);
+    };
   }, [showVideo]);
 
   const activeLeft  = Math.min(LEFT_TEXTS.length  - 1, Math.floor(Math.max(0, time - 0.5) / INTERVAL));
   const activeRight = Math.min(RIGHT_TEXTS.length - 1, Math.floor(Math.max(0, time - 0.8) / INTERVAL));
-  const showTexts   = showVideo && time >= 0.5 && time < 7.5;
+  const showTexts   = showVideo && isLoaded && time >= 0.5 && time < 7.5;
+  const showEffects = showVideo && isLoaded;
 
   return (
     <section
       className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white dark:bg-[#09090B]"
       style={{ paddingTop: '80px' }}
     >
-      {/* CAMADA 1 — Vídeo */}
+      {/* ── CAMADA 1 — Vídeo (fade-in ao carregar) ───────────────────── */}
       {showVideo && (
         <video
           ref={videoRef}
@@ -102,8 +117,11 @@ export default function HeroSection() {
           muted
           playsInline
           onError={() => setVideoError(true)}
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-          style={{ filter: 'brightness(0.75) saturate(0.85)' }}
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none transition-opacity duration-1000"
+          style={{
+            filter: 'brightness(0.75) saturate(0.85)',
+            opacity: isLoaded ? 1 : 0,
+          }}
           aria-hidden="true"
         >
           <source src="/video/hero-bg.mp4" type="video/mp4" />
@@ -111,7 +129,30 @@ export default function HeroSection() {
         </video>
       )}
 
-      {/* CAMADA 2 — Overlay semitransparente */}
+      {/* ── CAMADA 2 — Film grain (textura analógica subtil) ─────────── */}
+      {showEffects && (
+        <div
+          className="absolute inset-0 pointer-events-none mix-blend-overlay"
+          style={{
+            opacity: 0.035,
+            backgroundImage: GRAIN_SVG,
+            backgroundSize: '128px 128px',
+            animation: 'grainShift 0.5s steps(1) infinite',
+          }}
+        />
+      )}
+
+      {/* ── CAMADA 3 — Color grading (contraste cinematográfico) ─────── */}
+      {showEffects && (
+        <div
+          className="absolute inset-0 pointer-events-none mix-blend-soft-light"
+          style={{
+            background: 'linear-gradient(135deg, rgba(0,20,60,0.08) 0%, transparent 40%, transparent 60%, rgba(60,20,0,0.06) 100%)',
+          }}
+        />
+      )}
+
+      {/* ── CAMADA 4 — Overlay semitransparente ──────────────────────── */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -121,7 +162,17 @@ export default function HeroSection() {
         }}
       />
 
-      {/* CAMADA 3 — Gradiente fade inferior */}
+      {/* ── CAMADA 5 — Vinheta cinematográfica (bordas escuras) ──────── */}
+      {showEffects && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.30) 100%)',
+          }}
+        />
+      )}
+
+      {/* ── CAMADA 6 — Gradiente fade inferior ───────────────────────── */}
       <div
         className="absolute inset-x-0 bottom-0 pointer-events-none"
         style={{
@@ -132,14 +183,60 @@ export default function HeroSection() {
         }}
       />
 
-      {/* CAMADA 4 — Lower thirds cinematográficos (só com vídeo) */}
+      {/* ── CAMADA 7 — Linha divisória central com glow vermelho ─────── */}
+      {showEffects && (
+        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[2px] pointer-events-none z-[5]">
+          {/* Base branca subtil */}
+          <div className="absolute inset-0 bg-white/15" />
+          {/* Glow vermelho pulsante */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(to bottom, transparent 0%, rgba(236,0,0,0.35) 25%, rgba(236,0,0,0.55) 50%, rgba(236,0,0,0.35) 75%, transparent 100%)',
+              animation: 'lineGlow 3s ease-in-out infinite',
+            }}
+          />
+          {/* Partícula que desce */}
+          <div
+            className="absolute left-1/2 -translate-x-1/2 w-[5px] h-[5px] rounded-full bg-[#EC0000]"
+            style={{
+              boxShadow: '0 0 6px rgba(236,0,0,0.7), 0 0 16px rgba(236,0,0,0.35)',
+              animation: 'particleDrop 4s ease-in-out infinite',
+            }}
+          />
+        </div>
+      )}
+
+      {/* ── CAMADA 8 — Labels topo "Sin sistema" / "Con TradeDataHub" ── */}
+      {showEffects && (
+        <div className="absolute left-0 right-0 flex pointer-events-none z-[6]" style={{ top: '88px' }}>
+          <div className="w-1/2 flex justify-center">
+            <span
+              className="text-[10px] sm:text-xs uppercase tracking-[0.25em] font-body text-white/55 px-3 py-1 rounded-full border border-white/10 backdrop-blur-sm bg-black/20"
+              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}
+            >
+              Sin sistema
+            </span>
+          </div>
+          <div className="w-1/2 flex justify-center">
+            <span
+              className="text-[10px] sm:text-xs uppercase tracking-[0.25em] font-body text-white/55 px-3 py-1 rounded-full border border-white/10 backdrop-blur-sm bg-black/20"
+              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}
+            >
+              Con TradeDataHub
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ── CAMADA 9 — Lower thirds cinematográficos ─────────────────── */}
       {showTexts && (
-        <div className="absolute inset-x-0 bottom-0 z-[5] flex pointer-events-none" style={{ paddingBottom: '8%' }}>
+        <div className="absolute inset-x-0 bottom-0 z-[7] flex pointer-events-none" style={{ paddingBottom: '8%' }}>
 
           {/* Esquerda — problema */}
           <div className="w-1/2 flex flex-col justify-end pl-[4%]">
             <span
-              className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] font-body text-white/50 mb-1.5"
+              className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] font-body text-white/45 mb-1.5"
               style={{ textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}
             >
               Sin sistema
@@ -156,7 +253,7 @@ export default function HeroSection() {
           {/* Direita — solução */}
           <div className="w-1/2 flex flex-col justify-end pr-[4%] items-end text-right">
             <span
-              className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] font-body text-white/50 mb-1.5"
+              className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] font-body text-white/45 mb-1.5"
               style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}
             >
               Con TradeDataHub
@@ -172,7 +269,20 @@ export default function HeroSection() {
         </div>
       )}
 
-      {/* CAMADA 5 — Conteúdo */}
+      {/* ── CAMADA 10 — Indicador "Live" ─────────────────────────────── */}
+      {showEffects && (
+        <div className="absolute bottom-3 right-3 flex items-center gap-1.5 pointer-events-none z-[8]">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#EC0000] animate-pulse" />
+          <span
+            className="text-[9px] uppercase tracking-[0.15em] font-body text-white/35"
+            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
+          >
+            Live
+          </span>
+        </div>
+      )}
+
+      {/* ── CAMADA 11 — Conteúdo principal ───────────────────────────── */}
       <div
         ref={contentRef}
         className="relative z-10 w-full max-w-4xl mx-auto px-6 text-center py-24"
