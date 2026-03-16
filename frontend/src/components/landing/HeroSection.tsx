@@ -71,6 +71,7 @@ export default function HeroSection() {
           playsInline
           onError={() => setVideoError(true)}
           className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ filter: 'brightness(0.5) saturate(0.3) blur(1px)' }}
           aria-hidden="true"
         >
           <source src="/video/hero-bg.mp4" type="video/mp4" />
@@ -81,7 +82,7 @@ export default function HeroSection() {
       {/* CAMADA 2 — Overlay branco com blur para legibilidade */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(2px)' }}
+        style={{ background: 'rgba(255,255,255,0.90)' }}
       />
 
       {/* CAMADA 3 — Gradiente fade inferior */}
