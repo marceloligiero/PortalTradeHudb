@@ -2,9 +2,21 @@ import { useEffect, useRef } from 'react';
 import { getLandingImage } from '../../utils/landingImages';
 import ImagePlaceholder from '../ImagePlaceholder';
 
+// Vídeo de background — se não existir, fallback para bg branco
+const _videos = import.meta.glob(
+  '/src/assets/video/*',
+  { eager: true, import: 'default' }
+) as Record<string, string>;
+
+function getVideo(filename: string): string | null {
+  const key = Object.keys(_videos).find((k) => k.endsWith(`/${filename}`));
+  return key ? (_videos[key] ?? null) : null;
+}
+
 export default function HeroSection() {
   const contentRef = useRef<HTMLDivElement>(null);
-  const heroSrc = getLandingImage('hero-dashboard.png');
+  const heroSrc   = getLandingImage('hero-dashboard.png');
+  const videoSrc  = getVideo('hero-bg.mp4');
 
   useEffect(() => {
     const el = contentRef.current;
@@ -17,10 +29,32 @@ export default function HeroSection() {
   }, []);
 
   return (
-    <section className="bg-white" style={{ paddingTop: '96px' }}>
+    <section
+      className="relative overflow-hidden bg-white"
+      style={{ paddingTop: '96px' }}
+    >
+      {/* ── Vídeo de background (só carrega se o ficheiro existir) ── */}
+      {videoSrc && (
+        <>
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+            style={{ filter: 'brightness(0.9) saturate(0.8)' }}
+          >
+            <source src={videoSrc} type="video/mp4" />
+          </video>
+          {/* Overlay branco para manter legibilidade do texto */}
+          <div className="absolute inset-0 bg-white/80 pointer-events-none" />
+        </>
+      )}
+
+      {/* ── Conteúdo ── */}
       <div
         ref={contentRef}
-        className="max-w-5xl mx-auto px-6 text-center"
+        className="relative z-10 max-w-5xl mx-auto px-6 text-center"
         style={{
           paddingTop: '72px',
           paddingBottom: '64px',
@@ -83,7 +117,7 @@ export default function HeroSection() {
           </a>
         </div>
 
-        {/* Product visual */}
+        {/* Product visual (dashboard) */}
         <div
           className="relative rounded-2xl overflow-hidden mx-auto"
           style={{ maxWidth: '900px', boxShadow: '0 24px 80px rgba(0,0,0,0.12)', border: '1px solid #E5E7EB' }}
@@ -111,7 +145,10 @@ export default function HeroSection() {
       </div>
 
       {/* Gradient to next section */}
-      <div style={{ height: '60px', background: 'linear-gradient(to bottom, #fff, #F8F9FB)' }} />
+      <div
+        className="relative z-10"
+        style={{ height: '60px', background: 'linear-gradient(to bottom, #fff, #F8F9FB)' }}
+      />
     </section>
   );
 }
