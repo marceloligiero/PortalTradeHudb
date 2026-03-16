@@ -9,7 +9,7 @@ import {
   ArrowRight, UserPlus, Zap,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import PremiumNavbar from '../components/PremiumNavbar';
+import LandingNavbar from '../components/landing/LandingNavbar';
 
 /* ═══════════════════════════════════════════════════════════════════
    Mesh Gradient Background (interactive canvas)
@@ -178,9 +178,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') !== 'light');
-
-  useEffect(() => { localStorage.setItem('theme', isDark ? 'dark' : 'light'); }, [isDark]);
 
   const loginMutation = useMutation({
     mutationFn: authApi.login,
@@ -193,7 +190,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#050508] relative overflow-hidden">
       <MeshBackground />
       <NoiseOverlay />
-      <PremiumNavbar isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} />
+      <LandingNavbar minimal />
 
       <div className="relative z-10 min-h-screen flex items-stretch">
         {/* LEFT: Brand Panel */}

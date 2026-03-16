@@ -8,7 +8,7 @@ import {
   ArrowRight, Zap,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import PremiumNavbar from '../components/PremiumNavbar';
+import LandingNavbar from '../components/landing/LandingNavbar';
 
 /* ═══════════════════════════════════════════════════════════════════
    Mesh Gradient Background (matching LoginPage)
@@ -294,9 +294,6 @@ export default function RegisterPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') !== 'light');
-  useEffect(() => { localStorage.setItem('theme', isDark ? 'dark' : 'light'); }, [isDark]);
-
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
   const [showPw, setShowPw] = useState(false);
@@ -366,7 +363,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-[#050508] relative overflow-hidden">
       <MeshBackground />
       <NoiseOverlay />
-      <PremiumNavbar isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} />
+      <LandingNavbar minimal />
 
       <div className="relative z-10 min-h-screen flex items-stretch">
         {/* LEFT: Brand Panel */}

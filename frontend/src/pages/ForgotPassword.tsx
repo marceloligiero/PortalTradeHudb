@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, ArrowRight, CheckCircle, Lock, Eye, EyeOff, KeyRound, ChevronLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../lib/axios';
-import PremiumNavbar from '../components/PremiumNavbar';
+import LandingNavbar from '../components/landing/LandingNavbar';
+import { useTheme } from '../contexts/ThemeContext';
 
 
 
@@ -43,8 +44,8 @@ export default function ForgotPassword() {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') !== 'light');
-  useEffect(() => { localStorage.setItem('theme', isDark ? 'dark' : 'light'); }, [isDark]);
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
   const stepMeta = {
     email:    { title: t('auth.forgot.title'), sub: t('auth.forgot.sub') },
@@ -111,7 +112,7 @@ export default function ForgotPassword() {
         <div className="absolute inset-0" style={{ backgroundImage:`radial-gradient(circle,${isDark?'rgba(255,255,255,0.025)':'rgba(0,0,0,0.025)'} 1px,transparent 1px)`, backgroundSize:'28px 28px' }} />
       </div>
 
-      <PremiumNavbar isDark={isDark} onToggleTheme={() => setIsDark(!isDark)} backTo={{ path: '/login', label: t('auth.backToLogin') }} />
+      <LandingNavbar minimal />
 
       {/* ─── Card ───────────────────────────────────────────────────── */}
       <motion.div initial={{ opacity:0, y:28, scale:.97 }} animate={{ opacity:1, y:0, scale:1 }}
