@@ -105,7 +105,6 @@ win-acme.zip
 
 # ── Deploy nativo Windows (sem Docker) ────────────────
 .nodocker-config
-nginx-tradehub.conf
 backups/
 logs/
 

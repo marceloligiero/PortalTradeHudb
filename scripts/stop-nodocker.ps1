@@ -1,5 +1,5 @@
 # =============================================================================
-# stop-nodocker.ps1 -- Parar backend + nginx
+# stop-nodocker.ps1 -- Parar o sistema
 # Uso:  .\scripts\stop-nodocker.ps1
 # =============================================================================
 
@@ -11,37 +11,26 @@ function Write-Warn($msg) { Write-Host "  !!  $msg" -ForegroundColor Yellow }
 
 Write-Host ""
 Write-Host "======================================================" -ForegroundColor Cyan
-Write-Host "  PortalTradeHub -- Parando servicos..." -ForegroundColor Cyan
+Write-Host "  PortalTradeHub -- Parando..." -ForegroundColor Cyan
 Write-Host "======================================================" -ForegroundColor Cyan
 
 $pidFile = Join-Path $Root "logs\pids.txt"
 $stopped = $false
 
-# Parar pelo PID registado
 if (Test-Path $pidFile) {
-    Get-Content $pidFile | ForEach-Object {
-        if ($_ -match "^(\w+)=(\d+)$") {
-            $name = $Matches[1]
-            $pid  = [int]$Matches[2]
-            $proc = Get-Process -Id $pid -ErrorAction SilentlyContinue
-            if ($proc) {
-                # Para nginx, parar toda a arvore de processos
-                if ($name -eq "nginx") {
-                    Get-Process -Name "nginx" -ErrorAction SilentlyContinue | Stop-Process -Force
-                } else {
-                    Stop-Process -Id $pid -Force
-                }
-                Write-OK "$name (PID $pid) parado"
-                $stopped = $true
-            } else {
-                Write-Warn "$name (PID $pid) ja nao existe"
-            }
-        }
+    $pid = (Get-Content $pidFile).Trim()
+    $proc = Get-Process -Id $pid -ErrorAction SilentlyContinue
+    if ($proc) {
+        Stop-Process -Id $pid -Force
+        Write-OK "Processo (PID $pid) parado"
+        $stopped = $true
+    } else {
+        Write-Warn "Processo (PID $pid) ja nao existe"
     }
     Remove-Item $pidFile -Force
 }
 
-# Fallback: parar qualquer processo uvicorn/nginx restante do projeto
+# Fallback: parar qualquer uvicorn restante
 $uvicornProcs = Get-Process -Name "uvicorn" -ErrorAction SilentlyContinue
 if ($uvicornProcs) {
     $uvicornProcs | Stop-Process -Force
@@ -49,16 +38,12 @@ if ($uvicornProcs) {
     $stopped = $true
 }
 
-# Limpar PID file do nginx
-$nginxPidFile = Join-Path $Root "logs\nginx.pid"
-if (Test-Path $nginxPidFile) { Remove-Item $nginxPidFile -Force }
-
 if (-not $stopped) {
-    Write-Warn "Nenhum servico encontrado para parar"
+    Write-Warn "Nenhum processo encontrado para parar"
 }
 
 Write-Host ""
 Write-Host "======================================================" -ForegroundColor Green
-Write-Host "  Servicos parados." -ForegroundColor Green
+Write-Host "  Sistema parado." -ForegroundColor Green
 Write-Host "  Para iniciar: .\scripts\start-nodocker.ps1" -ForegroundColor Cyan
 Write-Host "======================================================" -ForegroundColor Green

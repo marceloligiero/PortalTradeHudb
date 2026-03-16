@@ -29,12 +29,11 @@ Get-Content $configFile | ForEach-Object {
     if ($_ -match "^(.+?)=(.+)$") { $config[$Matches[1]] = $Matches[2] }
 }
 
-$BackendPort = $config["BACKEND_PORT"]
-$VenvPath    = $config["VENV_PATH"]
+$VenvPath = $config["VENV_PATH"]
 
 Write-Host ""
 Write-Host "======================================================" -ForegroundColor Cyan
-Write-Host "  PortalTradeHub -- Deploy Nativo Windows"               -ForegroundColor Cyan
+Write-Host "  PortalTradeHub -- Deploy"                              -ForegroundColor Cyan
 Write-Host "  Data: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"      -ForegroundColor Cyan
 Write-Host "======================================================" -ForegroundColor Cyan
 
@@ -45,7 +44,6 @@ if (-not $SkipBackup) {
     $backupDir = Join-Path $Root "backups"
     if (-not (Test-Path $backupDir)) { New-Item -ItemType Directory $backupDir -Force | Out-Null }
 
-    # Ler DATABASE_URL do .env e extrair credenciais
     $envFile = Join-Path $Root "backend\.env"
     $dbUser = "root"; $dbPass = ""; $dbName = "tradehub_db"; $dbHost = "localhost"; $dbPort = "3306"
     if (Test-Path $envFile) {
@@ -73,7 +71,6 @@ if (-not $SkipBackup) {
         Write-Warn "Falha no backup: $_. Continuando..."
     }
 
-    # Manter apenas os ultimos 10 backups
     Get-ChildItem $backupDir -Filter "pre-deploy-*.sql" |
         Sort-Object CreationTime -Descending |
         Select-Object -Skip 10 |
@@ -97,28 +94,23 @@ if (-not $SkipPull) {
 # -- 3. Atualizar dependencias + build frontend ------------------------------
 Write-Step "3/4" "Atualizando dependencias e compilando frontend..."
 
-# Python deps
 $pip = Join-Path $VenvPath "Scripts\pip.exe"
 if (-not (Test-Path $pip)) { Write-Fail "venv nao encontrado. Execute install-nodocker.ps1 primeiro." }
 
 & $pip install -r (Join-Path $Root "backend\requirements.txt") --quiet
 Write-OK "Dependencias Python atualizadas"
 
-# Frontend build
 Push-Location (Join-Path $Root "frontend")
 npm ci --silent
 npm run build
 Pop-Location
 Write-OK "Frontend recompilado"
 
-# -- 4. Reiniciar servicos ---------------------------------------------------
-Write-Step "4/4" "Reiniciando servicos..."
+# -- 4. Reiniciar ------------------------------------------------------------
+Write-Step "4/4" "Reiniciando..."
 
-# Parar servicos actuais
 & (Join-Path $ScriptDir "stop-nodocker.ps1")
 Start-Sleep -Seconds 1
-
-# Iniciar novamente
 & (Join-Path $ScriptDir "start-nodocker.ps1")
 
 Write-Host ""
