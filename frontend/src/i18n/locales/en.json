@@ -1252,12 +1252,18 @@
       "theme": "Theme"
     },
     "hero": {
-      "badge": "For Operational Teams",
-      "title": "The same mistakes, always. Until today.",
-      "subtitle": "Training to prevent. Logging to learn. Reports to prove it. All in one place — no Excel, no lost emails, no excuses.",
+      "badge": "For operational teams",
+      "title": "The same mistakes, over and over. Until now.",
+      "subtitle": "Training to prevent. Tracking to learn. Reports to prove it. All in one place — no spreadsheets, no lost emails, no excuses.",
       "cta": "Sign Up",
       "ctaSecondary": "Login",
-      "dashboardAlt": "TradeDataHub analytics dashboard"
+      "dashboardAlt": "TradeDataHub analytics dashboard",
+      "video": {
+        "labelLeft": "Without system",
+        "labelRight": "With TradeDataHub",
+        "live": "Live",
+        "typing": "Typing…"
+      }
     },
     "socialProof": {
       "training": "Training",
@@ -1283,7 +1289,7 @@
     },
     "solution": {
       "label": "What changes",
-      "title": "A system for those who work seriously. Not for those who sell software.",
+      "title": "Fewer errors. Better training. Results you can measure. All in one place.",
       "subtitle": "Structured training, tracked error logging, cross-referenced reports and integrated support. When everything works together, quality scales.",
       "tabTraining": "Training",
       "tabTutoring": "Quality",
@@ -1395,9 +1401,9 @@
     },
     "finalCta": {
       "label": "Start today",
-      "titleLine1": "How many errors this week could have been avoided?",
+      "titleLine1": "How many mistakes this week could have been prevented?",
       "titleLine2": "",
-      "subtitle": "The answer starts with a system that logs them, corrects them and turns them into training. Your team deserves better than Excel and goodwill.",
+      "subtitle": "The answer starts with a system that logs them, fixes them, and turns them into training. Your team deserves better than spreadsheets and good intentions.",
       "cta": "Sign Up",
       "ctaSecondary": "I already have an account — Login",
       "trust": "No commitment · Immediate access · Product team support"

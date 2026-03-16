@@ -165,14 +165,6 @@ export default function FinalCTA() {
               </a>
             </div>
 
-            {/* Texto de confiança */}
-            <p
-              className="mt-8 font-body tracking-wide"
-              style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.40)' }}
-            >
-              {t('landing.finalCta.trust')}
-            </p>
-
           </div>
         </div>
       </div>

@@ -20,7 +20,6 @@ export default function LandingFooter() {
       items: [
         { key: 'aboutUs' },
         { key: 'contact' },
-        { key: 'careers' },
       ],
     },
     {

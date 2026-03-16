@@ -1247,7 +1247,7 @@
       "howItWorks": "Como Funciona",
       "results": "Resultados",
       "login": "Login",
-      "register": "Cadastrar-se",
+      "register": "Registar-se",
       "enterPlatform": "Entrar na Plataforma",
       "theme": "Tema"
     },
@@ -1255,9 +1255,15 @@
       "badge": "Para Equipas Operacionais",
       "title": "Os mesmos erros, sempre. Até hoje.",
       "subtitle": "Formação para prevenir. Registo para aprender. Relatórios para provar. Tudo num só lugar — sem Excel, sem e-mails perdidos, sem desculpas.",
-      "cta": "Cadastrar-se",
+      "cta": "Registar-se",
       "ctaSecondary": "Login",
-      "dashboardAlt": "Dashboard analítico do TradeDataHub"
+      "dashboardAlt": "Dashboard analítico do TradeDataHub",
+      "video": {
+        "labelLeft": "Sem sistema",
+        "labelRight": "Com TradeDataHub",
+        "live": "Live",
+        "typing": "a escrever…"
+      }
     },
     "socialProof": {
       "training": "Formação",
@@ -1283,7 +1289,7 @@
     },
     "solution": {
       "label": "O que muda",
-      "title": "Um sistema para quem trabalha a sério. Não para quem vende software.",
+      "title": "Menos erros. Melhor formação. Resultados que se medem. Tudo num só lugar.",
       "subtitle": "Formação estruturada, registo de erros rastreado, relatórios cruzados e suporte integrado. Quando tudo funciona junto, a qualidade escala.",
       "tabTraining": "Formação",
       "tabTutoring": "Qualidade",
@@ -1343,7 +1349,7 @@
       "label": "Como funciona",
       "title": "O dia-a-dia da sua equipa. Só que funciona melhor.",
       "subtitle": "Um ciclo simples que transforma erros em aprendizagem e aprendizagem em resultados.",
-      "cta": "Cadastrar-se",
+      "cta": "Registar-se",
       "ctaSecondary": "Login",
       "step1Title": "O trabalho chega",
       "step1Desc": "A equipa recebe pedidos e executa. Mas ao contrário de antes, cada pessoa foi treinada — com um plano feito para o trabalho que realmente faz. Não um curso genérico.",
@@ -1398,7 +1404,7 @@
       "titleLine1": "Quantos erros esta semana podiam ter sido evitados?",
       "titleLine2": "",
       "subtitle": "A resposta começa com um sistema que os regista, os corrige e os transforma em formação. A sua equipa merece melhor do que Excel e boa vontade.",
-      "cta": "Cadastrar-se",
+      "cta": "Registar-se",
       "ctaSecondary": "Já tenho conta — Login",
       "trust": "Sem compromisso · Acesso imediato · Suporte da equipa de produto"
     },

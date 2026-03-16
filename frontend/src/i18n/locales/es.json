@@ -1257,7 +1257,13 @@
       "subtitle": "Formación para prevenir. Registro para aprender. Informes para demostrar. Todo en un solo lugar — sin Excel, sin correos perdidos, sin excusas.",
       "cta": "Registrarse",
       "ctaSecondary": "Login",
-      "dashboardAlt": "Dashboard analítico de TradeDataHub"
+      "dashboardAlt": "Dashboard analítico de TradeDataHub",
+      "video": {
+        "labelLeft": "Sin sistema",
+        "labelRight": "Con TradeDataHub",
+        "live": "Live",
+        "typing": "Escribiendo…"
+      }
     },
     "socialProof": {
       "training": "Formación",
@@ -1283,14 +1289,14 @@
     },
     "solution": {
       "label": "Lo que cambia",
-      "title": "Un sistema para quien trabaja en serio. No para quien vende software.",
+      "title": "Menos errores. Mejor formación. Resultados que se miden. Todo en un solo lugar.",
       "subtitle": "Formación estructurada, registro de errores rastreado, informes cruzados y soporte integrado. Cuando todo funciona junto, la calidad escala.",
       "tabTraining": "Formación",
       "tabTutoring": "Calidad",
       "tabReports": "Informes",
       "tabTickets": "Soporte",
       "trainingTitle": "Quien llega nuevo sabe qué hacer desde el día 1.",
-      "trainingDesc": "Nada de 'siéntate allí y observa'. Cada persona sigue un plan de entrenamiento con lecciones, ejercicios y evaluación. Quien ya está en el equipo recibe formación continua — especialmente cuando comete un error en una categoría específica. Automático.",
+      "trainingDesc": "Nada de 'siéntate ahí y observa'. Cada persona sigue un plan de capacitación con lecciones, ejercicios y evaluación. Quien ya está en el equipo recibe formación continua — especialmente cuando comete errores en una categoría específica. Automático.",
       "trainingAlt": "Equipo trabajando en formación",
       "tutoringTitle": "Cada error se convierte en una lección. Literalmente.",
       "tutoringDesc": "¿Quien revisa la calidad encuentra un error? Lo registra en 30 segundos — categoría, descripción, quién ejecutó. El sistema crea un plan de acción con plazos. La persona corrige, quien revisa valida. Sin conversaciones informales que nadie recuerda mañana.",
@@ -1346,9 +1352,9 @@
       "cta": "Registrarse",
       "ctaSecondary": "Login",
       "step1Title": "El trabajo llega",
-      "step1Desc": "El equipo recibe pedidos y ejecuta. Pero a diferencia de antes, cada persona fue entrenada — con un plan hecho para el trabajo que realmente hace. No un curso genérico.",
+      "step1Desc": "El equipo recibe pedidos y ejecuta. Pero a diferencia de antes, cada persona fue capacitada — con un plan hecho para el trabajo que realmente hace. No un curso genérico.",
       "step2Title": "La revisión encuentra el error",
-      "step2Desc": "Quien verifica la calidad revisa cada ejecución. Si encuentra un problema, no manda un correo — lo registra en el sistema. Categoría, tipo, quién ejecutó. En 30 segundos. La persona es notificada con un plan de acción claro.",
+      "step2Desc": "Quien verifica la calidad revisa cada ejecución. Si encuentra un problema, no envía un correo — lo registra en el sistema. Categoría, tipo, quién ejecutó. En 30 segundos. La persona recibe notificación con un plan de acción claro.",
       "step3Title": "El equipo aprende",
       "step3Desc": "El plan tiene ítems concretos con plazo. Puede incluir formación específica. La persona ejecuta y envía. Quien revisa valida. Si el error se repite, el sistema lo muestra. Si no se repite, quedó aprendido.",
       "step4Title": "Usted ve todo",
