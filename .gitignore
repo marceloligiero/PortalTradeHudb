@@ -103,6 +103,12 @@ win-acme.zip
 # ── Claude Code (IDE local) ────────────────────────────
 .claude/
 
+# ── Deploy nativo Windows (sem Docker) ────────────────
+.nodocker-config
+nginx-tradehub.conf
+backups/
+logs/
+
 # ── Outros artefactos ──────────────────────────────────
 backend/exception_trace.txt
 backend/error_trace.txt
