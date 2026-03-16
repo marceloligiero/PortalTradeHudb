@@ -36,11 +36,31 @@ function usePrefersReducedMotion(): boolean {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+const LEFT_TEXTS = [
+  'El mismo error, otra vez',
+  'Correo enviado, nadie respondió',
+  '¿Quién capacitó al nuevo?',
+  'El cliente llamó a reclamar',
+  '¿Dónde está el informe?',
+];
+
+const RIGHT_TEXTS = [
+  'Error registrado en 30 segundos',
+  'Plan de acción automático',
+  'Nuevo colaborador productivo en 3 días',
+  'Cero incidencias este mes',
+  'Reportes en tiempo real',
+];
+
+const INTERVAL = 1.3;
+
 export default function HeroSection() {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const contentRef = useRef<HTMLDivElement>(null);
+  const videoRef   = useRef<HTMLVideoElement>(null);
   const [videoError, setVideoError] = useState(false);
+  const [time, setTime] = useState(0);
 
   const isMobile       = useIsMobile();
   const prefersReduced = usePrefersReducedMotion();
@@ -56,6 +76,18 @@ export default function HeroSection() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const handler = () => setTime(v.currentTime);
+    v.addEventListener('timeupdate', handler);
+    return () => v.removeEventListener('timeupdate', handler);
+  }, [showVideo]);
+
+  const activeLeft  = Math.min(LEFT_TEXTS.length  - 1, Math.floor(Math.max(0, time - 0.5) / INTERVAL));
+  const activeRight = Math.min(RIGHT_TEXTS.length - 1, Math.floor(Math.max(0, time - 0.8) / INTERVAL));
+  const showTexts   = showVideo && time >= 0.5 && time < 7.5;
+
   return (
     <section
       className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white dark:bg-[#09090B]"
@@ -64,6 +96,7 @@ export default function HeroSection() {
       {/* CAMADA 1 — Vídeo */}
       {showVideo && (
         <video
+          ref={videoRef}
           autoPlay
           loop
           muted
@@ -99,7 +132,47 @@ export default function HeroSection() {
         }}
       />
 
-      {/* CAMADA 4 — Conteúdo */}
+      {/* CAMADA 4 — Lower thirds cinematográficos (só com vídeo) */}
+      {showTexts && (
+        <div className="absolute inset-x-0 bottom-0 z-[5] flex pointer-events-none" style={{ paddingBottom: '8%' }}>
+
+          {/* Esquerda — problema */}
+          <div className="w-1/2 flex flex-col justify-end pl-[4%]">
+            <span
+              className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] font-body text-white/50 mb-1.5"
+              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.7)' }}
+            >
+              Sin sistema
+            </span>
+            <p
+              key={`left-${activeLeft}`}
+              className="text-xs sm:text-sm md:text-base font-body font-semibold text-white/[0.88] max-w-[85%] leading-snug animate-[cineFadeIn_0.5s_ease_forwards]"
+              style={{ textShadow: '0 2px 8px rgba(0,0,0,0.7), 0 0 24px rgba(0,0,0,0.4)' }}
+            >
+              {LEFT_TEXTS[activeLeft]}
+            </p>
+          </div>
+
+          {/* Direita — solução */}
+          <div className="w-1/2 flex flex-col justify-end pr-[4%] items-end text-right">
+            <span
+              className="text-[9px] sm:text-[10px] uppercase tracking-[0.2em] font-body text-white/50 mb-1.5"
+              style={{ textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}
+            >
+              Con TradeDataHub
+            </span>
+            <p
+              key={`right-${activeRight}`}
+              className="text-xs sm:text-sm md:text-base font-body font-semibold text-white/[0.88] max-w-[85%] leading-snug animate-[cineFadeIn_0.5s_ease_forwards]"
+              style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6), 0 0 24px rgba(0,0,0,0.3)' }}
+            >
+              {RIGHT_TEXTS[activeRight]}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* CAMADA 5 — Conteúdo */}
       <div
         ref={contentRef}
         className="relative z-10 w-full max-w-4xl mx-auto px-6 text-center py-24"
