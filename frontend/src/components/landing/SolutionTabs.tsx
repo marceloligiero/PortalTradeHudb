@@ -71,7 +71,7 @@ export default function SolutionTabs() {
     <section
       id="funcionalidades"
       ref={sectionRef}
-      className="bg-[#F8F9FB]"
+      className="bg-[#F8F9FB] dark:bg-[#111113]"
       style={{ padding: '100px 24px' }}
     >
       <div className="max-w-6xl mx-auto">
@@ -81,13 +81,13 @@ export default function SolutionTabs() {
             {t('landing.solution.label')}
           </span>
           <h2
-            className="font-headline font-bold text-[#111827] leading-[1.15] mt-3 mb-3"
+            className="font-headline font-bold text-[#111827] dark:text-white leading-[1.15] mt-3 mb-3"
             style={{ fontSize: 'clamp(1.875rem, 4vw, 2.75rem)', maxWidth: '700px' }}
           >
             {t('landing.solution.title')}
           </h2>
           <p
-            className="font-body text-[#6B7280] mb-10"
+            className="font-body text-[#6B7280] dark:text-gray-400 mb-10"
             style={{ fontSize: '1rem', maxWidth: '580px' }}
           >
             {t('landing.solution.subtitle')}
@@ -96,11 +96,10 @@ export default function SolutionTabs() {
 
         {/* Tab bar */}
         <div
-          className="flex items-center overflow-x-auto mb-10"
+          className="flex items-center overflow-x-auto mb-10 border-b border-gray-200 dark:border-white/10"
           style={{
             ...reveal,
             transition: 'opacity 0.6s ease 0.15s, transform 0.6s ease 0.15s',
-            borderBottom: '1px solid #E5E7EB',
           }}
         >
           {TAB_DEFS.map((td, i) => {
@@ -112,15 +111,19 @@ export default function SolutionTabs() {
                 onClick={() => setActive(i)}
                 className="flex items-center gap-2 px-5 py-3 font-body text-sm font-medium whitespace-nowrap transition-colors duration-200"
                 style={{
-                  color: isActive ? '#EC0000' : '#6B7280',
+                  color: isActive ? '#EC0000' : undefined,
                   borderBottom: isActive ? '2px solid #EC0000' : '2px solid transparent',
                   marginBottom: '-1px',
                   background: 'none',
                   cursor: 'pointer',
                 }}
               >
-                <Icon className="w-4 h-4 shrink-0" />
-                {t(`landing.solution.${td.tabKey}`)}
+                <span className={isActive ? '' : 'text-[#6B7280] dark:text-gray-500'}>
+                  <Icon className="w-4 h-4 shrink-0" />
+                </span>
+                <span className={isActive ? 'text-[#EC0000]' : 'text-[#6B7280] dark:text-gray-500'}>
+                  {t(`landing.solution.${td.tabKey}`)}
+                </span>
               </button>
             );
           })}
@@ -135,12 +138,12 @@ export default function SolutionTabs() {
           {/* Text */}
           <div>
             <h3
-              className="font-headline font-bold text-[#111827] mb-4"
+              className="font-headline font-bold text-[#111827] dark:text-white mb-4"
               style={{ fontSize: 'clamp(1.375rem, 2.5vw, 1.875rem)' }}
             >
               {t(`landing.solution.${tabDef.titleKey}`)}
             </h3>
-            <p className="font-body text-[#6B7280] leading-relaxed mb-6" style={{ fontSize: '1rem' }}>
+            <p className="font-body text-[#6B7280] dark:text-gray-400 leading-relaxed mb-6" style={{ fontSize: '1rem' }}>
               {t(`landing.solution.${tabDef.descKey}`)}
             </p>
             <a
@@ -156,8 +159,8 @@ export default function SolutionTabs() {
 
           {/* Image */}
           <div
-            className="rounded-xl overflow-hidden"
-            style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.1)', border: '1px solid #E5E7EB' }}
+            className="rounded-xl overflow-hidden border border-gray-200 dark:border-white/10"
+            style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.1)' }}
           >
             {tabImageSrc ? (
               <img

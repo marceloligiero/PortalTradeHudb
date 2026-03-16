@@ -22,20 +22,20 @@ function StatItem({ statDef, started, isLast }: {
     <div className="flex items-stretch">
       <div className="flex-1 px-4 text-center md:text-left">
         <div
-          className="font-headline font-bold text-white leading-[1.0] mb-4"
+          className="font-headline font-bold text-[#EC0000] dark:text-white leading-[1.0] mb-4"
           style={{ fontSize: 'clamp(3rem, 8vw, 6rem)' }}
         >
           {statDef.prefix}{count}{statDef.suffix}
         </div>
-        <div className="font-body text-xs font-bold uppercase tracking-[0.15em] text-white/50 mb-2">
+        <div className="font-body text-xs font-bold uppercase tracking-[0.15em] text-gray-500 dark:text-white/50 mb-2">
           {t(`landing.stats.${statDef.labelKey}`)}
         </div>
-        <div className="font-body text-xs text-[#444] leading-relaxed max-w-[220px]">
+        <div className="font-body text-xs text-gray-400 dark:text-[#444] leading-relaxed max-w-[220px]">
           {t(`landing.stats.${statDef.descKey}`)}
         </div>
       </div>
       {!isLast && (
-        <div className="hidden md:block w-px bg-white/[0.06] shrink-0 self-stretch mx-6" />
+        <div className="hidden md:block w-px bg-gray-200 dark:bg-white/[0.06] shrink-0 self-stretch mx-6" />
       )}
     </div>
   );
@@ -67,17 +67,17 @@ export default function StatsSection() {
         (sectionRef as React.MutableRefObject<HTMLElement | null>).current = el;
         (inViewRef as React.MutableRefObject<HTMLElement | null>).current = el;
       }}
-      className="bg-black px-6"
+      className="bg-gray-50 dark:bg-[#111113] px-6"
       style={{ paddingTop: '160px', paddingBottom: '160px' }}
     >
       <div className="max-w-6xl mx-auto">
         <h2
-          className="font-headline font-bold text-white text-center leading-[1.0] mb-24"
+          className="font-headline font-bold text-[#111827] dark:text-white text-center leading-[1.0] mb-24"
           style={{ fontSize: 'clamp(2.25rem, 5vw, 4rem)' }}
         >
           {t('landing.stats.titleLine1')}
           <br />
-          <span className="text-[#333]">{t('landing.stats.titleLine2')}</span>
+          <span className="text-gray-300 dark:text-[#333]">{t('landing.stats.titleLine2')}</span>
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-0">
           {STAT_DEFS.map((statDef, i) => (

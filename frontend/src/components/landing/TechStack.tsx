@@ -46,18 +46,18 @@ export default function TechStack() {
   return (
     <section
       ref={sectionRef}
-      className="bg-[#050505] border-y border-white/[0.06] px-6"
+      className="bg-gray-50 dark:bg-[#050505] border-y border-gray-200 dark:border-white/[0.06] px-6"
       style={{ paddingTop: '120px', paddingBottom: '120px' }}
     >
       <div className="max-w-7xl mx-auto">
         <div className="tech-header mb-12">
           <h2
-            className="font-headline font-bold text-white leading-[1.0] mb-2"
+            className="font-headline font-bold text-[#111827] dark:text-white leading-[1.0] mb-2"
             style={{ fontSize: 'clamp(1.75rem, 3vw, 2.5rem)' }}
           >
             {t('landing.tech.title')}
           </h2>
-          <p className="font-body text-[#444] text-sm">
+          <p className="font-body text-gray-500 dark:text-[#444] text-sm">
             {t('landing.tech.subtitle')}
           </p>
         </div>
@@ -66,10 +66,10 @@ export default function TechStack() {
           {TECH.map((item) => (
             <div
               key={item.name}
-              className="tech-item bg-black border border-white/[0.06] rounded-xl p-4 flex flex-col items-center gap-2 hover:border-white/[0.12] hover:bg-[#0A0A0A] transition-all duration-300 group cursor-default"
+              className="tech-item bg-white dark:bg-black border border-gray-200 dark:border-white/[0.06] rounded-xl p-4 flex flex-col items-center gap-2 hover:border-gray-300 dark:hover:border-white/[0.12] hover:bg-gray-50 dark:hover:bg-[#0A0A0A] transition-all duration-300 group cursor-default"
             >
               <span className="text-2xl" role="img" aria-label={item.name}>{item.symbol}</span>
-              <span className="font-body text-[#444] text-xs text-center leading-tight group-hover:text-[#777] transition-colors duration-300">
+              <span className="font-body text-gray-400 dark:text-[#444] text-xs text-center leading-tight group-hover:text-gray-600 dark:group-hover:text-[#777] transition-colors duration-300">
                 {item.name}
               </span>
             </div>

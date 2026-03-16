@@ -16,7 +16,7 @@ export default function FinalCTA() {
   }, []);
 
   return (
-    <section ref={sectionRef} className="bg-white" style={{ padding: '80px 24px' }}>
+    <section ref={sectionRef} className="bg-white dark:bg-[#09090B]" style={{ padding: '80px 24px' }}>
 
       {/* Keyframes inline */}
       <style>{`

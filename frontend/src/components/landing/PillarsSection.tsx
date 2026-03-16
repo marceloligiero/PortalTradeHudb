@@ -53,12 +53,12 @@ export default function PillarsSection() {
     <section
       id="para-quem"
       ref={sectionRef}
-      className="bg-black px-6"
+      className="bg-white dark:bg-[#09090B] px-6"
       style={{ paddingTop: '160px', paddingBottom: '160px' }}
     >
       <div className="max-w-7xl mx-auto">
         <h2
-          className="testi-header font-headline font-bold text-white leading-[1.0] mb-20"
+          className="testi-header font-headline font-bold text-[#111827] dark:text-white leading-[1.0] mb-20"
           style={{ fontSize: 'clamp(2.25rem, 5vw, 4rem)' }}
         >
           {t('landing.pillars.title')}
@@ -68,17 +68,17 @@ export default function PillarsSection() {
           {ROLE_DEFS.map((roleDef) => (
             <div
               key={roleDef.roleKey}
-              className="testimonial-card bg-[#0A0A0A] border border-white/[0.06] rounded-2xl p-8 hover:border-white/[0.12] hover:bg-[#0F0F0F] transition-all duration-300 group cursor-default"
+              className="testimonial-card bg-gray-50 dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/[0.06] rounded-2xl p-8 hover:border-gray-300 dark:hover:border-white/[0.12] hover:bg-white dark:hover:bg-[#0F0F0F] transition-all duration-300 group cursor-default"
             >
               {/* Decorative quote mark */}
               <div
-                className="font-headline text-8xl text-white/[0.03] leading-none mb-2 select-none"
+                className="font-headline text-8xl text-gray-200 dark:text-white/[0.03] leading-none mb-2 select-none"
                 aria-hidden
               >
                 "
               </div>
               {/* Quote */}
-              <p className="font-body text-[#666] text-base leading-relaxed mb-8 group-hover:text-[#888] transition-colors duration-300">
+              <p className="font-body text-gray-500 dark:text-[#666] text-base leading-relaxed mb-8 group-hover:text-gray-600 dark:group-hover:text-[#888] transition-colors duration-300">
                 {t(`landing.pillars.${roleDef.quoteKey}`)}
               </p>
               {/* Author */}
@@ -90,10 +90,10 @@ export default function PillarsSection() {
                   className="w-11 h-11 rounded-full object-cover object-top grayscale opacity-70"
                 />
                 <div>
-                  <div className="font-headline font-bold text-white text-sm">
+                  <div className="font-headline font-bold text-[#111827] dark:text-white text-sm">
                     {t(`landing.pillars.${roleDef.roleKey}`)}
                   </div>
-                  <div className="font-body text-[#444] text-xs">
+                  <div className="font-body text-gray-400 dark:text-[#444] text-xs">
                     {t(`landing.pillars.${roleDef.subtitleKey}`)}
                   </div>
                 </div>

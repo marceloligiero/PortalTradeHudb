@@ -43,12 +43,12 @@ export default function QuoteSection() {
   return (
     <section
       ref={sectionRef}
-      className="bg-black px-6"
+      className="bg-white dark:bg-[#09090B] px-6"
       style={{ paddingTop: '160px', paddingBottom: '160px' }}
     >
       <div className="max-w-3xl mx-auto">
         <h2
-          className="faq-header font-headline font-bold text-white leading-[1.0] mb-16"
+          className="faq-header font-headline font-bold text-[#111827] dark:text-white leading-[1.0] mb-16"
           style={{ fontSize: 'clamp(2rem, 4vw, 3rem)' }}
         >
           {t('landing.faq.title')}
@@ -56,15 +56,15 @@ export default function QuoteSection() {
 
         <div>
           {FAQ_KEYS.map((faqKey, i) => (
-            <div key={i} className="faq-item border-b border-white/[0.06]">
+            <div key={i} className="faq-item border-b border-gray-200 dark:border-white/[0.06]">
               <button
                 onClick={() => toggle(i)}
                 className="w-full flex items-center justify-between py-6 text-left group"
               >
-                <span className="font-body text-white text-base pr-8 group-hover:text-white/80 transition-colors">
+                <span className="font-body text-[#111827] dark:text-white text-base pr-8 group-hover:text-gray-600 dark:group-hover:text-white/80 transition-colors">
                   {t(`landing.faq.${faqKey.qKey}`)}
                 </span>
-                <span className="shrink-0 text-[#444] group-hover:text-[#777] transition-colors">
+                <span className="shrink-0 text-gray-400 dark:text-[#444] group-hover:text-gray-600 dark:group-hover:text-[#777] transition-colors">
                   {openIndex === i ? (
                     <Minus className="w-4 h-4" />
                   ) : (
@@ -74,7 +74,7 @@ export default function QuoteSection() {
               </button>
               {openIndex === i && (
                 <div className="pb-6">
-                  <p className="font-body text-[#555] text-sm leading-relaxed">
+                  <p className="font-body text-gray-500 dark:text-[#555] text-sm leading-relaxed">
                     {t(`landing.faq.${faqKey.aKey}`)}
                   </p>
                 </div>

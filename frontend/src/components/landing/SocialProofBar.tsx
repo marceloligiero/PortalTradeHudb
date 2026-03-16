@@ -15,24 +15,21 @@ export default function SocialProofBar() {
   const REPEATED = [...ITEMS, ...ITEMS, ...ITEMS, ...ITEMS];
 
   return (
-    <div
-      className="overflow-hidden bg-[#F8F9FB] py-5"
-      style={{ borderTop: '1px solid #E5E7EB', borderBottom: '1px solid #E5E7EB' }}
-    >
+    <div className="overflow-hidden bg-[#F8F9FB] dark:bg-[#111113] border-t border-b border-gray-200 dark:border-white/10 py-5">
       <div className="flex animate-marquee whitespace-nowrap" style={{ width: 'max-content' }}>
         {REPEATED.map((item, i) => {
           const Icon = item.icon;
           return (
             <span
               key={i}
-              className="inline-flex items-center gap-2 mx-10 shrink-0"
-              style={{ color: '#9CA3AF', opacity: 0.6 }}
+              className="inline-flex items-center gap-2 mx-10 shrink-0 text-gray-400 dark:text-gray-600"
+              style={{ opacity: 0.6 }}
             >
               <Icon className="w-4 h-4" />
               <span className="font-body text-xs uppercase" style={{ letterSpacing: '0.14em' }}>
                 {item.label}
               </span>
-              <span className="ml-8 text-[#E5E7EB]">·</span>
+              <span className="ml-8 text-gray-300 dark:text-white/10">·</span>
             </span>
           );
         })}

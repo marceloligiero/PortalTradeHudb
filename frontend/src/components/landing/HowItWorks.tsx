@@ -34,7 +34,7 @@ export default function HowItWorks() {
     <section
       id="como-funciona"
       ref={sectionRef}
-      className="bg-white"
+      className="bg-white dark:bg-[#09090B]"
       style={{ padding: '100px 24px' }}
     >
       <div className="max-w-6xl mx-auto">
@@ -48,12 +48,12 @@ export default function HowItWorks() {
               {t('landing.howItWorks.label')}
             </span>
             <h2
-              className="font-headline font-bold text-[#111827] leading-[1.15] mt-3 mb-4"
+              className="font-headline font-bold text-[#111827] dark:text-white leading-[1.15] mt-3 mb-4"
               style={{ fontSize: 'clamp(1.875rem, 4vw, 2.75rem)' }}
             >
               {t('landing.howItWorks.title')}
             </h2>
-            <p className="font-body text-[#6B7280] mb-8" style={{ fontSize: '1rem' }}>
+            <p className="font-body text-[#6B7280] dark:text-gray-400 mb-8" style={{ fontSize: '1rem' }}>
               {t('landing.howItWorks.subtitle')}
             </p>
             <div className="flex items-center gap-3">
@@ -68,10 +68,9 @@ export default function HowItWorks() {
               </Link>
               <a
                 href="#funcionalidades"
-                className="font-body font-semibold text-sm px-5 py-2.5 rounded-lg border text-[#111827] transition-colors duration-200 hover:text-[#EC0000]"
-                style={{ borderColor: '#E5E7EB' }}
+                className="font-body font-semibold text-sm px-5 py-2.5 rounded-lg border border-gray-200 dark:border-white/20 text-[#111827] dark:text-white transition-colors duration-200 hover:text-[#EC0000] dark:hover:text-[#EC0000]"
                 onMouseEnter={e => (e.currentTarget.style.borderColor = '#EC0000')}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = '#E5E7EB')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = '')}
               >
                 {t('landing.howItWorks.ctaSecondary')}
               </a>
@@ -93,18 +92,18 @@ export default function HowItWorks() {
                       {step.number}
                     </div>
                     {i < STEP_DEFS.length - 1 && (
-                      <div className="w-px grow mt-2 mb-2" style={{ background: '#E5E7EB' }} />
+                      <div className="w-px grow mt-2 mb-2 bg-gray-200 dark:bg-white/10" />
                     )}
                   </div>
                   {/* Content */}
                   <div style={{ paddingBottom: i < STEP_DEFS.length - 1 ? '32px' : 0 }}>
                     <div className="flex items-center gap-2 mb-2">
                       <Icon className="w-4 h-4 shrink-0" style={{ color: '#EC0000' }} />
-                      <h3 className="font-headline font-bold text-[#111827] text-base">
+                      <h3 className="font-headline font-bold text-[#111827] dark:text-white text-base">
                         {t(`landing.howItWorks.${step.titleKey}`)}
                       </h3>
                     </div>
-                    <p className="font-body text-[#6B7280] text-sm leading-relaxed">
+                    <p className="font-body text-[#6B7280] dark:text-gray-400 text-sm leading-relaxed">
                       {t(`landing.howItWorks.${step.descKey}`)}
                     </p>
                   </div>

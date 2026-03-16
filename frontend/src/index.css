@@ -1,5 +1,15 @@
 @import './assets/fonts/santander-fonts.css';
 
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+html.dark {
+  color-scheme: dark;
+}
+html.dark body {
+  background-color: #09090B;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

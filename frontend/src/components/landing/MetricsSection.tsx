@@ -14,20 +14,17 @@ function MetricCard({ metricDef, started }: { metricDef: typeof METRIC_DEFS[0]; 
   const { t } = useTranslation();
   const count = useCountUp(metricDef.value, 1500, started);
   return (
-    <div
-      className="bg-white rounded-xl p-8"
-      style={{ border: '1px solid #E5E7EB' }}
-    >
+    <div className="bg-white dark:bg-[#161618] rounded-xl p-8 border border-gray-200 dark:border-white/10">
       <div
         className="font-headline font-bold leading-none mb-3"
         style={{ fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', color: '#EC0000' }}
       >
         {metricDef.prefix}{count}{metricDef.suffix}
       </div>
-      <div className="font-body text-xs font-bold uppercase tracking-widest text-[#111827] mb-2">
+      <div className="font-body text-xs font-bold uppercase tracking-widest text-[#111827] dark:text-white mb-2">
         {t(`landing.metrics.${metricDef.labelKey}`)}
       </div>
-      <div className="font-body text-xs text-[#6B7280] leading-relaxed">
+      <div className="font-body text-xs text-[#6B7280] dark:text-gray-400 leading-relaxed">
         {t(`landing.metrics.${metricDef.descKey}`)}
       </div>
     </div>
@@ -56,7 +53,7 @@ export default function MetricsSection() {
         (sectionRef as React.MutableRefObject<HTMLElement | null>).current = el;
         (inViewRef as React.MutableRefObject<HTMLElement | null>).current = el;
       }}
-      className="bg-[#F8F9FB]"
+      className="bg-[#F8F9FB] dark:bg-[#111113]"
       style={{ padding: '100px 24px' }}
     >
       <div className="max-w-6xl mx-auto">
@@ -74,7 +71,7 @@ export default function MetricsSection() {
             {t('landing.metrics.label')}
           </span>
           <h2
-            className="font-headline font-bold text-[#111827] leading-[1.15] mt-3 mb-12"
+            className="font-headline font-bold text-[#111827] dark:text-white leading-[1.15] mt-3 mb-12"
             style={{ fontSize: 'clamp(1.875rem, 4vw, 2.75rem)', maxWidth: '700px' }}
           >
             {t('landing.metrics.title')}

@@ -113,17 +113,17 @@ export default function FeaturesGrid() {
   }, []);
 
   return (
-    <section id="funcionalidades" ref={sectionRef} className="bg-black px-6" style={{ paddingTop: '160px', paddingBottom: '160px' }}>
+    <section id="funcionalidades" ref={sectionRef} className="bg-white dark:bg-[#09090B] px-6" style={{ paddingTop: '160px', paddingBottom: '160px' }}>
       <div className="max-w-7xl mx-auto">
         <div className="bento-header mb-16">
           <h2
-            className="font-headline font-bold text-white leading-[1.0] mb-1"
+            className="font-headline font-bold text-[#111827] dark:text-white leading-[1.0] mb-1"
             style={{ fontSize: 'clamp(2.25rem, 5vw, 4rem)' }}
           >
             {t('landing.features.titleLine1')}
           </h2>
           <p
-            className="font-headline font-bold text-[#333] leading-[1.0]"
+            className="font-headline font-bold text-gray-300 dark:text-[#333] leading-[1.0]"
             style={{ fontSize: 'clamp(2.25rem, 5vw, 4rem)' }}
           >
             {t('landing.features.titleLine2')}
@@ -137,7 +137,7 @@ export default function FeaturesGrid() {
               <GlowCard
                 key={feat.key}
                 className={cn(
-                  'bento-card bg-[#0A0A0A] border border-white/[0.06] rounded-2xl overflow-hidden hover:border-white/[0.12] hover:bg-[#0F0F0F] transition-colors duration-300 cursor-default',
+                  'bento-card bg-gray-50 dark:bg-[#0A0A0A] border border-gray-200 dark:border-white/[0.06] rounded-2xl overflow-hidden hover:border-gray-300 dark:hover:border-white/[0.12] hover:bg-white dark:hover:bg-[#0F0F0F] transition-colors duration-300 cursor-default',
                   feat.colSpan
                 )}
               >
@@ -149,15 +149,15 @@ export default function FeaturesGrid() {
                       loading="lazy"
                       className="w-full h-full object-cover opacity-30"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0A] to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-gray-50 dark:from-[#0A0A0A] to-transparent" />
                   </div>
                 ) : null}
                 <div className="p-7">
                   <Icon className="w-7 h-7 text-santander-500 mb-4" />
-                  <h3 className="font-headline text-white font-bold text-xl mb-2">
+                  <h3 className="font-headline text-[#111827] dark:text-white font-bold text-xl mb-2">
                     {t(`landing.features.${feat.titleKey}`)}
                   </h3>
-                  <p className="font-body text-[#555] text-sm leading-relaxed">
+                  <p className="font-body text-gray-500 dark:text-[#555] text-sm leading-relaxed">
                     {t(`landing.features.${feat.descKey}`)}
                   </p>
                 </div>

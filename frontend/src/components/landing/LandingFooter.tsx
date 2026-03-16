@@ -2,8 +2,6 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Flame } from 'lucide-react';
 
-const linkStyle: React.CSSProperties = { color: 'rgba(255,255,255,0.55)', fontSize: '0.875rem' };
-
 export default function LandingFooter() {
   const { t } = useTranslation();
 
@@ -45,7 +43,7 @@ export default function LandingFooter() {
   ];
 
   return (
-    <footer style={{ background: '#0F172A', padding: '60px 24px 40px' }}>
+    <footer className="bg-[#0F172A] dark:bg-[#050505]" style={{ padding: '60px 24px 40px' }}>
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10 mb-12">
           {/* Brand — spans 1 col on md */}
@@ -79,7 +77,7 @@ export default function LandingFooter() {
                     <Link
                       to="/login"
                       className="font-body text-sm transition-colors duration-200"
-                      style={linkStyle}
+                      style={{ color: 'rgba(255,255,255,0.55)' }}
                       onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.9)')}
                       onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.55)')}
                     >

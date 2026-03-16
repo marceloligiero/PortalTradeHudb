@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getLandingImage } from '../../utils/landingImages';
 import ImagePlaceholder from '../ImagePlaceholder';
+import { useTheme } from '../../contexts/ThemeContext';
 
 // ── Hooks ────────────────────────────────────────────────────────────────────
 
@@ -39,6 +40,7 @@ function usePrefersReducedMotion(): boolean {
 
 export default function HeroSection() {
   const { t } = useTranslation();
+  const { theme } = useTheme();
   const contentRef = useRef<HTMLDivElement>(null);
   const [videoError, setVideoError] = useState(false);
 
@@ -61,7 +63,7 @@ export default function HeroSection() {
 
   return (
     <section
-      className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-white"
+      className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-white dark:bg-[#09090B]"
       style={{ paddingTop: '80px' }}
     >
       {/* CAMADA 1 — Vídeo de background */}
@@ -81,16 +83,21 @@ export default function HeroSection() {
         </video>
       )}
 
-      {/* CAMADA 2 — Overlay branco com blur para legibilidade */}
+      {/* CAMADA 2 — Overlay com blur para legibilidade (theme-aware) */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'rgba(255,255,255,0.90)' }}
+        style={{ background: theme === 'dark' ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.90)' }}
       />
 
-      {/* CAMADA 3 — Gradiente fade inferior */}
+      {/* CAMADA 3 — Gradiente fade inferior (theme-aware) */}
       <div
         className="absolute inset-x-0 bottom-0 pointer-events-none"
-        style={{ height: '200px', background: 'linear-gradient(to bottom, transparent, rgba(248,249,251,0.95))' }}
+        style={{
+          height: '200px',
+          background: theme === 'dark'
+            ? 'linear-gradient(to bottom, transparent, rgba(9,9,11,0.95))'
+            : 'linear-gradient(to bottom, transparent, rgba(248,249,251,0.95))',
+        }}
       />
 
       {/* CAMADA 4 — Conteúdo */}
@@ -106,7 +113,10 @@ export default function HeroSection() {
         {/* Badge */}
         <div
           className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8"
-          style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}
+          style={{
+            background: theme === 'dark' ? 'rgba(220,38,38,0.15)' : '#FEF2F2',
+            border: theme === 'dark' ? '1px solid rgba(220,38,38,0.3)' : '1px solid #FECACA',
+          }}
         >
           <span
             className="w-1.5 h-1.5 rounded-full animate-pulse"
@@ -119,7 +129,7 @@ export default function HeroSection() {
 
         {/* H1 */}
         <h1
-          className="font-headline font-bold text-[#111827] leading-[1.1] mb-6"
+          className="font-headline font-bold text-[#111827] dark:text-white leading-[1.1] mb-6"
           style={{ fontSize: 'clamp(2.25rem, 5vw, 3.5rem)', maxWidth: '800px', margin: '0 auto 24px' }}
         >
           {t('landing.hero.title')}
@@ -127,7 +137,7 @@ export default function HeroSection() {
 
         {/* Subtitle */}
         <p
-          className="font-body text-[#6B7280] leading-relaxed mx-auto mb-10"
+          className="font-body text-[#6B7280] dark:text-gray-400 leading-relaxed mx-auto mb-10"
           style={{ fontSize: '1.125rem', maxWidth: '660px' }}
         >
           {t('landing.hero.subtitle')}
@@ -146,10 +156,10 @@ export default function HeroSection() {
           </a>
           <a
             href="#como-funciona"
-            className="font-body font-semibold px-7 py-3 rounded-lg border transition-colors duration-200 text-[#111827] hover:text-[#EC0000]"
-            style={{ borderColor: '#E5E7EB', fontSize: '0.9375rem' }}
+            className="font-body font-semibold px-7 py-3 rounded-lg border border-gray-300 dark:border-white/20 transition-colors duration-200 text-[#111827] dark:text-white hover:text-[#EC0000] dark:hover:text-[#EC0000]"
+            style={{ fontSize: '0.9375rem' }}
             onMouseEnter={e => (e.currentTarget.style.borderColor = '#EC0000')}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = '#E5E7EB')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = theme === 'dark' ? 'rgba(255,255,255,0.2)' : '#D1D5DB')}
           >
             {t('landing.hero.ctaSecondary')}
           </a>
@@ -157,8 +167,8 @@ export default function HeroSection() {
 
         {/* Product dashboard image */}
         <div
-          className="relative rounded-2xl overflow-hidden mx-auto"
-          style={{ maxWidth: '900px', boxShadow: '0 24px 80px rgba(0,0,0,0.12)', border: '1px solid #E5E7EB' }}
+          className="relative rounded-2xl overflow-hidden mx-auto border border-gray-200 dark:border-white/10"
+          style={{ maxWidth: '900px', boxShadow: '0 24px 80px rgba(0,0,0,0.12)' }}
         >
           {heroSrc ? (
             <img
@@ -177,7 +187,11 @@ export default function HeroSection() {
           )}
           <div
             className="absolute inset-0 pointer-events-none"
-            style={{ background: 'linear-gradient(to bottom, transparent 50%, rgba(248,249,251,0.6))' }}
+            style={{
+              background: theme === 'dark'
+                ? 'linear-gradient(to bottom, transparent 50%, rgba(9,9,11,0.6))'
+                : 'linear-gradient(to bottom, transparent 50%, rgba(248,249,251,0.6))',
+            }}
           />
         </div>
       </div>
