@@ -466,6 +466,22 @@ html.dark body {
   100% { transform: translateX(100%); }
 }
 
+/* ══ ChatSlideIn — Teams-style message entrance ══════════════════════ */
+@keyframes chatSlideInLeft {
+  from { opacity: 0; transform: translateX(-20px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0)     scale(1);    }
+}
+@keyframes chatSlideInRight {
+  from { opacity: 0; transform: translateX(20px)  scale(0.95); }
+  to   { opacity: 1; transform: translateX(0)     scale(1);    }
+}
+
+/* ══ TypingDot — bouncing dots for "Escribiendo…" indicator ══════════ */
+@keyframes typingDot {
+  0%, 100% { opacity: 0.3; transform: translateY(0);    }
+  50%       { opacity: 1;   transform: translateY(-2px); }
+}
+
 /* ══ Scroll reveal ════════════════════════════════════════════════════ */
 .reveal {
   opacity: 0;
