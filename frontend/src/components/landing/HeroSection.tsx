@@ -43,7 +43,6 @@ export default function HeroSection() {
   const isMobile          = useIsMobile();
   const prefersReduced    = usePrefersReducedMotion();
   const heroSrc           = getLandingImage('hero-dashboard.png');
-  const posterSrc         = getLandingImage('hero-bg-poster.png') ?? getLandingImage('hero-bg-poster.jpg') ?? getLandingImage('hero-dashboard.png');
 
   // Show video only when: desktop, no reduced motion, no load error
   const showVideo = !isMobile && !prefersReduced && !videoError;
@@ -70,7 +69,6 @@ export default function HeroSection() {
           loop
           muted
           playsInline
-          poster={posterSrc ?? undefined}
           onError={() => setVideoError(true)}
           className="absolute inset-0 w-full h-full object-cover pointer-events-none"
           aria-hidden="true"
@@ -80,20 +78,10 @@ export default function HeroSection() {
         </video>
       )}
 
-      {/* Poster estático (mobile / reduced-motion / sem vídeo) */}
-      {!showVideo && posterSrc && (
-        <img
-          src={posterSrc}
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover pointer-events-none opacity-20"
-        />
-      )}
-
       {/* CAMADA 2 — Overlay branco com blur para legibilidade */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: showVideo ? 'blur(2px)' : 'none' }}
+        style={{ background: 'rgba(255,255,255,0.78)', backdropFilter: 'blur(2px)' }}
       />
 
       {/* CAMADA 3 — Gradiente fade inferior */}
