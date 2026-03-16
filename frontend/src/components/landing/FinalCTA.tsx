@@ -103,8 +103,12 @@ export default function FinalCTA() {
               style={{ fontSize: 'clamp(2rem, 4.5vw, 3.25rem)' }}
             >
               {t('landing.finalCta.titleLine1')}
-              <br />
-              <span style={{ color: 'rgba(255,255,255,0.88)' }}>{t('landing.finalCta.titleLine2')}</span>
+              {t('landing.finalCta.titleLine2') && (
+                <>
+                  <br />
+                  <span style={{ color: 'rgba(255,255,255,0.88)' }}>{t('landing.finalCta.titleLine2')}</span>
+                </>
+              )}
             </h2>
 
             {/* Subtítulo */}
@@ -120,7 +124,7 @@ export default function FinalCTA() {
 
               {/* Primário — branco com seta */}
               <a
-                href="/login"
+                href="/register"
                 className="cta-btn-primary group inline-flex items-center gap-2 font-body font-bold text-sm uppercase tracking-wider rounded-lg transition-all duration-300 hover:scale-[1.04]"
                 style={{
                   background: '#fff',
@@ -141,7 +145,7 @@ export default function FinalCTA() {
 
               {/* Secundário — outline branco */}
               <a
-                href="#como-funciona"
+                href="/login"
                 className="inline-flex items-center gap-2 font-body font-bold text-sm uppercase tracking-wider rounded-lg transition-all duration-300"
                 style={{
                   color: '#fff',

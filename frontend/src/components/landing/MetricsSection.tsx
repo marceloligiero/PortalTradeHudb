@@ -1,39 +1,53 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useInView } from '../../hooks/useInView';
-import { useCountUp } from '../../hooks/useCountUp';
 
 const METRIC_DEFS = [
-  { prefix: '↓', value: 60,  suffix: '%', labelKey: 'errorsLabel',  descKey: 'errorsDesc' },
-  { prefix: '',  value: 100, suffix: '%', labelKey: 'traceLabel',   descKey: 'traceDesc' },
-  { prefix: '',  value: 4,   suffix: '×', labelKey: 'fasterLabel',  descKey: 'fasterDesc' },
-  { prefix: '',  value: 5,   suffix: '',  labelKey: 'portalsLabel', descKey: 'portalsDesc' },
+  { valueKey: 'metrics.errorsValue',    labelKey: 'metrics.errorsLabel',    descKey: 'metrics.errorsDesc' },
+  { valueKey: 'metrics.incidentsValue', labelKey: 'metrics.incidentsLabel', descKey: 'metrics.incidentsDesc' },
+  { valueKey: 'metrics.fasterValue',    labelKey: 'metrics.fasterLabel',    descKey: 'metrics.fasterDesc' },
+  { valueKey: 'metrics.traceValue',     labelKey: 'metrics.traceLabel',     descKey: 'metrics.traceDesc' },
+  { valueKey: 'metrics.dataValue',      labelKey: 'metrics.dataLabel',      descKey: 'metrics.dataDesc' },
+  { valueKey: 'metrics.ownerValue',     labelKey: 'metrics.ownerLabel',     descKey: 'metrics.ownerDesc' },
 ];
 
-function MetricCard({ metricDef, started }: { metricDef: typeof METRIC_DEFS[0]; started: boolean }) {
+function MetricCard({
+  metricDef,
+  visible,
+  delay,
+}: {
+  metricDef: typeof METRIC_DEFS[0];
+  visible: boolean;
+  delay: number;
+}) {
   const { t } = useTranslation();
-  const count = useCountUp(metricDef.value, 1500, started);
   return (
-    <div className="bg-white dark:bg-[#161618] rounded-xl p-8 border border-gray-200 dark:border-white/10">
+    <div
+      className="bg-white dark:bg-[#161618] border border-gray-200 dark:border-white/10 rounded-2xl p-8
+        hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(24px)',
+        transition: `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms, box-shadow 0.3s ease, translate 0.3s ease`,
+      }}
+    >
       <div
         className="font-headline font-bold leading-none mb-3"
-        style={{ fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', color: '#EC0000' }}
+        style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', color: '#EC0000' }}
       >
-        {metricDef.prefix}{count}{metricDef.suffix}
+        {t(`landing.${metricDef.valueKey}`)}
       </div>
-      <div className="font-body text-xs font-bold uppercase tracking-widest text-[#111827] dark:text-white mb-2">
-        {t(`landing.metrics.${metricDef.labelKey}`)}
+      <div className="font-body text-sm font-bold text-gray-900 dark:text-white mb-2 uppercase tracking-wide">
+        {t(`landing.${metricDef.labelKey}`)}
       </div>
-      <div className="font-body text-xs text-[#6B7280] dark:text-gray-400 leading-relaxed">
-        {t(`landing.metrics.${metricDef.descKey}`)}
-      </div>
+      <p className="font-body text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+        {t(`landing.${metricDef.descKey}`)}
+      </p>
     </div>
   );
 }
 
 export default function MetricsSection() {
   const { t } = useTranslation();
-  const { ref: inViewRef, isInView } = useInView();
   const [visible, setVisible] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -49,11 +63,8 @@ export default function MetricsSection() {
   return (
     <section
       id="resultados"
-      ref={(el) => {
-        (sectionRef as React.MutableRefObject<HTMLElement | null>).current = el;
-        (inViewRef as React.MutableRefObject<HTMLElement | null>).current = el;
-      }}
-      className="bg-[#F8F9FB] dark:bg-[#111113]"
+      ref={sectionRef}
+      className="bg-gray-50 dark:bg-[#111113]"
       style={{ padding: '100px 24px' }}
     >
       <div className="max-w-6xl mx-auto">
@@ -78,15 +89,14 @@ export default function MetricsSection() {
           </h2>
         </div>
 
-        <div
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
-          style={{
-            opacity: visible ? 1 : 0,
-            transition: 'opacity 0.6s ease 0.2s',
-          }}
-        >
-          {METRIC_DEFS.map((metricDef) => (
-            <MetricCard key={metricDef.labelKey} metricDef={metricDef} started={isInView} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {METRIC_DEFS.map((metricDef, i) => (
+            <MetricCard
+              key={metricDef.labelKey}
+              metricDef={metricDef}
+              visible={visible}
+              delay={i * 80}
+            />
           ))}
         </div>
       </div>

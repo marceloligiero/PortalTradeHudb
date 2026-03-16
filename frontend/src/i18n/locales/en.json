@@ -1249,14 +1249,16 @@
       "scheduleDemo": "Schedule Demo",
       "productTour": "Product Tour",
       "enterPlatform": "Enter Platform",
-      "theme": "Theme"
+      "theme": "Theme",
+      "login": "Login",
+      "register": "Sign Up"
     },
     "hero": {
-      "badge": "Internal Operational Platform · 5 Portals · 3 Languages",
+      "badge": "Internal Operational Portal · Proactive Quality",
       "title": "Fix quality issues before they become business problems.",
       "subtitle": "TradeDataHub replaces reactive error-fighting with proactive, automated operational quality management. Recorders, verifiers, and managers work together on a single platform. Protect your clients, improve your processes.",
-      "cta": "Schedule Demo",
-      "ctaSecondary": "Product Tour",
+      "cta": "Sign Up",
+      "ctaSecondary": "Login",
       "dashboardAlt": "TradeDataHub analytics dashboard"
     },
     "socialProof": {
@@ -1356,15 +1358,27 @@
     },
     "metrics": {
       "label": "Results",
-      "title": "Why processing teams choose TradeDataHub",
+      "title": "What changes when your team uses TradeDataHub",
       "errorsLabel": "Repeated Errors",
-      "errorsDesc": "Structured action plans break recurring error cycles",
-      "traceLabel": "Traceable",
-      "traceDesc": "Every error logged, every action documented, every result measured",
-      "fasterLabel": "Faster",
-      "fasterDesc": "Onboarding with a formal training plan instead of learning by doing",
+      "errorsDesc": "Each error generates an action plan with a deadline and owner. The recorder no longer repeats the same mistake because they learned in a structured way — not with a \"be more careful\".",
+      "traceLabel": "Traceability",
+      "traceDesc": "Every error logged. Every action plan documented. Every approval timestamped. When the audit asks, the answer is one click away.",
+      "fasterLabel": "Faster to Train",
+      "fasterDesc": "New recorders follow a structured training plan instead of \"learning from the colleague next to them\". They reach operational level in days, not weeks.",
       "portalsLabel": "Integrated Portals",
-      "portalsDesc": "Training, tutoring, reports, tickets and management in one place"
+      "portalsDesc": "Training, tutoring, reports, tickets and management in one place",
+      "errorsValue": "−70%",
+      "incidentsLabel": "Client Incidents",
+      "incidentsValue": "−50%",
+      "incidentsDesc": "When verifiers systematically log errors and recorders receive targeted training, fewer errors go unnoticed. The client feels the difference.",
+      "fasterValue": "3×",
+      "traceValue": "100%",
+      "dataLabel": "Data-Driven Decisions",
+      "dataValue": "0 guesses",
+      "dataDesc": "Who makes the most errors? In what? Are trainings working? Cross-referenced reports replace \"I think\" with numbers. The manager sees, decides and acts.",
+      "ownerLabel": "Every Error Has an Owner",
+      "ownerValue": "1:1",
+      "ownerDesc": "Nothing gets lost in an email or hallway conversation. The error is assigned, the plan is created, the recorder executes, the verifier approves. Clear accountability."
     },
     "faq": {
       "title": "Frequently Asked Questions",
@@ -1385,12 +1399,12 @@
     },
     "finalCta": {
       "label": "Start today",
-      "titleLine1": "Quality data in hours,",
-      "titleLine2": "not months.",
-      "subtitle": "Join the teams already using TradeDataHub to make operational quality proactive, automated and shared.",
-      "cta": "Schedule Demo",
-      "ctaSecondary": "Explore Modules",
-      "trust": "No commitment · Setup in minutes · Dedicated support"
+      "titleLine1": "Your team deserves tools that keep up with the pace.",
+      "titleLine2": "",
+      "subtitle": "Fewer errors, fewer incidents, more control. TradeDataHub gives your operation the visibility and structure it was missing.",
+      "cta": "Sign Up",
+      "ctaSecondary": "Login",
+      "trust": "No commitment · Immediate access · Product team support"
     },
     "footer": {
       "tagline": "Proactive, automated and shared operational quality.",

@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { Flame } from 'lucide-react';
 
 export default function LandingFooter() {
   const { t } = useTranslation();
@@ -49,10 +48,7 @@ export default function LandingFooter() {
           {/* Brand — spans 1 col on md */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <Flame className="w-5 h-5 text-[#EC0000]" />
-              <span className="font-logo font-bold text-white text-base tracking-tight">
-                TradeDataHub
-              </span>
+              <img src="/logo-sds.png" alt="TradeDataHub" className="h-7 w-auto mb-3" />
             </div>
             <p
               className="font-body text-xs leading-relaxed"

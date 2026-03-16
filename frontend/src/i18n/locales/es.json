@@ -1249,14 +1249,16 @@
       "scheduleDemo": "Agendar Demo",
       "productTour": "Tour del Producto",
       "enterPlatform": "Entrar a la Plataforma",
-      "theme": "Tema"
+      "theme": "Tema",
+      "login": "Login",
+      "register": "Registrarse"
     },
     "hero": {
-      "badge": "Plataforma Operacional Interna · 5 Portales · 3 Idiomas",
+      "badge": "Portal Operacional Interno · Calidad Proactiva",
       "title": "Corrija problemas de calidad antes de que se conviertan en problemas de negocio.",
       "subtitle": "TradeDataHub reemplaza la lucha reactiva contra errores por una gestión proactiva y automatizada de la calidad operacional. Grabadores, liberadores y gestores trabajan juntos en una sola plataforma. Proteja a sus clientes, mejore sus procesos.",
-      "cta": "Agendar Demo",
-      "ctaSecondary": "Tour del Producto",
+      "cta": "Registrarse",
+      "ctaSecondary": "Login",
       "dashboardAlt": "Dashboard analítico de TradeDataHub"
     },
     "socialProof": {
@@ -1356,15 +1358,27 @@
     },
     "metrics": {
       "label": "Resultados",
-      "title": "Por qué los equipos de procesamiento eligen TradeDataHub",
+      "title": "Qué cambia cuando el equipo usa TradeDataHub",
       "errorsLabel": "Errores Repetidos",
-      "errorsDesc": "Los planes de acción estructurados rompen ciclos de error recurrentes",
-      "traceLabel": "Rastreable",
-      "traceDesc": "Cada error registrado, cada acción documentada, cada resultado medido",
-      "fasterLabel": "Más Rápido",
-      "fasterDesc": "Onboarding con plan de entrenamiento formal en vez de aprender haciendo",
+      "errorsDesc": "Cada error genera un plan de acción con plazo y responsable. El grabador no vuelve a cometer el mismo error porque aprendió de forma estructurada — no con un \"ten más cuidado\".",
+      "traceLabel": "Trazabilidad",
+      "traceDesc": "Cada error registrado. Cada plan de acción documentado. Cada aprobación con timestamp. Cuando la auditoría pregunte, la respuesta está a un clic.",
+      "fasterLabel": "Más Rápido en Formación",
+      "fasterDesc": "Los nuevos grabadores siguen un plan de entrenamiento estructurado en lugar de \"aprender con el compañero\". Alcanzan el nivel operacional en días, no semanas.",
       "portalsLabel": "Portales Integrados",
-      "portalsDesc": "Formación, tutoría, informes, tickets y gestión en un solo lugar"
+      "portalsDesc": "Formación, tutoría, informes, tickets y gestión en un solo lugar",
+      "errorsValue": "−70%",
+      "incidentsLabel": "Incidencias al Cliente",
+      "incidentsValue": "−50%",
+      "incidentsDesc": "Cuando el liberador registra errores sistemáticamente y el grabador recibe formación dirigida, menos errores pasan desapercibidos. El cliente siente la diferencia.",
+      "fasterValue": "3×",
+      "traceValue": "100%",
+      "dataLabel": "Decisiones con Datos",
+      "dataValue": "0 suposiciones",
+      "dataDesc": "¿Quién comete más errores? ¿En qué? ¿Las formaciones funcionan? Los informes cruzados reemplazan el \"creo que\" por números. El gestor ve, decide y actúa.",
+      "ownerLabel": "Cada Error Tiene Dueño",
+      "ownerValue": "1:1",
+      "ownerDesc": "Nada se pierde en un e-mail o conversación de pasillo. El error se asigna, el plan se crea, el grabador ejecuta, el liberador aprueba. Responsabilidad clara."
     },
     "faq": {
       "title": "Preguntas Frecuentes",
@@ -1385,12 +1399,12 @@
     },
     "finalCta": {
       "label": "Empiece hoy",
-      "titleLine1": "Datos de calidad en horas,",
-      "titleLine2": "no en meses.",
-      "subtitle": "Únase a los equipos que ya usan TradeDataHub para hacer la calidad operacional proactiva, automatizada y compartida.",
-      "cta": "Agendar Demo",
-      "ctaSecondary": "Explorar Módulos",
-      "trust": "Sin compromiso · Configuración en minutos · Soporte dedicado"
+      "titleLine1": "Su equipo merece herramientas que sigan el ritmo.",
+      "titleLine2": "",
+      "subtitle": "Menos errores, menos incidencias, más control. TradeDataHub le da a su operación la visibilidad y la estructura que faltaban.",
+      "cta": "Registrarse",
+      "ctaSecondary": "Login",
+      "trust": "Sin compromiso · Acceso inmediato · Soporte del equipo de producto"
     },
     "footer": {
       "tagline": "Calidad operacional proactiva, automatizada y compartida.",

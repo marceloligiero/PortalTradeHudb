@@ -146,7 +146,7 @@ export default function HeroSection() {
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
           <a
-            href="/login"
+            href="/register"
             className="font-body font-semibold px-7 py-3 rounded-lg text-white transition-colors duration-200"
             style={{ background: '#EC0000', fontSize: '0.9375rem' }}
             onMouseEnter={e => (e.currentTarget.style.background = '#B80000')}
@@ -155,7 +155,7 @@ export default function HeroSection() {
             {t('landing.hero.cta')}
           </a>
           <a
-            href="#como-funciona"
+            href="/login"
             className="font-body font-semibold px-7 py-3 rounded-lg border border-gray-300 dark:border-white/20 transition-colors duration-200 text-[#111827] dark:text-white hover:text-[#EC0000] dark:hover:text-[#EC0000]"
             style={{ fontSize: '0.9375rem' }}
             onMouseEnter={e => (e.currentTarget.style.borderColor = '#EC0000')}
