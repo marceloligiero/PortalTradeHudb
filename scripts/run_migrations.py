@@ -128,7 +128,8 @@ if not os.path.exists(V001):
 
 m = re.match(r"mysql\+pymysql://([^:@]+)(?::([^@]*))?@([^:/]+)(?::(\d+))?/(.+)", DATABASE_URL)
 if not m:
-    print("[3/3] URL MySQL invalido — saltando V001.")
+    safe_url = DATABASE_URL[:8] + "..." + DATABASE_URL[-20:] if len(DATABASE_URL) > 30 else DATABASE_URL
+    print(f"[3/3] URL MySQL invalido — saltando V001. (URL lido: {safe_url!r})")
     sys.exit(0)
 
 db_user = m.group(1)
