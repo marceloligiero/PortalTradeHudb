@@ -70,6 +70,17 @@ if errorlevel 1 (
 )
 echo       Dependencias Python instaladas.
 
+:: ============================================================
+:: DB: criar tabelas + correr migracoes pendentes
+:: ============================================================
+echo       Executando migracoes de base de dados...
+"%VENV_DIR%\Scripts\python.exe" "%~dp0scripts\run_migrations.py"
+if errorlevel 1 (
+    echo  [ERRO] Migracoes falharam. Verifique backend\.env e MySQL.
+    pause
+    exit /b 1
+)
+
 :npm_check
 :: ============================================================
 :: 2. npm / frontend
