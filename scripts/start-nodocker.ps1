@@ -45,15 +45,25 @@ if (Test-Path $pidFile) {
     }
 }
 
-# Iniciar uvicorn (serve API + frontend)
-$uvicorn = Join-Path $VenvPath "Scripts\uvicorn.exe"
+# Iniciar uvicorn via python -m (mais fiavel que uvicorn.exe directo)
+$python     = Join-Path $VenvPath "Scripts\python.exe"
 $backendDir = Join-Path $Root "backend"
+
+if (-not (Test-Path $python)) {
+    Write-Fail "Python do venv nao encontrado em '$python'. Execute install-nodocker.ps1 primeiro."
+}
+
+# Verificar se uvicorn esta instalado
+$uvicornCheck = & $python -c "import uvicorn; print('ok')" 2>&1
+if ($uvicornCheck -ne 'ok') {
+    Write-Fail "uvicorn nao esta instalado no venv. Execute install-nodocker.ps1 novamente."
+}
 
 Write-Host "`n  Iniciando uvicorn na porta $BackendPort..." -ForegroundColor Gray
 Write-Host "  (API + Frontend servidos na mesma porta)" -ForegroundColor Gray
 
-$proc = Start-Process -FilePath $uvicorn `
-    -ArgumentList "main:app --host 0.0.0.0 --port $BackendPort --workers 2" `
+$proc = Start-Process -FilePath $python `
+    -ArgumentList "-m uvicorn main:app --host 0.0.0.0 --port $BackendPort --workers 2" `
     -WorkingDirectory $backendDir `
     -RedirectStandardOutput (Join-Path $logsDir "backend-output.log") `
     -RedirectStandardError (Join-Path $logsDir "backend-error.log") `

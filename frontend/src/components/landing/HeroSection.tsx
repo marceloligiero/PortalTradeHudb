@@ -53,17 +53,148 @@ const INCOMING_MESSAGES: ChatMsg[] = [
 ];
 
 const OUTGOING_MESSAGES: ChatMsg[] = [
-  { sender: 'Tú', avatar: '✓', color: '#22C55E', text: 'Error registrado. Plan de acción creado automáticamente.',       time: 'Ahora' },
-  { sender: 'Tú', avatar: '✓', color: '#22C55E', text: 'Cliente gestionado. Seguimiento activo en el sistema.',          time: 'Ahora' },
-  { sender: 'Tú', avatar: '✓', color: '#22C55E', text: 'Nuevo colaborador productivo en 3 días con onboarding digital.', time: 'Ahora' },
-  { sender: 'Tú', avatar: '✓', color: '#22C55E', text: 'Informe actualizado en tiempo real. Cero incidencias este mes.', time: 'Ahora' },
-  { sender: 'Tú', avatar: '✓', color: '#22C55E', text: 'Errores recurrentes bajaron un 74%. Datos en el dashboard.',     time: 'Ahora' },
+  { sender: 'TradeDataHub', avatar: '✓', color: '#22C55E', text: 'Error registrado. Plan de acción creado automáticamente.',       time: 'Ahora' },
+  { sender: 'TradeDataHub', avatar: '✓', color: '#22C55E', text: 'Cliente gestionado. Seguimiento activo en el sistema.',          time: 'Ahora' },
+  { sender: 'TradeDataHub', avatar: '✓', color: '#22C55E', text: 'Nuevo colaborador productivo en 3 días con onboarding digital.', time: 'Ahora' },
+  { sender: 'TradeDataHub', avatar: '✓', color: '#22C55E', text: 'Informe actualizado en tiempo real. Cero incidencias este mes.', time: 'Ahora' },
+  { sender: 'TradeDataHub', avatar: '✓', color: '#22C55E', text: 'Errores recurrentes bajaron un 74%. Datos en el dashboard.',     time: 'Ahora' },
 ];
 
 const INTERVAL = 1.4;
 
 // ── Film grain SVG (inline, no external request) ──────────────────────────────
 const GRAIN_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
+
+// ── Teams-style chat window ───────────────────────────────────────────────────
+
+function TeamsWindow({
+  title,
+  titleColor,
+  messages,
+  count,
+  side,
+  showTyping,
+  typingLabel,
+}: {
+  title: string;
+  titleColor: string;
+  messages: ChatMsg[];
+  count: number;
+  side: 'left' | 'right';
+  showTyping?: boolean;
+  typingLabel?: string;
+}) {
+  return (
+    <div
+      className="flex flex-col rounded-lg overflow-hidden shadow-2xl"
+      style={{
+        background: 'rgba(32,31,30,0.92)',
+        backdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        width: '100%',
+      }}
+    >
+      {/* ── Title bar ────────────────────────────────────────── */}
+      <div
+        className="flex items-center gap-2.5 px-4 py-2.5"
+        style={{ background: titleColor === 'red' ? 'rgba(180,40,40,0.85)' : 'rgba(40,140,70,0.80)' }}
+      >
+        {/* Window dots */}
+        <div className="flex gap-1.5 mr-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
+          <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
+          <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
+        </div>
+        {/* Channel icon */}
+        <svg className="w-4 h-4 text-white/70" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
+          <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
+        </svg>
+        <span className="text-[13px] font-semibold text-white/90 font-body truncate">
+          {title}
+        </span>
+        {/* Status dot */}
+        <span
+          className="w-1.5 h-1.5 rounded-full ml-auto animate-pulse"
+          style={{ background: titleColor === 'red' ? '#EF4444' : '#22C55E' }}
+        />
+      </div>
+
+      {/* ── Messages area ─────────────────────────────────────── */}
+      <div className="flex-1 px-4 py-3 flex flex-col gap-3 overflow-hidden justify-end">
+        {messages.slice(0, count).map((msg, i) => (
+          <div
+            key={i}
+            className="flex items-start gap-2.5"
+            style={{
+              animation: side === 'left' ? 'chatSlideInLeft 0.4s ease forwards' : 'chatSlideInRight 0.4s ease forwards',
+              animationDelay: `${i * 0.05}s`,
+              opacity: 0,
+            }}
+          >
+            {/* Avatar */}
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+              style={{ background: msg.color }}
+            >
+              {msg.avatar}
+            </div>
+            {/* Message content (Teams flat style) */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-2">
+                <span className="text-[12px] font-semibold font-body" style={{ color: msg.color }}>
+                  {msg.sender}
+                </span>
+                <span className="text-[10px] text-white/30 font-body">{msg.time}</span>
+              </div>
+              <p className="text-[13px] font-body text-white/80 leading-snug mt-0.5">
+                {msg.text}
+              </p>
+            </div>
+          </div>
+        ))}
+
+        {/* Typing indicator */}
+        {showTyping && (
+          <div className="flex items-center gap-2 pl-10">
+            <div className="flex items-center gap-1">
+              {[0, 1, 2].map(d => (
+                <span
+                  key={d}
+                  className="w-1.5 h-1.5 rounded-full bg-white/40 inline-block"
+                  style={{
+                    animation: 'typingDot 1s ease-in-out infinite',
+                    animationDelay: `${d * 0.2}s`,
+                  }}
+                />
+              ))}
+            </div>
+            <span className="text-[10px] text-white/30 font-body">{typingLabel}</span>
+          </div>
+        )}
+      </div>
+
+      {/* ── Compose bar ───────────────────────────────────────── */}
+      <div className="px-4 py-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div
+          className="flex items-center gap-2 rounded px-3 py-1.5"
+          style={{ background: 'rgba(255,255,255,0.05)' }}
+        >
+          <svg className="w-4 h-4 text-white/25" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+          </svg>
+          <span className="text-[11px] text-white/20 font-body flex-1">Escribe un mensaje...</span>
+          <svg className="w-4 h-4 text-white/25" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <svg className="w-4 h-4 text-white/25" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -212,144 +343,30 @@ export default function HeroSection() {
 
       {/* ── CAMADA 8 — Chat estilo Teams ──────────────────────────────── */}
       {showTexts && (
-        <div className="absolute inset-0 pointer-events-none z-[6] flex">
+        <div className="absolute inset-x-0 bottom-[5%] pointer-events-none z-[6] flex items-end justify-center gap-5 px-[4%]" style={{ height: '45%' }}>
 
-          {/* ESQUERDA — cobranças (incoming) */}
-          <div className="w-1/2 flex flex-col justify-end pb-[8%] pl-[2%] pr-[1%] gap-1.5 overflow-hidden">
-            <span
-              className="self-start text-[9px] uppercase tracking-[0.2em] font-body font-semibold text-white/90 px-2 py-0.5 rounded mb-1"
-              style={{
-                background: 'rgba(239,68,68,0.25)',
-                border: '1px solid rgba(239,68,68,0.35)',
-                textShadow: '0 1px 3px rgba(0,0,0,0.9)',
-              }}
-            >
-              {t('landing.hero.video.labelLeft')}
-            </span>
-
-            {INCOMING_MESSAGES.slice(0, leftCount).map((msg, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-1.5"
-                style={{
-                  animation: 'chatSlideInLeft 0.4s ease forwards',
-                  animationDelay: `${i * 0.05}s`,
-                  opacity: 0,
-                }}
-              >
-                {/* Avatar */}
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0 mt-0.5"
-                  style={{ background: msg.color }}
-                >
-                  {msg.avatar}
-                </div>
-                {/* Bubble */}
-                <div
-                  className="flex-1 rounded-xl rounded-tl-sm px-2.5 py-1.5"
-                  style={{
-                    background: 'rgba(0,0,0,0.45)',
-                    backdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                  }}
-                >
-                  <div className="flex items-baseline gap-1.5 mb-0.5">
-                    <span className="text-[10px] font-semibold font-body" style={{ color: msg.color }}>
-                      {msg.sender}
-                    </span>
-                    <span className="text-[9px] text-white/30 font-body">{msg.time}</span>
-                  </div>
-                  <p
-                    className="text-[11px] font-body text-white/80 leading-snug"
-                    style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
-                  >
-                    {msg.text}
-                  </p>
-                </div>
-              </div>
-            ))}
-
-            {/* Typing indicator */}
-            {showTyping && (
-              <div className="flex items-center gap-1.5 pl-7 mt-0.5">
-                <div
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl rounded-tl-sm"
-                  style={{
-                    background: 'rgba(0,0,0,0.40)',
-                    backdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(255,255,255,0.07)',
-                  }}
-                >
-                  {[0, 1, 2].map(d => (
-                    <span
-                      key={d}
-                      className="w-1 h-1 rounded-full bg-white/50 inline-block"
-                      style={{
-                        animation: 'typingDot 1s ease-in-out infinite',
-                        animationDelay: `${d * 0.2}s`,
-                      }}
-                    />
-                  ))}
-                  <span className="text-[9px] text-white/35 font-body ml-1">{t('landing.hero.video.typing')}</span>
-                </div>
-              </div>
-            )}
+          {/* ESQUERDA — janela Teams (problemas) */}
+          <div className="flex items-end max-w-[400px] w-full" style={{ height: 'auto' }}>
+            <TeamsWindow
+              title={t('landing.hero.video.labelLeft')}
+              titleColor="red"
+              messages={INCOMING_MESSAGES}
+              count={leftCount}
+              side="left"
+              showTyping={showTyping}
+              typingLabel={t('landing.hero.video.typing')}
+            />
           </div>
 
-          {/* DIREITA — respostas positivas (outgoing) */}
-          <div className="w-1/2 flex flex-col justify-end pb-[8%] pr-[2%] pl-[1%] gap-1.5 overflow-hidden items-end">
-            <span
-              className="text-[9px] uppercase tracking-[0.2em] font-body font-semibold text-white/90 px-2 py-0.5 rounded mb-1"
-              style={{
-                background: 'rgba(34,197,94,0.20)',
-                border: '1px solid rgba(34,197,94,0.35)',
-                textShadow: '0 1px 3px rgba(0,0,0,0.9)',
-              }}
-            >
-              {t('landing.hero.video.labelRight')}
-            </span>
-
-            {OUTGOING_MESSAGES.slice(0, rightCount).map((msg, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-1.5 flex-row-reverse w-full"
-                style={{
-                  animation: 'chatSlideInRight 0.4s ease forwards',
-                  animationDelay: `${i * 0.05}s`,
-                  opacity: 0,
-                }}
-              >
-                {/* Avatar */}
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 mt-0.5"
-                  style={{ background: msg.color }}
-                >
-                  {msg.avatar}
-                </div>
-                {/* Bubble */}
-                <div
-                  className="flex-1 rounded-xl rounded-tr-sm px-2.5 py-1.5"
-                  style={{
-                    background: 'rgba(34,197,94,0.15)',
-                    backdropFilter: 'blur(8px)',
-                    border: '1px solid rgba(34,197,94,0.20)',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-                  }}
-                >
-                  <div className="flex items-baseline gap-1.5 justify-end mb-0.5">
-                    <span className="text-[9px] text-white/30 font-body">{msg.time}</span>
-                    <span className="text-[9px] text-green-400/80">✓✓</span>
-                  </div>
-                  <p
-                    className="text-[11px] font-body text-white/85 leading-snug text-right"
-                    style={{ textShadow: '0 1px 3px rgba(0,0,0,0.4)' }}
-                  >
-                    {msg.text}
-                  </p>
-                </div>
-              </div>
-            ))}
+          {/* DIREITA — janela Teams (solucoes) */}
+          <div className="flex items-end max-w-[400px] w-full" style={{ height: 'auto' }}>
+            <TeamsWindow
+              title={t('landing.hero.video.labelRight')}
+              titleColor="green"
+              messages={OUTGOING_MESSAGES}
+              count={rightCount}
+              side="right"
+            />
           </div>
 
         </div>

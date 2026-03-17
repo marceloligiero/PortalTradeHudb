@@ -85,10 +85,12 @@ if (-not (Test-Path $venvPath)) {
 }
 Write-OK "venv pronto"
 
-$pip = Join-Path $venvPath "Scripts\pip.exe"
+$pip    = Join-Path $venvPath "Scripts\pip.exe"
+$python = Join-Path $venvPath "Scripts\python.exe"
 Write-Host "  Instalando dependencias (pode demorar)..." -ForegroundColor Gray
-& $pip install --upgrade pip --quiet
-& $pip install -r (Join-Path $Root "backend\requirements.txt") --quiet
+& $pip install --upgrade pip
+& $pip install -r (Join-Path $Root "backend\requirements.txt")
+if ($LASTEXITCODE -ne 0) { Write-Fail "pip install falhou (codigo $LASTEXITCODE). Verifique o Python e o requirements.txt." }
 Write-OK "Dependencias Python instaladas"
 
 # -- 4. Build do frontend ----------------------------------------------------
@@ -96,9 +98,11 @@ Write-Step "4/4" "Build do frontend React..."
 
 Push-Location (Join-Path $Root "frontend")
 Write-Host "  npm ci..." -ForegroundColor Gray
-npm ci --silent
+npm ci
+if ($LASTEXITCODE -ne 0) { Pop-Location; Write-Fail "npm ci falhou (codigo $LASTEXITCODE). Verifique o Node.js e o package-lock.json." }
 Write-Host "  npm run build..." -ForegroundColor Gray
 npm run build
+if ($LASTEXITCODE -ne 0) { Pop-Location; Write-Fail "npm run build falhou (codigo $LASTEXITCODE). Verifique os logs acima." }
 Pop-Location
 Write-OK "Frontend compilado em frontend\dist"
 

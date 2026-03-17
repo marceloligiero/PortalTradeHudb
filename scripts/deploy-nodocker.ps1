@@ -97,12 +97,15 @@ Write-Step "3/4" "Atualizando dependencias e compilando frontend..."
 $pip = Join-Path $VenvPath "Scripts\pip.exe"
 if (-not (Test-Path $pip)) { Write-Fail "venv nao encontrado. Execute install-nodocker.ps1 primeiro." }
 
-& $pip install -r (Join-Path $Root "backend\requirements.txt") --quiet
+& $pip install -r (Join-Path $Root "backend\requirements.txt")
+if ($LASTEXITCODE -ne 0) { Write-Fail "pip install falhou (codigo $LASTEXITCODE)." }
 Write-OK "Dependencias Python atualizadas"
 
 Push-Location (Join-Path $Root "frontend")
-npm ci --silent
+npm ci
+if ($LASTEXITCODE -ne 0) { Pop-Location; Write-Fail "npm ci falhou (codigo $LASTEXITCODE)." }
 npm run build
+if ($LASTEXITCODE -ne 0) { Pop-Location; Write-Fail "npm run build falhou (codigo $LASTEXITCODE)." }
 Pop-Location
 Write-OK "Frontend recompilado"
 
