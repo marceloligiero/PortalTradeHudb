@@ -126,13 +126,16 @@ if not os.path.exists(V001):
     print("[3/3] V001 nao encontrado.")
     sys.exit(0)
 
-m = re.match(r"mysql\+pymysql://([^:]+):([^@]*)@([^:/]+)(?::(\d+))?/(.+)", DATABASE_URL)
+m = re.match(r"mysql\+pymysql://([^:@]+)(?::([^@]*))?@([^:/]+)(?::(\d+))?/(.+)", DATABASE_URL)
 if not m:
     print("[3/3] URL MySQL invalido — saltando V001.")
     sys.exit(0)
 
-db_user, db_pass, db_host, db_port, db_name = m.group(1, 2, 3, 4, 5)
-db_port = db_port or "3306"
+db_user = m.group(1)
+db_pass = m.group(2) if m.group(2) is not None else ""
+db_host = m.group(3)
+db_port = m.group(4) or "3306"
+db_name = m.group(5)
 
 mysql_candidates = [
     "mysql",

@@ -153,6 +153,12 @@ UPDATE banks SET country = 'ES' WHERE country IS NULL OR country = '';
 CALL add_column_if_not_exists('products', 'code', 'VARCHAR(50) NULL');
 UPDATE products SET code = CONCAT('PROD', LPAD(id, 3, '0')) WHERE code IS NULL OR code = '';
 
+-- Garantir is_active NOT NULL com DEFAULT 1 em banks e products
+UPDATE banks    SET is_active = 1 WHERE is_active IS NULL;
+UPDATE products SET is_active = 1 WHERE is_active IS NULL;
+CALL safe_modify_column('banks',    'is_active', 'TINYINT(1) NOT NULL DEFAULT 1');
+CALL safe_modify_column('products', 'is_active', 'TINYINT(1) NOT NULL DEFAULT 1');
+
 -- ─── 1.2 training_plans ────────────────────────────────────────────
 CALL add_column_if_not_exists('training_plans', 'student_id',    'INT NULL');
 CALL add_column_if_not_exists('training_plans', 'start_date',    'DATETIME NULL');

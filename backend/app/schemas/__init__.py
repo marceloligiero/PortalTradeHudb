@@ -130,9 +130,9 @@ class BankUpdate(BaseModel):
 
 class Bank(BankBase):
     id: int
-    is_active: bool
-    created_at: datetime
-    
+    is_active: Optional[bool] = True
+    created_at: Optional[datetime] = None
+
     model_config = {"from_attributes": True}
 
 # Product Schemas
@@ -151,9 +151,9 @@ class ProductUpdate(BaseModel):
 
 class Product(ProductBase):
     id: int
-    is_active: bool
-    created_at: datetime
-    
+    is_active: Optional[bool] = True
+    created_at: Optional[datetime] = None
+
     model_config = {"from_attributes": True}
 
 # Training Plan Schemas
