@@ -171,6 +171,7 @@ try:
         result = subprocess.run(
             [mysql_exe, f"-u{db_user}", f"-h{db_host}", f"-P{db_port}", db_name],
             stdin=sql_file, capture_output=True, text=True,
+            encoding="utf-8", errors="replace",
             env=env_cmd, timeout=120,
         )
     errors = [l for l in result.stderr.splitlines()
