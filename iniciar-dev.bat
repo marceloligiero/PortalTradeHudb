@@ -13,6 +13,17 @@ echo  TradeHub - Modo Desenvolvimento
 echo ========================================
 echo.
 
+:: Verificar backend\.env
+if not exist "%~dp0backend\.env" (
+    echo  [AVISO] backend\.env nao encontrado!
+    echo.
+    echo  Corra primeiro: setup-db.bat
+    echo  para configurar a base de dados e criar o .env
+    echo.
+    pause
+    exit /b 1
+)
+
 :: ============================================================
 :: 1. Python venv
 :: ============================================================
