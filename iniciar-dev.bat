@@ -61,23 +61,29 @@ if errorlevel 1 (
 :: 2. npm install
 :: ============================================================
 echo [2/3] Dependencias npm...
-if not exist "%~dp0frontend\node_modules\vite" (
-    echo       Instalando node_modules (pode demorar)...
-    cd /d "%~dp0frontend"
-    npm install --registry http://registry.npmjs.org/
-    if errorlevel 1 (
-        echo.
-        echo  [ERRO] npm install falhou.
-        echo  Verifique a ligacao a internet.
-        cd /d "%~dp0"
-        pause
-        exit /b 1
-    )
-    cd /d "%~dp0"
-    echo       node_modules instalados.
-) else (
+if exist "%~dp0frontend\node_modules\.bin\vite.cmd" (
     echo       node_modules ja instalados.
+    goto :start
 )
+echo       Instalando node_modules (pode demorar)...
+cd /d "%~dp0frontend"
+if exist "node_modules\" (
+    echo       Limpando node_modules incompleto...
+    rmdir /s /q node_modules
+)
+npm install --registry http://registry.npmjs.org/
+if errorlevel 1 (
+    echo.
+    echo  [ERRO] npm install falhou.
+    echo  Verifique a ligacao a internet.
+    cd /d "%~dp0"
+    pause
+    exit /b 1
+)
+cd /d "%~dp0"
+echo       node_modules instalados.
+
+:start
 
 :: ============================================================
 :: 3. Iniciar backend + Vite

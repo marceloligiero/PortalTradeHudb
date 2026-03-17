@@ -6,13 +6,24 @@ set NODE_TLS_REJECT_UNAUTHORIZED=0
 
 cd /d "%~dp0frontend"
 
-if exist "node_modules\vite" goto :dev
+:: Verificar se vite esta realmente instalado (binario)
+if exist "node_modules\.bin\vite.cmd" goto :dev
 
 echo.
-echo  Instalando dependencias npm (pode demorar)...
-call npm install --registry http://registry.npmjs.org/
+echo  Instalando dependencias npm...
+echo  (registry HTTP para evitar SSL corporativo)
+echo.
+
+:: node_modules incompleto - apagar e reinstalar
+if exist "node_modules\" (
+    echo  Limpando node_modules incompleto...
+    rmdir /s /q node_modules
+)
+
+npm install --registry http://registry.npmjs.org/
 if errorlevel 1 (
-    echo  [ERRO] npm install falhou.
+    echo.
+    echo  [ERRO] npm install falhou. Verifique a internet.
     pause
     goto :end
 )
