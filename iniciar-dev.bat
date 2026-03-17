@@ -61,23 +61,33 @@ echo       Dependencias Python instaladas.
 
 :npm_check
 :: ============================================================
-:: 2. npm install
+:: 2. npm / frontend
 :: ============================================================
-echo [2/3] Dependencias npm...
-if exist "%~dp0frontend\node_modules\.bin\vite.cmd" (
-    echo       node_modules ja instalados.
-    goto :run
+echo [2/3] Frontend...
+
+:: Se dist ja existe, backend serve directamente (sem Vite)
+if exist "%~dp0frontend\dist\index.html" (
+    if exist "%~dp0frontend\node_modules\.bin\vite.cmd" (
+        echo       node_modules OK - modo Vite dev
+        goto :run_vite
+    )
+    echo       Sem node_modules mas dist/ existe - backend serve frontend
+    goto :run_backend_only
 )
 
+:: Sem dist - precisa npm install
 echo       Instalando node_modules (pode demorar)...
 cd /d "%~dp0frontend"
 if exist "node_modules\" (
     echo       Limpando node_modules incompleto...
-    rmdir /s /q node_modules
+    rmdir /s /q node_modules >nul 2>&1
 )
 npm install --registry http://registry.npmjs.org/
 if errorlevel 1 (
-    echo  [ERRO] npm install falhou. Verifique a ligacao a internet.
+    echo.
+    echo  [ERRO] npm install falhou.
+    echo  O proxy corporativo pode estar a bloquear o npm.
+    echo  Ligue a VPN e tente novamente.
     cd /d "%~dp0"
     pause
     exit /b 1
@@ -85,11 +95,11 @@ if errorlevel 1 (
 cd /d "%~dp0"
 echo       node_modules instalados.
 
-:run
+:run_vite
 :: ============================================================
-:: 3. Iniciar backend + Vite
+:: 3a. Iniciar backend + Vite dev server
 :: ============================================================
-echo [3/3] Iniciando servicos...
+echo [3/3] Iniciando backend + Vite...
 
 for /f "tokens=5" %%p in ('netstat -aon ^| findstr ":8000.*LISTENING" 2^>nul') do (
     taskkill /PID %%p /F >nul 2>&1
@@ -110,3 +120,26 @@ echo.
 
 cd /d "%~dp0frontend"
 call npm run dev
+goto :eof
+
+:run_backend_only
+:: ============================================================
+:: 3b. Apenas backend (serve frontend/dist em :8000)
+:: ============================================================
+echo [3/3] Iniciando backend (serve frontend compilado)...
+
+for /f "tokens=5" %%p in ('netstat -aon ^| findstr ":8000.*LISTENING" 2^>nul') do (
+    taskkill /PID %%p /F >nul 2>&1
+)
+timeout /t 1 /nobreak >nul
+
+echo.
+echo ========================================
+echo  Aplicacao: http://localhost:8000
+echo.
+echo  (Para modo Vite: ligue VPN e apague
+echo   node_modules\ para reinstalar)
+echo ========================================
+echo.
+
+call "%~dp0start-backend.bat"
