@@ -16,24 +16,30 @@ for /f "tokens=5" %%p in ('netstat -aon ^| findstr ":8000.*LISTENING" 2^>nul') d
 taskkill /FI "WINDOWTITLE eq TradeHub Backend*" /F >nul 2>&1
 timeout /t 2 /nobreak >nul
 
-:: Build do frontend se nao existir
-echo [2/2] Verificando build do frontend...
-if not exist "%~dp0frontend\dist\index.html" (
-    echo  Build nao encontrado. Compilando...
-    cd /d "%~dp0frontend"
-    call npm ci
-    call npm run build
-    cd /d "%~dp0"
+:: Verificar se o build do frontend existe
+echo [2/2] Verificando frontend...
+if exist "%~dp0frontend\dist\index.html" (
+    echo  Build encontrado. Sem necessidade de recompilar.
+) else (
+    echo.
+    echo  AVISO: frontend\dist nao encontrado.
+    echo  O backend inicia mas o frontend pode nao carregar.
+    echo.
+    echo  Para compilar o frontend, execute manualmente:
+    echo    cd frontend
+    echo    npm install
+    echo    npm run build
+    echo.
+    timeout /t 4 /nobreak >nul
 )
 
 :: Iniciar backend (serve API + frontend na porta 8000)
-echo.
 echo  Iniciando backend...
 start "TradeHub Backend" /D "%~dp0" cmd /k call "%~dp0start-backend.bat"
 
-echo.
 timeout /t 5 /nobreak >nul
 
+echo.
 echo ========================================
 echo  Sistema disponivel em:
 echo    http://localhost:8000
