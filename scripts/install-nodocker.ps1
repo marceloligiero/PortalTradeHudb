@@ -88,14 +88,28 @@ Write-OK "venv pronto"
 $pip    = Join-Path $venvPath "Scripts\pip.exe"
 $python = Join-Path $venvPath "Scripts\python.exe"
 
-# Flags para redes corporativas com SSL inspection (proxy MITM)
-$pipSSL = @("--trusted-host", "pypi.org", "--trusted-host", "pypi.python.org", "--trusted-host", "files.pythonhosted.org")
+# Bypass SSL inspection corporativo (proxy MITM que termina ligacoes TLS)
+$env:PYTHONHTTPSVERIFY    = "0"
+$env:REQUESTS_CA_BUNDLE   = ""
+$env:PIP_TRUSTED_HOST     = "pypi.org pypi.python.org files.pythonhosted.org"
+$pipFlags = @(
+    "--trusted-host", "pypi.org",
+    "--trusted-host", "pypi.python.org",
+    "--trusted-host", "files.pythonhosted.org",
+    "--timeout", "120",
+    "--retries", "10"
+)
 
 Write-Host "  Instalando dependencias (pode demorar)..." -ForegroundColor Gray
-& $pip install --upgrade pip @pipSSL
-& $pip install -r (Join-Path $Root "backend\requirements.txt") @pipSSL
+& $pip install --upgrade pip @pipFlags
+& $pip install -r (Join-Path $Root "backend\requirements.txt") @pipFlags
 if ($LASTEXITCODE -ne 0) { Write-Fail "pip install falhou (codigo $LASTEXITCODE). Verifique o Python e o requirements.txt." }
 Write-OK "Dependencias Python instaladas"
+
+# Limpar variaveis SSL (restaurar comportamento padrao)
+Remove-Item Env:\PYTHONHTTPSVERIFY  -ErrorAction SilentlyContinue
+Remove-Item Env:\REQUESTS_CA_BUNDLE -ErrorAction SilentlyContinue
+Remove-Item Env:\PIP_TRUSTED_HOST   -ErrorAction SilentlyContinue
 
 # -- 4. Build do frontend ----------------------------------------------------
 Write-Step "4/4" "Build do frontend React..."

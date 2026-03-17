@@ -35,14 +35,16 @@ Write-Host "======================================================" -ForegroundC
 
 # Verificar se ja esta rodando
 if (Test-Path $pidFile) {
-    $oldPid = (Get-Content $pidFile).Trim()
-    $proc = Get-Process -Id $oldPid -ErrorAction SilentlyContinue
-    if ($proc) {
-        Write-Warn "Sistema ja esta rodando (PID $oldPid). Use stop-nodocker.ps1 primeiro."
-        exit 1
-    } else {
-        Remove-Item $pidFile -Force
+    $oldPidRaw = Get-Content $pidFile -Raw -ErrorAction SilentlyContinue
+    $oldPid    = if ($oldPidRaw) { $oldPidRaw.Trim() } else { "" }
+    if ($oldPid) {
+        $proc = Get-Process -Id ([int]$oldPid) -ErrorAction SilentlyContinue
+        if ($proc) {
+            Write-Warn "Sistema ja esta rodando (PID $oldPid). Use stop-nodocker.ps1 primeiro."
+            exit 1
+        }
     }
+    Remove-Item $pidFile -Force
 }
 
 # Iniciar uvicorn via python -m (mais fiavel que uvicorn.exe directo)

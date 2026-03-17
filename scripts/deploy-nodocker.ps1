@@ -97,9 +97,21 @@ Write-Step "3/4" "Atualizando dependencias e compilando frontend..."
 $pip = Join-Path $VenvPath "Scripts\pip.exe"
 if (-not (Test-Path $pip)) { Write-Fail "venv nao encontrado. Execute install-nodocker.ps1 primeiro." }
 
-$pipSSL = @("--trusted-host", "pypi.org", "--trusted-host", "pypi.python.org", "--trusted-host", "files.pythonhosted.org")
-& $pip install -r (Join-Path $Root "backend\requirements.txt") @pipSSL
+$env:PYTHONHTTPSVERIFY  = "0"
+$env:REQUESTS_CA_BUNDLE = ""
+$env:PIP_TRUSTED_HOST   = "pypi.org pypi.python.org files.pythonhosted.org"
+$pipFlags = @(
+    "--trusted-host", "pypi.org",
+    "--trusted-host", "pypi.python.org",
+    "--trusted-host", "files.pythonhosted.org",
+    "--timeout", "120",
+    "--retries", "10"
+)
+& $pip install -r (Join-Path $Root "backend\requirements.txt") @pipFlags
 if ($LASTEXITCODE -ne 0) { Write-Fail "pip install falhou (codigo $LASTEXITCODE)." }
+Remove-Item Env:\PYTHONHTTPSVERIFY  -ErrorAction SilentlyContinue
+Remove-Item Env:\REQUESTS_CA_BUNDLE -ErrorAction SilentlyContinue
+Remove-Item Env:\PIP_TRUSTED_HOST   -ErrorAction SilentlyContinue
 Write-OK "Dependencias Python atualizadas"
 
 $env:NODE_TLS_REJECT_UNAUTHORIZED = "0"
