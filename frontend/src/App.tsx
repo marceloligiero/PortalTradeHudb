@@ -27,6 +27,10 @@ import AdminReportsPage from './pages/admin/Reports';
 import AdminAdvancedReportsPage from './pages/admin/AdvancedReports';
 import PortalTutoria from './pages/admin/PortalTutoria';
 import PortalTutoriaPublic from './pages/PortalTutoriaPublic';
+import AboutPage from './pages/AboutPage';
+import FAQPage from './pages/FAQPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
 import TutoriaLayout from './pages/tutoria/TutoriaLayout';
 import TutoriaErrors from './pages/tutoria/TutoriaErrors';
 import TutoriaPlans from './pages/tutoria/TutoriaPlans';
@@ -88,6 +92,10 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/portal-tutoria" element={<PortalTutoriaPublic />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/faq" element={<FAQPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />

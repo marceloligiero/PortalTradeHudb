@@ -8,34 +8,34 @@ export default function LandingFooter() {
     {
       titleKey: 'platform',
       items: [
-        { key: 'training' },
-        { key: 'tutoring' },
-        { key: 'reports' },
-        { key: 'tickets' },
-        { key: 'masterData' },
+        { key: 'training',   to: '/#funcionalidades' },
+        { key: 'tutoring',   to: '/portal-tutoria' },
+        { key: 'reports',    to: '/#funcionalidades' },
+        { key: 'tickets',    to: '/#funcionalidades' },
+        { key: 'masterData', to: '/#funcionalidades' },
       ],
     },
     {
       titleKey: 'about',
       items: [
-        { key: 'aboutUs' },
-        { key: 'contact' },
+        { key: 'aboutUs', to: '/about' },
+        { key: 'contact', to: '/about#contacto' },
       ],
     },
     {
       titleKey: 'resources',
       items: [
-        { key: 'blog' },
-        { key: 'apiDocs' },
-        { key: 'news' },
+        { key: 'blog',    to: '/about' },
+        { key: 'apiDocs', to: '/about' },
+        { key: 'news',    to: '/about' },
       ],
     },
     {
       titleKey: 'support',
       items: [
-        { key: 'helpCenter' },
-        { key: 'faq' },
-        { key: 'systemStatus' },
+        { key: 'helpCenter',   to: '/faq' },
+        { key: 'faq',          to: '/faq' },
+        { key: 'systemStatus', to: '/faq' },
       ],
     },
   ];
@@ -70,7 +70,7 @@ export default function LandingFooter() {
                 {col.items.map((item) => (
                   <li key={item.key}>
                     <Link
-                      to="/login"
+                      to={item.to}
                       className="font-body text-sm transition-colors duration-200"
                       style={{ color: 'rgba(255,255,255,0.55)' }}
                       onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.9)')}
@@ -94,18 +94,24 @@ export default function LandingFooter() {
             {t('landing.footer.copyright')}
           </p>
           <div className="flex items-center gap-6">
-            {(['terms', 'privacy'] as const).map((key) => (
-              <Link
-                key={key}
-                to="/login"
-                className="font-body text-xs transition-colors duration-200"
-                style={{ color: 'rgba(255,255,255,0.35)' }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.75)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
-              >
-                {t(`landing.footer.${key}`)}
-              </Link>
-            ))}
+            <Link
+              to="/terms"
+              className="font-body text-xs transition-colors duration-200"
+              style={{ color: 'rgba(255,255,255,0.35)' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.75)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
+            >
+              {t('landing.footer.terms')}
+            </Link>
+            <Link
+              to="/privacy"
+              className="font-body text-xs transition-colors duration-200"
+              style={{ color: 'rgba(255,255,255,0.35)' }}
+              onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.75)')}
+              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
+            >
+              {t('landing.footer.privacy')}
+            </Link>
           </div>
         </div>
       </div>

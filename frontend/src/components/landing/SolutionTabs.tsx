@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { GraduationCap, ShieldAlert, BarChart3, Headphones } from 'lucide-react';
 import { getLandingImage } from '../../utils/landingImages';
 import ImagePlaceholder from '../ImagePlaceholder';
@@ -146,15 +147,15 @@ export default function SolutionTabs() {
             <p className="font-body text-[#6B7280] dark:text-gray-400 leading-relaxed mb-6" style={{ fontSize: '1rem' }}>
               {t(`landing.solution.${tabDef.descKey}`)}
             </p>
-            <a
-              href="/login"
+            <Link
+              to="/login"
               className="inline-flex items-center gap-1 font-body text-sm font-semibold transition-colors duration-200"
               style={{ color: '#EC0000' }}
               onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
               onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
             >
               {t('landing.solution.explore')} {t(`landing.solution.${tabDef.tabKey}`)} →
-            </a>
+            </Link>
           </div>
 
           {/* Image */}

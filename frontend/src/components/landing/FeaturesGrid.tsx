@@ -113,7 +113,7 @@ export default function FeaturesGrid() {
   }, []);
 
   return (
-    <section id="funcionalidades" ref={sectionRef} className="bg-white dark:bg-[#09090B] px-6" style={{ paddingTop: '160px', paddingBottom: '160px' }}>
+    <section id="plataforma" ref={sectionRef} className="bg-white dark:bg-[#09090B] px-6" style={{ paddingTop: '160px', paddingBottom: '160px' }}>
       <div className="max-w-7xl mx-auto">
         <div className="bento-header mb-16">
           <h2

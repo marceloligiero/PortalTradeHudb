@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 
 export default function FinalCTA() {
   const { t } = useTranslation();
@@ -123,8 +124,8 @@ export default function FinalCTA() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
 
               {/* Primário — branco com seta */}
-              <a
-                href="/register"
+              <Link
+                to="/register"
                 className="cta-btn-primary group inline-flex items-center gap-2 font-body font-bold text-sm uppercase tracking-wider rounded-lg transition-all duration-300 hover:scale-[1.04]"
                 style={{
                   background: '#fff',
@@ -141,11 +142,11 @@ export default function FinalCTA() {
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
-              </a>
+              </Link>
 
               {/* Secundário — outline branco */}
-              <a
-                href="/login"
+              <Link
+                to="/login"
                 className="inline-flex items-center gap-2 font-body font-bold text-sm uppercase tracking-wider rounded-lg transition-all duration-300"
                 style={{
                   color: '#fff',
@@ -162,7 +163,7 @@ export default function FinalCTA() {
                 }}
               >
                 {t('landing.finalCta.ctaSecondary')}
-              </a>
+              </Link>
             </div>
 
           </div>
