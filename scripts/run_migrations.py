@@ -62,24 +62,20 @@ try:
             if col.name in existing:
                 continue
             missing_any = True
-            # Construir ADD COLUMN
             try:
                 col_type = col.type.compile(dialect=engine.dialect)
-                parts    = [f"ALTER TABLE `{table_name}` ADD COLUMN `{col.name}` {col_type}"]
-                if not col.nullable:
-                    if col.default is not None and col.default.is_scalar:
-                        parts.append(f"NOT NULL DEFAULT {col.default.arg!r}")
-                    else:
-                        parts.append("NOT NULL DEFAULT 0")
+                # Sempre adicionar como NULL para evitar conflitos com UNIQUE/FK
+                # O ORM garante NOT NULL ao inserir
+                if col.default is not None and col.default.is_scalar:
+                    default_val = repr(col.default.arg)
+                    sql = f"ALTER TABLE `{table_name}` ADD COLUMN `{col.name}` {col_type} DEFAULT {default_val}"
                 else:
-                    parts.append("DEFAULT NULL")
-                sql = " ".join(parts)
+                    sql = f"ALTER TABLE `{table_name}` ADD COLUMN `{col.name}` {col_type} DEFAULT NULL"
                 with engine.connect() as conn:
                     conn.execute(text(sql))
                     conn.commit()
                 print(f"      + {table_name}.{col.name}")
             except Exception as e:
-                # SQLite nao suporta ADD COLUMN com certas restricoes
                 if is_sqlite and ("cannot" in str(e).lower() or "not supported" in str(e).lower()):
                     print(f"      SQLite: recrear tabela necessario para {table_name}.{col.name}")
                     missing_any = "sqlite_recreate"

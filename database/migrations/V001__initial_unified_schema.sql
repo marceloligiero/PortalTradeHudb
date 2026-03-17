@@ -141,6 +141,18 @@ CALL add_column_if_not_exists('users', 'is_referente',  'BOOLEAN NOT NULL DEFAUL
 CALL add_column_if_not_exists('users', 'tutor_id',      'INT NULL');
 CALL add_column_if_not_exists('users', 'team_id',       'INT NULL');
 
+-- ─── 1.X banks ──────────────────────────────────────────────────
+-- Adicionar code/country se vieram de schema antigo (sem essas colunas)
+CALL add_column_if_not_exists('banks', 'code',    'VARCHAR(10) NULL');
+CALL add_column_if_not_exists('banks', 'country', 'VARCHAR(50) NULL');
+-- Gerar codes unicos para linhas existentes sem code
+UPDATE banks SET code = CONCAT('BANK', LPAD(id, 3, '0')) WHERE code IS NULL OR code = '';
+UPDATE banks SET country = 'ES' WHERE country IS NULL OR country = '';
+
+-- ─── 1.Y products ───────────────────────────────────────────────
+CALL add_column_if_not_exists('products', 'code', 'VARCHAR(50) NULL');
+UPDATE products SET code = CONCAT('PROD', LPAD(id, 3, '0')) WHERE code IS NULL OR code = '';
+
 -- ─── 1.2 training_plans ────────────────────────────────────────────
 CALL add_column_if_not_exists('training_plans', 'student_id',    'INT NULL');
 CALL add_column_if_not_exists('training_plans', 'start_date',    'DATETIME NULL');
