@@ -1,5 +1,5 @@
 """
-run_migrations.py — Corre init_db (create_all) + V001 migration
+run_migrations.py — Corre init_db (create_all) + detecta colunas em falta + V001
 Chamado pelo iniciar-dev.bat antes de arrancar o backend.
 """
 import sys
@@ -8,60 +8,126 @@ import subprocess
 import re
 
 # Adicionar backend ao path
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR   = os.path.dirname(SCRIPT_DIR)
+SCRIPT_DIR  = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR    = os.path.dirname(SCRIPT_DIR)
 BACKEND_DIR = os.path.join(ROOT_DIR, "backend")
 sys.path.insert(0, BACKEND_DIR)
 
 # Carregar .env do backend manualmente (antes de importar settings)
 env_file = os.path.join(BACKEND_DIR, ".env")
-if os.path.exists(env_file):
-    with open(env_file, encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, _, v = line.partition("=")
-                os.environ.setdefault(k.strip(), v.strip())
+if not os.path.exists(env_file):
+    print("[ERRO] backend/.env nao encontrado. Corra setup-db.bat primeiro.")
+    sys.exit(1)
+
+with open(env_file, encoding="utf-8") as f:
+    for line in f:
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            k, _, v = line.partition("=")
+            os.environ.setdefault(k.strip(), v.strip())
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
+is_sqlite    = DATABASE_URL.startswith("sqlite")
+is_mysql     = "mysql" in DATABASE_URL
 
 # -------------------------------------------------------------------
-# 1. create_all via SQLAlchemy
+# 1. create_all (cria tabelas novas)
 # -------------------------------------------------------------------
-print("[1/2] Criando/verificando tabelas (SQLAlchemy)...")
+print("[1/3] Criando/verificando tabelas...")
 try:
-    from app.database import engine, init_db
-    import app.models  # garante que todos os modelos estao registados
+    from app.database import engine, init_db, Base
+    import app.models  # noqa: F401 — regista todos os modelos
     init_db()
-    print("      Tabelas OK.")
+    print("      Tabelas base OK.")
 except Exception as e:
     print(f"      [ERRO] {e}")
     sys.exit(1)
 
 # -------------------------------------------------------------------
-# 2. V001 migration via mysql CLI
+# 2. Detectar e adicionar colunas em falta
 # -------------------------------------------------------------------
-V001 = os.path.join(ROOT_DIR, "database", "migrations", "V001__initial_unified_schema.sql")
+print("[2/3] Verificando colunas em falta...")
 
-if not os.path.exists(V001):
-    print("[2/2] V001 nao encontrado — saltando migracoes SQL.")
+try:
+    from sqlalchemy import inspect, text
+
+    inspector    = inspect(engine)
+    missing_any  = False
+
+    for table_name, table in Base.metadata.tables.items():
+        if not inspector.has_table(table_name):
+            continue
+        existing = {c["name"] for c in inspector.get_columns(table_name)}
+        for col in table.columns:
+            if col.name in existing:
+                continue
+            missing_any = True
+            # Construir ADD COLUMN
+            try:
+                col_type = col.type.compile(dialect=engine.dialect)
+                parts    = [f"ALTER TABLE `{table_name}` ADD COLUMN `{col.name}` {col_type}"]
+                if not col.nullable:
+                    if col.default is not None and col.default.is_scalar:
+                        parts.append(f"NOT NULL DEFAULT {col.default.arg!r}")
+                    else:
+                        parts.append("NOT NULL DEFAULT 0")
+                else:
+                    parts.append("DEFAULT NULL")
+                sql = " ".join(parts)
+                with engine.connect() as conn:
+                    conn.execute(text(sql))
+                    conn.commit()
+                print(f"      + {table_name}.{col.name}")
+            except Exception as e:
+                # SQLite nao suporta ADD COLUMN com certas restricoes
+                if is_sqlite and ("cannot" in str(e).lower() or "not supported" in str(e).lower()):
+                    print(f"      SQLite: recrear tabela necessario para {table_name}.{col.name}")
+                    missing_any = "sqlite_recreate"
+                    break
+                print(f"      [AVISO] {table_name}.{col.name}: {e}")
+
+    # SQLite com colunas incompativeis: apagar db e recriar do zero
+    if missing_any == "sqlite_recreate":
+        db_path = DATABASE_URL.replace("sqlite:///", "").replace("sqlite://", "")
+        db_path = os.path.join(BACKEND_DIR, db_path.lstrip("./"))
+        if os.path.exists(db_path):
+            os.remove(db_path)
+            print(f"      SQLite apagado para recriar com schema actual: {db_path}")
+        init_db()
+        print("      SQLite recriado com schema completo.")
+    elif not missing_any:
+        print("      Nenhuma coluna em falta.")
+    else:
+        print("      Colunas adicionadas.")
+
+except Exception as e:
+    print(f"      [AVISO] Verificacao de colunas: {e}")
+
+# -------------------------------------------------------------------
+# 3. V001 migration via mysql CLI (MySQL apenas)
+# -------------------------------------------------------------------
+if not is_mysql:
+    print("[3/3] Nao e MySQL — saltando V001 SQL.")
+    print("Migracoes concluidas.")
     sys.exit(0)
 
-# Extrair credenciais do DATABASE_URL
-# formato: mysql+pymysql://user:pass@host:port/dbname
+V001 = os.path.join(ROOT_DIR, "database", "migrations", "V001__initial_unified_schema.sql")
+if not os.path.exists(V001):
+    print("[3/3] V001 nao encontrado.")
+    sys.exit(0)
+
 m = re.match(r"mysql\+pymysql://([^:]+):([^@]*)@([^:/]+)(?::(\d+))?/(.+)", DATABASE_URL)
 if not m:
-    print("[2/2] DATABASE_URL nao e MySQL — saltando migracoes SQL.")
+    print("[3/3] URL MySQL invalido — saltando V001.")
     sys.exit(0)
 
-db_user, db_pass, db_host, db_port, db_name = m.group(1,2,3,4,5)
+db_user, db_pass, db_host, db_port, db_name = m.group(1, 2, 3, 4, 5)
 db_port = db_port or "3306"
 
-# Procurar mysql.exe
 mysql_candidates = [
-    "mysql",  # PATH
-    r"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe",
+    "mysql",
     r"C:\Program Files\MySQL\MySQL Server 8.4\bin\mysql.exe",
+    r"C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe",
     r"C:\Program Files\MySQL\MySQL Server 5.7\bin\mysql.exe",
     r"C:\xampp\mysql\bin\mysql.exe",
     r"C:\wamp64\bin\mysql\mysql8.0.31\bin\mysql.exe",
@@ -70,58 +136,35 @@ mysql_candidates = [
 mysql_exe = None
 for candidate in mysql_candidates:
     try:
-        result = subprocess.run(
-            [candidate, "--version"],
-            capture_output=True, timeout=5
-        )
-        if result.returncode == 0:
+        r = subprocess.run([candidate, "--version"], capture_output=True, timeout=5)
+        if r.returncode == 0:
             mysql_exe = candidate
             break
     except (FileNotFoundError, subprocess.TimeoutExpired):
         continue
 
 if not mysql_exe:
-    print("[2/2] mysql CLI nao encontrado — saltando V001.")
-    print("      Para aplicar manualmente:")
-    print(f"      mysql -u {db_user} -p {db_name} < {V001}")
+    print("[3/3] mysql CLI nao encontrado — saltando V001.")
+    print(f"      Manual: mysql -u {db_user} -p {db_name} < {V001}")
     sys.exit(0)
 
-print(f"[2/2] Aplicando V001 migration via {mysql_exe}...")
-
-env_cmd = os.environ.copy()
-env_cmd["MYSQL_PWD"] = db_pass  # evita aviso de password na linha de comando
-
-cmd = [
-    mysql_exe,
-    f"-u{db_user}",
-    f"-h{db_host}",
-    f"-P{db_port}",
-    db_name,
-]
+print(f"[3/3] Aplicando V001...")
+env_cmd             = os.environ.copy()
+env_cmd["MYSQL_PWD"] = db_pass
 
 try:
     with open(V001, "r", encoding="utf-8") as sql_file:
         result = subprocess.run(
-            cmd,
-            stdin=sql_file,
-            capture_output=True,
-            text=True,
-            env=env_cmd,
-            timeout=120,
+            [mysql_exe, f"-u{db_user}", f"-h{db_host}", f"-P{db_port}", db_name],
+            stdin=sql_file, capture_output=True, text=True,
+            env=env_cmd, timeout=120,
         )
-    if result.returncode == 0:
-        print("      V001 aplicado com sucesso.")
-    else:
-        # Ignorar avisos de itens ja existentes
-        errors = [l for l in result.stderr.splitlines()
-                  if l.strip() and "Warning" not in l and "already exists" not in l.lower()]
-        if errors:
-            print("      Avisos (nao criticos):")
-            for e in errors[:5]:
-                print(f"        {e}")
-        print("      V001 concluido.")
-except subprocess.TimeoutExpired:
-    print("      [AVISO] Timeout na migration — verificar manualmente.")
+    errors = [l for l in result.stderr.splitlines()
+              if l.strip() and "Warning" not in l and "already exists" not in l.lower()]
+    if errors:
+        for e in errors[:5]:
+            print(f"      {e}")
+    print("      V001 concluido.")
 except Exception as e:
     print(f"      [AVISO] {e}")
 
