@@ -87,23 +87,30 @@ Write-OK "venv pronto"
 
 $pip    = Join-Path $venvPath "Scripts\pip.exe"
 $python = Join-Path $venvPath "Scripts\python.exe"
+
+# Flags para redes corporativas com SSL inspection (proxy MITM)
+$pipSSL = @("--trusted-host", "pypi.org", "--trusted-host", "pypi.python.org", "--trusted-host", "files.pythonhosted.org")
+
 Write-Host "  Instalando dependencias (pode demorar)..." -ForegroundColor Gray
-& $pip install --upgrade pip
-& $pip install -r (Join-Path $Root "backend\requirements.txt")
+& $pip install --upgrade pip @pipSSL
+& $pip install -r (Join-Path $Root "backend\requirements.txt") @pipSSL
 if ($LASTEXITCODE -ne 0) { Write-Fail "pip install falhou (codigo $LASTEXITCODE). Verifique o Python e o requirements.txt." }
 Write-OK "Dependencias Python instaladas"
 
 # -- 4. Build do frontend ----------------------------------------------------
 Write-Step "4/4" "Build do frontend React..."
 
+# NODE_TLS_REJECT_UNAUTHORIZED=0 para redes com SSL inspection corporativo
+$env:NODE_TLS_REJECT_UNAUTHORIZED = "0"
 Push-Location (Join-Path $Root "frontend")
 Write-Host "  npm ci..." -ForegroundColor Gray
 npm ci
-if ($LASTEXITCODE -ne 0) { Pop-Location; Write-Fail "npm ci falhou (codigo $LASTEXITCODE). Verifique o Node.js e o package-lock.json." }
+if ($LASTEXITCODE -ne 0) { $env:NODE_TLS_REJECT_UNAUTHORIZED = "1"; Pop-Location; Write-Fail "npm ci falhou (codigo $LASTEXITCODE). Verifique o Node.js e o package-lock.json." }
 Write-Host "  npm run build..." -ForegroundColor Gray
 npm run build
-if ($LASTEXITCODE -ne 0) { Pop-Location; Write-Fail "npm run build falhou (codigo $LASTEXITCODE). Verifique os logs acima." }
+if ($LASTEXITCODE -ne 0) { $env:NODE_TLS_REJECT_UNAUTHORIZED = "1"; Pop-Location; Write-Fail "npm run build falhou (codigo $LASTEXITCODE). Verifique os logs acima." }
 Pop-Location
+$env:NODE_TLS_REJECT_UNAUTHORIZED = "1"
 Write-OK "Frontend compilado em frontend\dist"
 
 # Criar pasta de logs
