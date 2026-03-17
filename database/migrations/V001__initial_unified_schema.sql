@@ -132,9 +132,12 @@ SELECT '=== SECÇÃO 1: Adicionando colunas ===' AS progress;
 
 -- ─── 1.1 users ──────────────────────────────────────────────────────
 CALL add_column_if_not_exists('users', 'validated_at',  'DATETIME NULL');
+CALL add_column_if_not_exists('users', 'is_pending',    'BOOLEAN NOT NULL DEFAULT FALSE');
 CALL add_column_if_not_exists('users', 'is_trainer',    'BOOLEAN NOT NULL DEFAULT FALSE');
 CALL add_column_if_not_exists('users', 'is_tutor',      'BOOLEAN NOT NULL DEFAULT FALSE');
 CALL add_column_if_not_exists('users', 'is_liberador',  'BOOLEAN NOT NULL DEFAULT FALSE');
+CALL add_column_if_not_exists('users', 'is_team_lead',  'BOOLEAN NOT NULL DEFAULT FALSE');
+CALL add_column_if_not_exists('users', 'is_referente',  'BOOLEAN NOT NULL DEFAULT FALSE');
 CALL add_column_if_not_exists('users', 'tutor_id',      'INT NULL');
 CALL add_column_if_not_exists('users', 'team_id',       'INT NULL');
 

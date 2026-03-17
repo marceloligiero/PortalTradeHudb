@@ -47,7 +47,7 @@ call "%VENV_DIR%\Scripts\activate.bat"
 "%VENV_DIR%\Scripts\python.exe" -c "import uvicorn" >nul 2>&1
 if not errorlevel 1 (
     echo       Dependencias Python ja instaladas.
-    goto :npm_check
+    goto :db_migrate
 )
 
 echo       Instalando dependencias Python...
@@ -70,6 +70,7 @@ if errorlevel 1 (
 )
 echo       Dependencias Python instaladas.
 
+:db_migrate
 :: ============================================================
 :: DB: criar tabelas + correr migracoes pendentes
 :: ============================================================
