@@ -8,18 +8,18 @@ export default function LandingFooter() {
     {
       titleKey: 'platform',
       items: [
-        { key: 'training',   to: '/#funcionalidades' },
+        { key: 'training',   href: '/#funcionalidades' },
         { key: 'tutoring',   to: '/portal-tutoria' },
-        { key: 'reports',    to: '/#funcionalidades' },
-        { key: 'tickets',    to: '/#funcionalidades' },
-        { key: 'masterData', to: '/#funcionalidades' },
+        { key: 'reports',    href: '/#funcionalidades' },
+        { key: 'tickets',    href: '/#funcionalidades' },
+        { key: 'masterData', href: '/#funcionalidades' },
       ],
     },
     {
       titleKey: 'about',
       items: [
         { key: 'aboutUs', to: '/about' },
-        { key: 'contact', to: '/about#contacto' },
+        { key: 'contact', href: '/about#contacto' },
       ],
     },
     {
@@ -39,6 +39,11 @@ export default function LandingFooter() {
       ],
     },
   ];
+
+  const linkClass = "font-body text-sm transition-colors duration-200";
+  const linkStyle = { color: 'rgba(255,255,255,0.55)' };
+  const onEnter = (e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = 'rgba(255,255,255,0.9)');
+  const onLeave = (e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = 'rgba(255,255,255,0.55)');
 
   return (
     <footer className="bg-[#0F172A] dark:bg-[#050505]" style={{ padding: '60px 24px 40px' }}>
@@ -69,15 +74,27 @@ export default function LandingFooter() {
               <ul className="space-y-3">
                 {col.items.map((item) => (
                   <li key={item.key}>
-                    <Link
-                      to={item.to}
-                      className="font-body text-sm transition-colors duration-200"
-                      style={{ color: 'rgba(255,255,255,0.55)' }}
-                      onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.9)')}
-                      onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.55)')}
-                    >
-                      {t(`landing.footer.${item.key}`)}
-                    </Link>
+                    {'href' in item ? (
+                      <a
+                        href={item.href}
+                        className={linkClass}
+                        style={linkStyle}
+                        onMouseEnter={onEnter}
+                        onMouseLeave={onLeave}
+                      >
+                        {t(`landing.footer.${item.key}`)}
+                      </a>
+                    ) : (
+                      <Link
+                        to={item.to!}
+                        className={linkClass}
+                        style={linkStyle}
+                        onMouseEnter={onEnter}
+                        onMouseLeave={onLeave}
+                      >
+                        {t(`landing.footer.${item.key}`)}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
