@@ -19,6 +19,7 @@ backend/venv/
 dist/
 build/
 *.whl
+wheels/
 
 # ── Node.js / Frontend ─────────────────────────────────
 frontend/node_modules/

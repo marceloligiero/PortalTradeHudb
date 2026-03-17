@@ -40,22 +40,38 @@ call "%VENV_DIR%\Scripts\activate.bat"
 
 :: Verificar se uvicorn ja esta instalado
 "%VENV_DIR%\Scripts\python.exe" -c "import uvicorn" >nul 2>&1
-if errorlevel 1 (
-    echo       Instalando dependencias Python...
+if not errorlevel 1 (
+    echo       Dependencias Python ja instaladas.
+    goto :npm_check
+)
+
+echo       Instalando dependencias Python...
+if exist "%~dp0wheels\" (
+    echo       Usando pacotes locais (wheels\)...
+    "%VENV_DIR%\Scripts\pip.exe" install ^
+        --no-index ^
+        --find-links "%~dp0wheels" ^
+        -r "%~dp0backend\requirements.txt" ^
+        --quiet
+) else (
+    echo       A descarregar da internet...
     "%VENV_DIR%\Scripts\pip.exe" install -r "%~dp0backend\requirements.txt" ^
         --trusted-host pypi.org ^
         --trusted-host pypi.python.org ^
         --trusted-host files.pythonhosted.org ^
-        --timeout 120 --retries 10 -q
-    if errorlevel 1 (
-        echo  [ERRO] pip install falhou.
-        pause
-        exit /b 1
-    )
-    echo       Dependencias Python instaladas.
-) else (
-    echo       Dependencias Python ja instaladas.
+        --timeout 120 --retries 10 --quiet
 )
+if errorlevel 1 (
+    echo.
+    echo  [ERRO] pip install falhou.
+    echo  Se a internet estiver bloqueada, corra download-wheels.bat
+    echo  na maquina de dev e copie a pasta wheels\ para aqui.
+    pause
+    exit /b 1
+)
+echo       Dependencias Python instaladas.
+
+:npm_check
 
 :: ============================================================
 :: 2. npm install
