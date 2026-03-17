@@ -51,8 +51,8 @@ print("[2/3] Verificando colunas em falta...")
 try:
     from sqlalchemy import inspect, text
 
-    inspector    = inspect(engine)
-    missing_any  = False
+    inspector   = inspect(engine)
+    missing_any = False
 
     for table_name, table in Base.metadata.tables.items():
         if not inspector.has_table(table_name):
@@ -62,42 +62,56 @@ try:
             if col.name in existing:
                 continue
             missing_any = True
+
+            # SQLite: apagar e recriar directamente (mais simples e seguro)
+            if is_sqlite:
+                break
+
+            # MySQL: ALTER TABLE com DEFAULT correcto
             try:
                 col_type = col.type.compile(dialect=engine.dialect)
-                # Sempre adicionar como NULL para evitar conflitos com UNIQUE/FK
-                # O ORM garante NOT NULL ao inserir
                 if col.default is not None and col.default.is_scalar:
-                    default_val = repr(col.default.arg)
-                    sql = f"ALTER TABLE `{table_name}` ADD COLUMN `{col.name}` {col_type} DEFAULT {default_val}"
+                    dv = col.default.arg
+                    if isinstance(dv, bool):
+                        default_val = "1" if dv else "0"
+                    elif isinstance(dv, str):
+                        default_val = "'{}'".format(dv.replace("'", "''"))
+                    elif dv is None:
+                        default_val = "NULL"
+                    else:
+                        default_val = str(dv)
+                    sql = "ALTER TABLE `{}` ADD COLUMN `{}` {} DEFAULT {}".format(
+                        table_name, col.name, col_type, default_val)
                 else:
-                    sql = f"ALTER TABLE `{table_name}` ADD COLUMN `{col.name}` {col_type} DEFAULT NULL"
+                    sql = "ALTER TABLE `{}` ADD COLUMN `{}` {} DEFAULT NULL".format(
+                        table_name, col.name, col_type)
                 with engine.connect() as conn:
                     conn.execute(text(sql))
                     conn.commit()
-                print(f"      + {table_name}.{col.name}")
+                print("      + {}.{}".format(table_name, col.name))
             except Exception as e:
-                if is_sqlite and ("cannot" in str(e).lower() or "not supported" in str(e).lower()):
-                    print(f"      SQLite: recrear tabela necessario para {table_name}.{col.name}")
-                    missing_any = "sqlite_recreate"
-                    break
-                print(f"      [AVISO] {table_name}.{col.name}: {e}")
+                print("      [AVISO] {}.{}: {}".format(table_name, col.name, e))
+        else:
+            continue
+        break  # sai do loop de tabelas se SQLite e houver coluna em falta
 
-    # SQLite com colunas incompativeis: apagar db e recriar do zero
-    if missing_any == "sqlite_recreate":
-        db_path = DATABASE_URL.replace("sqlite:///", "").replace("sqlite://", "")
-        db_path = os.path.join(BACKEND_DIR, db_path.lstrip("./"))
+    # SQLite com colunas em falta: apagar db e recriar do zero
+    if missing_any and is_sqlite:
+        db_path = DATABASE_URL.replace("sqlite:///./", "").replace("sqlite:///", "").replace("sqlite://", "")
+        if not os.path.isabs(db_path):
+            db_path = os.path.join(BACKEND_DIR, db_path)
         if os.path.exists(db_path):
             os.remove(db_path)
-            print(f"      SQLite apagado para recriar com schema actual: {db_path}")
+            print("      SQLite apagado — recriando com schema completo...")
         init_db()
-        print("      SQLite recriado com schema completo.")
+        print("      SQLite recriado.")
     elif not missing_any:
         print("      Nenhuma coluna em falta.")
     else:
-        print("      Colunas adicionadas.")
+        print("      Colunas verificadas.")
 
 except Exception as e:
-    print(f"      [AVISO] Verificacao de colunas: {e}")
+    print("      [AVISO] Verificacao de colunas: {}".format(e))
 
 # -------------------------------------------------------------------
 # 3. V001 migration via mysql CLI (MySQL apenas)
