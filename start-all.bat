@@ -22,15 +22,24 @@ if exist "%~dp0frontend\dist\index.html" (
     echo  Build encontrado. Sem necessidade de recompilar.
 ) else (
     echo.
-    echo  AVISO: frontend\dist nao encontrado.
-    echo  O backend inicia mas o frontend pode nao carregar.
-    echo.
-    echo  Para compilar o frontend, execute manualmente:
-    echo    cd frontend
-    echo    npm install
-    echo    npm run build
-    echo.
-    timeout /t 4 /nobreak >nul
+    echo  frontend\dist nao encontrado. A compilar...
+    if exist "%~dp0frontend\node_modules\.bin\vite.cmd" (
+        cd /d "%~dp0frontend"
+        call npm run build
+        cd /d "%~dp0"
+        if exist "%~dp0frontend\dist\index.html" (
+            echo  Build concluido.
+        ) else (
+            echo  [AVISO] Build falhou. O frontend pode nao carregar.
+            echo  Execute: cd frontend ^&^& npm install ^&^& npm run build
+            timeout /t 4 /nobreak >nul
+        )
+    ) else (
+        echo  [AVISO] node_modules nao encontrado.
+        echo  Execute: cd frontend ^&^& npm install ^&^& npm run build
+        echo  Ou: iniciar-dev.bat (instala tudo automaticamente)
+        timeout /t 4 /nobreak >nul
+    )
 )
 
 :: Iniciar backend (serve API + frontend na porta 8000)

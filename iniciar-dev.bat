@@ -88,35 +88,44 @@ if errorlevel 1 (
 :: ============================================================
 echo [2/3] Frontend...
 
-:: Se dist ja existe, backend serve directamente (sem Vite)
+:: Se dist ja existe E node_modules existe → modo Vite dev
 if exist "%~dp0frontend\dist\index.html" (
     if exist "%~dp0frontend\node_modules\.bin\vite.cmd" (
-        echo       node_modules OK - modo Vite dev
+        echo       dist/ e node_modules OK - modo Vite dev
         goto :run_vite
     )
-    echo       Sem node_modules mas dist/ existe - backend serve frontend
+    echo       dist/ existe - backend serve frontend em :8000
     goto :run_backend_only
 )
 
-:: Sem dist - precisa npm install
-echo       Instalando node_modules (pode demorar)...
+:: Sem dist — instalar node_modules se preciso + compilar
+echo       frontend\dist nao encontrado. A compilar...
 cd /d "%~dp0frontend"
-if exist "node_modules\" (
-    echo       Limpando node_modules incompleto...
-    rmdir /s /q node_modules >nul 2>&1
+if not exist "node_modules\.bin\vite.cmd" (
+    echo       Instalando node_modules (pode demorar)...
+    npm install --registry http://registry.npmjs.org/
+    if errorlevel 1 (
+        echo.
+        echo  [ERRO] npm install falhou.
+        echo  O proxy corporativo pode estar a bloquear o npm.
+        echo  Ligue a VPN e tente novamente.
+        cd /d "%~dp0"
+        pause
+        exit /b 1
+    )
+    echo       node_modules instalados.
 )
-npm install --registry http://registry.npmjs.org/
+echo       Compilando frontend (npm run build)...
+call npm run build
 if errorlevel 1 (
-    echo.
-    echo  [ERRO] npm install falhou.
-    echo  O proxy corporativo pode estar a bloquear o npm.
-    echo  Ligue a VPN e tente novamente.
+    echo  [ERRO] npm run build falhou.
     cd /d "%~dp0"
     pause
     exit /b 1
 )
 cd /d "%~dp0"
-echo       node_modules instalados.
+echo       Frontend compilado em frontend\dist\
+goto :run_backend_only
 
 :run_vite
 :: ============================================================

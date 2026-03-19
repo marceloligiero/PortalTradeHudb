@@ -1,7 +1,8 @@
 .PHONY: up up-d up-build up-prod up-prod-build down down-volumes build \
         build-backend build-frontend logs logs-backend logs-frontend logs-db \
         shell shell-db shell-db-root \
-        restart restart-backend status health clean db-reset db-test db-reset-test help
+        restart restart-backend status health clean db-reset db-test db-reset-test \
+        install-local start-local stop-local deploy-local build-dist help
 
 # ── Prefixo do projecto ────────────────────────────────
 PROJECT := tradehub
@@ -97,6 +98,23 @@ db-reset-test: ## Pipeline completo: reset BD + seed users + testes E2E
 clean: ## Remove containers, imagens e volumes deste projecto
 	docker compose down -v --rmi local
 	docker network rm $(PROJECT)-network 2>/dev/null || true
+
+## ── Sem Docker (Windows nativo) ─────────────────────────────────────────
+
+install-local: ## [No-Docker] Instala venv + deps + build frontend
+	powershell -ExecutionPolicy Bypass -File scripts/install-nodocker.ps1
+
+start-local: ## [No-Docker] Inicia backend (serve API + frontend em :8000)
+	powershell -ExecutionPolicy Bypass -File scripts/start-nodocker.ps1
+
+stop-local: ## [No-Docker] Para o backend
+	powershell -ExecutionPolicy Bypass -File scripts/stop-nodocker.ps1
+
+deploy-local: ## [No-Docker] git pull + deps + build + restart
+	powershell -ExecutionPolicy Bypass -File scripts/deploy-nodocker.ps1
+
+build-dist: ## Compila o frontend (npm run build → frontend/dist/)
+	cd frontend && npm ci && npm run build
 
 ## ── Ajuda ─────────────────────────────────────────────────────────────────
 
