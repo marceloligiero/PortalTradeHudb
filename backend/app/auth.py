@@ -98,10 +98,14 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
 
 def require_role(allowed_roles: list[str]):
     async def role_checker(current_user: User = Depends(get_current_active_user)) -> User:
-        has_access = current_user.role in allowed_roles
-        # Users with is_trainer=True also have TRAINER privileges
-        if not has_access and "TRAINER" in allowed_roles and getattr(current_user, 'is_trainer', False):
-            has_access = True
+        # Pending users are treated as TRAINEE regardless of their stored role
+        effective_role = "TRAINEE" if current_user.is_pending else current_user.role
+
+        has_access = effective_role in allowed_roles
+        # Users with is_trainer=True (and NOT pending) also have TRAINER privileges
+        if not has_access and "TRAINER" in allowed_roles:
+            if getattr(current_user, 'is_trainer', False) and not current_user.is_pending:
+                has_access = True
         if not has_access:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -109,3 +113,9 @@ def require_role(allowed_roles: list[str]):
             )
         return current_user
     return role_checker
+
+# ── Role constants ─────────────────────────────────────────
+ADMIN_ROLES = ["ADMIN", "GESTOR"]
+ADMIN_MANAGER_ROLES = ["ADMIN", "MANAGER", "GESTOR"]
+ADMIN_TRAINER_ROLES = ["ADMIN", "TRAINER", "GESTOR"]
+ADMIN_TRAINER_MANAGER_ROLES = ["ADMIN", "TRAINER", "MANAGER", "GESTOR"]

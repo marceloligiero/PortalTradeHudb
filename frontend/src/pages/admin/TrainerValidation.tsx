@@ -1,25 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  GraduationCap, 
-  Mail, 
-  Calendar, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  UserCheck, 
-  UserX,
-  Users,
-  Shield,
-  Sparkles,
-  AlertCircle,
-  BookOpen,
-  Award,
-  KeyRound,
-  Crown
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  ShieldCheck, Mail, Calendar, CheckCircle, XCircle,
+  Clock, UserCheck, UserX, Users, Shield, AlertCircle,
+  BookOpen, Award, KeyRound, Crown, Eye
 } from 'lucide-react';
 import api from '../../lib/axios';
+import { useAuthStore, canWrite } from '../../stores/authStore';
 
 interface PendingTrainer {
   id: number;
@@ -30,11 +18,26 @@ interface PendingTrainer {
   is_trainer?: boolean;
   is_tutor?: boolean;
   is_liberador?: boolean;
+  is_team_lead?: boolean;
+  is_referente?: boolean;
+  is_gestor?: boolean;
   created_at?: string;
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
+};
+const cardVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
+  exit: { opacity: 0, x: -60, transition: { duration: 0.2 } },
+};
+
 const TrainerValidation = () => {
   const { t } = useTranslation();
+  const { user: authUser } = useAuthStore();
+  const writable = canWrite(authUser);
   const [pendingTrainers, setPendingTrainers] = useState<PendingTrainer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -73,24 +76,13 @@ const TrainerValidation = () => {
   };
 
   const handleApprove = async (trainerId: number, trainerName: string) => {
-    if (!window.confirm(`${t('admin.confirmApproveTrainer')} ${trainerName}?`)) {
-      return;
-    }
-
+    if (!window.confirm(`${t('admin.confirmApproveTrainer')} ${trainerName}?`)) return;
     try {
       setProcessingId(trainerId);
       await api.post(`/api/admin/validate-trainer/${trainerId}`);
       setSuccessMessage(`${trainerName} ${t('admin.approvedTrainer')}`);
-      
-      // Remove trainer from list with animation delay
-      setTimeout(() => {
-        setPendingTrainers(prev => prev.filter(t => t.id !== trainerId));
-      }, 300);
-      
-      // Refresh stats
+      setTimeout(() => setPendingTrainers(prev => prev.filter(t => t.id !== trainerId)), 300);
       fetchTrainerStats();
-      
-      // Clear message after 3 seconds
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err: any) {
       setError(err.response?.data?.detail || t('messages.error'));
@@ -100,21 +92,12 @@ const TrainerValidation = () => {
   };
 
   const handleReject = async (trainerId: number, trainerName: string) => {
-    if (!window.confirm(`${t('admin.confirmRejectTrainer')} ${trainerName}?`)) {
-      return;
-    }
-
+    if (!window.confirm(`${t('admin.confirmRejectTrainer')} ${trainerName}?`)) return;
     try {
       setProcessingId(trainerId);
       await api.post(`/api/admin/reject-trainer/${trainerId}`);
       setSuccessMessage(`${trainerName} ${t('admin.rejectedTrainer')}`);
-      
-      // Remove trainer from list with animation delay
-      setTimeout(() => {
-        setPendingTrainers(prev => prev.filter(t => t.id !== trainerId));
-      }, 300);
-      
-      // Clear message after 3 seconds
+      setTimeout(() => setPendingTrainers(prev => prev.filter(t => t.id !== trainerId)), 300);
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (err: any) {
       setError(err.response?.data?.detail || t('messages.error'));
@@ -130,356 +113,218 @@ const TrainerValidation = () => {
       month: 'long',
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1, 
-      transition: { 
-        staggerChildren: 0.1 
-      } 
-    }
+  const getRoleBadges = (trainer: PendingTrainer) => {
+    const badges: { label: string; icon: typeof BookOpen; color: string }[] = [];
+    if (trainer.is_trainer) badges.push({ label: t('auth.roles.trainer', 'Formador'), icon: BookOpen, color: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20' });
+    if (trainer.is_tutor) badges.push({ label: t('auth.roles.tutor', 'Tutor'), icon: Award, color: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' });
+    if (trainer.is_liberador) badges.push({ label: t('auth.roles.releaser', 'Liberador'), icon: KeyRound, color: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-200 dark:border-cyan-500/20' });
+    if (trainer.role === 'MANAGER' || trainer.is_team_lead) badges.push({ label: t('auth.roles.teamLead', 'Chefe de Equipa'), icon: Crown, color: 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/20' });
+    if (trainer.is_referente) badges.push({ label: t('auth.roles.referente', 'Referente'), icon: UserCheck, color: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20' });
+    if (trainer.role === 'GESTOR') badges.push({ label: t('auth.roles.gestor', 'Gestor'), icon: Eye, color: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-700' });
+    return badges;
   };
 
-  const cardVariants = {
-    hidden: { opacity: 0, y: 20, scale: 0.95 },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      scale: 1,
-      transition: { 
-        duration: 0.4, 
-        ease: [0.22, 1, 0.36, 1] as [number, number, number, number]
-      } 
-    },
-    exit: { 
-      opacity: 0, 
-      x: -100, 
-      scale: 0.9,
-      transition: { duration: 0.3 }
-    }
-  };
-
+  /* ── Loading ───────────────────────────────────────────── */
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center"
-        >
-          <div className="relative">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              className="w-16 h-16 border-4 border-red-600/20 border-t-red-600 rounded-full mx-auto"
-            />
-            <GraduationCap className="w-6 h-6 text-red-600 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
-          </div>
-          <p className="text-gray-500 mt-4 font-medium">{t('messages.loading')}</p>
-        </motion.div>
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#EC0000]/20 border-t-[#EC0000] rounded-full animate-spin mx-auto" />
+          <p className="text-gray-500 dark:text-gray-400 mt-4 font-body text-sm">{t('messages.loading')}</p>
+        </div>
       </div>
     );
   }
 
+  /* ── Main ──────────────────────────────────────────────── */
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative overflow-hidden bg-white dark:bg-gradient-to-r dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 rounded-2xl border border-gray-200 dark:border-transparent shadow-lg dark:shadow-none"
-      >
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10 dark:opacity-10 hidden dark:block">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `linear-gradient(rgba(220, 38, 38, 0.3) 1px, transparent 1px),
-                             linear-gradient(90deg, rgba(220, 38, 38, 0.3) 1px, transparent 1px)`,
-            backgroundSize: '40px 40px'
-          }} />
-        </div>
-        
-        {/* Floating orbs */}
-        <motion.div
-          animate={{ x: [0, 50, 0], y: [0, -30, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-0 right-0 w-64 h-64 bg-red-600/10 rounded-full blur-3xl hidden dark:block"
-        />
-        <motion.div
-          animate={{ x: [0, -30, 0], y: [0, 20, 0] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-0 left-0 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl hidden dark:block"
-        />
+    <div className="max-w-5xl mx-auto space-y-6">
 
-        <div className="relative px-8 py-10">
-          <div className="flex items-center gap-4 mb-4">
-            <motion.div 
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              className="p-3 bg-gradient-to-br from-red-500 to-red-700 rounded-xl shadow-lg shadow-red-600/30"
-            >
-              <GraduationCap className="w-8 h-8 text-white" />
-            </motion.div>
+      {/* ── Header ──────────────────────────────────────── */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+              <ShieldCheck className="w-6 h-6 text-[#EC0000]" />
+            </div>
             <div>
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="flex items-center gap-2 mb-1"
-              >
-                <Sparkles className="w-4 h-4 text-red-500 dark:text-red-400" />
-                <span className="text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider">
-                  {t('admin.trainerManagement') || 'Gestão de Formadores'}
-                </span>
-              </motion.div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              <p className="font-body text-xs font-bold uppercase tracking-widest text-[#EC0000] mb-1">
+                {t('admin.trainerManagement') || 'Gestão de Utilizadores'}
+              </p>
+              <h1 className="font-headline text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
                 {t('admin.pendingTrainerValidations')}
               </h1>
+              <p className="font-body text-gray-500 dark:text-gray-400 mt-1 max-w-xl text-sm">
+                {t('admin.trainerValidationDescription') || 'Revise e aprove os registos de novos utilizadores com roles especiais para que possam aceder às funcionalidades da plataforma.'}
+              </p>
             </div>
-          </div>
-          
-          <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-2xl">
-            {t('admin.trainerValidationDescription') || 'Revise e aprove os registos de novos formadores para que possam começar a criar cursos na plataforma.'}
-          </p>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-            <motion.div 
-              whileHover={{ scale: 1.02, y: -2 }}
-              className="bg-gray-50 dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-xl p-4"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-yellow-500/20 rounded-lg">
-                  <Clock className="w-5 h-5 text-yellow-500 dark:text-yellow-400" />
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">{pendingTrainers.length}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('admin.pendingValidations') || 'Validações Pendentes'}</p>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div 
-              whileHover={{ scale: 1.02, y: -2 }}
-              className="bg-gray-50 dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-xl p-4"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500/20 rounded-lg">
-                  <UserCheck className="w-5 h-5 text-green-500 dark:text-green-400" />
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">{approvedThisMonth}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('admin.approvedThisMonth') || 'Aprovados este mês'}</p>
-                </div>
-              </div>
-            </motion.div>
-
-            <motion.div 
-              whileHover={{ scale: 1.02, y: -2 }}
-              className="bg-gray-50 dark:bg-white/5 backdrop-blur-sm border border-gray-200 dark:border-white/10 rounded-xl p-4"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500/20 rounded-lg">
-                  <Users className="w-5 h-5 text-blue-500 dark:text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">{totalActiveTrainers}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('admin.totalActiveTrainers') || 'Formadores Ativos'}</p>
-                </div>
-              </div>
-            </motion.div>
           </div>
         </div>
-      </motion.div>
 
-      {/* Messages */}
+        {/* Stats bar */}
+        <div className="grid grid-cols-3 gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+          {[
+            { icon: Clock, value: pendingTrainers.length, label: t('admin.pendingValidations') || 'Validações Pendentes', accent: pendingTrainers.length > 0 ? 'text-amber-500' : 'text-gray-400' },
+            { icon: UserCheck, value: approvedThisMonth, label: t('admin.approvedThisMonth') || 'Aprovados este mês', accent: 'text-emerald-500' },
+            { icon: Users, value: totalActiveTrainers, label: t('admin.totalActiveTrainers') || 'Utilizadores Ativos', accent: 'text-blue-500' },
+          ].map((stat, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <stat.icon className={`w-5 h-5 ${stat.accent} shrink-0`} />
+              <div>
+                <p className="font-mono text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+                <p className="font-body text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">{stat.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Messages ────────────────────────────────────── */}
       <AnimatePresence>
         {error && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3"
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="flex items-center gap-3 p-4 rounded-2xl border border-l-4 border-l-red-500 border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/5"
           >
-            <div className="p-2 bg-red-100 rounded-full">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-            </div>
-            <p className="text-red-700 font-medium">{error}</p>
+            <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+            <p className="font-body text-sm text-red-700 dark:text-red-400 font-medium">{error}</p>
           </motion.div>
         )}
-
         {successMessage && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3"
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="flex items-center gap-3 p-4 rounded-2xl border border-l-4 border-l-emerald-500 border-emerald-200 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/5"
           >
-            <div className="p-2 bg-green-100 rounded-full">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-            </div>
-            <p className="text-green-700 font-medium">{successMessage}</p>
+            <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
+            <p className="font-body text-sm text-emerald-700 dark:text-emerald-400 font-medium">{successMessage}</p>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Content */}
-      <div>
-        {pendingTrainers.length === 0 ? (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center"
-          >
-            <motion.div
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-full mb-6"
-            >
-              <Shield className="w-10 h-10 text-gray-400" />
-            </motion.div>
-            <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
-              {t('admin.noTrainersPending')}
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-              {t('admin.allTrainersValidated') || 'Todos os formadores foram validados. Volte mais tarde para verificar novos registos.'}
-            </p>
-          </motion.div>
-        ) : (
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="grid gap-4"
-          >
-            <AnimatePresence mode="popLayout">
-              {pendingTrainers.map((trainer) => (
+      {/* ── Content ─────────────────────────────────────── */}
+      {pendingTrainers.length === 0 ? (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-12 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+            <Shield className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+          </div>
+          <h3 className="font-headline text-lg font-bold text-gray-700 dark:text-gray-200 mb-1">
+            {t('admin.noTrainersPending')}
+          </h3>
+          <p className="font-body text-sm text-gray-400 dark:text-gray-500 max-w-md mx-auto">
+            {t('admin.allTrainersValidated') || 'Todos os utilizadores foram validados. Volte mais tarde para verificar novos registos.'}
+          </p>
+        </div>
+      ) : (
+        <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-3">
+          <AnimatePresence mode="popLayout">
+            {pendingTrainers.map((trainer) => {
+              const badges = getRoleBadges(trainer);
+              return (
                 <motion.div
                   key={trainer.id}
                   variants={cardVariants}
                   layout
                   exit="exit"
-                  className={`bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-lg hover:border-gray-200 dark:hover:border-gray-600 transition-all duration-300 ${
+                  className={`bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden hover:border-[#EC0000]/30 transition-colors duration-200 ${
                     processingId === trainer.id ? 'opacity-50 pointer-events-none' : ''
                   }`}
                 >
-                  <div className="p-6">
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                      {/* Trainer Info */}
-                      <div className="flex items-start gap-4 flex-1">
-                        <motion.div 
-                          whileHover={{ scale: 1.05 }}
-                          className="relative"
-                        >
-                          <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-700 rounded-2xl flex items-center justify-center shadow-lg shadow-red-600/20">
-                            <span className="text-2xl font-bold text-white">
-                              {trainer.full_name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <motion.div 
-                            animate={{ scale: [1, 1.2, 1] }}
-                            transition={{ duration: 2, repeat: Infinity }}
-                            className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full border-2 border-white dark:border-gray-800"
-                          />
-                        </motion.div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
-                            {trainer.full_name}
-                          </h3>
-                          
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                            <div className="flex items-center gap-1.5">
-                              <Mail className="w-4 h-4 text-gray-400" />
-                              <span className="truncate">{trainer.email}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="w-4 h-4 text-gray-400" />
-                              <span>{formatDate(trainer.created_at)}</span>
-                            </div>
-                          </div>
+                  <div className="p-5">
+                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
 
-                          <div className="flex flex-wrap gap-2 mt-3">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 text-yellow-700 text-xs font-semibold rounded-full border border-yellow-200 dark:bg-yellow-500/10 dark:text-yellow-400 dark:border-yellow-500/20">
-                              <Clock className="w-3.5 h-3.5" />
+                      {/* Trainer info */}
+                      <div className="flex items-start gap-4 flex-1 min-w-0">
+                        {/* Avatar */}
+                        <div className="w-12 h-12 rounded-xl bg-[#EC0000] flex items-center justify-center shrink-0">
+                          <span className="text-lg font-bold text-white font-headline">
+                            {trainer.full_name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-headline text-base font-bold text-gray-900 dark:text-white truncate">
+                              {trainer.full_name}
+                            </h3>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
+                              <Clock className="w-3 h-3" />
                               {t('admin.awaitingValidation')}
                             </span>
-                            {trainer.is_trainer && (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20">
-                                <BookOpen className="w-3.5 h-3.5" />
-                                Formador
-                              </span>
-                            )}
-                            {trainer.is_tutor && (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-full border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
-                                <Award className="w-3.5 h-3.5" />
-                                Tutor
-                              </span>
-                            )}
-                            {trainer.is_liberador && (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-50 text-cyan-700 text-xs font-semibold rounded-full border border-cyan-200 dark:bg-cyan-500/10 dark:text-cyan-400 dark:border-cyan-500/20">
-                                <KeyRound className="w-3.5 h-3.5" />
-                                Liberador
-                              </span>
-                            )}
-                            {trainer.role === 'MANAGER' && (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 text-purple-700 text-xs font-semibold rounded-full border border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20">
-                                <Crown className="w-3.5 h-3.5" />
-                                Chefe de Equipa
-                              </span>
-                            )}
                           </div>
+
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs text-gray-400 dark:text-gray-500">
+                            <span className="flex items-center gap-1.5">
+                              <Mail className="w-3.5 h-3.5" />
+                              <span className="truncate">{trainer.email}</span>
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <Calendar className="w-3.5 h-3.5" />
+                              {formatDate(trainer.created_at)}
+                            </span>
+                          </div>
+
+                          {/* Role badges */}
+                          {badges.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-2.5">
+                              {badges.map((badge, i) => (
+                                <span key={i} className={`inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg border ${badge.color}`}>
+                                  <badge.icon className="w-3 h-3" />
+                                  {badge.label}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-3 lg:flex-shrink-0">
-                        <motion.button
-                          whileHover={{ scale: 1.02, y: -2 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => handleApprove(trainer.id, trainer.full_name)}
-                          disabled={processingId === trainer.id}
-                          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:shadow-lg hover:shadow-green-500/30 transition-all duration-300 font-semibold disabled:opacity-50"
-                        >
-                          <UserCheck className="w-5 h-5" />
-                          <span>{t('admin.approve')}</span>
-                        </motion.button>
-                        <motion.button
-                          whileHover={{ scale: 1.02, y: -2 }}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => handleReject(trainer.id, trainer.full_name)}
-                          disabled={processingId === trainer.id}
-                          className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-red-200 text-red-600 rounded-xl hover:bg-red-50 hover:border-red-300 hover:shadow-lg transition-all duration-300 font-semibold disabled:opacity-50"
-                        >
-                          <UserX className="w-5 h-5" />
-                          <span>{t('admin.reject')}</span>
-                        </motion.button>
-                      </div>
+                      {writable && (
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => handleApprove(trainer.id, trainer.full_name)}
+                            disabled={processingId === trainer.id}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
+                          >
+                            <UserCheck className="w-4 h-4" />
+                            {t('admin.approve')}
+                          </button>
+                          <button
+                            onClick={() => handleReject(trainer.id, trainer.full_name)}
+                            disabled={processingId === trainer.id}
+                            className="flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-500/10 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 border border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-500/30 rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
+                          >
+                            <UserX className="w-4 h-4" />
+                            {t('admin.reject')}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Card Footer with additional info */}
-                  <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700">
-                    <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
-                      <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
-                        <Shield className="w-4 h-4" />
-                        <span>{t('admin.requiresAdminApproval') || 'Requer aprovação do administrador para criar cursos'}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-gray-400">
-                        <span>ID: #{trainer.id}</span>
-                      </div>
+                  {/* Footer */}
+                  <div className="px-5 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
+                    <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
+                      <span className="flex items-center gap-1.5">
+                        <Shield className="w-3.5 h-3.5" />
+                        {t('admin.requiresAdminApproval') || 'Requer aprovação do administrador para aceder à plataforma'}
+                      </span>
+                      <span className="font-mono">#{trainer.id}</span>
                     </div>
                   </div>
                 </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </div>
+              );
+            })}
+          </AnimatePresence>
+        </motion.div>
+      )}
     </div>
   );
 };

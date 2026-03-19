@@ -31,6 +31,7 @@ import {
   KeyRound
 } from 'lucide-react';
 import api from '../../lib/axios';
+import { useAuthStore, canWrite } from '../../stores/authStore';
 
 interface User {
   id: number;
@@ -550,7 +551,7 @@ const ReactivateConfirmContent = ({ user, onConfirm, onClose, processing, t }: {
 };
 
 // User Row Component
-const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivate, onReactivate, t }: any) => {
+const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivate, onReactivate, writable, t }: any) => {
   const [showActions, setShowActions] = useState(false);
   const actionsRef = useRef<HTMLDivElement>(null);
 
@@ -656,24 +657,28 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
         <div className="flex items-center gap-2">
           {user.is_pending && (user.is_trainer || user.is_tutor || user.is_liberador || user.role === 'MANAGER') ? (
             <div className="flex items-center gap-2">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onApprove(user.id)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-medium shadow-lg shadow-green-500/20"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                {t('usersPage.approve')}
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onReject(user.id)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-sm font-medium hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-all"
-              >
-                <XCircle className="w-4 h-4" />
-                {t('usersPage.reject')}
-              </motion.button>
+              {writable && (
+                <>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => onApprove(user.id)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-medium shadow-lg shadow-green-500/20"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    {t('usersPage.approve')}
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => onReject(user.id)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-sm font-medium hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-all"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    {t('usersPage.reject')}
+                  </motion.button>
+                </>
+              )}
             </div>
           ) : (
             <div className="relative" ref={actionsRef}>
@@ -694,36 +699,40 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
                     exit={{ opacity: 0, scale: 0.95, y: -10 }}
                     className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-900/95 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 shadow-2xl overflow-hidden z-50"
                   >
-                    <button 
+                    <button
                       onClick={() => { onView(user.id); setShowActions(false); }}
                       className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all"
                     >
                       <Eye className="w-4 h-4" />
                       {t('usersPage.viewDetails')}
                     </button>
-                    <button 
-                      onClick={() => { onEdit(user); setShowActions(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      {t('usersPage.edit')}
-                    </button>
-                    {user.is_active ? (
-                      <button 
-                        onClick={() => { onDeactivate(user); setShowActions(false); }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300 transition-all"
-                      >
-                        <UserX className="w-4 h-4" />
-                        {t('usersPage.deactivate')}
-                      </button>
-                    ) : (
-                      <button 
-                        onClick={() => { onReactivate(user); setShowActions(false); }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm text-green-400 hover:bg-green-500/10 hover:text-green-300 transition-all"
-                      >
-                        <UserCheck className="w-4 h-4" />
-                        {t('usersPage.reactivate')}
-                      </button>
+                    {writable && (
+                      <>
+                        <button
+                          onClick={() => { onEdit(user); setShowActions(false); }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                          {t('usersPage.edit')}
+                        </button>
+                        {user.is_active ? (
+                          <button
+                            onClick={() => { onDeactivate(user); setShowActions(false); }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300 transition-all"
+                          >
+                            <UserX className="w-4 h-4" />
+                            {t('usersPage.deactivate')}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => { onReactivate(user); setShowActions(false); }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-green-400 hover:bg-green-500/10 hover:text-green-300 transition-all"
+                          >
+                            <UserCheck className="w-4 h-4" />
+                            {t('usersPage.reactivate')}
+                          </button>
+                        )}
+                      </>
                     )}
                   </motion.div>
                 )}
@@ -738,6 +747,8 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
 
 export default function UsersPage() {
   const { t } = useTranslation();
+  const { user: authUser } = useAuthStore();
+  const writable = canWrite(authUser);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'pending' | 'active' | 'inactive'>('all');
@@ -993,9 +1004,9 @@ export default function UsersPage() {
                   </div>
                 ) : (
                   filteredUsers.map((user, index) => (
-                    <UserRow 
-                      key={user.id} 
-                      user={user} 
+                    <UserRow
+                      key={user.id}
+                      user={user}
                       index={index}
                       onApprove={handleApproveTrainer}
                       onReject={handleRejectTrainer}
@@ -1003,6 +1014,7 @@ export default function UsersPage() {
                       onEdit={handleEditUser}
                       onDeactivate={handleDeactivateUser}
                       onReactivate={handleReactivateUser}
+                      writable={writable}
                       t={t}
                     />
                   ))

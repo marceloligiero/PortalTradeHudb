@@ -76,89 +76,6 @@ services:
           cpus: '0.5'
 
   # ──────────────────────────────────────────────────────
-  # Grafana OSS — Dashboards analíticos
-  # Acesso directo: http://localhost:3001/grafana/
-  # Via nginx:      http://localhost:80/grafana/
-  # ──────────────────────────────────────────────────────
-  tradehub-grafana:
-    container_name: tradehub-grafana
-    image: grafana/grafana-oss:11.4.0
-    ports:
-      - "${GRAFANA_PORT:-3001}:3001"
-    environment:
-      # ── Server ──────────────────────────────────────
-      GF_SERVER_HTTP_PORT: "3001"
-      GF_SERVER_DOMAIN: "${GRAFANA_DOMAIN:-localhost}"
-      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/grafana/"
-      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
-
-      # ── SSO Microsoft Entra ID (Azure AD) ───────────
-      # Activar apenas quando GRAFANA_AZURE_CLIENT_ID estiver definido
-      GF_AUTH_AZUREAD_ENABLED: "${GRAFANA_SSO_ENABLED:-false}"
-      GF_AUTH_AZUREAD_NAME: "Microsoft"
-      GF_AUTH_AZUREAD_ALLOW_SIGN_UP: "true"
-      GF_AUTH_AZUREAD_AUTO_LOGIN: "false"
-      GF_AUTH_AZUREAD_CLIENT_ID: "${GRAFANA_AZURE_CLIENT_ID:-}"
-      GF_AUTH_AZUREAD_CLIENT_SECRET: "${GRAFANA_AZURE_CLIENT_SECRET:-}"
-      GF_AUTH_AZUREAD_SCOPES: "openid email profile"
-      GF_AUTH_AZUREAD_AUTH_URL: "https://login.microsoftonline.com/${AZURE_TENANT_ID:-}/oauth2/v2.0/authorize"
-      GF_AUTH_AZUREAD_TOKEN_URL: "https://login.microsoftonline.com/${AZURE_TENANT_ID:-}/oauth2/v2.0/token"
-      GF_AUTH_AZUREAD_API_URL: "https://graph.microsoft.com/oidc/userinfo"
-      GF_AUTH_AZUREAD_ALLOWED_ORGANIZATIONS: "${AZURE_TENANT_ID:-}"
-      GF_AUTH_AZUREAD_ROLE_ATTRIBUTE_STRICT: "false"
-      GF_AUTH_AZUREAD_SKIP_ORG_ROLE_SYNC: "false"
-      GF_AUTH_AZUREAD_USE_PKCE: "true"
-
-      # ── Embedding (para iframes no React) ───────────
-      GF_SECURITY_ALLOW_EMBEDDING: "true"
-      GF_SECURITY_COOKIE_SAMESITE: "strict"
-      GF_SECURITY_CONTENT_SECURITY_POLICY: "true"
-      # Acesso anónimo desativado — autenticação obrigatória (C07)
-      GF_AUTH_ANONYMOUS_ENABLED: "false"
-      GF_AUTH_DISABLE_LOGIN_FORM: "false"
-
-      # ── Admin local (fallback) ───────────────────────
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      # Sem fallback: Grafana recusa arrancar se não definida (C08)
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
-
-      # ── UI / Funcionalidades ─────────────────────────
-      GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_UNIFIED_ALERTING_ENABLED: "true"
-      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: "/var/lib/grafana/dashboards/01-home.json"
-
-      # ── MySQL credentials para datasource provisionado ─
-      MYSQL_USER: ${MYSQL_USER:-tradehub_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-tradehub_db}
-    volumes:
-      - tradehub_grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
-    depends_on:
-      tradehub-db:
-        condition: service_healthy
-    networks:
-      - tradehub-network
-    restart: unless-stopped
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3001/api/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: '0.5'
-
-  # ──────────────────────────────────────────────────────
   # Base de dados — MySQL 8.0
   # ──────────────────────────────────────────────────────
   tradehub-db:
@@ -197,8 +114,6 @@ services:
 volumes:
   tradehub_mysql_data:
     name: tradehub_mysql_data
-  tradehub_grafana_data:
-    name: tradehub_grafana_data
 
 # ── Rede isolada (não usa a rede default do Docker) ─────
 networks:

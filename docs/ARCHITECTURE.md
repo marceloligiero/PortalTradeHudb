@@ -63,11 +63,6 @@ O Portal TradeDataHub é uma aplicação web composta por três camadas principa
 - Utilizador de aplicação: `tradehub_user` (acesso restrito a `tradehub_db`)
 - Root acessível apenas localmente
 
-### 2.4 Grafana (Analytics)
-- Versão: OSS
-- SSO via Microsoft Entra ID
-- Acesso anónimo desabilitado
-
 ---
 
 ## 3. Redes Docker

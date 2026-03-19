@@ -11,6 +11,11 @@ MONTH_NAMES = {
     5: "May", 6: "June", 7: "July", 8: "August",
     9: "September", 10: "October", 11: "November", 12: "December",
 }
+MONTH_NAMES_SHORT = {
+    1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr",
+    5: "May", 6: "Jun", 7: "Jul", 8: "Aug",
+    9: "Sep", 10: "Oct", 11: "Nov", 12: "Dec",
+}
 DAY_NAMES = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday",
              4: "Friday", 5: "Saturday", 6: "Sunday"}
 
@@ -34,6 +39,7 @@ def populate_date_dimension(db: Session, start_year: int = 2020, end_year: int =
             "quarter": (current.month - 1) // 3 + 1,
             "month": current.month,
             "month_name": MONTH_NAMES[current.month],
+            "month_name_short": MONTH_NAMES_SHORT[current.month],
             "week": current.isocalendar()[1],
             "day_of_month": current.day,
             "day_of_week": current.weekday(),
@@ -50,9 +56,9 @@ def populate_date_dimension(db: Session, start_year: int = 2020, end_year: int =
             chunk = rows[i:i + chunk_size]
             db.execute(
                 text("""INSERT IGNORE INTO dw_dim_date
-                    (date_key, full_date, year, quarter, month, month_name,
-                     week, day_of_month, day_of_week, day_name, is_weekend, year_month)
-                    VALUES (:date_key, :full_date, :year, :quarter, :month, :month_name,
+                    (date_key, full_date, `year`, `quarter`, `month`, month_name, month_name_short,
+                     `week`, day_of_month, day_of_week, day_name, is_weekend, `year_month`)
+                    VALUES (:date_key, :full_date, :year, :quarter, :month, :month_name, :month_name_short,
                             :week, :day_of_month, :day_of_week, :day_name, :is_weekend, :year_month)"""),
                 chunk,
             )

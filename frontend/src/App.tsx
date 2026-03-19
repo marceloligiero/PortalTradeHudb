@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthStore } from './stores/authStore';
+import ScrollToTop from './components/ScrollToTop';
+import { useAuthStore, getEffectiveRole } from './stores/authStore';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -86,9 +87,12 @@ import Layout from './components/layout/Layout';
 
 function App() {
   const { user, isAuthenticated } = useAuthStore();
+  const effectiveRole = getEffectiveRole(user);
 
   if (!isAuthenticated) {
     return (
+      <>
+      <ScrollToTop />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/portal-tutoria" element={<PortalTutoriaPublic />} />
@@ -102,10 +106,13 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </>
     );
   }
 
   return (
+    <>
+    <ScrollToTop />
     <Routes>
       {/* ── Portal de Tutoria (layout próprio, todos os roles) ── */}
       <Route path="/tutoria" element={<TutoriaLayout />}>
@@ -166,7 +173,7 @@ function App() {
 
       {/* ── Portal de Formações ─────────────────────────────── */}
       <Route path="/" element={<Layout />}>
-        {user?.role === 'MANAGER' && (
+        {effectiveRole === 'MANAGER' && (
           <>
             <Route index element={<AdminDashboard />} />
             <Route path="courses" element={<AdminCoursesPage />} />
@@ -187,7 +194,7 @@ function App() {
             <Route path="ratings" element={<AdminRatingsPage />} />
           </>
         )}
-        {(user?.role === 'STUDENT' || user?.role === 'TRAINEE') && (
+        {(effectiveRole === 'STUDENT' || effectiveRole === 'TRAINEE') && (
           <>
             <Route index element={<StudentDashboard />} />
             <Route path="my-plans" element={<MyPlans />} />
@@ -208,7 +215,7 @@ function App() {
         {/* Rotas compartilhadas por todos os roles */}
         <Route path="challenges/result/:submissionId" element={<ChallengeResult />} />
         <Route path="certificates/:id" element={<CertificateView />} />
-        {user?.role === 'TRAINER' && (
+        {effectiveRole === 'TRAINER' && (
           <>
             <Route index element={<TrainerDashboard />} />
             <Route path="courses" element={<TrainerCoursesPage />} />
@@ -233,7 +240,7 @@ function App() {
         {/* Support direct links that include a 'trainer/' or 'admin/' prefix used in some navigation code */}
         <Route path="trainer/training-plan/:id" element={<TrainingPlanDetail />} />
         <Route path="training-plan/:id" element={<TrainingPlanDetail />} />
-        {user?.role === 'ADMIN' && (
+        {(effectiveRole === 'ADMIN' || effectiveRole === 'GESTOR') && (
           <>
             <Route index element={<AdminDashboard />} />
             <Route path="trainer-validation" element={<AdminTrainerValidation />} />
@@ -269,6 +276,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
+    </>
   );
 }
 

@@ -67,6 +67,7 @@
     "registerTrainerSuccess": "Inscrição de Formador enviada! Aguarde validação do administrador. Redirecionando para login...",
     "registerManagerSuccess": "Inscrição de Chefe de Equipa enviada! Aguarde validação do administrador. Redirecionando para login...",
     "registrationError": "Erro ao registar a conta",
+    "pendingApprovalBanner": "A sua conta aguarda aprovação do administrador. Enquanto isso, tem acesso como Formando.",
     "forgotPasswordTitle": "Esqueceu a palavra-passe?",
     "forgotPassword": "Esqueceu a palavra-passe?",
     "forgotPasswordSubtitle": "Introduza o seu e-mail registado para redefinir a sua palavra-passe.",
@@ -85,6 +86,8 @@
     "resetError": "Erro ao redefinir palavra-passe",
     "backToLogin": "Voltar ao Login",
     "emailPlaceholder": "nome@empresa.com",
+    "showPassword": "Mostrar palavra-passe",
+    "hidePassword": "Ocultar palavra-passe",
     "passwordsMatch": "Palavras-passe coincidem",
     "baseRole": "Função base:",
     "automatic": "automática",
@@ -105,7 +108,14 @@
       "registerTitle1": "Construa o",
       "registerHighlight": "futuro",
       "registerTitle2": "connosco.",
-      "registerDesc": "Ferramentas avançadas para formação, tutoria e gestão de equipas de alto rendimento."
+      "registerDesc": "Ferramentas avançadas para formação, tutoria e gestão de equipas de alto rendimento.",
+      "secure": "Conexão segura",
+      "encrypted": "Dados encriptados",
+      "forgotBadge": "Recuperação de Conta",
+      "forgotTitle1": "Recupere o seu",
+      "forgotHighlight": "acesso",
+      "forgotTitle2": "em segurança.",
+      "forgotDesc": "Verifique a sua identidade e defina uma nova palavra-passe para aceder à plataforma."
     },
     "steps": {
       "identity": "Identidade",
@@ -118,13 +128,17 @@
     "roles": {
       "recorder": "Gravador",
       "trainer": "Formador",
-      "trainerDesc": "Criar e gerir cursos no Portal de Formações",
+      "trainerDesc": "Desenvolva a equipa com formações estruturadas e acompanhamento contínuo",
       "tutor": "Tutor",
-      "tutorDesc": "Acompanhar tutorados no Portal de Tutoria",
+      "tutorDesc": "Guie cada colaborador no seu percurso de evolução profissional",
       "releaser": "Liberador",
-      "releaserDesc": "Aprovar operações e registar erros internos",
+      "releaserDesc": "Garanta a qualidade das operações com aprovações e controlo de erros",
       "teamLead": "Chefe de Equipa",
-      "teamLeadDesc": "Visão global, aprovações e gestão de equipa"
+      "teamLeadDesc": "Tenha visão 360° da sua equipa e tome decisões com dados reais",
+      "referente": "Referente",
+      "referenteDesc": "Apoie o chefe de equipa na gestão diária das operações",
+      "gestor": "Gestor",
+      "gestorDesc": "Visão completa de toda a operação — KPIs, equipas, formações e relatórios num só lugar"
     },
     "pwStrength": {
       "veryWeak": "Muito fraca",
@@ -168,7 +182,7 @@
     "myCourses": "Os Meus Cursos",
     "certificates": "Certificados",
     "students": "Formandos",
-    "trainers": "Formadores",
+    "trainers": "Validações",
     "users": "Utilizadores",
     "challenges": "Desafios",
     "myChallenges": "Meus Desafios",
@@ -241,6 +255,7 @@
     "TRAINEE": "Gravador em Formação",
     "STUDENT": "Gravador",
     "MANAGER": "Coordenador",
+    "GESTOR": "Gestor",
     "trainer": "Liberador / Formador"
   },
   "dashboard": {
@@ -943,23 +958,23 @@
     "catalogDescription": "Este desafio faz parte do catálogo de cursos. Para executar ou ver resultados, aceda através de um Plano de Formação.",
     "users": "Utilizadores",
     "usersDescription": "Gerir utilizadores e permissões do sistema",
-    "pendingTrainerValidations": "Validações de Formadores Pendentes",
+    "pendingTrainerValidations": "Validações de Utilizadores Pendentes",
     "trainersPendingValidation": "Formadores à espera de validação",
-    "noTrainersPending": "Nenhum formador aguardando validação",
-    "allTrainersValidated": "Todos os formadores foram validados. Volte mais tarde para verificar novos registos.",
+    "noTrainersPending": "Nenhum utilizador aguardando validação",
+    "allTrainersValidated": "Todos os utilizadores foram validados. Volte mais tarde para verificar novos registos.",
     "awaitingValidation": "À espera de validação",
     "confirmApproveTrainer": "Tem a certeza que deseja aprovar",
     "confirmRejectTrainer": "Tem a certeza que deseja rejeitar",
-    "approvedTrainer": "foi aprovado como Formador",
+    "approvedTrainer": "foi aprovado com sucesso",
     "rejectedTrainer": "foi rejeitado",
     "approve": "Aprovar",
     "reject": "Rejeitar",
-    "trainerManagement": "Gestão de Formadores",
-    "trainerValidationDescription": "Revise e aprove os registos de novos formadores para que possam começar a criar cursos na plataforma.",
+    "trainerManagement": "Gestão de Utilizadores",
+    "trainerValidationDescription": "Revise e aprove os registos de novos utilizadores com roles especiais para que possam aceder às funcionalidades da plataforma.",
     "pendingValidations": "Validações Pendentes",
     "approvedThisMonth": "Aprovados este mês",
-    "totalActiveTrainers": "Formadores Ativos",
-    "requiresAdminApproval": "Requer aprovação do administrador para criar cursos",
+    "totalActiveTrainers": "Utilizadores Ativos",
+    "requiresAdminApproval": "Requer aprovação do administrador para aceder à plataforma",
     "dateNotAvailable": "Data não disponível",
     "manageUsers": "Gerir utilizadores e permissões",
     "manageCourses": "Gerir cursos e conteúdos",
@@ -1262,15 +1277,40 @@
         "labelLeft": "Sem sistema",
         "labelRight": "Com TradeDataHub",
         "live": "Live",
-        "typing": "a escrever…"
+        "typing": "a escrever…",
+        "incoming": [
+          { "sender": "Carlos M.", "avatar": "CM", "text": "Outra vez o mesmo erro? Ninguém verifica isto?", "time": "Há 2 min" },
+          { "sender": "Ana Diretora", "avatar": "AD", "text": "O cliente ligou a reclamar. Preciso de respostas.", "time": "Há 5 min" },
+          { "sender": "Luis Ops", "avatar": "LO", "text": "Quem formou o novo? Já são 3 erros hoje.", "time": "Há 8 min" },
+          { "sender": "Marta S.", "avatar": "MS", "text": "O relatório de ontem ainda não apareceu.", "time": "Há 12 min" },
+          { "sender": "Dir. Regional", "avatar": "DR", "text": "Isto não pode voltar a acontecer. Quero soluções.", "time": "Há 15 min" }
+        ],
+        "outgoing": [
+          { "sender": "TradeDataHub", "avatar": "✓", "text": "Erro registado. Plano de ação criado automaticamente.", "time": "Agora" },
+          { "sender": "TradeDataHub", "avatar": "✓", "text": "Cliente gerido. Acompanhamento ativo no sistema.", "time": "Agora" },
+          { "sender": "TradeDataHub", "avatar": "✓", "text": "Novo colaborador produtivo em 3 dias com onboarding digital.", "time": "Agora" },
+          { "sender": "TradeDataHub", "avatar": "✓", "text": "Relatório atualizado em tempo real. Zero incidentes este mês.", "time": "Agora" },
+          { "sender": "TradeDataHub", "avatar": "✓", "text": "Erros recorrentes caíram 74%. Dados no dashboard.", "time": "Agora" }
+        ]
       }
     },
-    "socialProof": {
-      "training": "Formação",
-      "tutoring": "Qualidade",
-      "reports": "Relatórios",
-      "tickets": "Suporte",
-      "masterData": "Configuração"
+    "scroll": {
+      "discover": "Descubra",
+      "bridgeProblem": "Parece familiar?",
+      "bridgeSolution": "Eis o que muda",
+      "bridgeHow": "Simples. Veja como",
+      "bridgeMetrics": "E os resultados?",
+      "bridgeCta": "Pronto para começar?"
+    },
+    "ticker": {
+      "onboarding": "Tempo de Onboarding",
+      "errors": "Erros Operacionais",
+      "reports": "Relatórios Manuais",
+      "resolution": "Tempo de Resolução",
+      "productivity": "Produtividade da Equipa",
+      "compliance": "Conformidade em Auditoria",
+      "rework": "Retrabalho",
+      "retention": "Retenção de Conhecimento"
     },
     "problem": {
       "label": "O problema que conhece",
@@ -1380,7 +1420,8 @@
       "fasterValue": "↑",
       "traceValue": "100%",
       "dataValue": "100%",
-      "ownerValue": "↓"
+      "ownerValue": "↓",
+      "closing": "E estas são apenas algumas das vantagens. Dentro do portal, descubra tudo o que o TradeDataHub pode fazer pela sua equipa."
     },
     "faq": {
       "title": "Perguntas Frequentes",
@@ -1400,13 +1441,21 @@
       "subtitle": "Stack moderna, segura e testada para equipas exigentes."
     },
     "finalCta": {
-      "label": "Comece hoje",
-      "titleLine1": "Quantos erros esta semana podiam ter sido evitados?",
-      "titleLine2": "",
-      "subtitle": "A resposta começa com um sistema que os regista, os corrige e os transforma em formação. A sua equipa merece melhor do que Excel e boa vontade.",
-      "cta": "Registar-se",
-      "ctaSecondary": "Já tenho conta — Login",
-      "trust": "Sem compromisso · Acesso imediato · Suporte da equipa de produto"
+      "label": "Comece agora",
+      "titleLine1": "Quantos erros esta semana",
+      "titleLine2": "podiam ter sido evitados?",
+      "benefit1": "A equipa ganha visibilidade total sobre o que acontece",
+      "benefit2": "As formações acontecem de forma estruturada e contínua",
+      "benefit3": "Toda a evolução fica registada num só lugar",
+      "cta": "Criar conta",
+      "ctaSecondary": "Já tenho conta — Entrar",
+      "socialProof": "Junte-se a líderes de operações que já otimizaram as suas equipas.",
+      "stat1Value": "+45%",
+      "stat1Label": "Produtividade",
+      "stat2Value": "100%",
+      "stat2Label": "Relatórios manuais",
+      "stat3Value": "+3x",
+      "stat3Label": "Retenção de conhecimento"
     },
     "footer": {
       "tagline": "Plataforma de gestão de formações, qualidade e suporte para equipas operacionais.",
@@ -1440,7 +1489,7 @@
       "acceptance": "Aceitação dos Termos",
       "acceptanceContent": "Ao aceder e utilizar a plataforma TradeDataHub, aceita ficar vinculado a estes Termos de Serviço. Se não concorda com algum destes termos, não deve utilizar a plataforma.",
       "services": "Descrição dos Serviços",
-      "servicesContent": "O TradeDataHub é uma plataforma de gestão de formações, tutoria, relatórios e suporte operacional para equipas de trading. Os serviços incluem gestão de cursos, planos de formação, registo de erros, relatórios analíticos e sistema de chamados.",
+      "servicesContent": "O TradeDataHub é uma plataforma de gestão de formações, tutoria, relatórios e suporte operacional para equipas. Os serviços incluem gestão de cursos, planos de formação, registo de erros, relatórios analíticos e sistema de chamados.",
       "accounts": "Contas de Utilizador",
       "accountsContent": "Para aceder à plataforma, necessita de uma conta autorizada pela sua organização. É responsável por manter a confidencialidade das suas credenciais e por todas as atividades realizadas com a sua conta. Notifique imediatamente o administrador em caso de uso não autorizado.",
       "intellectualProperty": "Propriedade Intelectual",
@@ -1472,7 +1521,7 @@
     },
     "about": {
       "title": "Sobre o TradeDataHub",
-      "subtitle": "Plataforma integrada de gestão de formações, qualidade operacional e suporte para equipas de trading e operações financeiras.",
+      "subtitle": "Plataforma integrada de gestão de formações, qualidade operacional e suporte para equipas.",
       "missionTitle": "A Nossa Missão",
       "missionContent": "Transformar a forma como as equipas operacionais gerem formação, qualidade e suporte. Acreditamos que equipas bem formadas, com processos claros de registo e correção de erros, produzem resultados consistentes e de excelência. O TradeDataHub nasceu para substituir folhas de Excel dispersas por uma plataforma unificada, mensurável e auditável.",
       "valuesTitle": "O Que Oferecemos",
@@ -1492,7 +1541,7 @@
       "title": "Perguntas Frequentes",
       "subtitle": "Respostas às questões mais comuns sobre a plataforma.",
       "whatIsQ": "O que é o TradeDataHub?",
-      "whatIsA": "O TradeDataHub é uma plataforma de gestão de formações, qualidade operacional e suporte para equipas de trading. Integra módulos de formação, tutoria (registo de erros e planos de ação), relatórios analíticos e um sistema de chamados.",
+      "whatIsA": "O TradeDataHub é uma plataforma de gestão de formações, qualidade operacional e suporte para equipas. Integra módulos de formação, tutoria (registo de erros e planos de ação), relatórios analíticos e um sistema de chamados.",
       "howToStartQ": "Como começo a utilizar a plataforma?",
       "howToStartA": "Registe-se na plataforma com o seu email corporativo. Após validação pelo administrador da sua organização, terá acesso aos módulos relevantes para o seu perfil.",
       "rolesQ": "Quais são os perfis de utilizador disponíveis?",
@@ -2023,8 +2072,8 @@
     "createTraining": "Criar formação",
     "reports": "Relatórios",
     "detailedAnalytics": "Análises detalhadas",
-    "trainersAwaitingValidation": "Formadores Aguardando Validação",
-    "trainersAwaitingApproval": "Existem {{count}} formadores aguardando a sua aprovação",
+    "trainersAwaitingValidation": "Utilizadores Aguardando Validação",
+    "trainersAwaitingApproval": "Existem {{count}} utilizadores aguardando a sua aprovação",
     "validateNow": "Validar Agora",
     "notAssigned": "Não atribuído"
   },
@@ -3311,7 +3360,8 @@
       "TRAINEE": "Gravador em Formação",
       "TRAINER": "Liberador / Formador",
       "MANAGER": "Coordenador",
-      "ADMIN": "Administrador"
+      "ADMIN": "Administrador",
+      "GESTOR": "Gestor"
     }
   },
   "relTeams": {

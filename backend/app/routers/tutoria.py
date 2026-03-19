@@ -564,7 +564,7 @@ def list_errors(
         q = q.filter(TutoriaError.status == status)
     if category_id:
         q = q.filter(TutoriaError.category_id == category_id)
-    if tutorado_id and current_user.role == "ADMIN":
+    if tutorado_id and current_user.role in ("ADMIN", "GESTOR"):
         q = q.filter(TutoriaError.tutorado_id == tutorado_id)
     if is_recurrent is not None:
         q = q.filter(TutoriaError.is_recurrent == is_recurrent)
@@ -1804,7 +1804,7 @@ def list_learning_sheets(
     status: Optional[str] = None,
 ):
     """List learning sheets — Tutors see submitted sheets from their tutorados."""
-    if not is_tutor_or_above(current_user):
+    if not is_tutor_or_above(current_user) and current_user.role != "GESTOR":
         raise HTTPException(403, "Apenas Tutor/Manager/Admin pode listar fichas")
     q = (
         db.query(TutoriaLearningSheet)
@@ -1813,7 +1813,7 @@ def list_learning_sheets(
             joinedload(TutoriaLearningSheet.tutor),
         )
     )
-    if current_user.role not in ("ADMIN", "MANAGER"):
+    if current_user.role not in ("ADMIN", "MANAGER", "GESTOR"):
         # Tutor sees sheets where they are the tutor
         q = q.filter(TutoriaLearningSheet.tutor_id == current_user.id)
     if status:

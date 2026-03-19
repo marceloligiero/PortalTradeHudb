@@ -10,7 +10,7 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     full_name = Column(String(255), nullable=False)
     hashed_password = Column(String(255), nullable=False)
-    role = Column(String(50), nullable=False)  # TRAINEE, TRAINER, ADMIN, MANAGER
+    role = Column(String(50), nullable=False)  # TRAINEE, TRAINER, ADMIN, MANAGER, GESTOR
     is_active = Column(Boolean, default=True, nullable=False)
     is_pending = Column(Boolean, default=False, nullable=False)  # For TRAINER validation by ADMIN
     is_trainer = Column(Boolean, default=False, nullable=False)  # Can create/manage courses (Formador)

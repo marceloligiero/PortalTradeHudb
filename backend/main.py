@@ -24,8 +24,27 @@ logger = logging.getLogger("app.startup")
 # Rate limiter (shared instance used by route modules)
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 
+async def _etl_scheduler():
+    """Background task that re-runs ETL every hour."""
+    import asyncio
+    while True:
+        await asyncio.sleep(3600)
+        try:
+            from app.database import SessionLocal
+            from app.etl.etl_runner import run_full_etl
+            db = SessionLocal()
+            try:
+                run_full_etl(db)
+                logger.info("Scheduled ETL completed.")
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning("Scheduled ETL failed (non-fatal): %s", e)
+
+
 @asynccontextmanager
 async def lifespan(app):
+    import asyncio
     init_db()
     # Run pending SQL migrations automatically
     try:
@@ -34,7 +53,27 @@ async def lifespan(app):
             logger.info("Applied %d pending migration(s).", count)
     except Exception as e:
         logger.error("Migration failed: %s", e)
+
+    # Run ETL on startup (populates DW tables after migrations)
+    try:
+        from app.database import SessionLocal
+        from app.etl.etl_runner import run_full_etl
+        db = SessionLocal()
+        try:
+            result = run_full_etl(db)
+            logger.info("ETL initial run completed: %s", result)
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning("ETL startup run failed (non-fatal): %s", e)
+
+    # Start hourly ETL scheduler
+    scheduler_task = asyncio.create_task(_etl_scheduler())
+
     yield
+
+    # Cleanup
+    scheduler_task.cancel()
 
 app = FastAPI(
     title="Trade Data Hub API",
@@ -225,8 +264,8 @@ if _frontend_dist.is_dir():
         file_path = _frontend_dist / full_path
         if full_path and file_path.is_file():
             return FileResponse(str(file_path))
-        # Otherwise serve index.html for SPA client-side routing
-        return FileResponse(str(_frontend_dist / "index.html"))
+        # Otherwise serve index.html for SPA client-side routing (no-cache so new builds load immediately)
+        return FileResponse(str(_frontend_dist / "index.html"), headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 else:
     @app.get("/")
     async def root():

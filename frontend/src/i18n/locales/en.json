@@ -67,6 +67,7 @@
     "registerTrainerSuccess": "Trainer request submitted! Please wait for admin validation. Redirecting to login...",
     "registerManagerSuccess": "Team Leader request submitted! Please wait for admin validation. Redirecting to login...",
     "registrationError": "Error while creating the account",
+    "pendingApprovalBanner": "Your account is awaiting administrator approval. In the meantime, you have access as a Recorder.",
     "forgotPasswordTitle": "Forgot your password?",
     "forgotPassword": "Forgot your password?",
     "forgotPasswordSubtitle": "Enter your registered email to reset your password.",
@@ -85,6 +86,8 @@
     "resetError": "Error resetting password",
     "backToLogin": "Back to Login",
     "emailPlaceholder": "name@company.com",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
     "passwordsMatch": "Passwords match",
     "baseRole": "Base role:",
     "automatic": "automatic",
@@ -105,7 +108,14 @@
       "registerTitle1": "Build the",
       "registerHighlight": "future",
       "registerTitle2": "with us.",
-      "registerDesc": "Advanced tools for training, tutoring and high-performance team management."
+      "registerDesc": "Advanced tools for training, tutoring and high-performance team management.",
+      "secure": "Secure connection",
+      "encrypted": "Encrypted data",
+      "forgotBadge": "Account Recovery",
+      "forgotTitle1": "Recover your",
+      "forgotHighlight": "access",
+      "forgotTitle2": "securely.",
+      "forgotDesc": "Verify your identity and set a new password to regain access to the platform."
     },
     "steps": {
       "identity": "Identity",
@@ -118,13 +128,17 @@
     "roles": {
       "recorder": "Recorder",
       "trainer": "Trainer",
-      "trainerDesc": "Create and manage courses in the Training Portal",
+      "trainerDesc": "Develop the team with structured training and continuous follow-up",
       "tutor": "Tutor",
-      "tutorDesc": "Support tutees in the Tutoring Portal",
+      "tutorDesc": "Guide each team member on their professional growth path",
       "releaser": "Releaser",
-      "releaserDesc": "Approve operations and log internal errors",
+      "releaserDesc": "Ensure operational quality through approvals and error control",
       "teamLead": "Team Lead",
-      "teamLeadDesc": "Global overview, approvals and team management"
+      "teamLeadDesc": "Get a 360° view of your team and make data-driven decisions",
+      "referente": "Referent",
+      "referenteDesc": "Support the team lead in day-to-day operations management",
+      "gestor": "Manager",
+      "gestorDesc": "Full view of the entire operation — KPIs, teams, training and reports in one place"
     },
     "pwStrength": {
       "veryWeak": "Very weak",
@@ -168,7 +182,7 @@
     "myCourses": "My Courses",
     "certificates": "Certificates",
     "students": "Students",
-    "trainers": "Trainers",
+    "trainers": "Validations",
     "users": "Users",
     "challenges": "Challenges",
     "myChallenges": "My Challenges",
@@ -241,6 +255,7 @@
     "TRAINEE": "Recorder (Trainee)",
     "STUDENT": "Recorder",
     "MANAGER": "Coordinator",
+    "GESTOR": "Manager",
     "trainer": "Liberator / Trainer"
   },
   "dashboard": {
@@ -716,23 +731,23 @@
   "admin": {
     "catalogInfo": "Catalog Information",
     "catalogDescription": "This challenge is part of the course catalog. To execute or view results, access it through a Training Plan.",
-    "pendingTrainerValidations": "Pending Trainer Validations",
+    "pendingTrainerValidations": "Pending User Validations",
     "trainersPendingValidation": "Trainers waiting for validation",
-    "noTrainersPending": "No trainers waiting for validation",
-    "allTrainersValidated": "All trainers have been validated. Check back later for new registrations.",
+    "noTrainersPending": "No users waiting for validation",
+    "allTrainersValidated": "All users have been validated. Check back later for new registrations.",
     "awaitingValidation": "Awaiting validation",
     "confirmApproveTrainer": "Are you sure you want to approve",
     "confirmRejectTrainer": "Are you sure you want to reject",
-    "approvedTrainer": "was approved as a Trainer",
+    "approvedTrainer": "was approved successfully",
     "rejectedTrainer": "was rejected",
     "approve": "Approve",
     "reject": "Reject",
-    "trainerManagement": "Trainer Management",
-    "trainerValidationDescription": "Review and approve new trainer registrations so they can start creating courses on the platform.",
+    "trainerManagement": "User Management",
+    "trainerValidationDescription": "Review and approve new users with special roles so they can access platform features.",
     "pendingValidations": "Pending Validations",
     "approvedThisMonth": "Approved this month",
-    "totalActiveTrainers": "Active Trainers",
-    "requiresAdminApproval": "Requires admin approval to create courses",
+    "totalActiveTrainers": "Active Users",
+    "requiresAdminApproval": "Requires admin approval to access the platform",
     "dateNotAvailable": "Date not available",
     "manageUsers": "Manage users and permissions",
     "manageCourses": "Manage courses and content",
@@ -1262,15 +1277,40 @@
         "labelLeft": "Without system",
         "labelRight": "With TradeDataHub",
         "live": "Live",
-        "typing": "Typing…"
+        "typing": "Typing…",
+        "incoming": [
+          { "sender": "Carlos M.", "avatar": "CM", "text": "The same error again? Doesn't anyone check this?", "time": "2 min ago" },
+          { "sender": "Ana Director", "avatar": "AD", "text": "The client called to complain. I need answers.", "time": "5 min ago" },
+          { "sender": "Luis Ops", "avatar": "LO", "text": "Who trained the new hire? That's 3 errors today.", "time": "8 min ago" },
+          { "sender": "Marta S.", "avatar": "MS", "text": "Yesterday's report is still missing.", "time": "12 min ago" },
+          { "sender": "Regional Dir.", "avatar": "RD", "text": "This cannot happen again. I want solutions.", "time": "15 min ago" }
+        ],
+        "outgoing": [
+          { "sender": "TradeDataHub", "avatar": "✓", "text": "Error logged. Action plan created automatically.", "time": "Now" },
+          { "sender": "TradeDataHub", "avatar": "✓", "text": "Client managed. Active follow-up in the system.", "time": "Now" },
+          { "sender": "TradeDataHub", "avatar": "✓", "text": "New hire productive in 3 days with digital onboarding.", "time": "Now" },
+          { "sender": "TradeDataHub", "avatar": "✓", "text": "Report updated in real time. Zero incidents this month.", "time": "Now" },
+          { "sender": "TradeDataHub", "avatar": "✓", "text": "Recurring errors dropped 74%. Data on the dashboard.", "time": "Now" }
+        ]
       }
     },
-    "socialProof": {
-      "training": "Training",
-      "tutoring": "Quality",
-      "reports": "Reports",
-      "tickets": "Support",
-      "masterData": "Configuration"
+    "scroll": {
+      "discover": "Discover",
+      "bridgeProblem": "Does this sound familiar?",
+      "bridgeSolution": "Here's what changes",
+      "bridgeHow": "Simple. See how",
+      "bridgeMetrics": "And the results?",
+      "bridgeCta": "Ready to start?"
+    },
+    "ticker": {
+      "onboarding": "Onboarding Time",
+      "errors": "Operational Errors",
+      "reports": "Manual Reports",
+      "resolution": "Resolution Time",
+      "productivity": "Team Productivity",
+      "compliance": "Audit Compliance",
+      "rework": "Rework",
+      "retention": "Knowledge Retention"
     },
     "problem": {
       "label": "The problem you know",
@@ -1380,7 +1420,8 @@
       "fasterValue": "↑",
       "traceValue": "100%",
       "dataValue": "100%",
-      "ownerValue": "↓"
+      "ownerValue": "↓",
+      "closing": "And these are just a few of the advantages. Inside the portal, discover everything TradeDataHub can do for your team."
     },
     "faq": {
       "title": "Frequently Asked Questions",
@@ -1400,13 +1441,21 @@
       "subtitle": "Modern, secure and tested stack for demanding teams."
     },
     "finalCta": {
-      "label": "Start today",
-      "titleLine1": "How many mistakes this week could have been prevented?",
-      "titleLine2": "",
-      "subtitle": "The answer starts with a system that logs them, fixes them, and turns them into training. Your team deserves better than spreadsheets and good intentions.",
-      "cta": "Sign Up",
-      "ctaSecondary": "I already have an account — Login",
-      "trust": "No commitment · Immediate access · Product team support"
+      "label": "Get started",
+      "titleLine1": "How many errors this week",
+      "titleLine2": "could have been avoided?",
+      "benefit1": "Your team gains full visibility over what's happening",
+      "benefit2": "Training happens in a structured and continuous way",
+      "benefit3": "All progress is tracked in one single place",
+      "cta": "Create account",
+      "ctaSecondary": "I already have an account — Log in",
+      "socialProof": "Join operations leaders who have already optimized their teams.",
+      "stat1Value": "+45%",
+      "stat1Label": "Productivity",
+      "stat2Value": "100%",
+      "stat2Label": "Manual reports",
+      "stat3Value": "+3x",
+      "stat3Label": "Knowledge retention"
     },
     "footer": {
       "tagline": "Training, quality and support management platform for operational teams.",
@@ -1440,7 +1489,7 @@
       "acceptance": "Acceptance of Terms",
       "acceptanceContent": "By accessing and using the TradeDataHub platform, you agree to be bound by these Terms of Service. If you do not agree with any of these terms, you should not use the platform.",
       "services": "Description of Services",
-      "servicesContent": "TradeDataHub is a training management, tutoring, reporting and operational support platform for trading teams. Services include course management, training plans, error tracking, analytical reports and a ticketing system.",
+      "servicesContent": "TradeDataHub is a training management, tutoring, reporting and operational support platform for teams. Services include course management, training plans, error tracking, analytical reports and a ticketing system.",
       "accounts": "User Accounts",
       "accountsContent": "To access the platform, you need an account authorized by your organization. You are responsible for maintaining the confidentiality of your credentials and for all activities carried out with your account. Notify the administrator immediately in case of unauthorized use.",
       "intellectualProperty": "Intellectual Property",
@@ -1472,7 +1521,7 @@
     },
     "about": {
       "title": "About TradeDataHub",
-      "subtitle": "Integrated platform for training management, operational quality and support for trading and financial operations teams.",
+      "subtitle": "Integrated platform for training management, operational quality and support for teams.",
       "missionTitle": "Our Mission",
       "missionContent": "Transform how operational teams manage training, quality and support. We believe that well-trained teams, with clear error tracking and correction processes, produce consistent and excellent results. TradeDataHub was created to replace scattered Excel spreadsheets with a unified, measurable and auditable platform.",
       "valuesTitle": "What We Offer",
@@ -1492,7 +1541,7 @@
       "title": "Frequently Asked Questions",
       "subtitle": "Answers to the most common questions about the platform.",
       "whatIsQ": "What is TradeDataHub?",
-      "whatIsA": "TradeDataHub is a training management, operational quality and support platform for trading teams. It integrates training modules, tutoring (error tracking and action plans), analytical reports and a ticketing system.",
+      "whatIsA": "TradeDataHub is a training management, operational quality and support platform for teams. It integrates training modules, tutoring (error tracking and action plans), analytical reports and a ticketing system.",
       "howToStartQ": "How do I start using the platform?",
       "howToStartA": "Register on the platform with your corporate email. After validation by your organization's administrator, you will have access to modules relevant to your profile.",
       "rolesQ": "What user profiles are available?",
@@ -2025,8 +2074,8 @@
     "createTraining": "Create training",
     "reports": "Reports",
     "detailedAnalytics": "Detailed analytics",
-    "trainersAwaitingValidation": "Trainers Awaiting Validation",
-    "trainersAwaitingApproval": "There are {{count}} trainers awaiting your approval",
+    "trainersAwaitingValidation": "Users Awaiting Validation",
+    "trainersAwaitingApproval": "There are {{count}} users awaiting your approval",
     "validateNow": "Validate Now",
     "notAssigned": "Not assigned"
   },
@@ -3313,7 +3362,8 @@
       "TRAINEE": "Trainee",
       "TRAINER": "Trainer",
       "MANAGER": "Manager",
-      "ADMIN": "Admin"
+      "ADMIN": "Admin",
+      "GESTOR": "Manager"
     }
   },
   "relTeams": {

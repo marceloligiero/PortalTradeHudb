@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Filter, Loader2, AlertTriangle, ChevronDown,
   Calendar, X, FileSpreadsheet, Search, RefreshCw,
@@ -7,7 +6,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import api from '../../lib/axios';
-import { useTheme } from '../../contexts/ThemeContext';
 import * as XLSX from 'xlsx';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -76,14 +74,34 @@ function recurrenceLabel(v: string | null, t: (key: string) => string) {
   return map[v] || v;
 }
 
+// ─── SelectFilter ──────────────────────────────────────────────────────────────
+
+function SelectFilter({ value, onChange, options, placeholder }: {
+  value: string; onChange: (v: string) => void; options: FilterOption[]; placeholder: string;
+}) {
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full appearance-none px-3 py-2 pr-8 rounded-xl border text-sm outline-none transition-all bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EC0000]/30"
+      >
+        <option value="">{placeholder}</option>
+        {options.map(o => (
+          <option key={o.id} value={String(o.id)}>{o.name}</option>
+        ))}
+      </select>
+      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none text-gray-400 dark:text-gray-500" />
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function IncidentsReport() {
   const { t } = useTranslation();
   const { user } = useAuthStore();
-  const { isDark } = useTheme();
 
-  // Only ADMIN and MANAGER can view this report
   const userRole = (user as any)?.role || '';
   const canView = userRole === 'ADMIN' || userRole === 'MANAGER';
 
@@ -111,11 +129,8 @@ export default function IncidentsReport() {
       .then(r => {
         const f: Filters = r.data;
         setFilters(f);
-        // Default to "Alto" impact
         const alto = f.impacts?.find((i: FilterOption) => i.name.toLowerCase() === 'alto');
-        if (alto) {
-          setImpactId(String(alto.id));
-        }
+        if (alto) setImpactId(String(alto.id));
       })
       .catch(() => {});
   }, []);
@@ -141,7 +156,6 @@ export default function IncidentsReport() {
       .finally(() => setLoading(false));
   };
 
-  // Fetch data when filters finish loading (impactId defaults to "Alto")
   useEffect(() => {
     if (filters) fetchData();
   }, [filters]);
@@ -161,10 +175,9 @@ export default function IncidentsReport() {
     );
   }, [data, searchText]);
 
-  // ── Clear filters ─────────────────────────────────────────────────────────
+  // Clear filters
   const clearFilters = () => {
     setDateFrom(''); setDateTo('');
-    // Reset impactId back to "Alto" default
     const alto = filters?.impacts?.find(i => i.name.toLowerCase() === 'alto');
     setImpactId(alto ? String(alto.id) : '');
     setOriginId('');
@@ -176,7 +189,7 @@ export default function IncidentsReport() {
 
   const hasActiveFilters = dateFrom || dateTo || impactId || originId || bankId || departmentId || detectedById || categoryId || productId || recurrence;
 
-  // ── Excel Export ──────────────────────────────────────────────────────────
+  // Excel Export
   const exportToExcel = () => {
     const rows = filtered.map(i => ({
       [t('relIncidents.excelDateError')]: fmtDate(i.date_occurrence),
@@ -202,29 +215,11 @@ export default function IncidentsReport() {
     }));
 
     const ws = XLSX.utils.json_to_sheet(rows);
-
-    // Column widths matching the original Excel
     ws['!cols'] = [
-      { wch: 12 },  // A - Fecha error
-      { wch: 14 },  // B - Fecha Detección
-      { wch: 8 },   // C - Oficina
-      { wch: 12 },  // D - Cliente
-      { wch: 16 },  // E - Producto
-      { wch: 18 },  // F - EVENTO
-      { wch: 22 },  // G - Referencia
-      { wch: 40 },  // H - Cliente (final)
-      { wch: 16 },  // I - Importe del evento
-      { wch: 6 },   // J - Divisa
-      { wch: 14 },  // K - Clasificación
-      { wch: 16 },  // L - Origen
-      { wch: 22 },  // M - Tipología del error
-      { wch: 36 },  // N - Impacto
-      { wch: 14 },  // O - Recurrencia
-      { wch: 24 },  // P - Detectado por
-      { wch: 60 },  // Q - Descripción incidencia
-      { wch: 60 },  // R - Análisis y Plan de Acción
-      { wch: 14 },  // S - Escalado
-      { wch: 60 },  // T - Comentarios vistos en la reunión
+      { wch: 12 }, { wch: 14 }, { wch: 8 }, { wch: 12 }, { wch: 16 },
+      { wch: 18 }, { wch: 22 }, { wch: 40 }, { wch: 16 }, { wch: 6 },
+      { wch: 14 }, { wch: 16 }, { wch: 22 }, { wch: 36 }, { wch: 14 },
+      { wch: 24 }, { wch: 60 }, { wch: 60 }, { wch: 14 }, { wch: 60 },
     ];
 
     const wb = XLSX.utils.book_new();
@@ -234,41 +229,13 @@ export default function IncidentsReport() {
     XLSX.writeFile(wb, `Formulario_unico_Trade_Incidencias_${today}.xlsx`);
   };
 
-  // ── Helpers ─────────────────────────────────────────────────────────────
-  const cardCls = `rounded-2xl border overflow-hidden ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`;
-  const inputCls = `w-full px-3 py-2 rounded-xl border text-sm outline-none transition-all ${
-    isDark
-      ? 'bg-white/[0.04] border-white/10 text-white focus:border-red-500'
-      : 'bg-white border-gray-200 text-gray-900 focus:border-red-400'
-  }`;
-  const selectCls = `w-full appearance-none px-3 py-2 pr-8 rounded-xl border text-sm outline-none transition-all cursor-pointer ${
-    isDark
-      ? 'bg-white/[0.04] border-white/10 text-white focus:border-red-500'
-      : 'bg-white border-gray-200 text-gray-900 focus:border-red-400'
-  }`;
-
-  const SelectFilter = ({ value, onChange, options, placeholder }: {
-    value: string; onChange: (v: string) => void; options: FilterOption[]; placeholder: string;
-  }) => (
-    <div className="relative">
-      <select value={value} onChange={e => onChange(e.target.value)} className={selectCls}
-        style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : undefined }}>
-        <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{placeholder}</option>
-        {options.map(o => (
-          <option key={o.id} value={String(o.id)} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{o.name}</option>
-        ))}
-      </select>
-      <ChevronDown className={`absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
-    </div>
-  );
-
   // Count high impact
   const highImpactCount = filtered.filter(i => (i.impact_name || '').toLowerCase() === 'alto').length;
 
-  // ── Access denied ─────────────────────────────────────────────────────────
+  // Access denied
   if (!canView) {
     return (
-      <div className={`text-center py-24 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+      <div className="text-center py-24 text-gray-400 dark:text-gray-600">
         <AlertTriangle className="w-12 h-12 mx-auto mb-4 opacity-30" />
         <p className="text-lg font-bold">{t('relIncidents.accessRestricted')}</p>
         <p className="text-sm mt-1">{t('relIncidents.accessRestrictedDesc')}</p>
@@ -276,194 +243,187 @@ export default function IncidentsReport() {
     );
   }
 
+  const inputCls = 'w-full px-3 py-2 rounded-xl border text-sm outline-none transition-all bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EC0000]/30';
+
   return (
     <div className="space-y-6">
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
-        className={`border-b pb-6 ${isDark ? 'border-white/10' : 'border-gray-200'}`}
-      >
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-red-500/30">
-              <AlertTriangle className="w-7 h-7 text-white" />
+            <div className="w-14 h-14 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center">
+              <AlertTriangle className="w-7 h-7 text-[#EC0000]" />
             </div>
             <div>
-              <h1 className={`text-3xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('relIncidents.title')}</h1>
-              <p className={`text-sm mt-0.5 ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
+              <p className="text-xs font-bold uppercase tracking-widest mb-1 text-[#EC0000]">
+                {t('relIncidents.portalTitle', { defaultValue: 'Incidencias' })}
+              </p>
+              <h1 className="text-3xl font-headline font-bold text-gray-900 dark:text-white">{t('relIncidents.title')}</h1>
+              <p className="text-sm mt-0.5 text-gray-500 dark:text-gray-400">
                 {t('relIncidents.incidentsCount', { count: filtered.length })}
                 {highImpactCount > 0 && (
-                  <> · <span className="text-red-400 font-semibold">{t('relIncidents.highImpactCount', { count: highImpactCount })}</span></>
+                  <> · <span className="text-[#EC0000] font-semibold">{t('relIncidents.highImpactCount', { count: highImpactCount })}</span></>
                 )}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <motion.button
-              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            <button
               onClick={() => setShowFilters(v => !v)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                isDark ? 'bg-white/5 border-white/10 text-gray-300 hover:bg-white/10' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-              } ${hasActiveFilters ? (isDark ? 'border-red-500/40 text-red-400' : 'border-red-400/40 text-red-500') : ''}`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all
+                bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300
+                hover:bg-gray-50 dark:hover:bg-gray-800
+                ${hasActiveFilters ? 'border-[#EC0000]/40 text-[#EC0000]' : ''}`}
             >
               <Filter className="w-4 h-4" />
               {t('relIncidents.filters')}
               {hasActiveFilters && (
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-[#EC0000] animate-pulse" />
               )}
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.03, boxShadow: '0 12px 30px rgba(34,197,94,.3)' }}
-              whileTap={{ scale: 0.97 }}
+            </button>
+            <button
               onClick={exportToExcel}
               disabled={filtered.length === 0}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 text-white text-sm font-bold shadow-lg shadow-green-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#10B981] hover:bg-[#059669] text-white text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FileSpreadsheet className="w-4 h-4" />
               {t('relIncidents.exportExcel')}
-            </motion.button>
+            </button>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* ── Filters Panel ──────────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {showFilters && filters && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-            className={cardCls}
-          >
-            <div className={`px-6 py-4 border-b flex items-center justify-between ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
-              <div className="flex items-center gap-2">
-                <Filter className={`w-4 h-4 ${isDark ? 'text-red-400' : 'text-red-500'}`} />
-                <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('relIncidents.filters')}</span>
+      {showFilters && filters && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-[#EC0000]" />
+              <span className="text-sm font-bold text-gray-900 dark:text-white">{t('relIncidents.filters')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {hasActiveFilters && (
+                <button onClick={() => { clearFilters(); setTimeout(fetchData, 50); }}
+                  className="text-xs font-medium px-2.5 py-1 rounded-lg transition-all text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-white">
+                  <X className="w-3 h-3 inline mr-1" />{t('relIncidents.clear')}
+                </button>
+              )}
+              <button onClick={fetchData}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#EC0000] hover:bg-[#CC0000] text-white transition-colors">
+                <Search className="w-3 h-3" />{t('relIncidents.apply')}
+              </button>
+            </div>
+          </div>
+          <div className="p-6 space-y-4">
+            {/* Row 1: Dates + Search */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-gray-500 dark:text-gray-400">
+                  <Calendar className="w-3 h-3 inline mr-1" />{t('relIncidents.dateFrom')}
+                </label>
+                <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className={inputCls} />
               </div>
-              <div className="flex items-center gap-2">
-                {hasActiveFilters && (
-                  <button onClick={() => { clearFilters(); setTimeout(fetchData, 50); }}
-                    className={`text-xs font-medium px-2.5 py-1 rounded-lg transition-all ${isDark ? 'text-gray-400 hover:bg-white/5 hover:text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}>
-                    <X className="w-3 h-3 inline mr-1" />{t('relIncidents.clear')}
-                  </button>
-                )}
-                <motion.button whileTap={{ scale: 0.95 }} onClick={fetchData}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-red-500 text-white hover:bg-red-400 transition-all">
-                  <Search className="w-3 h-3" />{t('relIncidents.apply')}
-                </motion.button>
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-gray-500 dark:text-gray-400">
+                  <Calendar className="w-3 h-3 inline mr-1" />{t('relIncidents.dateTo')}
+                </label>
+                <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-gray-500 dark:text-gray-400">
+                  <Search className="w-3 h-3 inline mr-1" />{t('relIncidents.freeSearch')}
+                </label>
+                <input type="text" value={searchText} onChange={e => setSearchText(e.target.value)} placeholder={t('relIncidents.searchPlaceholder')} className={inputCls} />
               </div>
             </div>
-            <div className="p-6 space-y-4">
-              {/* Row 1: Dates + Search */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                    <Calendar className="w-3 h-3 inline mr-1" />{t('relIncidents.dateFrom')}
-                  </label>
-                  <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className={inputCls} />
-                </div>
-                <div>
-                  <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                    <Calendar className="w-3 h-3 inline mr-1" />{t('relIncidents.dateTo')}
-                  </label>
-                  <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className={inputCls} />
-                </div>
-                <div>
-                  <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                    <Search className="w-3 h-3 inline mr-1" />{t('relIncidents.freeSearch')}
-                  </label>
-                  <input type="text" value={searchText} onChange={e => setSearchText(e.target.value)} placeholder={t('relIncidents.searchPlaceholder')} className={inputCls} />
-                </div>
+            {/* Row 2: Dropdowns */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-gray-500 dark:text-gray-400">{t('relIncidents.impact')}</label>
+                <SelectFilter value={impactId} onChange={setImpactId} options={filters.impacts} placeholder={t('relIncidents.all')} />
               </div>
-              {/* Row 2: Dropdowns */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div>
-                  <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('relIncidents.impact')}</label>
-                  <SelectFilter value={impactId} onChange={setImpactId} options={filters.impacts} placeholder={t('relIncidents.all')} />
-                </div>
-                <div>
-                  <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('relIncidents.origin')}</label>
-                  <SelectFilter value={originId} onChange={setOriginId} options={filters.origins} placeholder={t('relIncidents.all')} />
-                </div>
-                <div>
-                  <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('relIncidents.bank')}</label>
-                  <SelectFilter value={bankId} onChange={setBankId} options={filters.banks} placeholder={t('relIncidents.all')} />
-                </div>
-                <div>
-                  <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('relIncidents.department')}</label>
-                  <SelectFilter value={departmentId} onChange={setDepartmentId} options={filters.departments} placeholder={t('relIncidents.all')} />
-                </div>
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-gray-500 dark:text-gray-400">{t('relIncidents.origin')}</label>
+                <SelectFilter value={originId} onChange={setOriginId} options={filters.origins} placeholder={t('relIncidents.all')} />
               </div>
-              {/* Row 3: More dropdowns */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div>
-                  <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('relIncidents.detectedBy')}</label>
-                  <SelectFilter value={detectedById} onChange={setDetectedById} options={filters.detected_by} placeholder={t('relIncidents.all')} />
-                </div>
-                <div>
-                  <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('relIncidents.category')}</label>
-                  <SelectFilter value={categoryId} onChange={setCategoryId} options={filters.categories} placeholder={t('relIncidents.allFem')} />
-                </div>
-                <div>
-                  <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('relIncidents.product')}</label>
-                  <SelectFilter value={productId} onChange={setProductId} options={filters.products} placeholder={t('relIncidents.all')} />
-                </div>
-                <div>
-                  <label className={`text-xs font-semibold uppercase tracking-wider mb-1.5 block ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('relIncidents.recurrence')}</label>
-                  <div className="relative">
-                    <select value={recurrence} onChange={e => setRecurrence(e.target.value)} className={selectCls}
-                      style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : undefined }}>
-                      <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('relIncidents.allFem')}</option>
-                      <option value="FIRST" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('relIncidents.punctual')}</option>
-                      <option value="RECURRENT" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('relIncidents.recurrent')}</option>
-                      <option value="SYSTEMIC" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('relIncidents.systemic')}</option>
-                    </select>
-                    <ChevronDown className={`absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none ${isDark ? 'text-gray-500' : 'text-gray-400'}`} />
-                  </div>
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-gray-500 dark:text-gray-400">{t('relIncidents.bank')}</label>
+                <SelectFilter value={bankId} onChange={setBankId} options={filters.banks} placeholder={t('relIncidents.all')} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-gray-500 dark:text-gray-400">{t('relIncidents.department')}</label>
+                <SelectFilter value={departmentId} onChange={setDepartmentId} options={filters.departments} placeholder={t('relIncidents.all')} />
+              </div>
+            </div>
+            {/* Row 3: More dropdowns */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-gray-500 dark:text-gray-400">{t('relIncidents.detectedBy')}</label>
+                <SelectFilter value={detectedById} onChange={setDetectedById} options={filters.detected_by} placeholder={t('relIncidents.all')} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-gray-500 dark:text-gray-400">{t('relIncidents.category')}</label>
+                <SelectFilter value={categoryId} onChange={setCategoryId} options={filters.categories} placeholder={t('relIncidents.allFem')} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-gray-500 dark:text-gray-400">{t('relIncidents.product')}</label>
+                <SelectFilter value={productId} onChange={setProductId} options={filters.products} placeholder={t('relIncidents.all')} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-gray-500 dark:text-gray-400">{t('relIncidents.recurrence')}</label>
+                <div className="relative">
+                  <select value={recurrence} onChange={e => setRecurrence(e.target.value)}
+                    className="w-full appearance-none px-3 py-2 pr-8 rounded-xl border text-sm outline-none transition-all bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EC0000]/30">
+                    <option value="">{t('relIncidents.allFem')}</option>
+                    <option value="FIRST">{t('relIncidents.punctual')}</option>
+                    <option value="RECURRENT">{t('relIncidents.recurrent')}</option>
+                    <option value="SYSTEMIC">{t('relIncidents.systemic')}</option>
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none text-gray-400 dark:text-gray-500" />
                 </div>
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      )}
 
       {/* ── KPI Summary ────────────────────────────────────────────────────── */}
       {!loading && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: t('relIncidents.totalIncidents'), value: filtered.length, color: 'from-blue-500 to-indigo-600' },
-            { label: t('relIncidents.highImpactLabel'), value: highImpactCount, color: 'from-red-500 to-rose-600' },
-            { label: t('relIncidents.lowImpact'), value: filtered.filter(i => (i.impact_name || '').toLowerCase() === 'baixo').length, color: 'from-green-500 to-emerald-600' },
-            { label: t('relIncidents.recurrentLabel'), value: filtered.filter(i => i.recurrence_type === 'RECURRENT' || i.recurrence_type === 'SYSTEMIC').length, color: 'from-amber-500 to-orange-600' },
+            { label: t('relIncidents.totalIncidents'), value: filtered.length, boxCls: 'bg-blue-50 dark:bg-blue-900/20', textCls: 'text-blue-600 dark:text-blue-400' },
+            { label: t('relIncidents.highImpactLabel'), value: highImpactCount, boxCls: 'bg-red-50 dark:bg-red-900/20', textCls: 'text-[#EC0000]' },
+            { label: t('relIncidents.lowImpact'), value: filtered.filter(i => (i.impact_name || '').toLowerCase() === 'baixo').length, boxCls: 'bg-emerald-50 dark:bg-emerald-900/20', textCls: 'text-emerald-600 dark:text-emerald-400' },
+            { label: t('relIncidents.recurrentLabel'), value: filtered.filter(i => i.recurrence_type === 'RECURRENT' || i.recurrence_type === 'SYSTEMIC').length, boxCls: 'bg-amber-50 dark:bg-amber-900/20', textCls: 'text-amber-600 dark:text-amber-400' },
           ].map(kpi => (
-            <div key={kpi.label} className={cardCls}>
-              <div className="p-4 flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${kpi.color} flex items-center justify-center shadow-lg`}>
-                  <span className="text-white text-sm font-black">{kpi.value}</span>
-                </div>
-                <span className={`text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{kpi.label}</span>
+            <div key={kpi.label} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${kpi.boxCls}`}>
+                <span className={`text-sm font-mono font-bold ${kpi.textCls}`}>{kpi.value}</span>
               </div>
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{kpi.label}</span>
             </div>
           ))}
-        </motion.div>
+        </div>
       )}
 
       {/* ── Data Table ─────────────────────────────────────────────────────── */}
       {loading ? (
         <div className="flex justify-center py-24">
-          <Loader2 className={`w-8 h-8 animate-spin ${isDark ? 'text-gray-600' : 'text-gray-400'}`} />
+          <Loader2 className="w-8 h-8 animate-spin text-[#EC0000]" />
         </div>
       ) : filtered.length === 0 ? (
-        <div className={`text-center py-24 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+        <div className="text-center py-24 text-gray-400 dark:text-gray-600">
           <AlertTriangle className="w-12 h-12 mx-auto mb-4 opacity-30" />
           <p className="text-lg font-bold">{t('relIncidents.noIncidentsFound')}</p>
           <p className="text-sm mt-1">{t('relIncidents.noIncidentsDesc')}</p>
         </div>
       ) : (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={cardCls}>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className={isDark ? 'bg-red-600/80' : 'bg-red-600'}>
+                <tr className="bg-[#EC0000]">
                   {[
                     t('relIncidents.colDateError'), t('relIncidents.colDateDetection'), t('relIncidents.colOffice'), t('relIncidents.colClient'), t('relIncidents.colProduct'),
                     t('relIncidents.colEvent'), t('relIncidents.colReference'), t('relIncidents.colFinalClient'), t('relIncidents.colAmount'), t('relIncidents.colCurrency'),
@@ -484,44 +444,42 @@ export default function IncidentsReport() {
                   return (
                     <tr
                       key={row.id}
-                      className={`border-b transition-colors ${
-                        isDark
-                          ? `border-white/5 ${isHigh ? 'bg-red-500/[0.06]' : idx % 2 === 0 ? 'bg-white/[0.01]' : 'bg-white/[0.03]'} hover:bg-white/[0.06]`
-                          : `border-gray-100 ${isHigh ? 'bg-red-50' : idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-gray-100`
-                      }`}
+                      className={`border-b transition-colors border-gray-100 dark:border-gray-800
+                        ${isHigh ? 'bg-red-50/50 dark:bg-red-900/10' : idx % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50/50 dark:bg-gray-800/30'}
+                        hover:bg-gray-100 dark:hover:bg-gray-800/50`}
                     >
-                      <td className={`px-3 py-2.5 whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{fmtDate(row.date_occurrence)}</td>
-                      <td className={`px-3 py-2.5 whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{fmtDate(row.date_detection)}</td>
-                      <td className={`px-3 py-2.5 whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{row.office || ''}</td>
-                      <td className={`px-3 py-2.5 whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{row.bank_name || ''}</td>
-                      <td className={`px-3 py-2.5 whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{row.product_name || ''}</td>
-                      <td className={`px-3 py-2.5 whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{row.activity_name || ''}</td>
-                      <td className={`px-3 py-2.5 whitespace-nowrap font-mono text-[10px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{row.reference_code || ''}</td>
-                      <td className={`px-3 py-2.5 max-w-[200px] truncate ${isDark ? 'text-gray-300' : 'text-gray-700'}`} title={row.final_client || ''}>{row.final_client || ''}</td>
-                      <td className={`px-3 py-2.5 whitespace-nowrap text-right font-mono ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{fmtAmount(row.amount, row.currency)}</td>
-                      <td className={`px-3 py-2.5 whitespace-nowrap ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{row.currency || ''}</td>
-                      <td className={`px-3 py-2.5 whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{row.clasificacion || ''}</td>
-                      <td className={`px-3 py-2.5 whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{row.origin_name || ''}</td>
-                      <td className={`px-3 py-2.5 whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{row.category_name || ''}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{fmtDate(row.date_occurrence)}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{fmtDate(row.date_detection)}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{row.office || ''}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{row.bank_name || ''}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{row.product_name || ''}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{row.activity_name || ''}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap font-mono text-[10px] text-gray-500 dark:text-gray-400">{row.reference_code || ''}</td>
+                      <td className="px-3 py-2.5 max-w-[200px] truncate text-gray-700 dark:text-gray-300" title={row.final_client || ''}>{row.final_client || ''}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-right font-mono text-gray-700 dark:text-gray-300">{fmtAmount(row.amount, row.currency)}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-500 dark:text-gray-400">{row.currency || ''}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{row.clasificacion || ''}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{row.origin_name || ''}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{row.category_name || ''}</td>
                       <td className="px-3 py-2.5 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold ${
                           isHigh
-                            ? isDark ? 'bg-red-500/20 text-red-400' : 'bg-red-100 text-red-700'
-                            : isDark ? 'bg-green-500/20 text-green-400' : 'bg-green-100 text-green-700'
+                            ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400'
+                            : 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400'
                         }`}>
-                          {row.impact_name || '—'}
+                          {row.impact_name || '\u2014'}
                         </span>
                       </td>
-                      <td className={`px-3 py-2.5 whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{recurrenceLabel(row.recurrence_type, t)}</td>
-                      <td className={`px-3 py-2.5 whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{row.detected_by_name || ''}</td>
-                      <td className={`px-3 py-2.5 max-w-[300px] ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{recurrenceLabel(row.recurrence_type, t)}</td>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{row.detected_by_name || ''}</td>
+                      <td className="px-3 py-2.5 max-w-[300px] text-gray-700 dark:text-gray-300">
                         <div className="line-clamp-3 text-[11px] leading-relaxed">{row.description || ''}</div>
                       </td>
-                      <td className={`px-3 py-2.5 max-w-[300px] ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      <td className="px-3 py-2.5 max-w-[300px] text-gray-700 dark:text-gray-300">
                         <div className="line-clamp-3 text-[11px] leading-relaxed">{row.action_plan_text || ''}</div>
                       </td>
-                      <td className={`px-3 py-2.5 whitespace-nowrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{row.escalado || ''}</td>
-                      <td className={`px-3 py-2.5 max-w-[250px] ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                      <td className="px-3 py-2.5 whitespace-nowrap text-gray-700 dark:text-gray-300">{row.escalado || ''}</td>
+                      <td className="px-3 py-2.5 max-w-[250px] text-gray-700 dark:text-gray-300">
                         <div className="line-clamp-3 text-[11px] leading-relaxed">{row.comentarios_reunion || ''}</div>
                       </td>
                     </tr>
@@ -532,21 +490,18 @@ export default function IncidentsReport() {
           </div>
 
           {/* Footer */}
-          <div className={`px-6 py-3 border-t flex items-center justify-between ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
-            <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+          <div className="px-6 py-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between">
+            <span className="text-xs text-gray-400 dark:text-gray-500">
               {t('relIncidents.recordsFound', { count: filtered.length })}
             </span>
-            <motion.button
-              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            <button
               onClick={fetchData}
-              className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all ${
-                isDark ? 'text-gray-400 hover:bg-white/5 hover:text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-              }`}
+              className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-white"
             >
               <RefreshCw className="w-3 h-3" /> {t('relIncidents.refresh')}
-            </motion.button>
+            </button>
           </div>
-        </motion.div>
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
+import heroPoster from '../../assets/images/landing/hero-bg-poster.png';
 
 // ── Hooks ────────────────────────────────────────────────────────────────────
 
@@ -44,25 +45,12 @@ interface ChatMsg {
   time: string;
 }
 
-const INCOMING_MESSAGES: ChatMsg[] = [
-  { sender: 'Carlos M.',     avatar: 'CM', color: '#EF4444', text: '¿Otra vez el mismo error? ¿Nadie revisa esto?',       time: 'Hace 2 min'  },
-  { sender: 'Ana Directora', avatar: 'AD', color: '#F97316', text: 'El cliente llamó a reclamar. Necesito respuestas.',    time: 'Hace 5 min'  },
-  { sender: 'Luis Ops',      avatar: 'LO', color: '#EAB308', text: '¿Quién capacitó al nuevo? Ya van 3 errores hoy.',     time: 'Hace 8 min'  },
-  { sender: 'Marta S.',      avatar: 'MS', color: '#EF4444', text: 'El informe de ayer sigue sin aparecer.',              time: 'Hace 12 min' },
-  { sender: 'Dir. Regional', avatar: 'DR', color: '#DC2626', text: 'Esto no puede volver a pasar. Quiero soluciones.',    time: 'Hace 15 min' },
-];
-
-const OUTGOING_MESSAGES: ChatMsg[] = [
-  { sender: 'TradeDataHub', avatar: '✓', color: '#22C55E', text: 'Error registrado. Plan de acción creado automáticamente.',       time: 'Ahora' },
-  { sender: 'TradeDataHub', avatar: '✓', color: '#22C55E', text: 'Cliente gestionado. Seguimiento activo en el sistema.',          time: 'Ahora' },
-  { sender: 'TradeDataHub', avatar: '✓', color: '#22C55E', text: 'Nuevo colaborador productivo en 3 días con onboarding digital.', time: 'Ahora' },
-  { sender: 'TradeDataHub', avatar: '✓', color: '#22C55E', text: 'Informe actualizado en tiempo real. Cero incidencias este mes.', time: 'Ahora' },
-  { sender: 'TradeDataHub', avatar: '✓', color: '#22C55E', text: 'Errores recurrentes bajaron un 74%. Datos en el dashboard.',     time: 'Ahora' },
-];
+const INCOMING_COLORS = ['#EF4444', '#F97316', '#EAB308', '#EF4444', '#DC2626'];
+const OUTGOING_COLOR = '#22C55E';
 
 const INTERVAL = 1.4;
 
-// ── Film grain SVG (inline, no external request) ──────────────────────────────
+// Film grain SVG
 const GRAIN_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
 
 // ── Teams-style chat window ───────────────────────────────────────────────────
@@ -99,13 +87,11 @@ function TeamsWindow({
         className="flex items-center gap-2.5 px-4 py-2.5"
         style={{ background: titleColor === 'red' ? 'rgba(180,40,40,0.85)' : 'rgba(40,140,70,0.80)' }}
       >
-        {/* Window dots */}
         <div className="flex gap-1.5 mr-2">
           <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
           <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
           <span className="w-2.5 h-2.5 rounded-full bg-white/20" />
         </div>
-        {/* Channel icon */}
         <svg className="w-4 h-4 text-white/70" fill="currentColor" viewBox="0 0 20 20">
           <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" />
           <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z" />
@@ -113,7 +99,6 @@ function TeamsWindow({
         <span className="text-[13px] font-semibold text-white/90 font-body truncate">
           {title}
         </span>
-        {/* Status dot */}
         <span
           className="w-1.5 h-1.5 rounded-full ml-auto animate-pulse"
           style={{ background: titleColor === 'red' ? '#EF4444' : '#22C55E' }}
@@ -132,14 +117,12 @@ function TeamsWindow({
               opacity: 0,
             }}
           >
-            {/* Avatar */}
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
               style={{ background: msg.color }}
             >
               {msg.avatar}
             </div>
-            {/* Message content (Teams flat style) */}
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline gap-2">
                 <span className="text-[12px] font-semibold font-body" style={{ color: msg.color }}>
@@ -154,7 +137,6 @@ function TeamsWindow({
           </div>
         ))}
 
-        {/* Typing indicator */}
         {showTyping && (
           <div className="flex items-center gap-2 pl-10">
             <div className="flex items-center gap-1">
@@ -196,11 +178,25 @@ function TeamsWindow({
   );
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Main Component ───────────────────────────────────────────────────────────
 
 export default function HeroSection() {
   const { t } = useTranslation();
   const { theme } = useTheme();
+
+  // Build chat messages from i18n (language-reactive)
+  const incomingMessages = useMemo<ChatMsg[]>(() => {
+    const raw = t('landing.hero.video.incoming', { returnObjects: true }) as Array<{ sender: string; avatar: string; text: string; time: string }>;
+    if (!Array.isArray(raw)) return [];
+    return raw.map((m, i) => ({ ...m, color: INCOMING_COLORS[i] || '#EF4444' }));
+  }, [t]);
+
+  const outgoingMessages = useMemo<ChatMsg[]>(() => {
+    const raw = t('landing.hero.video.outgoing', { returnObjects: true }) as Array<{ sender: string; avatar: string; text: string; time: string }>;
+    if (!Array.isArray(raw)) return [];
+    return raw.map(m => ({ ...m, color: OUTGOING_COLOR }));
+  }, [t]);
+
   const contentRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -211,6 +207,20 @@ export default function HeroSection() {
   const isMobile = useIsMobile();
   const prefersReduced = usePrefersReducedMotion();
   const showVideo = !isMobile && !prefersReduced && !videoError;
+
+  // On mobile, show messages with a timer instead of video time
+  const [mobileTime, setMobileTime] = useState(0);
+  useEffect(() => {
+    if (!isMobile) return;
+    const start = Date.now();
+    let raf = 0;
+    const tick = () => {
+      setMobileTime((Date.now() - start) / 1000);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [isMobile]);
 
   // Content fade-in on mount
   useEffect(() => {
@@ -237,19 +247,20 @@ export default function HeroSection() {
     };
   }, [showVideo]);
 
-  const leftCount  = Math.min(INCOMING_MESSAGES.length, Math.floor(Math.max(0, time - 0.3) / INTERVAL) + 1);
-  const rightCount = Math.min(OUTGOING_MESSAGES.length, Math.floor(Math.max(0, time - 0.8) / INTERVAL) + 1);
-  const showTexts  = showVideo && isLoaded && time >= 0.3;
+  const effectiveTime = isMobile ? mobileTime : time;
+  const leftCount  = Math.min(incomingMessages.length, Math.floor(Math.max(0, effectiveTime - 0.3) / INTERVAL) + 1);
+  const rightCount = Math.min(outgoingMessages.length, Math.floor(Math.max(0, effectiveTime - 0.8) / INTERVAL) + 1);
+  const showTexts  = isMobile ? effectiveTime >= 0.3 : (showVideo && isLoaded && time >= 0.3);
   const showEffects = showVideo && isLoaded;
-  const showTyping  = showTexts && leftCount >= INCOMING_MESSAGES.length;
+  const showTyping  = showTexts && leftCount >= incomingMessages.length;
 
   return (
     <section
       className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white dark:bg-[#09090B]"
       style={{ paddingTop: '80px' }}
     >
-      {/* ── CAMADA 1 — Vídeo ─────────────────────────────────────────── */}
-      {showVideo && (
+      {/* ── CAMADA 1 — Vídeo (desktop) / Poster (mobile) ──────────────── */}
+      {showVideo ? (
         <video
           ref={videoRef}
           autoPlay
@@ -266,7 +277,15 @@ export default function HeroSection() {
           <source src="/video/hero-bg.mp4" type="video/mp4" />
           <source src="/video/hero-bg.webm" type="video/webm" />
         </video>
-      )}
+      ) : isMobile ? (
+        <img
+          src={heroPoster}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          style={{ filter: 'brightness(0.65) saturate(0.85)' }}
+        />
+      ) : null}
 
       {/* ── CAMADA 2 — Film grain ─────────────────────────────────────── */}
       {showEffects && (
@@ -320,68 +339,29 @@ export default function HeroSection() {
         }}
       />
 
-      {/* ── CAMADA 7 — Linha divisória central ────────────────────────── */}
-      {showEffects && (
-        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-[2px] pointer-events-none z-[5]">
-          <div className="absolute inset-0 bg-white/15" />
-          <div
-            className="absolute inset-0"
-            style={{
-              background: 'linear-gradient(to bottom, transparent 0%, rgba(236,0,0,0.35) 25%, rgba(236,0,0,0.55) 50%, rgba(236,0,0,0.35) 75%, transparent 100%)',
-              animation: 'lineGlow 3s ease-in-out infinite',
-            }}
-          />
-          <div
-            className="absolute left-1/2 -translate-x-1/2 w-[5px] h-[5px] rounded-full bg-[#EC0000]"
-            style={{
-              boxShadow: '0 0 6px rgba(236,0,0,0.7), 0 0 16px rgba(236,0,0,0.35)',
-              animation: 'particleDrop 4s ease-in-out infinite',
-            }}
-          />
-        </div>
-      )}
-
-      {/* ── CAMADA 8 — Chat estilo Teams ──────────────────────────────── */}
-      {showTexts && (
+      {/* ── CAMADA 8 — Chat estilo Teams (desktop) ────────────────────── */}
+      {showTexts && !isMobile && (
         <div className="absolute inset-x-0 bottom-[5%] pointer-events-none z-[6] flex items-end justify-center gap-5 px-[4%]" style={{ height: '45%' }}>
-
-          {/* ESQUERDA — janela Teams (problemas) */}
           <div className="flex items-end max-w-[400px] w-full" style={{ height: 'auto' }}>
             <TeamsWindow
               title={t('landing.hero.video.labelLeft')}
               titleColor="red"
-              messages={INCOMING_MESSAGES}
+              messages={incomingMessages}
               count={leftCount}
               side="left"
               showTyping={showTyping}
               typingLabel={t('landing.hero.video.typing')}
             />
           </div>
-
-          {/* DIREITA — janela Teams (solucoes) */}
           <div className="flex items-end max-w-[400px] w-full" style={{ height: 'auto' }}>
             <TeamsWindow
               title={t('landing.hero.video.labelRight')}
               titleColor="green"
-              messages={OUTGOING_MESSAGES}
+              messages={outgoingMessages}
               count={rightCount}
               side="right"
             />
           </div>
-
-        </div>
-      )}
-
-      {/* ── CAMADA 10 — Indicador "Live" ──────────────────────────────── */}
-      {showEffects && (
-        <div className="absolute bottom-3 right-3 flex items-center gap-1.5 pointer-events-none z-[8]">
-          <div className="w-1.5 h-1.5 rounded-full bg-[#EC0000] animate-pulse" />
-          <span
-            className="text-[9px] uppercase tracking-[0.15em] font-body text-white/35"
-            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
-          >
-            Live
-          </span>
         </div>
       )}
 
@@ -390,7 +370,7 @@ export default function HeroSection() {
         ref={contentRef}
         className={showVideo
           ? 'absolute top-[14%] inset-x-0 z-10 px-8 text-center'
-          : 'relative z-10 w-full max-w-4xl mx-auto px-6 text-center py-24'
+          : 'relative z-10 w-full max-w-4xl mx-auto px-6 text-center pt-16 pb-8'
         }
         style={{
           opacity: 0,
@@ -410,7 +390,7 @@ export default function HeroSection() {
             className="w-1.5 h-1.5 rounded-full animate-pulse"
             style={{ background: '#EC0000' }}
           />
-          <span className="font-body text-xs font-semibold uppercase tracking-widest" style={{ color: '#EC0000' }}>
+          <span className="font-body text-xs font-semibold uppercase tracking-widest" style={{ color: theme === 'dark' ? '#FF8A8A' : '#EC0000' }}>
             {t('landing.hero.badge')}
           </span>
         </div>
@@ -435,16 +415,38 @@ export default function HeroSection() {
 
         {/* Subtitle */}
         <p
-          className="font-body leading-relaxed mb-12"
+          className="font-body leading-relaxed"
           style={{
             fontSize: '1rem',
             maxWidth: '580px',
-            margin: '0 auto 40px',
+            margin: isMobile ? '0 auto 20px' : '0 auto 40px',
             color: theme === 'dark' ? 'rgba(255,255,255,0.80)' : '#374151',
           }}
         >
           {t('landing.hero.subtitle')}
         </p>
+
+        {/* Mobile Teams chat (in-flow, below subtitle) */}
+        {isMobile && showTexts && (
+          <div className="flex flex-col gap-3 w-full max-w-sm mx-auto mt-4 mb-6">
+            <TeamsWindow
+              title={t('landing.hero.video.labelLeft')}
+              titleColor="red"
+              messages={incomingMessages}
+              count={leftCount}
+              side="left"
+              showTyping={showTyping}
+              typingLabel={t('landing.hero.video.typing')}
+            />
+            <TeamsWindow
+              title={t('landing.hero.video.labelRight')}
+              titleColor="green"
+              messages={outgoingMessages}
+              count={rightCount}
+              side="right"
+            />
+          </div>
+        )}
       </div>
     </section>
   );

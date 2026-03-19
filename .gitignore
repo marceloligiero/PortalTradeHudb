@@ -91,6 +91,11 @@ ssl/
 *_backup*
 *_dump*
 *.dump.sql
+database/backup_*.sql
+
+# ── Community Skills (instalação local) ──────────────
+.agents/
+skills-lock.json
 
 # ── Ferramentas de tunnel (dev local) ──────────────────
 cloudflared.exe

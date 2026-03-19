@@ -1,39 +1,68 @@
 import { useTranslation } from 'react-i18next';
-import { GraduationCap, ShieldAlert, BarChart3, Headphones, Settings } from 'lucide-react';
+import { useScrollReveal, reveal } from './primitives';
+import {
+  Clock, AlertTriangle, FileSpreadsheet, Zap,
+  TrendingUp, ShieldCheck, RotateCcw, Brain,
+} from 'lucide-react';
 
-const ITEM_ICONS = [GraduationCap, ShieldAlert, BarChart3, Headphones, Settings];
-const ITEM_KEYS = ['training', 'tutoring', 'reports', 'tickets', 'masterData'] as const;
+const TICKER_ITEMS = [
+  { key: 'onboarding',   icon: Clock,           symbol: 'ONBD', value: '-74%'  },
+  { key: 'errors',       icon: AlertTriangle,    symbol: 'ERRS', value: '-82%'  },
+  { key: 'reports',      icon: FileSpreadsheet,  symbol: 'RPTS', value: '-95%'  },
+  { key: 'resolution',   icon: Zap,              symbol: 'RSLV', value: '-68%'  },
+  { key: 'productivity', icon: TrendingUp,       symbol: 'PROD', value: '+45%'  },
+  { key: 'compliance',   icon: ShieldCheck,      symbol: 'CMPL', value: '99.4%' },
+  { key: 'rework',       icon: RotateCcw,        symbol: 'RWRK', value: '-91%'  },
+  { key: 'retention',    icon: Brain,            symbol: 'KNOW', value: '+3x'   },
+] as const;
 
 export default function SocialProofBar() {
   const { t } = useTranslation();
+  const { ref, visible } = useScrollReveal(0.3);
 
-  const ITEMS = ITEM_KEYS.map((key, i) => ({
-    icon: ITEM_ICONS[i],
-    label: t(`landing.socialProof.${key}`),
+  const items = TICKER_ITEMS.map(item => ({
+    ...item,
+    label: t(`landing.ticker.${item.key}`),
   }));
-
-  const REPEATED = [...ITEMS, ...ITEMS, ...ITEMS, ...ITEMS];
+  const repeated = [...items, ...items, ...items];
 
   return (
-    <div className="overflow-hidden bg-[#F8F9FB] dark:bg-[#111113] border-t border-b border-gray-200 dark:border-white/10 py-5">
-      <div className="flex animate-marquee whitespace-nowrap" style={{ width: 'max-content' }}>
-        {REPEATED.map((item, i) => {
+    <div
+      ref={ref as React.RefObject<HTMLDivElement>}
+      className="relative overflow-hidden z-[2]"
+      style={{
+        background: '#0C0C0F',
+        ...reveal(visible),
+      }}
+    >
+      {/* Top accent line — gradient red */}
+      <div className="h-[2px] w-full" style={{ background: 'linear-gradient(90deg, transparent, #EC0000 20%, #EC0000 80%, transparent)' }} />
+
+      {/* Fade edges */}
+      <div className="absolute inset-y-0 left-0 w-24 z-10 pointer-events-none" style={{ background: 'linear-gradient(to right, #0C0C0F, transparent)' }} />
+      <div className="absolute inset-y-0 right-0 w-24 z-10 pointer-events-none" style={{ background: 'linear-gradient(to left, #0C0C0F, transparent)' }} />
+
+      {/* Marquee */}
+      <div className="flex animate-marquee whitespace-nowrap py-3" style={{ width: 'max-content' }}>
+        {repeated.map((item, i) => {
           const Icon = item.icon;
+          const isDown = item.value.startsWith('-');
           return (
-            <span
-              key={i}
-              className="inline-flex items-center gap-2 mx-10 shrink-0 text-gray-400 dark:text-gray-600"
-              style={{ opacity: 0.6 }}
-            >
-              <Icon className="w-4 h-4" />
-              <span className="font-body text-xs uppercase" style={{ letterSpacing: '0.14em' }}>
-                {item.label}
+            <span key={i} className="inline-flex items-center gap-2 shrink-0 px-5">
+              <Icon className="w-3 h-3 text-[#22C55E]" />
+              <span className="font-mono text-[10px] font-bold tracking-widest text-[#22C55E]">{item.symbol}</span>
+              <span className="font-body text-[11px] text-white/50">{item.label}</span>
+              <span className="inline-flex items-center gap-1">
+                <span className="text-[8px] text-[#22C55E]">{isDown ? '\u25BC' : '\u25B2'}</span>
+                <span className="font-mono text-[12px] font-bold text-white">{item.value}</span>
               </span>
-              <span className="ml-8 text-gray-300 dark:text-white/10">·</span>
+              <span className="ml-3 text-[10px] text-white/10 font-mono">|</span>
             </span>
           );
         })}
       </div>
+
+      <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.06) 20%, rgba(255,255,255,0.06) 80%, transparent)' }} />
     </div>
   );
 }

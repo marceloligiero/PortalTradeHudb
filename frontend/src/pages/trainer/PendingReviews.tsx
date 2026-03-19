@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { 
-  Target, 
-  Clock, 
-  User, 
-  RefreshCw, 
+import {
+  Target,
+  Clock,
+  User,
+  RefreshCw,
   ChevronRight,
   ClipboardCheck,
   AlertCircle,
@@ -40,7 +39,7 @@ interface Submission {
 export default function PendingReviews() {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  
+
   const [loading, setLoading] = useState(true);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
 
@@ -78,124 +77,145 @@ export default function PendingReviews() {
     });
   };
 
+  /* ── Loading ─────────────────────────────────────────── */
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full"
-        />
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-[#EC0000]/20 border-t-[#EC0000] rounded-full animate-spin mx-auto" />
+          <p className="text-gray-500 dark:text-gray-400 mt-4 font-body text-sm">{t('messages.loading')}</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl">
-            <ClipboardCheck className="w-6 h-6 text-white" />
+    <div className="max-w-5xl mx-auto space-y-6">
+
+      {/* ── Header ──────────────────────────────────────── */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+              <ClipboardCheck className="w-6 h-6 text-[#EC0000]" />
+            </div>
+            <div>
+              <p className="font-body text-xs font-bold uppercase tracking-widest text-[#EC0000] mb-1">
+                {t('pendingReviews.title')}
+              </p>
+              <h1 className="font-headline text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+                {t('pendingReviews.title')}
+              </h1>
+              <p className="font-body text-gray-500 dark:text-gray-400 mt-1 text-sm">
+                {submissions.length === 1
+                  ? t('pendingReviews.subtitle', { count: submissions.length })
+                  : t('pendingReviews.subtitlePlural', { count: submissions.length })
+                }
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {t('pendingReviews.title')}
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              {submissions.length === 1 
-                ? t('pendingReviews.subtitle', { count: submissions.length })
-                : t('pendingReviews.subtitlePlural', { count: submissions.length })
-              }
-            </p>
-          </div>
+          <button
+            onClick={loadSubmissions}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-xl font-body font-bold text-sm transition-colors shrink-0"
+          >
+            <RefreshCw className="w-4 h-4" />
+            {t('common.refresh', 'Atualizar')}
+          </button>
         </div>
-        <button
-          onClick={loadSubmissions}
-          className="p-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors"
-        >
-          <RefreshCw className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-        </button>
+
+        {/* Stats bar */}
+        <div className="grid grid-cols-3 gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+          {[
+            { icon: AlertCircle, value: submissions.length, label: t('pendingReviews.awaitingReview', 'Aguardando Revisão'), accent: submissions.length > 0 ? 'text-amber-500' : 'text-gray-400' },
+            { icon: Hash, value: submissions.reduce((acc, s) => acc + (s.total_operations || 0), 0), label: t('pendingReviews.operations', 'Operações'), accent: 'text-blue-500' },
+            { icon: Clock, value: formatTime(submissions.reduce((acc, s) => acc + (s.total_time_minutes || 0), 0)), label: t('pendingReviews.totalTime', 'Tempo Total'), accent: 'text-[#EC0000]' },
+          ].map((stat, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <stat.icon className={`w-5 h-5 ${stat.accent} shrink-0`} />
+              <div>
+                <p className="font-mono text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+                <p className="font-body text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">{stat.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Lista de Submissões */}
+      {/* ── Content ─────────────────────────────────────── */}
       {submissions.length === 0 ? (
-        <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-12 text-center shadow-sm dark:shadow-none">
-          <ClipboardCheck className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-12 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center mx-auto mb-4">
+            <ClipboardCheck className="w-8 h-8 text-emerald-500" />
+          </div>
+          <h3 className="font-headline text-lg font-bold text-gray-700 dark:text-gray-200 mb-1">
             {t('pendingReviews.allCaughtUp')}
           </h3>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="font-body text-sm text-gray-400 dark:text-gray-500 max-w-md mx-auto">
             {t('pendingReviews.noPendingReviews')}
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {submissions.map((submission, index) => (
-            <motion.div
+        <div className="space-y-3">
+          {submissions.map((submission) => (
+            <div
               key={submission.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 hover:border-orange-500/50 transition-all cursor-pointer shadow-sm dark:shadow-none"
               onClick={() => navigate(`/submissions/${submission.id}/review`)}
+              className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-[#EC0000]/30 transition-colors cursor-pointer"
             >
-              <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500/20 to-red-500/20 flex items-center justify-center">
-                      <Target className="w-7 h-7 text-orange-400" />
+              <div className="p-5">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                  {/* Left: Challenge info */}
+                  <div className="flex items-start gap-4 flex-1 min-w-0">
+                    <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+                      <Target className="w-6 h-6 text-[#EC0000]" />
                     </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-headline text-base font-bold text-gray-900 dark:text-white truncate">
                         {submission.challenge?.title || `Desafio #${submission.challenge_id}`}
                       </h3>
-                      <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        <span className="flex items-center gap-1">
-                          <User className="w-4 h-4" />
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs text-gray-400 dark:text-gray-500">
+                        <span className="flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5" />
                           {submission.user?.full_name || t('pendingReviews.student')}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-4 h-4" />
+                        <span className="flex items-center gap-1.5">
+                          <Clock className="w-3.5 h-3.5" />
                           {formatDate(submission.updated_at)}
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-6">
-                    {/* Operações */}
+                  {/* Right: Stats + badge + arrow */}
+                  <div className="flex items-center gap-5 shrink-0">
+                    {/* Operations */}
                     <div className="text-center">
-                      <div className="flex items-center gap-1 text-xl font-bold text-gray-900 dark:text-white">
-                        <Hash className="w-5 h-5 text-blue-400" />
+                      <p className="font-mono text-lg font-bold text-gray-900 dark:text-white">
                         {submission.total_operations || 0}
-                      </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{t('pendingReviews.operations')}</p>
+                      </p>
+                      <p className="font-body text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('pendingReviews.operations')}</p>
                     </div>
 
-                    {/* Tempo */}
+                    {/* Time */}
                     <div className="text-center">
-                      <div className="flex items-center gap-1 text-xl font-bold text-gray-900 dark:text-white">
-                        <Clock className="w-5 h-5 text-yellow-400" />
+                      <p className="font-mono text-lg font-bold text-gray-900 dark:text-white">
                         {formatTime(submission.total_time_minutes || 0)}
-                      </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{t('pendingReviews.totalTime')}</p>
+                      </p>
+                      <p className="font-body text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('pendingReviews.totalTime')}</p>
                     </div>
 
-                    {/* Status */}
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-500/20 rounded-lg">
-                      <AlertCircle className="w-4 h-4 text-orange-400" />
-                      <span className="text-sm font-bold text-orange-400">
-                        {t('pendingReviews.awaitingReview')}
-                      </span>
-                    </div>
+                    {/* Status badge */}
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      {t('pendingReviews.awaitingReview')}
+                    </span>
 
                     {/* Arrow */}
-                    <ChevronRight className="w-5 h-5 text-gray-500" />
+                    <ChevronRight className="w-5 h-5 text-gray-300 dark:text-gray-600" />
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}

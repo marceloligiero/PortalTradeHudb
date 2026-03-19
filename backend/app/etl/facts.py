@@ -70,7 +70,7 @@ def load_fact_tutoria(db: Session):
         JOIN dw_dim_user du_student ON du_student.user_id = te.tutorado_id
         LEFT JOIN dw_dim_user du_trainer ON du_trainer.user_id = te.created_by_id
         LEFT JOIN dw_dim_error_category dec2 ON dec2.category_id = te.category_id
-        LEFT JOIN dw_dim_status ds ON ds.domain = 'TUTORIA' AND ds.status_code = te.status
+        LEFT JOIN dw_dim_status ds ON ds.`domain` = 'TUTORIA' AND ds.status_code = te.status
         WHERE te.is_active = 1
           AND EXISTS (SELECT 1 FROM dw_dim_date dd WHERE dd.date_key = CAST(DATE_FORMAT(te.date_occurrence, '%Y%m%d') AS UNSIGNED))
     """))
@@ -86,15 +86,15 @@ def load_fact_chamados(db: Session):
     db.execute(text("""
         INSERT INTO dw_fact_chamados
             (date_key, creator_key, assignee_key, status_key, chamado_id,
-             type, priority, is_resolved, days_to_resolve, comments_count)
+             `type`, `priority`, is_resolved, days_to_resolve, comments_count)
         SELECT
             CAST(DATE_FORMAT(ch.created_at, '%Y%m%d') AS UNSIGNED),
             du_creator.user_key,
             du_assignee.user_key,
             ds.status_key,
             ch.id,
-            ch.type,
-            ch.priority,
+            ch.`type`,
+            ch.`priority`,
             CASE WHEN ch.status = 'CONCLUIDO' THEN 1 ELSE 0 END,
             CASE WHEN ch.completed_at IS NOT NULL
                  THEN DATEDIFF(ch.completed_at, ch.created_at)
@@ -103,7 +103,7 @@ def load_fact_chamados(db: Session):
         FROM chamados ch
         JOIN dw_dim_user du_creator ON du_creator.user_id = ch.created_by_id
         LEFT JOIN dw_dim_user du_assignee ON du_assignee.user_id = ch.assigned_to_id
-        LEFT JOIN dw_dim_status ds ON ds.domain = 'CHAMADOS' AND ds.status_code = ch.status
+        LEFT JOIN dw_dim_status ds ON ds.`domain` = 'CHAMADOS' AND ds.status_code = ch.status
         WHERE EXISTS (SELECT 1 FROM dw_dim_date dd WHERE dd.date_key = CAST(DATE_FORMAT(ch.created_at, '%Y%m%d') AS UNSIGNED))
     """))
     count = db.execute(text("SELECT COUNT(*) FROM dw_fact_chamados")).scalar()
@@ -133,7 +133,7 @@ def load_fact_internal_errors(db: Session):
         JOIN dw_dim_user du_creator ON du_creator.user_id = ie.created_by_id
         JOIN dw_dim_user du_gravador ON du_gravador.user_id = ie.gravador_id
         JOIN dw_dim_user du_liberador ON du_liberador.user_id = ie.liberador_id
-        LEFT JOIN dw_dim_status ds ON ds.domain = 'INTERNAL_ERROR' AND ds.status_code = ie.status
+        LEFT JOIN dw_dim_status ds ON ds.`domain` = 'INTERNAL_ERROR' AND ds.status_code = ie.status
         LEFT JOIN learning_sheets ls ON ls.internal_error_id = ie.id
         LEFT JOIN internal_error_action_plans ap ON ap.internal_error_id = ie.id
         WHERE ie.is_active = 1

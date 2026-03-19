@@ -10,9 +10,9 @@ def load_dim_user(db: Session):
     """Reload dw_dim_user from users + teams."""
     db.execute(text("DELETE FROM dw_dim_user"))
     db.execute(text("""
-        INSERT INTO dw_dim_user (user_id, email, full_name, role, team_name, team_id, is_active, is_trainer, is_tutor)
-        SELECT u.id, u.email, u.full_name, u.role,
-               t.name, u.team_id, u.is_active, u.is_trainer, u.is_tutor
+        INSERT INTO dw_dim_user (user_id, email, full_name, `role`, team_name, team_id, is_active, is_trainer, is_tutor)
+        SELECT u.id, u.email, u.full_name, u.`role`,
+               t.`name`, u.team_id, u.is_active, u.is_trainer, u.is_tutor
         FROM users u
         LEFT JOIN teams t ON t.id = u.team_id
     """))
@@ -26,8 +26,8 @@ def load_dim_course(db: Session):
     """Reload dw_dim_course from courses + lessons + challenges."""
     db.execute(text("DELETE FROM dw_dim_course"))
     db.execute(text("""
-        INSERT INTO dw_dim_course (course_id, title, level, total_lessons, total_challenges, trainer_name, trainer_id, is_active)
-        SELECT c.id, c.title, c.level,
+        INSERT INTO dw_dim_course (course_id, title, `level`, total_lessons, total_challenges, trainer_name, trainer_id, is_active)
+        SELECT c.id, c.title, c.`level`,
                (SELECT COUNT(*) FROM lessons l WHERE l.course_id = c.id),
                (SELECT COUNT(*) FROM challenges ch WHERE ch.course_id = c.id),
                u.full_name, c.created_by, c.is_active
@@ -44,9 +44,9 @@ def load_dim_error_category(db: Session):
     """Reload dw_dim_error_category."""
     db.execute(text("DELETE FROM dw_dim_error_category"))
     db.execute(text("""
-        INSERT INTO dw_dim_error_category (category_id, name, parent_name, is_active)
-        SELECT ec.id, ec.name,
-               (SELECT p.name FROM tutoria_error_categories p WHERE p.id = ec.parent_id),
+        INSERT INTO dw_dim_error_category (category_id, `name`, parent_name, is_active)
+        SELECT ec.id, ec.`name`,
+               (SELECT p.`name` FROM tutoria_error_categories p WHERE p.id = ec.parent_id),
                ec.is_active
         FROM tutoria_error_categories ec
     """))
@@ -60,8 +60,8 @@ def load_dim_team(db: Session):
     """Reload dw_dim_team from teams."""
     db.execute(text("DELETE FROM dw_dim_team"))
     db.execute(text("""
-        INSERT INTO dw_dim_team (team_id, name, manager_name, total_members, is_active)
-        SELECT t.id, t.name,
+        INSERT INTO dw_dim_team (team_id, `name`, manager_name, total_members, is_active)
+        SELECT t.id, t.`name`,
                (SELECT u.full_name FROM users u WHERE u.id = t.manager_id),
                (SELECT COUNT(*) FROM users u2 WHERE u2.team_id = t.id),
                t.is_active
@@ -76,7 +76,7 @@ def load_dim_team(db: Session):
 def load_dim_status(db: Session):
     """Ensure dw_dim_status has all status codes (INSERT IGNORE)."""
     db.execute(text("""
-        INSERT IGNORE INTO dw_dim_status (domain, status_code, status_label) VALUES
+        INSERT IGNORE INTO dw_dim_status (`domain`, status_code, status_label) VALUES
         ('TUTORIA', 'REGISTERED', 'Registado'),
         ('TUTORIA', 'IN_PROGRESS', 'Em Progresso'),
         ('TUTORIA', 'COMPLETED', 'Concluído'),

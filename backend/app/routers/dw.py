@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.database import get_db
+from app import auth
 from app.auth import get_current_active_user, require_role
 from app.etl.etl_runner import run_full_etl
 
@@ -47,7 +48,7 @@ async def trigger_etl(
 @router.get("/snapshot/latest")
 async def snapshot_latest(
     db: Session = Depends(get_db),
-    _user=Depends(require_role(["ADMIN", "MANAGER"])),
+    _user=Depends(require_role(auth.ADMIN_MANAGER_ROLES)),
 ):
     """Latest daily snapshot with trend vs previous day."""
     rows = db.execute(text("""
@@ -70,22 +71,16 @@ async def snapshot_latest(
 @router.get("/training/by-month")
 async def training_by_month(
     db: Session = Depends(get_db),
-    _user=Depends(require_role(["ADMIN", "MANAGER"])),
+    _user=Depends(require_role(auth.ADMIN_MANAGER_ROLES)),
     year: int = Query(default=None),
 ):
-    """Certificates issued grouped by month for Recharts."""
-    year_filter = "AND dd.year = :year" if year else ""
+    """Certificates issued grouped by month."""
+    year_filter = "WHERE `year` = :year" if year else ""
     params = {"year": year} if year else {}
     rows = db.execute(text(f"""
-        SELECT dd.year, dd.month, dd.month_name_short,
-               COUNT(*) AS certificates,
-               ROUND(AVG(ft.total_hours), 1) AS avg_hours,
-               ROUND(AVG(ft.average_mpu), 1) AS avg_mpu
-        FROM dw_fact_training ft
-        JOIN dw_dim_date dd ON dd.date_key = ft.date_key
-        WHERE 1=1 {year_filter}
-        GROUP BY dd.year, dd.month, dd.month_name_short
-        ORDER BY dd.year, dd.month
+        SELECT * FROM dw_view_training_monthly
+        {year_filter}
+        ORDER BY `year`, `month`
     """), params).mappings().all()
     return _build_response([dict(r) for r in rows])
 
@@ -93,17 +88,12 @@ async def training_by_month(
 @router.get("/training/by-course")
 async def training_by_course(
     db: Session = Depends(get_db),
-    _user=Depends(require_role(["ADMIN", "MANAGER"])),
+    _user=Depends(require_role(auth.ADMIN_MANAGER_ROLES)),
     limit: int = Query(default=10, le=50),
 ):
     """Top courses by certificates issued."""
     rows = db.execute(text("""
-        SELECT dc.course_name, dc.course_code,
-               COUNT(*) AS certificates,
-               ROUND(AVG(ft.average_approval_rate), 1) AS avg_approval
-        FROM dw_fact_training ft
-        JOIN dw_dim_course dc ON dc.course_key = ft.course_key
-        GROUP BY dc.course_key, dc.course_name, dc.course_code
+        SELECT * FROM dw_view_training_by_course
         ORDER BY certificates DESC
         LIMIT :lim
     """), {"lim": limit}).mappings().all()
@@ -115,17 +105,11 @@ async def training_by_course(
 @router.get("/tutoria/by-category")
 async def tutoria_by_category(
     db: Session = Depends(get_db),
-    _user=Depends(require_role(["ADMIN", "MANAGER"])),
+    _user=Depends(require_role(auth.ADMIN_MANAGER_ROLES)),
 ):
     """Tutoring errors grouped by error category."""
     rows = db.execute(text("""
-        SELECT dec2.category_name,
-               COUNT(*) AS total,
-               SUM(ft.is_resolved) AS resolved,
-               ROUND(AVG(ft.days_to_resolve), 1) AS avg_days
-        FROM dw_fact_tutoria ft
-        JOIN dw_dim_error_category dec2 ON dec2.category_key = ft.category_key
-        GROUP BY dec2.category_key, dec2.category_name
+        SELECT * FROM dw_view_tutoria_by_category
         ORDER BY total DESC
     """)).mappings().all()
     return _build_response([dict(r) for r in rows])
@@ -134,21 +118,15 @@ async def tutoria_by_category(
 @router.get("/tutoria/by-month")
 async def tutoria_by_month(
     db: Session = Depends(get_db),
-    _user=Depends(require_role(["ADMIN", "MANAGER"])),
+    _user=Depends(require_role(auth.ADMIN_MANAGER_ROLES)),
     year: int = Query(default=None),
 ):
-    year_filter = "AND dd.year = :year" if year else ""
+    year_filter = "WHERE `year` = :year" if year else ""
     params = {"year": year} if year else {}
     rows = db.execute(text(f"""
-        SELECT dd.year, dd.month, dd.month_name_short,
-               COUNT(*) AS total,
-               SUM(ft.is_resolved) AS resolved,
-               ROUND(AVG(ft.days_to_resolve), 1) AS avg_days
-        FROM dw_fact_tutoria ft
-        JOIN dw_dim_date dd ON dd.date_key = ft.date_key
-        WHERE 1=1 {year_filter}
-        GROUP BY dd.year, dd.month, dd.month_name_short
-        ORDER BY dd.year, dd.month
+        SELECT * FROM dw_view_tutoria_monthly
+        {year_filter}
+        ORDER BY `year`, `month`
     """), params).mappings().all()
     return _build_response([dict(r) for r in rows])
 
@@ -156,17 +134,11 @@ async def tutoria_by_month(
 @router.get("/tutoria/by-trainer")
 async def tutoria_by_trainer(
     db: Session = Depends(get_db),
-    _user=Depends(require_role(["ADMIN", "MANAGER"])),
+    _user=Depends(require_role(auth.ADMIN_MANAGER_ROLES)),
     limit: int = Query(default=10, le=50),
 ):
     rows = db.execute(text("""
-        SELECT du.full_name AS trainer_name, du.team_name,
-               COUNT(*) AS total,
-               SUM(ft.is_resolved) AS resolved,
-               ROUND(AVG(ft.days_to_resolve), 1) AS avg_days
-        FROM dw_fact_tutoria ft
-        JOIN dw_dim_user du ON du.user_key = ft.trainer_key
-        GROUP BY du.user_key, du.full_name, du.team_name
+        SELECT * FROM dw_view_tutoria_by_trainer
         ORDER BY total DESC
         LIMIT :lim
     """), {"lim": limit}).mappings().all()
@@ -178,15 +150,10 @@ async def tutoria_by_trainer(
 @router.get("/chamados/by-status")
 async def chamados_by_status(
     db: Session = Depends(get_db),
-    _user=Depends(require_role(["ADMIN", "MANAGER"])),
+    _user=Depends(require_role(auth.ADMIN_MANAGER_ROLES)),
 ):
     rows = db.execute(text("""
-        SELECT ds.status_label, ds.status_code,
-               COUNT(*) AS total,
-               ROUND(AVG(fc.days_to_resolve), 1) AS avg_days
-        FROM dw_fact_chamados fc
-        JOIN dw_dim_status ds ON ds.status_key = fc.status_key
-        GROUP BY ds.status_key, ds.status_label, ds.status_code
+        SELECT * FROM dw_view_chamados_by_status
         ORDER BY total DESC
     """)).mappings().all()
     return _build_response([dict(r) for r in rows])
@@ -195,21 +162,15 @@ async def chamados_by_status(
 @router.get("/chamados/by-month")
 async def chamados_by_month(
     db: Session = Depends(get_db),
-    _user=Depends(require_role(["ADMIN", "MANAGER"])),
+    _user=Depends(require_role(auth.ADMIN_MANAGER_ROLES)),
     year: int = Query(default=None),
 ):
-    year_filter = "AND dd.year = :year" if year else ""
+    year_filter = "WHERE `year` = :year" if year else ""
     params = {"year": year} if year else {}
     rows = db.execute(text(f"""
-        SELECT dd.year, dd.month, dd.month_name_short,
-               COUNT(*) AS total,
-               SUM(fc.is_resolved) AS resolved,
-               ROUND(AVG(fc.days_to_resolve), 1) AS avg_days
-        FROM dw_fact_chamados fc
-        JOIN dw_dim_date dd ON dd.date_key = fc.date_key
-        WHERE 1=1 {year_filter}
-        GROUP BY dd.year, dd.month, dd.month_name_short
-        ORDER BY dd.year, dd.month
+        SELECT * FROM dw_view_chamados_monthly
+        {year_filter}
+        ORDER BY `year`, `month`
     """), params).mappings().all()
     return _build_response([dict(r) for r in rows])
 
@@ -217,14 +178,10 @@ async def chamados_by_month(
 @router.get("/chamados/by-type")
 async def chamados_by_type(
     db: Session = Depends(get_db),
-    _user=Depends(require_role(["ADMIN", "MANAGER"])),
+    _user=Depends(require_role(auth.ADMIN_MANAGER_ROLES)),
 ):
     rows = db.execute(text("""
-        SELECT fc.type, fc.priority,
-               COUNT(*) AS total,
-               SUM(fc.is_resolved) AS resolved
-        FROM dw_fact_chamados fc
-        GROUP BY fc.type, fc.priority
+        SELECT * FROM dw_view_chamados_by_type
         ORDER BY total DESC
     """)).mappings().all()
     return _build_response([dict(r) for r in rows])
@@ -235,21 +192,15 @@ async def chamados_by_type(
 @router.get("/internal-errors/by-month")
 async def internal_errors_by_month(
     db: Session = Depends(get_db),
-    _user=Depends(require_role(["ADMIN", "MANAGER"])),
+    _user=Depends(require_role(auth.ADMIN_MANAGER_ROLES)),
     year: int = Query(default=None),
 ):
-    year_filter = "AND dd.year = :year" if year else ""
+    year_filter = "WHERE `year` = :year" if year else ""
     params = {"year": year} if year else {}
     rows = db.execute(text(f"""
-        SELECT dd.year, dd.month, dd.month_name_short,
-               COUNT(*) AS total,
-               SUM(fie.has_learning_sheet) AS with_learning_sheet,
-               SUM(fie.has_action_plan) AS with_action_plan
-        FROM dw_fact_internal_errors fie
-        JOIN dw_dim_date dd ON dd.date_key = fie.date_key
-        WHERE 1=1 {year_filter}
-        GROUP BY dd.year, dd.month, dd.month_name_short
-        ORDER BY dd.year, dd.month
+        SELECT * FROM dw_view_internal_errors_monthly
+        {year_filter}
+        ORDER BY `year`, `month`
     """), params).mappings().all()
     return _build_response([dict(r) for r in rows])
 
@@ -257,16 +208,10 @@ async def internal_errors_by_month(
 @router.get("/internal-errors/by-team")
 async def internal_errors_by_team(
     db: Session = Depends(get_db),
-    _user=Depends(require_role(["ADMIN", "MANAGER"])),
+    _user=Depends(require_role(auth.ADMIN_MANAGER_ROLES)),
 ):
     rows = db.execute(text("""
-        SELECT dt.team_name,
-               COUNT(*) AS total,
-               SUM(fie.has_learning_sheet) AS with_learning_sheet
-        FROM dw_fact_internal_errors fie
-        JOIN dw_dim_user du ON du.user_key = fie.reporter_key
-        JOIN dw_dim_team dt ON dt.team_name = du.team_name
-        GROUP BY dt.team_name
+        SELECT * FROM dw_view_internal_errors_by_team
         ORDER BY total DESC
     """)).mappings().all()
     return _build_response([dict(r) for r in rows])
@@ -277,15 +222,13 @@ async def internal_errors_by_team(
 @router.get("/snapshot/trend")
 async def snapshot_trend(
     db: Session = Depends(get_db),
-    _user=Depends(require_role(["ADMIN", "MANAGER"])),
+    _user=Depends(require_role(auth.ADMIN_MANAGER_ROLES)),
     days: int = Query(default=30, le=365),
 ):
     """Daily snapshot trend for the last N days."""
     rows = db.execute(text("""
-        SELECT s.*, dd.full_date
-        FROM dw_fact_daily_snapshot s
-        JOIN dw_dim_date dd ON dd.date_key = s.date_key
-        ORDER BY s.date_key DESC
+        SELECT * FROM dw_view_snapshot_with_date
+        ORDER BY date_key DESC
         LIMIT :days
     """), {"days": days}).mappings().all()
     data = [dict(r) for r in reversed(rows)]
@@ -297,17 +240,10 @@ async def snapshot_trend(
 @router.get("/teams/overview")
 async def teams_overview(
     db: Session = Depends(get_db),
-    _user=Depends(require_role(["ADMIN", "MANAGER"])),
+    _user=Depends(require_role(auth.ADMIN_MANAGER_ROLES)),
 ):
     rows = db.execute(text("""
-        SELECT dt.team_name, dt.manager_name, dt.member_count,
-               (SELECT COUNT(*) FROM dw_fact_tutoria ft
-                JOIN dw_dim_user du ON du.user_key = ft.student_key
-                WHERE du.team_name = dt.team_name) AS tutoria_errors,
-               (SELECT COUNT(*) FROM dw_fact_internal_errors fie
-                JOIN dw_dim_user du ON du.user_key = fie.reporter_key
-                WHERE du.team_name = dt.team_name) AS internal_errors
-        FROM dw_dim_team dt
-        ORDER BY dt.member_count DESC
+        SELECT * FROM dw_view_teams_overview
+        ORDER BY member_count DESC
     """)).mappings().all()
     return _build_response([dict(r) for r in rows])

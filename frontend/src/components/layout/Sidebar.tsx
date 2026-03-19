@@ -1,11 +1,12 @@
-import { Home, BookOpen, Award, Users, Settings, GraduationCap, Target, Presentation, ClipboardCheck, BarChart3, Star, Brain } from 'lucide-react';
+import { Home, BookOpen, Award, Users, Settings, GraduationCap, Target, Presentation, ClipboardCheck, BarChart3, Star, Brain, ShieldCheck } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '../../stores/authStore';
+import { useAuthStore, getEffectiveRole } from '../../stores/authStore';
 
 export default function Sidebar() {
   const { user } = useAuthStore();
   const { t } = useTranslation();
+  const effectiveRole = getEffectiveRole(user);
 
   const studentLinks = [
     { to: '/', icon: Home, label: t('navigation.dashboard') },
@@ -28,7 +29,7 @@ export default function Sidebar() {
 
   const adminLinks = [
     { to: '/', icon: Home, label: t('navigation.dashboard') },
-    { to: '/trainer-validation', icon: GraduationCap, label: t('navigation.trainers') },
+    { to: '/trainer-validation', icon: ShieldCheck, label: t('navigation.trainers') },
     { to: '/courses', icon: BookOpen, label: t('navigation.courses') },
     { to: '/training-plans', icon: GraduationCap, label: t('navigation.trainingPlans') },
     { to: '/pending-reviews', icon: ClipboardCheck, label: t('navigation.pendingReviews') },
@@ -50,31 +51,31 @@ export default function Sidebar() {
   ];
 
   const links =
-    user?.role === 'STUDENT' || user?.role === 'TRAINEE'
+    effectiveRole === 'STUDENT' || effectiveRole === 'TRAINEE'
       ? studentLinks
-      : user?.role === 'TRAINER'
+      : effectiveRole === 'TRAINER'
       ? trainerLinks
-      : user?.role === 'MANAGER'
+      : effectiveRole === 'MANAGER'
       ? managerLinks
       : adminLinks;
 
   return (
-    <aside className="w-72 bg-white/80 dark:bg-[#0a0a0a]/50 backdrop-blur-2xl border-r border-gray-200 dark:border-white/5 min-h-[calc(100vh-72px)] sticky top-0 print:hidden transition-colors duration-300">
-      <nav className="p-6 space-y-2">
+    <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 min-h-[calc(100vh-64px)] sticky top-16 print:hidden transition-colors duration-300">
+      <nav className="p-4 space-y-1">
         {links.map((link) => (
           <NavLink
             key={link.to}
             to={link.to}
             className={({ isActive }) =>
-              `flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group ${
+              `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors text-sm font-medium ${
                 isActive
-                  ? 'bg-red-600 text-white font-bold shadow-xl shadow-red-600/20'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white font-medium'
+                  ? 'bg-[#EC0000] text-white'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
               }`
             }
           >
-            <link.icon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-            <span className="tracking-wide">{link.label}</span>
+            <link.icon className="w-4 h-4" />
+            <span>{link.label}</span>
           </NavLink>
         ))}
       </nav>

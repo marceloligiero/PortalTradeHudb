@@ -1,7 +1,7 @@
 .PHONY: up up-d up-build up-prod up-prod-build down down-volumes build \
         build-backend build-frontend logs logs-backend logs-frontend logs-db \
-        logs-grafana shell shell-db shell-db-root shell-grafana \
-        restart restart-backend restart-grafana status health clean help
+        shell shell-db shell-db-root \
+        restart restart-backend status health clean db-reset db-test db-reset-test help
 
 # ── Prefixo do projecto ────────────────────────────────
 PROJECT := tradehub
@@ -56,9 +56,6 @@ logs-frontend: ## Logs do frontend (nginx)
 logs-db: ## Logs da base de dados
 	docker compose logs -f $(PROJECT)-db
 
-logs-grafana: ## Logs do Grafana
-	docker compose logs -f $(PROJECT)-grafana
-
 ## ── Shells ────────────────────────────────────────────────────────────────
 
 shell: ## Abre shell no container do backend
@@ -70,9 +67,6 @@ shell-db: ## Abre MySQL shell como utilizador da app
 shell-db-root: ## Abre MySQL shell como root
 	docker compose exec $(PROJECT)-db mysql -u root -p
 
-shell-grafana: ## Abre shell no container do Grafana
-	docker compose exec $(PROJECT)-grafana sh
-
 ## ── Gestão ────────────────────────────────────────────────────────────────
 
 restart: ## Reinicia todos os serviços
@@ -80,9 +74,6 @@ restart: ## Reinicia todos os serviços
 
 restart-backend: ## Reinicia apenas o backend
 	docker compose restart $(PROJECT)-backend
-
-restart-grafana: ## Reinicia apenas o Grafana
-	docker compose restart $(PROJECT)-grafana
 
 status: ## Mostra estado e portas dos containers
 	docker compose ps
@@ -93,6 +84,15 @@ health: ## Verifica o endpoint /health do backend
 		|| curl -s http://localhost:$${BACKEND_PORT:-8100}/health
 
 ## ── Limpeza ───────────────────────────────────────────────────────────────
+
+db-reset: ## Limpa banco mantendo apenas admin (backup automático)
+	bash scripts/reset-db.sh
+
+db-test: ## Executa testes E2E sem resetar o banco
+	bash scripts/reset-seed-test.sh --test-only
+
+db-reset-test: ## Pipeline completo: reset BD + seed users + testes E2E
+	bash scripts/reset-seed-test.sh
 
 clean: ## Remove containers, imagens e volumes deste projecto
 	docker compose down -v --rmi local

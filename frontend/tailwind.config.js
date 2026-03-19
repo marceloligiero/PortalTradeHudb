@@ -21,7 +21,7 @@ export default {
           900: '#7f1d1d',
         },
         brand: {
-          red: '#dc2626',
+          red: '#EC0000',
           black: '#000000',
           white: '#ffffff',
           gray: {

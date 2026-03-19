@@ -4,86 +4,13 @@ import { useTranslation } from 'react-i18next';
 import api from '../lib/axios';
 import {
   UserPlus, Mail, Lock, User, Eye, EyeOff, CheckCircle, LogIn,
-  Sparkles, Crown, BookOpen, Shield, KeyRound,
-  ArrowRight, Zap,
+  Sparkles, Crown, BookOpen, Shield, KeyRound, UserCheck, Eye,
+  ArrowRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LandingNavbar from '../components/landing/LandingNavbar';
-
-/* ═══════════════════════════════════════════════════════════════════
-   Mesh Gradient Background (matching LoginPage)
-   ═══════════════════════════════════════════════════════════════════ */
-function MeshBackground() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rafRef = useRef(0);
-  const mouseRef = useRef({ x: 0.5, y: 0.5 });
-  const timeRef = useRef(0);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d')!;
-
-    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
-    resize();
-    window.addEventListener('resize', resize);
-
-    const blobs = [
-      { x: 0.2, y: 0.3, r: 350, color: [220, 38, 38], speed: 0.0003 },
-      { x: 0.8, y: 0.7, r: 300, color: [124, 58, 237], speed: 0.0004 },
-      { x: 0.5, y: 0.2, r: 250, color: [8, 145, 178], speed: 0.0005 },
-      { x: 0.3, y: 0.8, r: 200, color: [220, 38, 38], speed: 0.0002 },
-    ];
-
-    const draw = () => {
-      timeRef.current += 1;
-      const t = timeRef.current;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      for (const b of blobs) {
-        const bx = (b.x + Math.sin(t * b.speed) * 0.15 + (mouseRef.current.x - 0.5) * 0.05) * canvas.width;
-        const by = (b.y + Math.cos(t * b.speed * 1.3) * 0.12 + (mouseRef.current.y - 0.5) * 0.05) * canvas.height;
-        const grd = ctx.createRadialGradient(bx, by, 0, bx, by, b.r);
-        grd.addColorStop(0, `rgba(${b.color.join(',')}, 0.08)`);
-        grd.addColorStop(1, `rgba(${b.color.join(',')}, 0)`);
-        ctx.fillStyle = grd;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-
-      rafRef.current = requestAnimationFrame(draw);
-    };
-    draw();
-
-    const onMove = (e: MouseEvent) => {
-      mouseRef.current = { x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight };
-    };
-    window.addEventListener('mousemove', onMove);
-
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-      window.removeEventListener('resize', resize);
-      window.removeEventListener('mousemove', onMove);
-    };
-  }, []);
-
-  return <canvas ref={canvasRef} className="absolute inset-0 z-0" />;
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   Noise Texture Overlay
-   ═══════════════════════════════════════════════════════════════════ */
-function NoiseOverlay() {
-  return (
-    <div className="absolute inset-0 z-[1] pointer-events-none opacity-[0.03]"
-      style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-        backgroundRepeat: 'repeat',
-      }}
-    />
-  );
-}
-
-
+import { useTheme } from '../contexts/ThemeContext';
+import { MeshBackground, NoiseOverlay, FloatInput, AuthSubmitButton, BrandPanel } from '../components/auth';
 
 /* ═══════════════════════════════════════════════════════════════════
    Helpers
@@ -110,7 +37,9 @@ const CAPABILITIES = [
   { key: 'is_trainer' as const, Icon: BookOpen, labelKey: 'auth.roles.trainer', descKey: 'auth.roles.trainerDesc', gradient: 'from-blue-500 to-indigo-600', glow: 'rgba(59,130,246,0.3)' },
   { key: 'is_tutor' as const, Icon: Shield, labelKey: 'auth.roles.tutor', descKey: 'auth.roles.tutorDesc', gradient: 'from-red-500 to-rose-600', glow: 'rgba(239,68,68,0.3)' },
   { key: 'is_liberador' as const, Icon: KeyRound, labelKey: 'auth.roles.releaser', descKey: 'auth.roles.releaserDesc', gradient: 'from-cyan-500 to-teal-600', glow: 'rgba(6,182,212,0.3)' },
-  { key: 'is_manager' as const, Icon: Crown, labelKey: 'auth.roles.teamLead', descKey: 'auth.roles.teamLeadDesc', gradient: 'from-purple-500 to-violet-600', glow: 'rgba(139,92,246,0.3)' },
+  { key: 'is_team_lead' as const, Icon: Crown, labelKey: 'auth.roles.teamLead', descKey: 'auth.roles.teamLeadDesc', gradient: 'from-purple-500 to-violet-600', glow: 'rgba(139,92,246,0.3)' },
+  { key: 'is_referente' as const, Icon: UserCheck, labelKey: 'auth.roles.referente', descKey: 'auth.roles.referenteDesc', gradient: 'from-amber-500 to-orange-600', glow: 'rgba(245,158,11,0.3)' },
+  { key: 'is_gestor' as const, Icon: Eye, labelKey: 'auth.roles.gestor', descKey: 'auth.roles.gestorDesc', gradient: 'from-gray-500 to-slate-600', glow: 'rgba(100,116,139,0.3)' },
 ];
 
 const slideV = {
@@ -126,117 +55,6 @@ const fadeUp = {
 };
 
 /* ═══════════════════════════════════════════════════════════════════
-   Input Component (matching LoginPage)
-   ═══════════════════════════════════════════════════════════════════ */
-function FloatInput({ type = 'text', placeholder, value, onChange, icon, right, autoFocus, label }: {
-  type?: string; placeholder: string; value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  icon: React.ReactNode; right?: React.ReactNode; autoFocus?: boolean; label?: string;
-}) {
-  const [focused, setFocused] = useState(false);
-  return (
-    <div>
-      {label && <label className="text-[10px] font-bold text-white/25 uppercase tracking-[0.12em] mb-2 block">{label}</label>}
-      <div className={`group relative flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all duration-300 ${
-        focused
-          ? 'border-red-500/50 bg-white/[0.06] shadow-[0_0_0_4px_rgba(220,38,38,0.08)]'
-          : 'border-white/[0.08] bg-white/[0.025] hover:border-white/[0.15] hover:bg-white/[0.04]'
-      }`}>
-        <div className={`flex-shrink-0 transition-colors duration-200 ${focused ? 'text-red-400' : 'text-white/25'}`}>
-          {icon}
-        </div>
-        <input
-          type={type} value={value} onChange={onChange} autoFocus={autoFocus}
-          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-          placeholder={placeholder}
-          className="flex-1 bg-transparent text-white placeholder-white/20 outline-none text-[15px] font-medium"
-        />
-        {right}
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   Brand Panel — Left side
-   ═══════════════════════════════════════════════════════════════════ */
-function BrandPanel({ step, t }: { step: number; t: (key: string) => string }) {
-  const STEP_TITLES = [
-    { title: t('auth.steps.identity'), sub: t('auth.steps.identitySub') },
-    { title: t('auth.steps.credentials'), sub: t('auth.steps.credentialsSub') },
-    { title: t('auth.steps.confirmation'), sub: t('auth.steps.confirmationSub') },
-  ];
-  return (
-    <div className="hidden lg:flex flex-col justify-between p-14 relative">
-      <div className="absolute inset-0 pointer-events-none"
-        style={{ backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-
-      <div className="absolute -right-20 top-1/2 -translate-y-1/2 text-[28rem] font-black text-white/[0.015] leading-none select-none pointer-events-none">
-        +
-      </div>
-
-      <div className="relative z-10">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}>
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 mb-8">
-            <Zap className="w-3 h-3 text-red-400" />
-            <span className="text-[11px] font-bold text-red-400 uppercase tracking-wider">{t('auth.brandPanel.registerBadge')}</span>
-          </div>
-
-          <h1 className="text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight">
-            {t('auth.brandPanel.registerTitle1')}<br />
-            <span className="bg-gradient-to-r from-red-500 via-red-400 to-orange-400 bg-clip-text text-transparent">{t('auth.brandPanel.registerHighlight')}</span> {t('auth.brandPanel.registerTitle2')}
-          </h1>
-
-          <p className="mt-6 text-white/30 text-base leading-relaxed max-w-md">
-            {t('auth.brandPanel.registerDesc')}
-          </p>
-        </motion.div>
-      </div>
-
-      {/* Step indicator */}
-      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 mt-auto pt-8">
-        <div className="flex items-center gap-4 mb-6">
-          {[0, 1, 2].map(i => (
-            <React.Fragment key={i}>
-              <div className="flex items-center gap-3">
-                <motion.div
-                  animate={{
-                    scale: i === step ? 1.1 : 1,
-                    background: i < step ? '#22c55e' : i === step ? '#dc2626' : 'rgba(255,255,255,0.08)',
-                    boxShadow: i === step ? '0 0 20px rgba(220,38,38,0.4)' : 'none',
-                  }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white">
-                  {i < step ? <CheckCircle className="w-4 h-4" /> : i + 1}
-                </motion.div>
-                <div className="hidden xl:block">
-                  <p className={`text-xs font-bold ${i <= step ? 'text-white/70' : 'text-white/20'}`}>{STEP_TITLES[i].title}</p>
-                  <p className="text-[10px] text-white/15">{STEP_TITLES[i].sub.split('.')[0]}</p>
-                </div>
-              </div>
-              {i < 2 && (
-                <motion.div
-                  animate={{ background: i < step ? '#22c55e' : 'rgba(255,255,255,0.06)' }}
-                  className="flex-1 h-px rounded-full hidden xl:block"
-                />
-              )}
-            </React.Fragment>
-          ))}
-        </div>
-
-        <div className="h-px bg-gradient-to-r from-red-500/30 via-white/10 to-transparent" />
-        <p className="mt-4 text-[11px] text-white/15 font-medium">
-          {t('auth.copyrightFull')}
-        </p>
-      </motion.div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════
    Celebration (canvas confetti)
    ═══════════════════════════════════════════════════════════════════ */
 function Celebration() {
@@ -250,7 +68,7 @@ function Celebration() {
     canvas.width = canvas.parentElement?.clientWidth || 400;
     canvas.height = canvas.parentElement?.clientHeight || 600;
 
-    const colors = ['#dc2626', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6'];
+    const colors = ['#EC0000', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6'];
     const pieces: { x: number; y: number; vx: number; vy: number; r: number; c: string; rot: number; vr: number; life: number }[] = [];
 
     for (let i = 0; i < 60; i++) {
@@ -293,6 +111,7 @@ function Celebration() {
 export default function RegisterPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { isDark } = useTheme();
 
   const [step, setStep] = useState(0);
   const [dir, setDir] = useState(1);
@@ -305,7 +124,7 @@ export default function RegisterPage() {
     { title: t('auth.steps.confirmation'), sub: t('auth.steps.confirmationSub') },
   ];
 
-  const [form, setForm] = useState({ full_name: '', email: '', password: '', confirmPassword: '', is_trainer: false, is_tutor: false, is_liberador: false, is_manager: false });
+  const [form, setForm] = useState({ full_name: '', email: '', password: '', confirmPassword: '', is_trainer: false, is_tutor: false, is_liberador: false, is_team_lead: false, is_referente: false, is_gestor: false });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -337,7 +156,7 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      const role = form.is_manager ? 'MANAGER' : 'TRAINEE';
+      const role = form.is_gestor ? 'GESTOR' : form.is_team_lead ? 'MANAGER' : 'TRAINEE';
       const res = await api.post('/auth/register', {
         email: form.email,
         password: form.password,
@@ -346,9 +165,11 @@ export default function RegisterPage() {
         is_trainer: form.is_trainer,
         is_tutor: form.is_tutor,
         is_liberador: form.is_liberador,
+        is_team_lead: form.is_team_lead,
+        is_referente: form.is_referente,
       });
       if (res.data) {
-        const isPending = form.is_manager || form.is_trainer || form.is_tutor || form.is_liberador;
+        const isPending = form.is_team_lead || form.is_trainer || form.is_tutor || form.is_liberador || form.is_referente || form.is_gestor;
         setSuccess(isPending ? t('auth.registerTrainerSuccess') : t('auth.registerStudentSuccess'));
         setTimeout(() => navigate('/login'), 2500);
       }
@@ -360,19 +181,19 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050508] relative overflow-hidden">
-      <MeshBackground />
+    <div className="min-h-screen bg-gray-50 dark:bg-[#09090B] relative overflow-x-hidden transition-colors duration-500">
+      <MeshBackground isDark={isDark} />
       <NoiseOverlay />
       <LandingNavbar minimal />
 
-      <div className="relative z-10 min-h-screen flex items-stretch">
+      <div className="relative z-10 min-h-screen flex items-stretch pt-20 lg:pt-0">
         {/* LEFT: Brand Panel */}
         <div className="hidden lg:flex lg:w-[50%]">
-          <BrandPanel step={step} t={t} />
+          <BrandPanel variant="register" step={step} />
         </div>
 
         {/* Vertical divider */}
-        <div className="hidden lg:block w-px bg-gradient-to-b from-transparent via-white/[0.06] to-transparent" />
+        <div className="hidden lg:block w-px bg-gradient-to-b from-transparent via-gray-300 dark:via-white/[0.06] to-transparent" />
 
         {/* RIGHT: Registration Form */}
         <div className="flex-1 flex items-center justify-center p-6 sm:p-10">
@@ -382,22 +203,12 @@ export default function RegisterPage() {
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="w-full max-w-[440px]">
 
-            {/* Mobile brand */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="lg:hidden flex items-center gap-2.5 mb-8">
-              <img src="/logo-sds.png" alt="SDS" className="h-8 w-auto" />
-              <span className="text-base font-black text-white/80">
-                Trade<span className="text-red-500">Data</span>Hub
-              </span>
-            </motion.div>
-
             {/* Header with step dots + back */}
             <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}>
               <div className="flex items-center justify-between mb-4">
                 <motion.button whileHover={{ x: -3 }} onClick={step === 0 ? () => navigate('/login') : back}
-                  className="flex items-center gap-1 text-sm font-medium text-white/25 hover:text-white/60 transition-colors">
+                  className="flex items-center gap-1 text-sm font-body font-medium text-gray-400 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70 transition-colors">
                   <ArrowRight className="w-3.5 h-3.5 rotate-180" />
                   <span>{step === 0 ? t('auth.login') : t('auth.back')}</span>
                 </motion.button>
@@ -406,7 +217,7 @@ export default function RegisterPage() {
                     <motion.div key={i}
                       animate={{
                         width: i === step ? 24 : 8,
-                        background: i < step ? '#22c55e' : i === step ? '#dc2626' : 'rgba(255,255,255,0.08)',
+                        background: i < step ? '#22c55e' : i === step ? '#EC0000' : 'rgba(128,128,128,0.15)',
                       }}
                       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
                       className="h-2 rounded-full"
@@ -421,9 +232,9 @@ export default function RegisterPage() {
                   animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
                   exit={{ opacity: 0, y: -12, filter: 'blur(6px)' }}
                   transition={{ duration: 0.3 }}>
-                  <p className="text-white/30 text-sm font-medium mb-1">{STEP_TITLES[step].sub}</p>
-                  <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">
-                    {STEP_TITLES[step].title}<span className="text-red-500">.</span>
+                  <p className="font-body text-gray-500 dark:text-white/50 text-sm font-medium mb-1">{STEP_TITLES[step].sub}</p>
+                  <h2 className="text-3xl sm:text-4xl font-headline font-bold text-gray-900 dark:text-white tracking-tight leading-tight">
+                    {STEP_TITLES[step].title}<span style={{ color: '#EC0000' }}>.</span>
                   </h2>
                 </motion.div>
               </AnimatePresence>
@@ -443,39 +254,33 @@ export default function RegisterPage() {
 
                       {/* Name with live initials */}
                       <motion.div variants={fadeUp}>
-                        <div className={`group relative flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all duration-300 border-white/[0.08] bg-white/[0.025] hover:border-white/[0.15] hover:bg-white/[0.04] focus-within:border-red-500/50 focus-within:bg-white/[0.06] focus-within:shadow-[0_0_0_4px_rgba(220,38,38,0.08)]`}>
+                        <div className={`group relative flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all duration-300 border-gray-200 dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.025] hover:border-gray-300 dark:hover:border-white/[0.15] hover:bg-black/[0.03] dark:hover:bg-white/[0.04] focus-within:border-[#EC0000]/40 focus-within:bg-black/[0.04] dark:focus-within:bg-white/[0.06] focus-within:shadow-[0_0_0_4px_rgba(236,0,0,0.08)]`}>
                           <AnimatePresence mode="wait">
                             {initials ? (
                               <motion.div key="init" initial={{ scale: 0, rotate: -90 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0 }}
                                 transition={{ type: 'spring', stiffness: 300 }}
-                                className="w-9 h-9 rounded-xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-red-600/25 flex-shrink-0">
+                                className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-[#EC0000]/25 flex-shrink-0"
+                                style={{ background: 'linear-gradient(to bottom right, #EC0000, #990000)' }}>
                                 {initials}
                               </motion.div>
                             ) : (
                               <motion.div key="ico" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-                                className="flex-shrink-0 text-white/25">
+                                className="flex-shrink-0 text-gray-400 dark:text-white/40">
                                 <User className="w-[18px] h-[18px]" />
                               </motion.div>
                             )}
                           </AnimatePresence>
                           <input type="text" value={form.full_name} onChange={set('full_name')} autoFocus
                             placeholder={t('common.fullName')}
-                            className="flex-1 bg-transparent text-white placeholder-white/20 outline-none text-[15px] font-medium" />
-                        </div>
-                      </motion.div>
-
-                      {/* Default role */}
-                      <motion.div variants={fadeUp}>
-                        <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/15">
-                          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                          <p className="text-[11px] text-emerald-400/70 font-medium">{t('auth.baseRole')} <span className="text-emerald-300 font-bold">{t('auth.roles.recorder')}</span> — {t('auth.automatic')}</p>
+                            id="register-name"
+                            className="flex-1 bg-transparent text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/20 outline-none text-[15px] font-body font-medium" />
                         </div>
                       </motion.div>
 
                       {/* Capabilities */}
                       <motion.div variants={fadeUp}>
-                        <p className="text-[10px] font-bold text-white/20 uppercase tracking-[0.12em] mb-1.5">{t('auth.additionalSkills')}</p>
-                        <p className="text-[10px] text-white/15 mb-3">{t('auth.additionalSkillsSub')}</p>
+                        <p className="text-[10px] font-body font-bold text-gray-500 dark:text-white/40 uppercase tracking-[0.12em] mb-1.5">{t('auth.additionalSkills')}</p>
+                        <p className="text-[10px] font-body text-gray-400 dark:text-white/30 mb-3">{t('auth.additionalSkillsSub')}</p>
                         <div className="space-y-2">
                           {CAPABILITIES.map(({ key, Icon, labelKey, descKey, gradient, glow }, idx) => {
                             const active = form[key];
@@ -487,22 +292,23 @@ export default function RegisterPage() {
                                 whileHover={{ scale: 1.015, x: 4 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => setForm(p => ({ ...p, [key]: !p[key] }))}
+                                aria-pressed={active}
                                 className={`relative w-full flex items-center gap-3.5 p-3.5 rounded-2xl border transition-all text-left cursor-pointer ${
                                   active
-                                    ? 'border-red-500/40 bg-red-600/[0.06]'
-                                    : 'border-white/[0.06] bg-white/[0.015] hover:border-white/[0.12] hover:bg-white/[0.03]'
+                                    ? 'border-[#EC0000]/40 bg-[#EC0000]/[0.06]'
+                                    : 'border-gray-200 dark:border-white/[0.06] bg-gray-50 dark:bg-white/[0.015] hover:border-gray-300 dark:hover:border-white/[0.12] hover:bg-gray-100 dark:hover:bg-white/[0.03]'
                                 }`}
                                 style={active ? { boxShadow: `0 0 30px ${glow}` } : {}}
                               >
-                                <div className={`p-2.5 rounded-xl flex-shrink-0 transition-all duration-300 ${active ? `bg-gradient-to-br ${gradient} shadow-lg` : 'bg-white/[0.04]'}`}>
-                                  <Icon className={`w-5 h-5 transition-colors ${active ? 'text-white' : 'text-white/30'}`} />
+                                <div className={`p-2.5 rounded-xl flex-shrink-0 transition-all duration-300 ${active ? `bg-gradient-to-br ${gradient} shadow-lg` : 'bg-gray-100 dark:bg-white/[0.04]'}`}>
+                                  <Icon className={`w-5 h-5 transition-colors ${active ? 'text-white' : 'text-gray-400 dark:text-white/40'}`} />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                  <p className={`text-sm font-bold leading-tight transition-colors ${active ? 'text-white' : 'text-white/40'}`}>{t(labelKey)}</p>
-                                  <p className={`text-[10px] mt-0.5 leading-snug transition-colors ${active ? 'text-white/40' : 'text-white/15'}`}>{t(descKey)}</p>
+                                  <p className={`text-sm font-body font-bold leading-tight transition-colors ${active ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-white/40'}`}>{t(labelKey)}</p>
+                                  <p className={`text-[10px] font-body mt-0.5 leading-snug transition-colors ${active ? 'text-gray-500 dark:text-white/40' : 'text-gray-400 dark:text-white/30'}`}>{t(descKey)}</p>
                                 </div>
                                 <div className={`w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-all duration-200 ${
-                                  active ? 'border-red-500 bg-red-500 scale-110' : 'border-white/15 bg-transparent'
+                                  active ? 'border-[#EC0000] bg-[#EC0000] scale-110' : 'border-gray-300 dark:border-white/15 bg-transparent'
                                 }`}>
                                   <AnimatePresence>
                                     {active && (
@@ -519,29 +325,20 @@ export default function RegisterPage() {
                       </motion.div>
 
                       <AnimatePresence>
-                        {(form.is_trainer || form.is_tutor || form.is_manager) && (
+                        {(form.is_trainer || form.is_tutor || form.is_team_lead || form.is_referente || form.is_liberador || form.is_gestor) && (
                           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
                             <div className="flex gap-2 p-3 rounded-xl bg-amber-500/[0.06] border border-amber-500/15">
                               <Sparkles className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
-                              <p className="text-[11px] text-amber-300/70">{t('auth.specialSkillsWarning')}</p>
+                              <p className="text-[11px] font-body text-amber-300/70">{t('auth.specialSkillsWarning')}</p>
                             </div>
                           </motion.div>
                         )}
                       </AnimatePresence>
 
-                      {error && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-red-400">{error}</motion.p>}
+                      {error && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} role="alert" aria-live="assertive" className="text-xs font-body text-red-400">{error}</motion.p>}
 
                       <motion.div variants={fadeUp}>
-                        <motion.button type="button" onClick={next}
-                          whileHover={{ scale: 1.015, y: -1 }} whileTap={{ scale: 0.985 }}
-                          className="relative w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-white font-bold text-[15px] overflow-hidden group cursor-pointer"
-                          style={{ background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' }}>
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
-                          <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                            style={{ boxShadow: '0 12px 40px rgba(220,38,38,0.4)' }} />
-                          <span className="relative">{t('auth.continue')}</span>
-                          <ArrowRight className="w-4 h-4 relative group-hover:translate-x-1 transition-transform" />
-                        </motion.button>
+                        <AuthSubmitButton loading={false} label={t('auth.continue')} type="button" onClick={next} />
                       </motion.div>
                     </motion.div>
                   </motion.div>
@@ -558,6 +355,7 @@ export default function RegisterPage() {
                           type="email" placeholder={t('auth.emailPlaceholder')} value={form.email}
                           onChange={set('email')} label={t('auth.email')} autoFocus
                           icon={<Mail className="w-[18px] h-[18px]" />}
+                          id="register-email"
                         />
                       </motion.div>
 
@@ -566,9 +364,11 @@ export default function RegisterPage() {
                           type={showPw ? 'text' : 'password'} placeholder={t('auth.password')} value={form.password}
                           onChange={set('password')} label={t('auth.password')}
                           icon={<Lock className="w-[18px] h-[18px]" />}
+                          id="register-password"
                           right={
                             <button type="button" onClick={() => setShowPw(v => !v)}
-                              className="text-white/20 hover:text-white/50 transition-colors flex-shrink-0 p-0.5">
+                              aria-label={showPw ? t('auth.hidePassword') : t('auth.showPassword')}
+                              className="text-gray-400 dark:text-white/35 hover:text-gray-600 dark:hover:text-white/60 transition-colors flex-shrink-0 p-0.5">
                               {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
                           }
@@ -584,7 +384,7 @@ export default function RegisterPage() {
                                   className="flex-1 h-1 rounded-full origin-left" />
                               ))}
                             </div>
-                            {strength.label && <p className="text-[10px] font-semibold" style={{ color: strength.color }}>{strength.label}</p>}
+                            {strength.label && <p className="text-[10px] font-body font-semibold" style={{ color: strength.color }}>{strength.label}</p>}
                           </motion.div>
                         )}
                       </motion.div>
@@ -594,9 +394,11 @@ export default function RegisterPage() {
                           type={showCPw ? 'text' : 'password'} placeholder={t('auth.confirmPassword')} value={form.confirmPassword}
                           onChange={set('confirmPassword')} label={t('auth.confirmPassword')}
                           icon={<Lock className="w-[18px] h-[18px]" />}
+                          id="register-confirm-password"
                           right={
                             <button type="button" onClick={() => setShowCPw(v => !v)}
-                              className="text-white/20 hover:text-white/50 transition-colors flex-shrink-0 p-0.5">
+                              aria-label={showCPw ? t('auth.hidePassword') : t('auth.showPassword')}
+                              className="text-gray-400 dark:text-white/35 hover:text-gray-600 dark:hover:text-white/60 transition-colors flex-shrink-0 p-0.5">
                               {showCPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
                           }
@@ -605,24 +407,15 @@ export default function RegisterPage() {
                           <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
                             className="flex items-center gap-1.5 mt-2">
                             <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-[10px] text-emerald-400 font-medium">{t('auth.passwordsMatch')}</span>
+                            <span className="text-[10px] font-body text-emerald-400 font-medium">{t('auth.passwordsMatch')}</span>
                           </motion.div>
                         )}
                       </motion.div>
 
-                      {error && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-red-400">{error}</motion.p>}
+                      {error && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} role="alert" aria-live="assertive" className="text-xs font-body text-red-400">{error}</motion.p>}
 
                       <motion.div variants={fadeUp}>
-                        <motion.button type="button" onClick={next}
-                          whileHover={{ scale: 1.015, y: -1 }} whileTap={{ scale: 0.985 }}
-                          className="relative w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-white font-bold text-[15px] overflow-hidden group cursor-pointer"
-                          style={{ background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' }}>
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
-                          <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                            style={{ boxShadow: '0 12px 40px rgba(220,38,38,0.4)' }} />
-                          <span className="relative">{t('auth.continue')}</span>
-                          <ArrowRight className="w-4 h-4 relative group-hover:translate-x-1 transition-transform" />
-                        </motion.button>
+                        <AuthSubmitButton loading={false} label={t('auth.continue')} type="button" onClick={next} />
                       </motion.div>
                     </motion.div>
                   </motion.div>
@@ -636,30 +429,33 @@ export default function RegisterPage() {
 
                       {/* Profile card */}
                       <motion.div variants={fadeUp}
-                        className="flex items-center gap-4 p-5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                        className="flex items-center gap-4 p-5 rounded-2xl bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/[0.06]">
                         <motion.div initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }}
                           transition={{ type: 'spring', stiffness: 200, delay: 0.15 }}
-                          className="w-14 h-14 rounded-2xl bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-black text-lg shadow-lg shadow-red-600/30 flex-shrink-0 relative">
+                          className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-headline font-bold text-lg shadow-lg shadow-[#EC0000]/30 flex-shrink-0 relative"
+                          style={{ background: 'linear-gradient(to bottom right, #EC0000, #990000)' }}>
                           {initials || <UserPlus className="w-6 h-6" />}
-                          <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-[#050508] flex items-center justify-center">
+                          <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-gray-50 dark:border-[#09090B] flex items-center justify-center">
                             <CheckCircle className="w-3 h-3 text-white" />
                           </div>
                         </motion.div>
                         <div className="min-w-0">
-                          <p className="text-white font-bold text-base truncate">{form.full_name}</p>
-                          <p className="text-white/25 text-xs truncate mt-0.5">{form.email}</p>
+                          <p className="text-gray-900 dark:text-white font-body font-bold text-base truncate">{form.full_name}</p>
+                          <p className="text-gray-400 dark:text-white/40 font-body text-xs truncate mt-0.5">{form.email}</p>
                         </div>
                       </motion.div>
 
                       {/* Role badges */}
                       <motion.div variants={fadeUp} className="flex flex-wrap gap-1.5">
-                        <span className="px-3 py-1.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/15">
+                        <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/15">
                           {t('auth.roles.recorder')}
                         </span>
-                        {form.is_trainer && <span className="px-3 py-1.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/15">{t('auth.roles.trainer')}</span>}
-                        {form.is_tutor && <span className="px-3 py-1.5 rounded-full text-[10px] font-bold bg-red-500/10 text-red-400 border border-red-500/15">{t('auth.roles.tutor')}</span>}
-                        {form.is_liberador && <span className="px-3 py-1.5 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/15">{t('auth.roles.releaser')}</span>}
-                        {form.is_manager && <span className="px-3 py-1.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/15">{t('auth.roles.teamLead')}</span>}
+                        {form.is_trainer && <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-blue-500/10 text-blue-400 border border-blue-500/15">{t('auth.roles.trainer')}</span>}
+                        {form.is_tutor && <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-red-500/10 text-red-400 border border-red-500/15">{t('auth.roles.tutor')}</span>}
+                        {form.is_liberador && <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/15">{t('auth.roles.releaser')}</span>}
+                        {form.is_team_lead && <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-purple-500/10 text-purple-400 border border-purple-500/15">{t('auth.roles.teamLead')}</span>}
+                        {form.is_referente && <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-amber-500/10 text-amber-400 border border-amber-500/15">{t('auth.roles.referente')}</span>}
+                        {form.is_gestor && <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-gray-500/10 text-gray-400 border border-gray-500/15">{t('auth.roles.gestor')}</span>}
                       </motion.div>
 
                       {/* Summary rows */}
@@ -669,41 +465,32 @@ export default function RegisterPage() {
                         { l: t('auth.baseRoleLabel'), v: t('auth.roles.recorder') },
                       ].map(({ l, v }) => (
                         <motion.div key={l} variants={fadeUp}
-                          className="flex items-center justify-between border-b border-white/[0.04] pb-3">
-                          <span className="text-white/20 text-xs">{l}</span>
-                          <span className="text-white/50 text-xs font-medium">{v}</span>
+                          className="flex items-center justify-between border-b border-gray-200 dark:border-white/[0.04] pb-3">
+                          <span className="text-gray-400 dark:text-white/35 font-body text-xs">{l}</span>
+                          <span className="text-gray-600 dark:text-white/50 font-body text-xs font-medium">{v}</span>
                         </motion.div>
                       ))}
 
                       <AnimatePresence>
-                        {error && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-xs text-red-400">{error}</motion.p>}
+                        {error && <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="alert" aria-live="assertive" className="text-xs font-body text-red-400">{error}</motion.p>}
                         {success && (
                           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                            role="alert"
                             className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/15">
                             <CheckCircle className="w-4 h-4 text-emerald-400" />
-                            <p className="text-xs text-emerald-300 font-medium">{success}</p>
+                            <p className="text-xs font-body text-emerald-300 font-medium">{success}</p>
                           </motion.div>
                         )}
                       </AnimatePresence>
 
                       <motion.div variants={fadeUp}>
-                        <motion.button type="button" onClick={submit} disabled={loading}
-                          whileHover={{ scale: 1.015, y: -1 }} whileTap={{ scale: 0.985 }}
-                          className="relative w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl text-white font-bold text-[15px] overflow-hidden disabled:opacity-50 group cursor-pointer"
-                          style={{ background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)' }}>
-                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
-                          <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                            style={{ boxShadow: '0 12px 40px rgba(220,38,38,0.4)' }} />
-                          {loading ? (
-                            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                              className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full" />
-                          ) : (
-                            <span className="relative flex items-center gap-2.5">
-                              <UserPlus className="w-[18px] h-[18px]" />
-                              <span>{t('auth.register')}</span>
-                            </span>
-                          )}
-                        </motion.button>
+                        <AuthSubmitButton
+                          loading={loading}
+                          label={t('auth.register')}
+                          icon={<UserPlus className="w-[18px] h-[18px]" />}
+                          type="button"
+                          onClick={submit}
+                        />
                       </motion.div>
                     </motion.div>
                   </motion.div>
@@ -715,21 +502,21 @@ export default function RegisterPage() {
             {/* Login link */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
               className="flex items-center gap-4 my-6">
-              <div className="flex-1 h-px bg-white/[0.06]" />
-              <span className="text-[11px] text-white/15 font-medium uppercase tracking-wider">{t('auth.alreadyHaveAccount')}</span>
-              <div className="flex-1 h-px bg-white/[0.06]" />
+              <div className="flex-1 h-px bg-gray-200 dark:bg-white/[0.06]" />
+              <span className="text-[11px] font-body text-gray-400 dark:text-white/30 font-medium uppercase tracking-wider">{t('auth.alreadyHaveAccount')}</span>
+              <div className="flex-1 h-px bg-gray-200 dark:bg-white/[0.06]" />
             </motion.div>
 
             <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}
               type="button" onClick={() => navigate('/login')}
-              className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border border-white/[0.06] text-sm font-semibold text-white/30 hover:text-white/60 hover:bg-white/[0.03] hover:border-white/[0.12] transition-all duration-300 group cursor-pointer">
+              className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border border-gray-200 dark:border-white/[0.08] text-sm font-body font-semibold text-gray-500 dark:text-white/50 hover:text-gray-700 dark:hover:text-white/70 hover:bg-gray-50 dark:hover:bg-white/[0.03] hover:border-gray-300 dark:hover:border-white/[0.15] transition-all duration-300 group cursor-pointer">
               <LogIn className="w-4 h-4" />
               <span>{t('auth.login')}</span>
-              <span className="text-red-500 font-bold">→</span>
+              <span className="font-bold" style={{ color: '#EC0000' }}>→</span>
               <ArrowRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-50 -translate-x-2 group-hover:translate-x-0 transition-all" />
             </motion.button>
 
-            <p className="lg:hidden text-center text-[11px] text-white/10 mt-10">
+            <p className="lg:hidden text-center text-[11px] font-body text-gray-400 dark:text-white/25 mt-10">
               {t('auth.copyright')}
             </p>
           </motion.div>

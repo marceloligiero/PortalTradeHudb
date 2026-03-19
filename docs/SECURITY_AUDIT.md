@@ -65,15 +65,7 @@ Foi realizada uma auditoria de segurança completa do Portal TradeDataHub, cobri
 **OWASP:** A02 Cryptographic Failures
 **Fix:** `git rm --cached backend/.env.test backend/.env.prod`; ficheiros removidos do tracking.
 
-### C07 — Grafana anonymous access habilitado
-**OWASP:** A01 Broken Access Control
-**Ficheiro:** `docker-compose.yml`
-**Fix:** `GF_AUTH_ANONYMOUS_ENABLED: "false"` definido explicitamente.
-
-### C08 — GRAFANA_ADMIN_PASSWORD com fallback inseguro
-**OWASP:** A05 Security Misconfiguration
-**Ficheiro:** `docker-compose.yml`
-**Fix:** Removido fallback `:-grafana_admin_change_me`; variável obrigatória sem default.
+### C07/C08 — (Removidos: Grafana foi removido do projecto)
 
 ### C09/C10/C11 — Credenciais e IP de produção no README.md
 **OWASP:** A02 Cryptographic Failures

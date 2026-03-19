@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
   AlertTriangle, ClipboardList, CheckCircle2, Clock,
-  Plus, TrendingUp, Shield, Users, AlertCircle,
-  ArrowRight, BarChart3, XCircle, RefreshCw,
+  Plus, TrendingUp, Shield, AlertCircle,
+  ArrowRight, BarChart3, XCircle, RefreshCw, Users,
 } from 'lucide-react';
 import axios from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
-import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -47,58 +45,63 @@ interface RecentPlan {
   what?: string;
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Severity colors (Santander DS) ──────────────────────────────────────────
 
-const SEVERITY_COLOR: Record<string, string> = {
-  BAIXA: 'bg-green-500/15 text-green-400 border-green-500/20',
-  MEDIA: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20',
-  ALTA: 'bg-orange-500/15 text-orange-400 border-orange-500/20',
-  CRITICA: 'bg-red-500/15 text-red-400 border-red-500/20',
+const SEVERITY_COLORS: Record<string, { badge: string; bar: string }> = {
+  BAIXA:   { badge: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', bar: 'bg-green-500' },
+  MEDIA:   { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', bar: 'bg-amber-500' },
+  ALTA:    { badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', bar: 'bg-orange-500' },
+  CRITICA: { badge: 'bg-red-100 text-[#EC0000] dark:bg-red-900/30 dark:text-red-400', bar: 'bg-[#EC0000]' },
 };
-const SEVERITY_COLOR_LIGHT: Record<string, string> = {
-  BAIXA: 'bg-green-50 text-green-700 border-green-200',
-  MEDIA: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  ALTA: 'bg-orange-50 text-orange-700 border-orange-200',
-  CRITICA: 'bg-red-50 text-red-700 border-red-200',
-};
-
-function severityCls(s: string, isDark: boolean) {
-  return isDark ? (SEVERITY_COLOR[s] || 'bg-gray-500/15 text-gray-400 border-gray-500/20')
-                : (SEVERITY_COLOR_LIGHT[s] || 'bg-gray-100 text-gray-600 border-gray-200');
-}
 
 function statusDot(s: string): string {
   const map: Record<string, string> = {
-    ABERTO: 'bg-red-400', EM_ANALISE: 'bg-yellow-400', PLANO_CRIADO: 'bg-blue-400',
-    EM_EXECUCAO: 'bg-orange-400', CONCLUIDO: 'bg-green-400', VERIFICADO: 'bg-emerald-400',
+    ABERTO: 'bg-red-500', EM_ANALISE: 'bg-amber-500', PLANO_CRIADO: 'bg-blue-500',
+    EM_EXECUCAO: 'bg-orange-500', CONCLUIDO: 'bg-emerald-500', VERIFICADO: 'bg-emerald-600',
   };
   return map[s] || 'bg-gray-400';
 }
 
-// ─── Stat Card ────────────────────────────────────────────────────────────────
+// ─── Small DS components ─────────────────────────────────────────────────────
 
-function StatCard({
-  icon: Icon, label, value, sub, accent, isDark, delay = 0,
-}: {
-  icon: React.ElementType; label: string; value: string | number;
-  sub?: string; accent: string; isDark: boolean; delay?: number;
+function KpiCard({ icon: Icon, label, value, sub, color }: {
+  icon: React.ElementType; label: string; value: string | number; sub?: string;
+  color: 'red' | 'blue' | 'emerald' | 'amber';
+}) {
+  const bg: Record<string, string> = {
+    red:     'bg-red-50 dark:bg-red-900/20 text-[#EC0000]',
+    blue:    'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
+    emerald: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400',
+    amber:   'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400',
+  };
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${bg[color]}`}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className="text-3xl font-mono font-bold text-gray-900 dark:text-white">{value}</div>
+      <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">{label}</p>
+      {sub && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{sub}</p>}
+    </div>
+  );
+}
+
+function SectionCard({ icon: Icon, title, action, children }: {
+  icon: React.ElementType; title: string; action?: React.ReactNode; children: React.ReactNode;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay }}
-      className={`rounded-2xl border p-5 ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
-    >
-      <div className="flex items-start justify-between mb-4">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${accent}`}>
-          <Icon className="w-5 h-5 text-white" />
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+      <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-7 h-7 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
+            <Icon className="w-3.5 h-3.5 text-[#EC0000]" />
+          </div>
+          <h2 className="text-sm font-headline font-bold text-gray-900 dark:text-white">{title}</h2>
         </div>
+        {action}
       </div>
-      <p className={`text-3xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{value}</p>
-      <p className={`text-sm font-semibold mt-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{label}</p>
-      {sub && <p className={`text-xs mt-0.5 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{sub}</p>}
-    </motion.div>
+      {children}
+    </div>
   );
 }
 
@@ -106,7 +109,6 @@ function StatCard({
 
 export default function PortalTutoria() {
   const { user } = useAuthStore();
-  const { isDark } = useTheme();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -124,11 +126,8 @@ export default function PortalTutoria() {
         const [dashRes, errorsRes, plansRes] = await Promise.allSettled([
           axios.get('/api/tutoria/dashboard'),
           axios.get('/api/tutoria/errors'),
-          isStudent
-            ? axios.get('/api/tutoria/my-plans')
-            : axios.get('/api/tutoria/plans'),
+          isStudent ? axios.get('/api/tutoria/my-plans') : axios.get('/api/tutoria/plans'),
         ]);
-
         if (dashRes.status === 'fulfilled') setStats(dashRes.value.data);
         if (errorsRes.status === 'fulfilled') {
           const data = errorsRes.value.data;
@@ -148,8 +147,8 @@ export default function PortalTutoria() {
     return (
       <div className="flex items-center justify-center py-32">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 rounded-full border-2 border-red-500 border-t-transparent animate-spin" />
-          <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('adminPortalTutoria.loading')}</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#EC0000]" />
+          <p className="text-sm text-gray-500 dark:text-gray-400">{t('adminPortalTutoria.loading')}</p>
         </div>
       </div>
     );
@@ -160,139 +159,113 @@ export default function PortalTutoria() {
   const sevCounts = stats?.severity_counts ?? {};
 
   const openErrors = (byStatus['ABERTO'] ?? 0) + (byStatus['EM_ANALISE'] ?? 0) + (byStatus['PLANO_CRIADO'] ?? 0) + (byStatus['EM_EXECUCAO'] ?? 0);
-  const pendingPlans = (byPlanStatus['RASCUNHO'] ?? 0) + (byPlanStatus['AGUARDANDO_APROVACAO'] ?? 0) + (byPlanStatus['APROVADO'] ?? 0);
-  const activePlans  = byPlanStatus['EM_EXECUCAO'] ?? 0;
-  const donePlans    = byPlanStatus['CONCLUIDO'] ?? 0;
+  const activePlans = byPlanStatus['EM_EXECUCAO'] ?? 0;
+  const donePlans = byPlanStatus['CONCLUIDO'] ?? 0;
 
   return (
-    <div className="space-y-8 max-w-6xl">
+    <div className="space-y-6 max-w-6xl">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className={`border-b pb-8 ${isDark ? 'border-white/10' : 'border-gray-200'}`}
-      >
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-red-500/30">
-              <Shield className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <span className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-red-400' : 'text-red-500'}`}>
-                {t('adminPortalTutoria.headerLabel')}
-              </span>
-              <h1 className={`text-4xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {isStudent ? t('adminPortalTutoria.myPanel') : t('adminPortalTutoria.dashboard')}
-              </h1>
-              <p className={`mt-1 text-sm ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
-                {isStudent
-                  ? t('adminPortalTutoria.studentSubtitle')
-                  : user?.role === 'ADMIN'
-                    ? t('adminPortalTutoria.adminSubtitle')
-                    : t('adminPortalTutoria.trainerSubtitle')}
-              </p>
-            </div>
+      {/* ── Header ────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+            <Shield className="w-6 h-6 text-[#EC0000]" />
           </div>
-
-          {isManager && (
-            <div className="flex gap-2">
-              <motion.button
-                whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-                onClick={() => navigate('/tutoria/errors/new')}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 text-white text-sm font-bold shadow-lg shadow-red-500/25"
-              >
-                <Plus className="w-4 h-4" /> {t('adminPortalTutoria.registerError')}
-              </motion.button>
-            </div>
-          )}
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-[#EC0000]">
+              {t('adminPortalTutoria.headerLabel')}
+            </p>
+            <h1 className="text-2xl font-headline font-bold text-gray-900 dark:text-white">
+              {isStudent ? t('adminPortalTutoria.myPanel') : t('adminPortalTutoria.dashboard')}
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              {isStudent
+                ? t('adminPortalTutoria.studentSubtitle')
+                : user?.role === 'ADMIN'
+                  ? t('adminPortalTutoria.adminSubtitle')
+                  : t('adminPortalTutoria.trainerSubtitle')}
+            </p>
+          </div>
         </div>
-      </motion.div>
 
-      {/* ── Stat Cards ──────────────────────────────────────────────────────── */}
+        {isManager && (
+          <button
+            onClick={() => navigate('/tutoria/errors/new')}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#EC0000] hover:bg-[#CC0000] text-white text-sm font-medium transition-colors"
+          >
+            <Plus className="w-4 h-4" /> {t('adminPortalTutoria.registerError')}
+          </button>
+        )}
+      </div>
+
+      {/* ── Stat Cards ──────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
+        <KpiCard
           icon={AlertTriangle} label={t('adminPortalTutoria.totalErrors')}
-          value={stats?.total_errors ?? 0} isDark={isDark}
-          accent="bg-gradient-to-br from-red-500 to-rose-600"
-          sub={t('adminPortalTutoria.openErrors', { count: openErrors })} delay={0.05}
+          value={stats?.total_errors ?? 0} color="red"
+          sub={t('adminPortalTutoria.openErrors', { count: openErrors })}
         />
-        <StatCard
+        <KpiCard
           icon={RefreshCw} label={t('adminPortalTutoria.recurrent')}
-          value={stats?.recurrent_errors ?? 0} isDark={isDark}
-          accent="bg-gradient-to-br from-orange-500 to-amber-500"
-          sub={t('adminPortalTutoria.sameTypeRepeated')} delay={0.1}
+          value={stats?.recurrent_errors ?? 0} color="amber"
+          sub={t('adminPortalTutoria.sameTypeRepeated')}
         />
-        <StatCard
+        <KpiCard
           icon={ClipboardList} label={t('adminPortalTutoria.actionPlans')}
-          value={stats?.total_plans ?? 0} isDark={isDark}
-          accent="bg-gradient-to-br from-blue-500 to-indigo-500"
-          sub={t('adminPortalTutoria.inExecution', { count: activePlans })} delay={0.15}
+          value={stats?.total_plans ?? 0} color="blue"
+          sub={t('adminPortalTutoria.inExecution', { count: activePlans })}
         />
-        <StatCard
+        <KpiCard
           icon={CheckCircle2} label={t('adminPortalTutoria.completedPlans')}
-          value={donePlans} isDark={isDark}
-          accent="bg-gradient-to-br from-green-500 to-emerald-500"
+          value={donePlans} color="emerald"
           sub={stats?.overdue_plans ? t('adminPortalTutoria.overdueCount', { count: stats.overdue_plans }) : t('adminPortalTutoria.noOverdue')}
-          delay={0.2}
         />
       </div>
 
-      {/* ── Two-column grid ──────────────────────────────────────────────────── */}
+      {/* ── Recent errors + plans ───────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* Erros recentes */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.25 }}
-          className={`rounded-2xl border overflow-hidden ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
-        >
-          <div className={`px-5 py-4 border-b flex items-center justify-between ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
-            <div className="flex items-center gap-3">
-              <div className="w-7 h-7 bg-gradient-to-br from-red-500 to-rose-600 rounded-lg flex items-center justify-center">
-                <AlertTriangle className="w-3.5 h-3.5 text-white" />
-              </div>
-              <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {isStudent ? t('adminPortalTutoria.myRecentErrors') : t('adminPortalTutoria.recentErrors')}
-              </p>
-            </div>
+        {/* Recent errors */}
+        <SectionCard
+          icon={AlertTriangle}
+          title={isStudent ? t('adminPortalTutoria.myRecentErrors') : t('adminPortalTutoria.recentErrors')}
+          action={
             <button
               onClick={() => navigate(isStudent ? '/tutoria/my-errors' : '/tutoria/errors')}
-              className={`text-xs font-semibold flex items-center gap-1 ${isDark ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-700'}`}
+              className="text-xs font-medium text-[#EC0000] hover:text-[#CC0000] flex items-center gap-1"
             >
               {t('adminPortalTutoria.viewAll')} <ArrowRight className="w-3 h-3" />
             </button>
-          </div>
-
+          }
+        >
           {recentErrors.length === 0 ? (
-            <div className={`p-8 text-center text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+            <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
               {t('adminPortalTutoria.noErrorsRegistered')}
             </div>
           ) : (
-            <div className="divide-y divide-white/[0.04]">
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
               {recentErrors.map(e => (
                 <div
                   key={e.id}
                   onClick={() => navigate(`/tutoria/errors/${e.id}`)}
-                  className={`px-5 py-3.5 flex items-center gap-3 cursor-pointer transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'}`}
+                  className="px-5 py-3.5 flex items-center gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                 >
                   <span className={`w-2 h-2 rounded-full flex-shrink-0 ${statusDot(e.status)}`} />
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                       {e.description}
                     </p>
-                    <p className={`text-xs mt-0.5 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                       {e.tutorado_name} · {e.category_name ?? '—'} · {t('adminPortalTutoria.errorStatus.' + e.status, e.status)}
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     {e.is_recurrent && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/20">
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
                         {t('adminPortalTutoria.recurrenceCount', { count: e.recurrence_count })}
                       </span>
                     )}
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${severityCls(e.severity, isDark)}`}>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${SEVERITY_COLORS[e.severity]?.badge || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
                       {t('adminPortalTutoria.severity.' + e.severity, e.severity)}
                     </span>
                   </div>
@@ -300,37 +273,27 @@ export default function PortalTutoria() {
               ))}
             </div>
           )}
-        </motion.div>
+        </SectionCard>
 
-        {/* Planos recentes */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-          className={`rounded-2xl border overflow-hidden ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
-        >
-          <div className={`px-5 py-4 border-b flex items-center justify-between ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
-            <div className="flex items-center gap-3">
-              <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                <ClipboardList className="w-3.5 h-3.5 text-white" />
-              </div>
-              <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {isStudent ? t('adminPortalTutoria.myPlans') : t('adminPortalTutoria.recentPlans')}
-              </p>
-            </div>
+        {/* Recent plans */}
+        <SectionCard
+          icon={ClipboardList}
+          title={isStudent ? t('adminPortalTutoria.myPlans') : t('adminPortalTutoria.recentPlans')}
+          action={
             <button
               onClick={() => navigate(isStudent ? '/tutoria/my-plans' : '/tutoria/plans')}
-              className={`text-xs font-semibold flex items-center gap-1 ${isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'}`}
+              className="text-xs font-medium text-[#EC0000] hover:text-[#CC0000] flex items-center gap-1"
             >
               {t('adminPortalTutoria.viewAll')} <ArrowRight className="w-3 h-3" />
             </button>
-          </div>
-
+          }
+        >
           {recentPlans.length === 0 ? (
-            <div className={`p-8 text-center text-sm ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+            <div className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
               {t('adminPortalTutoria.noPlanCreated')}
             </div>
           ) : (
-            <div className="divide-y divide-white/[0.04]">
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
               {recentPlans.map(p => {
                 const pct = p.items_total > 0 ? Math.round((p.items_completed / p.items_total) * 100) : 0;
                 const isDone = p.status === 'CONCLUIDO';
@@ -339,35 +302,34 @@ export default function PortalTutoria() {
                   <div
                     key={p.id}
                     onClick={() => navigate(`/tutoria/plans/${p.id}`)}
-                    className={`px-5 py-3.5 cursor-pointer transition-colors ${isDark ? 'hover:bg-white/[0.03]' : 'hover:bg-gray-50'}`}
+                    className="px-5 py-3.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                   >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <p className={`text-sm font-semibold truncate flex-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate flex-1">
                         {p.what ?? t('adminPortalTutoria.planFallback', { id: p.id })}
                       </p>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border flex-shrink-0 ${
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
                         isDone
-                          ? isDark ? 'bg-green-500/15 text-green-400 border-green-500/20' : 'bg-green-50 text-green-700 border-green-200'
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                           : isOverdue
-                            ? isDark ? 'bg-red-500/15 text-red-400 border-red-500/20' : 'bg-red-50 text-red-700 border-red-200'
-                            : isDark ? 'bg-blue-500/15 text-blue-400 border-blue-500/20' : 'bg-blue-50 text-blue-700 border-blue-200'
+                            ? 'bg-red-100 text-[#EC0000] dark:bg-red-900/30 dark:text-red-400'
+                            : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                       }`}>
                         {t('adminPortalTutoria.planStatus.' + p.status, p.status)}
-                        {isOverdue && ' ⚠'}
                       </span>
                     </div>
-                    <p className={`text-xs mb-2 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                       {p.tutorado_name ?? '—'}
                     </p>
                     {p.items_total > 0 && (
                       <div>
-                        <div className={`h-1.5 rounded-full overflow-hidden ${isDark ? 'bg-white/10' : 'bg-gray-100'}`}>
+                        <div className="h-1.5 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800">
                           <div
-                            className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all"
+                            className="h-full bg-[#EC0000] rounded-full transition-all"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
-                        <p className={`text-[10px] mt-1 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 font-mono">
                           {t('adminPortalTutoria.actionsCompleted', { completed: p.items_completed, total: p.items_total })}
                         </p>
                       </div>
@@ -377,46 +339,31 @@ export default function PortalTutoria() {
               })}
             </div>
           )}
-        </motion.div>
+        </SectionCard>
       </div>
 
-      {/* ── Breakdown cards ──────────────────────────────────────────────────── */}
+      {/* ── Breakdown cards ──────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* Erros por severidade */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.35 }}
-          className={`rounded-2xl border p-5 ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
-        >
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-7 h-7 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center">
-              <TrendingUp className="w-3.5 h-3.5 text-white" />
-            </div>
-            <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('adminPortalTutoria.errorsBySeverity')}</p>
-          </div>
-          <div className="space-y-3">
+        {/* Errors by severity */}
+        <SectionCard icon={TrendingUp} title={t('adminPortalTutoria.errorsBySeverity')}>
+          <div className="p-5 space-y-3">
             {(['CRITICA', 'ALTA', 'MEDIA', 'BAIXA'] as const).map(sev => {
               const count = sevCounts[sev] ?? 0;
               const total = stats?.total_errors ?? 1;
               const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-              const colors: Record<string, string> = {
-                CRITICA: 'from-red-500 to-rose-600',
-                ALTA: 'from-orange-500 to-amber-500',
-                MEDIA: 'from-yellow-500 to-amber-400',
-                BAIXA: 'from-green-500 to-emerald-500',
-              };
+              const colors = SEVERITY_COLORS[sev];
               return (
                 <div key={sev}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className={`text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
                       {t('adminPortalTutoria.severity.' + sev)}
                     </span>
-                    <span className={`text-xs font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{count}</span>
+                    <span className="text-xs font-mono font-bold text-gray-900 dark:text-white">{count}</span>
                   </div>
-                  <div className={`h-2 rounded-full overflow-hidden ${isDark ? 'bg-white/10' : 'bg-gray-100'}`}>
+                  <div className="h-2 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800">
                     <div
-                      className={`h-full bg-gradient-to-r ${colors[sev]} rounded-full transition-all`}
+                      className={`h-full ${colors?.bar || 'bg-gray-400'} rounded-full transition-all duration-500`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -424,102 +371,86 @@ export default function PortalTutoria() {
               );
             })}
           </div>
-        </motion.div>
+        </SectionCard>
 
-        {/* Status dos planos */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.4 }}
-          className={`rounded-2xl border p-5 ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
-        >
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-7 h-7 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-lg flex items-center justify-center">
-              <BarChart3 className="w-3.5 h-3.5 text-white" />
-            </div>
-            <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('adminPortalTutoria.planStatuses')}</p>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { key: 'RASCUNHO',            icon: Clock,         color: 'text-gray-400' },
-              { key: 'AGUARDANDO_APROVACAO', icon: Clock,         color: 'text-yellow-400' },
-              { key: 'APROVADO',             icon: CheckCircle2,  color: 'text-blue-400' },
-              { key: 'EM_EXECUCAO',          icon: TrendingUp,    color: 'text-orange-400' },
-              { key: 'CONCLUIDO',            icon: CheckCircle2,  color: 'text-green-400' },
-              { key: 'DEVOLVIDO',            icon: XCircle,       color: 'text-red-400' },
-            ].map(({ key, icon: Icon, color }) => (
-              <div key={key} className={`rounded-xl p-3 ${isDark ? 'bg-white/[0.03]' : 'bg-gray-50'}`}>
-                <div className="flex items-center gap-2 mb-1">
-                  <Icon className={`w-4 h-4 ${color}`} />
-                  <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('adminPortalTutoria.planStatus.' + key)}</span>
+        {/* Plan statuses */}
+        <SectionCard icon={BarChart3} title={t('adminPortalTutoria.planStatuses')}>
+          <div className="p-5">
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { key: 'RASCUNHO',            icon: Clock,        color: 'text-gray-500 dark:text-gray-400', bg: 'bg-gray-100 dark:bg-gray-800' },
+                { key: 'AGUARDANDO_APROVACAO', icon: Clock,        color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+                { key: 'APROVADO',             icon: CheckCircle2, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+                { key: 'EM_EXECUCAO',          icon: TrendingUp,   color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/20' },
+                { key: 'CONCLUIDO',            icon: CheckCircle2, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+                { key: 'DEVOLVIDO',            icon: XCircle,      color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20' },
+              ].map(({ key, icon: Icon, color, bg }) => (
+                <div key={key} className={`rounded-xl p-3 ${bg}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Icon className={`w-4 h-4 ${color}`} />
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{t('adminPortalTutoria.planStatus.' + key)}</span>
+                  </div>
+                  <p className="text-xl font-mono font-bold text-gray-900 dark:text-white">
+                    {byPlanStatus[key] ?? 0}
+                  </p>
                 </div>
-                <p className={`text-xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  {byPlanStatus[key] ?? 0}
-                </p>
-              </div>
-            ))}
-          </div>
-          {(stats?.overdue_plans ?? 0) > 0 && (
-            <div className={`mt-4 flex items-center gap-2 p-3 rounded-xl text-sm ${isDark ? 'bg-red-500/10 border border-red-500/20 text-red-400' : 'bg-red-50 border border-red-200 text-red-600'}`}>
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span className="font-semibold">{t('adminPortalTutoria.overdueWarning', { count: stats?.overdue_plans })}</span>
+              ))}
             </div>
-          )}
-        </motion.div>
+            {(stats?.overdue_plans ?? 0) > 0 && (
+              <div className="mt-4 flex items-center gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-[#EC0000] text-sm">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span className="font-medium">{t('adminPortalTutoria.overdueWarning', { count: stats?.overdue_plans })}</span>
+              </div>
+            )}
+          </div>
+        </SectionCard>
       </div>
 
-      {/* ── Quick actions (manager only) ─────────────────────────────────────── */}
+      {/* ── Quick actions (manager only) ──────────────────────────── */}
       {isManager && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.45 }}
-          className="grid grid-cols-1 sm:grid-cols-3 gap-4"
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: t('adminPortalTutoria.registerError'),   icon: AlertTriangle, path: '/tutoria/errors/new',  color: 'from-red-500 to-rose-600' },
-            { label: t('adminPortalTutoria.viewAllErrors'),   icon: Users,         path: '/tutoria/errors',       color: 'from-orange-500 to-amber-500' },
-            { label: t('adminPortalTutoria.viewPlans'),       icon: ClipboardList, path: '/tutoria/plans',        color: 'from-blue-500 to-indigo-500' },
-          ].map(({ label, icon: Icon, path, color }) => (
-            <motion.button
+            { label: t('adminPortalTutoria.registerError'), icon: AlertTriangle, path: '/tutoria/errors/new' },
+            { label: t('adminPortalTutoria.viewAllErrors'), icon: Users,         path: '/tutoria/errors' },
+            { label: t('adminPortalTutoria.viewPlans'),     icon: ClipboardList, path: '/tutoria/plans' },
+          ].map(({ label, icon: Icon, path }) => (
+            <button
               key={path}
-              whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.98 }}
               onClick={() => navigate(path)}
-              className={`flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-br ${color} text-white font-semibold text-sm shadow-lg`}
+              className="flex items-center gap-3 p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:border-[#EC0000]/30 hover:shadow-md transition-all text-left"
             >
-              <Icon className="w-5 h-5" />
-              {label}
-              <ArrowRight className="w-4 h-4 ml-auto" />
-            </motion.button>
+              <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
+                <Icon className="w-5 h-5 text-[#EC0000]" />
+              </div>
+              <span className="font-medium text-sm text-gray-900 dark:text-white flex-1">{label}</span>
+              <ArrowRight className="w-4 h-4 text-gray-400" />
+            </button>
           ))}
-        </motion.div>
+        </div>
       )}
 
-      {/* ── Student CTA ──────────────────────────────────────────────────────── */}
+      {/* ── Student CTA ────────────────────────────────────────────── */}
       {isStudent && recentPlans.filter(p => p.status === 'EM_EXECUCAO').length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.45 }}
-          className={`rounded-2xl border p-5 flex items-center gap-4 ${isDark ? 'bg-blue-500/10 border-blue-500/20' : 'bg-blue-50 border-blue-200'}`}
-        >
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center flex-shrink-0">
-            <ClipboardList className="w-5 h-5 text-white" />
+        <div className="rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-5 flex items-center gap-4">
+          <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+            <ClipboardList className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div className="flex-1">
-            <p className={`font-bold text-sm ${isDark ? 'text-blue-300' : 'text-blue-800'}`}>
+            <p className="font-bold text-sm text-blue-800 dark:text-blue-300">
               {t('adminPortalTutoria.studentCtaTitle')}
             </p>
-            <p className={`text-xs mt-0.5 ${isDark ? 'text-blue-400/70' : 'text-blue-600'}`}>
+            <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
               {t('adminPortalTutoria.studentCtaSub')}
             </p>
           </div>
           <button
             onClick={() => navigate('/tutoria/my-plans')}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-500 text-white text-xs font-bold flex-shrink-0"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#EC0000] hover:bg-[#CC0000] text-white text-xs font-medium flex-shrink-0 transition-colors"
           >
             {t('adminPortalTutoria.viewPlans')} <ArrowRight className="w-3.5 h-3.5" />
           </button>
-        </motion.div>
+        </div>
       )}
-
     </div>
   );
 }

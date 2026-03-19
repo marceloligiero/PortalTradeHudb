@@ -144,55 +144,67 @@ export default function LandingNavbar({ minimal = false }: Props) {
             </nav>
           )}
 
-          {/* Desktop right controls */}
-          <div className="hidden md:flex items-center gap-2">
-            <LangSwitcher />
+          {/* Right controls */}
+          {minimal ? (
+            /* Minimal mode (auth pages): only lang + theme, always visible */
+            <div className="flex items-center gap-2">
+              <LangSwitcher />
+              <div className="w-px h-4 mx-1 bg-gray-200 dark:bg-white/10" />
+              <ThemeToggle />
+            </div>
+          ) : (
+            <>
+              {/* Desktop right controls */}
+              <div className="hidden md:flex items-center gap-2">
+                <LangSwitcher />
 
-            <div className="w-px h-4 mx-1 bg-gray-200 dark:bg-white/10" />
+                <div className="w-px h-4 mx-1 bg-gray-200 dark:bg-white/10" />
 
-            <ThemeToggle />
+                <ThemeToggle />
 
-            <div className="w-px h-4 mx-1 bg-gray-200 dark:bg-white/10" />
+                <div className="w-px h-4 mx-1 bg-gray-200 dark:bg-white/10" />
 
-            {/* Login */}
-            <Link
-              to="/login"
-              className="font-body font-medium text-sm px-4 py-2 rounded-lg transition-all duration-200 hover:scale-[1.02]"
-              style={{
-                color: theme === 'dark' ? 'rgba(255,255,255,0.75)' : '#374151',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.color = '#EC0000'; e.currentTarget.style.background = theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(236,0,0,0.04)'; }}
-              onMouseLeave={e => { e.currentTarget.style.color = theme === 'dark' ? 'rgba(255,255,255,0.75)' : '#374151'; e.currentTarget.style.background = 'transparent'; }}
-            >
-              {t('landing.navbar.login')}
-            </Link>
+                {/* Login */}
+                <Link
+                  to="/login"
+                  className="font-body font-medium text-sm px-4 py-2 rounded-lg transition-all duration-200 hover:scale-[1.02]"
+                  style={{
+                    color: theme === 'dark' ? 'rgba(255,255,255,0.75)' : '#374151',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#EC0000'; e.currentTarget.style.background = theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(236,0,0,0.04)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = theme === 'dark' ? 'rgba(255,255,255,0.75)' : '#374151'; e.currentTarget.style.background = 'transparent'; }}
+                >
+                  {t('landing.navbar.login')}
+                </Link>
 
-            {/* Register */}
-            <Link
-              to="/register"
-              className="relative text-[13px] font-body font-bold text-white uppercase tracking-[0.05em]
-                px-5 py-2.5 rounded-lg overflow-hidden
-                transition-all duration-300 hover:shadow-[0_0_20px_rgba(236,0,0,0.35)]
-                hover:scale-[1.02] active:scale-[0.98]"
-              style={{ background: '#EC0000' }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#D00000')}
-              onMouseLeave={e => (e.currentTarget.style.background = '#EC0000')}
-            >
-              <span className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none" aria-hidden="true">
-                <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shine_3s_ease-in-out_infinite]" />
-              </span>
-              <span className="relative">{t('landing.navbar.register')}</span>
-            </Link>
-          </div>
+                {/* Register */}
+                <Link
+                  to="/register"
+                  className="relative text-[13px] font-body font-bold text-white uppercase tracking-[0.05em]
+                    px-5 py-2.5 rounded-lg overflow-hidden
+                    transition-all duration-300 hover:shadow-[0_0_20px_rgba(236,0,0,0.35)]
+                    hover:scale-[1.02] active:scale-[0.98]"
+                  style={{ background: '#EC0000' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#D00000')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '#EC0000')}
+                >
+                  <span className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none" aria-hidden="true">
+                    <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shine_3s_ease-in-out_infinite]" />
+                  </span>
+                  <span className="relative">{t('landing.navbar.register')}</span>
+                </Link>
+              </div>
 
-          {/* Mobile toggle */}
-          <button
-            className="md:hidden p-2 rounded-lg transition-colors text-[#6B7280] dark:text-gray-400 hover:text-[#111827] dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10"
-            onClick={() => setMenuOpen(true)}
-            aria-label="Menu"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+              {/* Mobile toggle */}
+              <button
+                className="md:hidden p-2 rounded-lg transition-colors text-[#6B7280] dark:text-gray-400 hover:text-[#111827] dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10"
+                onClick={() => setMenuOpen(true)}
+                aria-label="Menu"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            </>
+          )}
         </div>
       </header>
 

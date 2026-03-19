@@ -20,8 +20,8 @@ class UserRegister(BaseModel):
     is_trainer: bool = False
     is_tutor: bool = False
     is_liberador: bool = False
-
-class UserUpdate(BaseModel):
+    is_team_lead: bool = False
+    is_referente: bool = False
     full_name: Optional[str] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None

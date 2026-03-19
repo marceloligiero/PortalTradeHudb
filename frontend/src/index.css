@@ -126,6 +126,18 @@ html.dark body {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
+/* ══ Browser autofill — transparent bg regardless of theme ═════════════ */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: inherit !important;
+  caret-color: inherit !important;
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+  transition: background-color 9999s ease-in-out 0s !important;
+}
+
 @layer base {
   * {
     @apply border-gray-200 dark:border-gray-800;
@@ -135,6 +147,18 @@ html.dark body {
   }
   html {
     scroll-behavior: smooth;
+  }
+
+  /* ══ Chart CSS variables (light / dark) ═══════════════════════════════ */
+  :root {
+    --tooltip-bg: #ffffff;
+    --axis-color: #9ca3af;
+    --grid-color: #f3f4f6;
+  }
+  .dark {
+    --tooltip-bg: #1a1a2e;
+    --axis-color: #6b7280;
+    --grid-color: rgba(255, 255, 255, 0.06);
   }
 }
 
@@ -482,6 +506,22 @@ html.dark body {
   50%       { opacity: 1;   transform: translateY(-2px); }
 }
 
+/* ══ Stock Ticker — horizontal infinite scroll ═══════════════════════ */
+@keyframes tickerScrollL {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes tickerScrollR {
+  0%   { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+/* ══ TickerFadeIn — card entrance with delay ═════════════════════════ */
+@keyframes tickerFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
 /* ══ Scroll reveal ════════════════════════════════════════════════════ */
 .reveal {
   opacity: 0;
@@ -501,4 +541,32 @@ html.dark body {
     transform: none;
     transition: none;
   }
+}
+
+/* ══ Scroll cue — mouse wheel dot ═════════════════════════════════════ */
+@keyframes scrollDot {
+  0%         { opacity: 1; transform: translateX(-50%) translateY(0); }
+  50%        { opacity: 0.3; transform: translateX(-50%) translateY(12px); }
+  51%        { opacity: 0; transform: translateX(-50%) translateY(0); }
+  70%        { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100%       { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ══ Bounce chevron — subtle down-arrow pulse ═════════════════════════ */
+@keyframes bounceChevron {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50%      { transform: translateY(4px); opacity: 1; }
+}
+
+/* ══ OrbPulse — section transition pulsing orb ════════════════════════ */
+@keyframes orbPulse {
+  0%, 100% { transform: scale(1);   opacity: 0.7; }
+  50%       { transform: scale(1.6); opacity: 0.3; }
+}
+
+/* ══ Reduced motion — disable scroll cue animations ═══════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes scrollDot     { 0%, 100% { opacity: 1; transform: translateX(-50%); } }
+  @keyframes bounceChevron { 0%, 100% { opacity: 1; transform: none; } }
+  @keyframes orbPulse      { 0%, 100% { transform: scale(1); opacity: 0.5; } }
 }

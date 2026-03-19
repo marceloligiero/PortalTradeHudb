@@ -26,7 +26,7 @@ router = APIRouter()
 
 def _team_user_ids(user: User, db: Session) -> Optional[list]:
     """Returns list of user IDs in scope, or None for 'all'."""
-    if user.role == "ADMIN":
+    if user.role in ("ADMIN", "GESTOR"):
         return None  # no filter
     if user.role == "MANAGER":
         # manager's team members
@@ -72,7 +72,7 @@ def overview(
     total_users = uq.count()
 
     # Teams
-    total_teams = db.query(Team).filter(Team.is_active == True).count() if current_user.role == "ADMIN" else (
+    total_teams = db.query(Team).filter(Team.is_active == True).count() if current_user.role in ("ADMIN", "GESTOR") else (
         1 if current_user.role == "MANAGER" else 0
     )
 
@@ -249,7 +249,7 @@ def teams_relatorio(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if current_user.role not in ("ADMIN", "MANAGER"):
+    if current_user.role not in ("ADMIN", "MANAGER", "GESTOR"):
         raise HTTPException(status_code=403, detail="Acesso restrito")
 
     q = db.query(Team).filter(Team.is_active == True)
@@ -300,7 +300,7 @@ def members_relatorio(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if current_user.role not in ("ADMIN", "MANAGER"):
+    if current_user.role not in ("ADMIN", "MANAGER", "GESTOR"):
         raise HTTPException(status_code=403, detail="Acesso restrito")
 
     scope = _team_user_ids(current_user, db)
@@ -360,7 +360,7 @@ def incidents_report(
     db: Session = Depends(get_db),
 ):
     """Returns incidents list for the report with optional filters, scoped by role."""
-    if current_user.role not in ("ADMIN", "MANAGER"):
+    if current_user.role not in ("ADMIN", "MANAGER", "GESTOR"):
         raise HTTPException(403, "Acesso restrito")
 
     q = (
@@ -456,7 +456,7 @@ def incidents_filters(
     db: Session = Depends(get_db),
 ):
     """Returns available filter options for the incidents report."""
-    if current_user.role not in ("ADMIN", "MANAGER"):
+    if current_user.role not in ("ADMIN", "MANAGER", "GESTOR"):
         raise HTTPException(403, "Acesso restrito")
     return {
         "impacts": [{"id": i.id, "name": i.name} for i in db.query(ErrorImpact).filter(ErrorImpact.is_active == True).all()],

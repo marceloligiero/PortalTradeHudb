@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
 import {
   BarChart3, Users, BookOpen, GraduationCap, Target, Clock,
   Award, TrendingUp, Building2, Package, Layers, AlertTriangle,
@@ -9,8 +8,6 @@ import {
   Zap, Shield
 } from 'lucide-react';
 import api from '../../lib/axios';
-import { PremiumHeader, AnimatedStatCard } from '../../components/premium';
-import { useTheme } from '../../contexts/ThemeContext';
 import { getTranslatedProductName } from '../../utils/productTranslation';
 
 // ─── Types ────────────────────────────────────────────
@@ -78,12 +75,10 @@ function ProgressBar({ value, max, color, label, count }: { value: number; max: 
         <span className="text-gray-700 dark:text-gray-300 font-medium">{label}</span>
         <span className="text-gray-500 dark:text-gray-400">{count ?? value}</span>
       </div>
-      <div className="h-3 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${Math.min(pct, 100)}%` }}
-          transition={{ duration: 1, ease: 'easeOut' }}
-          className={`h-full rounded-full bg-gradient-to-r ${color}`}
+      <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full ${color} transition-all duration-1000 ease-out`}
+          style={{ width: `${Math.min(pct, 100)}%` }}
         />
       </div>
     </div>
@@ -91,29 +86,22 @@ function ProgressBar({ value, max, color, label, count }: { value: number; max: 
 }
 
 // ─── Section Card wrapper ─────────────────────────────
-function SectionCard({ title, icon: Icon, children, iconColor = 'text-indigo-500', delay = 0 }: {
+function SectionCard({ title, icon: Icon, children, iconColor = 'text-[#EC0000]' }: {
   title: string;
   icon: any;
   children: React.ReactNode;
   iconColor?: string;
-  delay?: number;
 }) {
-  const { isDark } = useTheme();
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay }}
-      className={`relative overflow-hidden ${isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'} backdrop-blur-xl rounded-2xl border p-6 shadow-sm`}
-    >
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
       <div className="flex items-center gap-3 mb-5">
-        <div className={`p-2 rounded-lg ${isDark ? 'bg-white/10' : 'bg-gray-100'}`}>
+        <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
           <Icon className={`w-5 h-5 ${iconColor}`} />
         </div>
-        <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{title}</h3>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h3>
       </div>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -121,14 +109,13 @@ function SectionCard({ title, icon: Icon, children, iconColor = 'text-indigo-500
 function MiniStat({ icon: Icon, label, value, color = 'text-gray-500' }: {
   icon: any; label: string; value: string | number; color?: string;
 }) {
-  const { isDark } = useTheme();
   return (
     <div className="flex items-center justify-between py-2">
       <div className="flex items-center gap-2">
         <Icon className={`w-4 h-4 ${color}`} />
-        <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{label}</span>
+        <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
       </div>
-      <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{value}</span>
+      <span className="text-sm font-bold text-gray-900 dark:text-white">{value}</span>
     </div>
   );
 }
@@ -141,7 +128,6 @@ function StatusDot({ color }: { color: string }) {
 // ═══════════════ MAIN COMPONENT ═══════════════
 export default function Reports() {
   const { t } = useTranslation();
-  const { isDark } = useTheme();
 
   const [data, setData] = useState<InsightsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -168,8 +154,7 @@ export default function Reports() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-          className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full" />
+        <div className="w-12 h-12 border-4 border-[#EC0000]/20 border-t-[#EC0000] rounded-full animate-spin" />
       </div>
     );
   }
@@ -177,11 +162,25 @@ export default function Reports() {
   if (error || !data) {
     return (
       <div className="space-y-6">
-        <PremiumHeader icon={BarChart3} title={t('insights.title', 'Relatórios & Insights')} subtitle={t('insights.subtitle', 'Análise completa da plataforma')} badge={t('insights.badge', 'Insights')} iconColor="from-violet-500 to-purple-700" />
-        <div className={`p-8 rounded-2xl text-center ${isDark ? 'bg-white/5' : 'bg-white'} border ${isDark ? 'border-white/10' : 'border-gray-200'}`}>
+        {/* Error Header */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 text-[#EC0000]" />
+              </div>
+              <div>
+                <span className="font-body text-xs font-bold uppercase tracking-widest text-[#EC0000]">{t('insights.badge', 'Insights')}</span>
+                <h1 className="font-headline text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t('insights.title', 'Relatórios & Insights')}</h1>
+                <p className="font-body text-sm text-gray-500 dark:text-gray-400">{t('insights.subtitle', 'Análise completa da plataforma')}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="p-8 rounded-2xl text-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
           <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-3" />
-          <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>{error}</p>
-          <button onClick={fetchInsights} className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+          <p className="text-gray-600 dark:text-gray-400">{error}</p>
+          <button onClick={fetchInsights} className="mt-4 px-4 py-2 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-lg transition">
             <RefreshCw className="w-4 h-4 inline mr-2" />{t('common.retry', 'Tentar novamente')}
           </button>
         </div>
@@ -202,11 +201,11 @@ export default function Reports() {
   };
 
   const lessonStatusConfig: Record<string, { color: string; label: string }> = {
-    NOT_STARTED: { color: 'from-gray-400 to-gray-500', label: t('insights.notStarted', 'Não Iniciado') },
-    RELEASED: { color: 'from-cyan-400 to-cyan-600', label: t('insights.released', 'Liberado') },
-    IN_PROGRESS: { color: 'from-blue-400 to-blue-600', label: t('insights.inProgress', 'Em Curso') },
-    PAUSED: { color: 'from-amber-400 to-amber-600', label: t('insights.paused', 'Pausado') },
-    COMPLETED: { color: 'from-green-400 to-green-600', label: t('insights.completed', 'Concluído') },
+    NOT_STARTED: { color: 'bg-gray-500', label: t('insights.notStarted', 'Não Iniciado') },
+    RELEASED: { color: 'bg-cyan-500', label: t('insights.released', 'Liberado') },
+    IN_PROGRESS: { color: 'bg-blue-500', label: t('insights.inProgress', 'Em Curso') },
+    PAUSED: { color: 'bg-amber-500', label: t('insights.paused', 'Pausado') },
+    COMPLETED: { color: 'bg-green-500', label: t('insights.completed', 'Concluído') },
   };
 
   const errorTypeLabels: Record<string, string> = {
@@ -217,10 +216,10 @@ export default function Reports() {
   };
 
   const errorTypeColors: Record<string, string> = {
-    methodology: 'from-red-400 to-red-600',
-    knowledge: 'from-orange-400 to-orange-600',
-    detail: 'from-yellow-400 to-yellow-600',
-    procedure: 'from-purple-400 to-purple-600',
+    methodology: 'bg-red-500',
+    knowledge: 'bg-orange-500',
+    detail: 'bg-yellow-500',
+    procedure: 'bg-purple-500',
   };
 
   const difficultyLabels: Record<string, string> = {
@@ -230,86 +229,107 @@ export default function Reports() {
   };
 
   const difficultyColors: Record<string, string> = {
-    easy: 'from-green-400 to-green-600',
-    medium: 'from-amber-400 to-amber-600',
-    hard: 'from-red-400 to-red-600',
+    easy: 'bg-green-500',
+    medium: 'bg-amber-500',
+    hard: 'bg-red-500',
   };
 
   const totalPlansAll = Object.values(data.plan_status).reduce((a, b) => a + b, 0);
   const totalLessonsAll = Object.values(data.lesson_progress.status_distribution).reduce((a, b) => a + b, 0);
 
+  const kpiStats = [
+    { icon: Users, label: t('insights.students', 'Formandos'), value: ov.total_students },
+    { icon: Shield, label: t('insights.trainers', 'Formadores'), value: ov.total_trainers },
+    { icon: BookOpen, label: t('insights.courses', 'Cursos'), value: ov.total_courses },
+    { icon: GraduationCap, label: t('insights.plans', 'Planos'), value: ov.total_plans },
+    { icon: Target, label: t('insights.challenges', 'Desafios'), value: ov.total_challenges },
+    { icon: Award, label: t('insights.certificates', 'Certificados'), value: ov.total_certificates },
+    { icon: Clock, label: t('insights.studyHours', 'Horas de Estudo'), value: ov.total_study_hours, suffix: 'h', decimals: 1 },
+    { icon: TrendingUp, label: t('insights.completionRate', 'Taxa de Conclusão'), value: ov.completion_rate, suffix: '%', decimals: 1 },
+    { icon: CheckCircle, label: t('insights.approvalRate', 'Taxa de Aprovação'), value: ch.approval_rate, suffix: '%', decimals: 1 },
+    { icon: Zap, label: t('insights.avgMpu', 'MPU Médio'), value: ch.avg_mpu, decimals: 2 },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* ═══════ HEADER ═══════ */}
-      <PremiumHeader
-        icon={BarChart3}
-        title={t('insights.title', 'Relatórios & Insights')}
-        subtitle={t('insights.subtitle', 'Análise completa da plataforma')}
-        badge={t('insights.badge', 'Insights')}
-        iconColor="from-violet-500 to-purple-700"
-        actions={
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+      {/* ═══════ HEADER + KPI STATS BAR ═══════ */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+              <BarChart3 className="w-6 h-6 text-[#EC0000]" />
+            </div>
+            <div>
+              <span className="font-body text-xs font-bold uppercase tracking-widest text-[#EC0000]">{t('insights.badge', 'Insights')}</span>
+              <h1 className="font-headline text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">{t('insights.title', 'Relatórios & Insights')}</h1>
+              <p className="font-body text-sm text-gray-500 dark:text-gray-400">{t('insights.subtitle', 'Análise completa da plataforma')}</p>
+            </div>
+          </div>
+          <button
             onClick={fetchInsights}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-700 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+            className="flex items-center gap-2 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body font-bold text-sm px-5 py-2.5 transition-colors"
           >
             <RefreshCw className="w-5 h-5" />
             {t('insights.refresh', 'Atualizar')}
-          </motion.button>
-        }
-      />
+          </button>
+        </div>
 
-      {/* ═══════ TOP KPI CARDS ═══════ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        <AnimatedStatCard icon={Users} label={t('insights.students', 'Formandos')} value={ov.total_students} color="from-blue-500 to-blue-700" delay={0} />
-        <AnimatedStatCard icon={Shield} label={t('insights.trainers', 'Formadores')} value={ov.total_trainers} color="from-emerald-500 to-emerald-700" delay={0.05} />
-        <AnimatedStatCard icon={BookOpen} label={t('insights.courses', 'Cursos')} value={ov.total_courses} color="from-purple-500 to-purple-700" delay={0.1} />
-        <AnimatedStatCard icon={GraduationCap} label={t('insights.plans', 'Planos')} value={ov.total_plans} color="from-indigo-500 to-indigo-700" delay={0.15} />
-        <AnimatedStatCard icon={Target} label={t('insights.challenges', 'Desafios')} value={ov.total_challenges} color="from-orange-500 to-red-600" delay={0.2} />
-        <AnimatedStatCard icon={Award} label={t('insights.certificates', 'Certificados')} value={ov.total_certificates} color="from-amber-500 to-yellow-600" delay={0.25} />
-      </div>
-
-      {/* ═══════ SECOND ROW KPIs ═══════ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <AnimatedStatCard icon={Clock} label={t('insights.studyHours', 'Horas de Estudo')} value={ov.total_study_hours} suffix="h" color="from-cyan-500 to-cyan-700" delay={0.3} decimals={1} />
-        <AnimatedStatCard icon={TrendingUp} label={t('insights.completionRate', 'Taxa de Conclusão')} value={ov.completion_rate} suffix="%" color="from-green-500 to-emerald-600" delay={0.35} decimals={1} />
-        <AnimatedStatCard icon={CheckCircle} label={t('insights.approvalRate', 'Taxa de Aprovação')} value={ch.approval_rate} suffix="%" color="from-teal-500 to-teal-700" delay={0.4} decimals={1} />
-        <AnimatedStatCard icon={Zap} label={t('insights.avgMpu', 'MPU Médio')} value={ch.avg_mpu} color="from-pink-500 to-rose-600" delay={0.45} decimals={2} />
+        {/* KPI Stats Bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
+          {kpiStats.map((stat, i) => {
+            const StatIcon = stat.icon;
+            const displayValue = stat.decimals != null
+              ? Number(stat.value).toFixed(stat.decimals)
+              : stat.value;
+            return (
+              <div key={i} className="flex items-center gap-3">
+                <StatIcon className="w-5 h-5 text-[#EC0000] shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-mono text-lg font-bold text-gray-900 dark:text-white truncate">
+                    {displayValue}{stat.suffix ?? ''}
+                  </p>
+                  <p className="font-body text-xs text-gray-500 dark:text-gray-400 truncate">{stat.label}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* ═══════ MAIN GRID ═══════ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* ─── Challenge Submissions ─── */}
-        <SectionCard title={t('insights.challengeAnalytics', 'Análise de Desafios')} icon={Target} iconColor="text-orange-500" delay={0.1}>
+        <SectionCard title={t('insights.challengeAnalytics', 'Análise de Desafios')} icon={Target} iconColor="text-orange-500">
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <div className={`p-3 rounded-xl ${isDark ? 'bg-green-500/10' : 'bg-green-50'}`}>
+              <div className="p-3 rounded-xl bg-green-50 dark:bg-green-500/10">
                 <div className="flex items-center gap-2 mb-1">
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('insights.approved', 'Aprovados')}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{t('insights.approved', 'Aprovados')}</span>
                 </div>
-                <span className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{ch.approved}</span>
+                <span className="text-2xl font-bold text-gray-900 dark:text-white">{ch.approved}</span>
               </div>
-              <div className={`p-3 rounded-xl ${isDark ? 'bg-red-500/10' : 'bg-red-50'}`}>
+              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-500/10">
                 <div className="flex items-center gap-2 mb-1">
                   <XCircle className="w-4 h-4 text-red-500" />
-                  <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('insights.rejected', 'Reprovados')}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{t('insights.rejected', 'Reprovados')}</span>
                 </div>
-                <span className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{ch.rejected}</span>
+                <span className="text-2xl font-bold text-gray-900 dark:text-white">{ch.rejected}</span>
               </div>
-              <div className={`p-3 rounded-xl ${isDark ? 'bg-amber-500/10' : 'bg-amber-50'}`}>
+              <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10">
                 <div className="flex items-center gap-2 mb-1">
                   <Eye className="w-4 h-4 text-amber-500" />
-                  <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('insights.pendingReview', 'Pendentes')}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{t('insights.pendingReview', 'Pendentes')}</span>
                 </div>
-                <span className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{ch.pending_review}</span>
+                <span className="text-2xl font-bold text-gray-900 dark:text-white">{ch.pending_review}</span>
               </div>
-              <div className={`p-3 rounded-xl ${isDark ? 'bg-blue-500/10' : 'bg-blue-50'}`}>
+              <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-500/10">
                 <div className="flex items-center gap-2 mb-1">
                   <Play className="w-4 h-4 text-blue-500" />
-                  <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('insights.inProgressLabel', 'Em Curso')}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{t('insights.inProgressLabel', 'Em Curso')}</span>
                 </div>
-                <span className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{ch.in_progress}</span>
+                <span className="text-2xl font-bold text-gray-900 dark:text-white">{ch.in_progress}</span>
               </div>
             </div>
             {ch.avg_score > 0 && (
@@ -319,14 +339,14 @@ export default function Reports() {
         </SectionCard>
 
         {/* ─── Error Breakdown ─── */}
-        <SectionCard title={t('insights.errorAnalysis', 'Análise de Erros')} icon={AlertTriangle} iconColor="text-red-500" delay={0.15}>
+        <SectionCard title={t('insights.errorAnalysis', 'Análise de Erros')} icon={AlertTriangle} iconColor="text-red-500">
           <div className="space-y-3">
             {data.challenges.error_breakdown.map((err) => (
               <ProgressBar
                 key={err.type}
                 value={err.count}
                 max={Math.max(...data.challenges.error_breakdown.map(e => e.count), 1)}
-                color={errorTypeColors[err.type] || 'from-gray-400 to-gray-600'}
+                color={errorTypeColors[err.type] || 'bg-gray-500'}
                 label={errorTypeLabels[err.type] || err.type}
                 count={`${err.count} (${err.percentage}%)`}
               />
@@ -334,18 +354,18 @@ export default function Reports() {
             {data.challenges.error_breakdown.every(e => e.count === 0) && (
               <div className="text-center py-4">
                 <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('insights.noErrors', 'Sem erros registados')}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t('insights.noErrors', 'Sem erros registados')}</p>
               </div>
             )}
           </div>
         </SectionCard>
 
         {/* ─── Training Plan Status ─── */}
-        <SectionCard title={t('insights.planStatus', 'Estado dos Planos')} icon={GraduationCap} iconColor="text-indigo-500" delay={0.2}>
+        <SectionCard title={t('insights.planStatus', 'Estado dos Planos')} icon={GraduationCap} iconColor="text-indigo-500">
           {totalPlansAll === 0 ? (
             <div className="text-center py-6">
-              <GraduationCap className={`w-10 h-10 mx-auto mb-2 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
-              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('insights.noPlans', 'Sem planos de formação')}</p>
+              <GraduationCap className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+              <p className="text-sm text-gray-400 dark:text-gray-500">{t('insights.noPlans', 'Sem planos de formação')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -361,11 +381,11 @@ export default function Reports() {
                   <div key={status} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <StatusDot color={cfg.bg} />
-                      <span className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{statusLabels[status] || status}</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{statusLabels[status] || status}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{count}</span>
-                      <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                      <span className="text-sm font-bold text-gray-900 dark:text-white">{count}</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">
                         ({totalPlansAll > 0 ? Math.round((count / totalPlansAll) * 100) : 0}%)
                       </span>
                     </div>
@@ -377,16 +397,16 @@ export default function Reports() {
         </SectionCard>
 
         {/* ─── Lesson Progress ─── */}
-        <SectionCard title={t('insights.lessonProgress', 'Progresso das Aulas')} icon={Layers} iconColor="text-cyan-500" delay={0.25}>
+        <SectionCard title={t('insights.lessonProgress', 'Progresso das Aulas')} icon={Layers} iconColor="text-cyan-500">
           {totalLessonsAll === 0 ? (
             <div className="text-center py-6">
-              <Layers className={`w-10 h-10 mx-auto mb-2 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
-              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('insights.noLessonProgress', 'Sem registos de progresso')}</p>
+              <Layers className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+              <p className="text-sm text-gray-400 dark:text-gray-500">{t('insights.noLessonProgress', 'Sem registos de progresso')}</p>
             </div>
           ) : (
             <div className="space-y-3">
               {Object.entries(data.lesson_progress.status_distribution).map(([status, count]) => {
-                const cfg = lessonStatusConfig[status] || { color: 'from-gray-400 to-gray-500', label: status };
+                const cfg = lessonStatusConfig[status] || { color: 'bg-gray-500', label: status };
                 return (
                   <ProgressBar
                     key={status}
@@ -399,7 +419,7 @@ export default function Reports() {
                 );
               })}
               {data.lesson_progress.avg_mpu > 0 && (
-                <div className={`mt-3 pt-3 border-t ${isDark ? 'border-white/10' : 'border-gray-100'}`}>
+                <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
                   <MiniStat icon={Zap} label={t('insights.avgLessonMpu', 'MPU Médio das Aulas')} value={data.lesson_progress.avg_mpu} color="text-pink-500" />
                 </div>
               )}
@@ -408,30 +428,30 @@ export default function Reports() {
         </SectionCard>
 
         {/* ─── Products / Services ─── */}
-        <SectionCard title={t('insights.serviceDistribution', 'Distribuição por Serviço')} icon={Package} iconColor="text-orange-500" delay={0.3}>
+        <SectionCard title={t('insights.serviceDistribution', 'Distribuição por Serviço')} icon={Package} iconColor="text-orange-500">
           {data.products.length === 0 ? (
             <div className="text-center py-6">
-              <Package className={`w-10 h-10 mx-auto mb-2 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
-              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('insights.noProducts', 'Sem serviços')}</p>
+              <Package className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+              <p className="text-sm text-gray-400 dark:text-gray-500">{t('insights.noProducts', 'Sem serviços')}</p>
             </div>
           ) : (
             <div className="space-y-3">
               {data.products.map((p) => (
-                <div key={p.id} className={`flex items-center justify-between py-2 px-3 rounded-lg ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+                <div key={p.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-800">
                   <div>
-                    <span className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
                       {getTranslatedProductName(t, p.code, p.name)}
                     </span>
-                    <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${isDark ? 'bg-white/10 text-gray-400' : 'bg-gray-200 text-gray-500'}`}>{p.code}</span>
+                    <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400">{p.code}</span>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('insights.courses', 'Cursos')}</span>
-                      <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{p.total_courses}</p>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{t('insights.courses', 'Cursos')}</span>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">{p.total_courses}</p>
                     </div>
                     <div className="text-right">
-                      <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('insights.plans', 'Planos')}</span>
-                      <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{p.total_plans}</p>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{t('insights.plans', 'Planos')}</span>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">{p.total_plans}</p>
                     </div>
                   </div>
                 </div>
@@ -441,28 +461,28 @@ export default function Reports() {
         </SectionCard>
 
         {/* ─── Banks ─── */}
-        <SectionCard title={t('insights.bankDistribution', 'Distribuição por Banco')} icon={Building2} iconColor="text-blue-500" delay={0.35}>
+        <SectionCard title={t('insights.bankDistribution', 'Distribuição por Banco')} icon={Building2} iconColor="text-blue-500">
           {data.banks.length === 0 ? (
             <div className="text-center py-6">
-              <Building2 className={`w-10 h-10 mx-auto mb-2 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
-              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('insights.noBanks', 'Sem bancos')}</p>
+              <Building2 className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+              <p className="text-sm text-gray-400 dark:text-gray-500">{t('insights.noBanks', 'Sem bancos')}</p>
             </div>
           ) : (
             <div className="space-y-3">
               {data.banks.map((b) => (
-                <div key={b.id} className={`flex items-center justify-between py-2 px-3 rounded-lg ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+                <div key={b.id} className="flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-gray-800">
                   <div>
-                    <span className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-900'}`}>{b.name}</span>
-                    <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${isDark ? 'bg-white/10 text-gray-400' : 'bg-gray-200 text-gray-500'}`}>{b.code}</span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{b.name}</span>
+                    <span className="ml-2 text-xs px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400">{b.code}</span>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('insights.courses', 'Cursos')}</span>
-                      <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{b.total_courses}</p>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{t('insights.courses', 'Cursos')}</span>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">{b.total_courses}</p>
                     </div>
                     <div className="text-right">
-                      <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('insights.plans', 'Planos')}</span>
-                      <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{b.total_plans}</p>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{t('insights.plans', 'Planos')}</span>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">{b.total_plans}</p>
                     </div>
                   </div>
                 </div>
@@ -472,47 +492,47 @@ export default function Reports() {
         </SectionCard>
 
         {/* ─── Challenge Difficulty Distribution ─── */}
-        <SectionCard title={t('insights.difficultyDistribution', 'Dificuldade dos Desafios')} icon={Activity} iconColor="text-pink-500" delay={0.4}>
+        <SectionCard title={t('insights.difficultyDistribution', 'Dificuldade dos Desafios')} icon={Activity} iconColor="text-pink-500">
           <div className="space-y-3">
             {Object.entries(ch.difficulty_distribution).map(([diff, count]) => (
               <ProgressBar
                 key={diff}
                 value={count}
                 max={Math.max(...Object.values(ch.difficulty_distribution), 1)}
-                color={difficultyColors[diff] || 'from-gray-400 to-gray-600'}
+                color={difficultyColors[diff] || 'bg-gray-500'}
                 label={difficultyLabels[diff] || diff}
               />
             ))}
             {Object.values(ch.difficulty_distribution).every(v => v === 0) && (
               <div className="text-center py-4">
-                <Target className={`w-8 h-8 mx-auto mb-2 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
-                <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('insights.noChallenges', 'Sem desafios')}</p>
+                <Target className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+                <p className="text-sm text-gray-400 dark:text-gray-500">{t('insights.noChallenges', 'Sem desafios')}</p>
               </div>
             )}
           </div>
         </SectionCard>
 
         {/* ─── Ratings ─── */}
-        <SectionCard title={t('insights.ratingsOverview', 'Avaliações')} icon={Star} iconColor="text-amber-500" delay={0.45}>
+        <SectionCard title={t('insights.ratingsOverview', 'Avaliações')} icon={Star} iconColor="text-amber-500">
           {data.ratings.total === 0 ? (
             <div className="text-center py-6">
-              <Star className={`w-10 h-10 mx-auto mb-2 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
-              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('insights.noRatings', 'Sem avaliações')}</p>
+              <Star className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+              <p className="text-sm text-gray-400 dark:text-gray-500">{t('insights.noRatings', 'Sem avaliações')}</p>
             </div>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-center gap-3">
-                <span className={`text-4xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{data.ratings.average}</span>
+                <span className="text-4xl font-bold text-gray-900 dark:text-white">{data.ratings.average}</span>
                 <div>
                   <div className="flex gap-0.5">
                     {[1, 2, 3, 4, 5].map(i => (
-                      <Star key={i} className={`w-5 h-5 ${i <= Math.round(data.ratings.average) ? 'text-amber-400 fill-amber-400' : isDark ? 'text-gray-600' : 'text-gray-300'}`} />
+                      <Star key={i} className={`w-5 h-5 ${i <= Math.round(data.ratings.average) ? 'text-amber-400 fill-amber-400' : 'text-gray-300 dark:text-gray-600'}`} />
                     ))}
                   </div>
-                  <p className={`text-xs mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{data.ratings.total} {t('insights.totalRatings', 'avaliações')}</p>
+                  <p className="text-xs mt-0.5 text-gray-500 dark:text-gray-400">{data.ratings.total} {t('insights.totalRatings', 'avaliações')}</p>
                 </div>
               </div>
-              <div className={`border-t ${isDark ? 'border-white/10' : 'border-gray-100'} pt-3 space-y-2`}>
+              <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-2">
                 {Object.entries(data.ratings.by_type).map(([type, info]) => {
                   const typeLabels: Record<string, string> = {
                     course: t('insights.courses', 'Cursos'),
@@ -524,11 +544,11 @@ export default function Reports() {
                   if (info.count === 0) return null;
                   return (
                     <div key={type} className="flex items-center justify-between">
-                      <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{typeLabels[type] || type}</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{typeLabels[type] || type}</span>
                       <div className="flex items-center gap-2">
                         <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                        <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{info.average}</span>
-                        <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>({info.count})</span>
+                        <span className="text-sm font-bold text-gray-900 dark:text-white">{info.average}</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500">({info.count})</span>
                       </div>
                     </div>
                   );
@@ -540,25 +560,25 @@ export default function Reports() {
       </div>
 
       {/* ═══════ MONTHLY TRENDS (Full width) ═══════ */}
-      <SectionCard title={t('insights.monthlyTrends', 'Tendências Mensais (6 meses)')} icon={TrendingUp} iconColor="text-violet-500" delay={0.5}>
+      <SectionCard title={t('insights.monthlyTrends', 'Tendências Mensais (6 meses)')} icon={TrendingUp} iconColor="text-[#EC0000]">
         {data.monthly_trends.every(m => m.enrollments === 0 && m.submissions === 0 && m.completions === 0 && m.new_students === 0) ? (
           <div className="text-center py-8">
-            <TrendingUp className={`w-10 h-10 mx-auto mb-2 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
-            <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('insights.noTrendData', 'Sem dados suficientes para tendências')}</p>
+            <TrendingUp className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+            <p className="text-sm text-gray-400 dark:text-gray-500">{t('insights.noTrendData', 'Sem dados suficientes para tendências')}</p>
           </div>
         ) : (
           <>
             {/* Legend */}
             <div className="flex flex-wrap items-center gap-4 mb-4">
-              <div className="flex items-center gap-1.5"><StatusDot color="bg-blue-500" /><span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('insights.enrollments', 'Inscrições')}</span></div>
-              <div className="flex items-center gap-1.5"><StatusDot color="bg-orange-500" /><span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('insights.submissions', 'Submissões')}</span></div>
-              <div className="flex items-center gap-1.5"><StatusDot color="bg-green-500" /><span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('insights.completions', 'Conclusões')}</span></div>
-              <div className="flex items-center gap-1.5"><StatusDot color="bg-purple-500" /><span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('insights.newStudents', 'Novos Formandos')}</span></div>
-              <div className="flex items-center gap-1.5"><StatusDot color="bg-amber-500" /><span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{t('insights.certificates', 'Certificados')}</span></div>
+              <div className="flex items-center gap-1.5"><StatusDot color="bg-blue-500" /><span className="text-xs text-gray-600 dark:text-gray-400">{t('insights.enrollments', 'Inscrições')}</span></div>
+              <div className="flex items-center gap-1.5"><StatusDot color="bg-orange-500" /><span className="text-xs text-gray-600 dark:text-gray-400">{t('insights.submissions', 'Submissões')}</span></div>
+              <div className="flex items-center gap-1.5"><StatusDot color="bg-green-500" /><span className="text-xs text-gray-600 dark:text-gray-400">{t('insights.completions', 'Conclusões')}</span></div>
+              <div className="flex items-center gap-1.5"><StatusDot color="bg-purple-500" /><span className="text-xs text-gray-600 dark:text-gray-400">{t('insights.newStudents', 'Novos Formandos')}</span></div>
+              <div className="flex items-center gap-1.5"><StatusDot color="bg-amber-500" /><span className="text-xs text-gray-600 dark:text-gray-400">{t('insights.certificates', 'Certificados')}</span></div>
             </div>
             {/* Chart */}
             <div className="grid grid-cols-6 gap-3">
-              {data.monthly_trends.map((m, i) => (
+              {data.monthly_trends.map((m) => (
                 <div key={m.month} className="space-y-2">
                   {/* Bars */}
                   <div className="flex items-end justify-center gap-1 h-32">
@@ -569,27 +589,25 @@ export default function Reports() {
                       { value: m.new_students, color: 'bg-purple-500' },
                       { value: m.certificates, color: 'bg-amber-500' },
                     ].map((bar, j) => (
-                      <motion.div
+                      <div
                         key={j}
-                        initial={{ height: 0 }}
-                        animate={{ height: maxTrend > 0 ? `${Math.max((bar.value / maxTrend) * 100, bar.value > 0 ? 8 : 2)}%` : '2%' }}
-                        transition={{ duration: 0.8, delay: i * 0.05 + j * 0.02 }}
-                        className={`w-2 ${bar.color} rounded-t-sm`}
+                        className={`w-2 ${bar.color} rounded-t-sm transition-all duration-700 ease-out`}
+                        style={{ height: maxTrend > 0 ? `${Math.max((bar.value / maxTrend) * 100, bar.value > 0 ? 8 : 2)}%` : '2%' }}
                         title={`${bar.value}`}
                       />
                     ))}
                   </div>
                   {/* Label */}
-                  <p className={`text-xs text-center font-medium ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{m.month_label}</p>
+                  <p className="text-xs text-center font-medium text-gray-400 dark:text-gray-500">{m.month_label}</p>
                 </div>
               ))}
             </div>
             {/* Summary table */}
-            <div className={`mt-4 pt-4 border-t ${isDark ? 'border-white/10' : 'border-gray-100'}`}>
+            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className={isDark ? 'text-gray-400' : 'text-gray-500'}>
+                    <tr className="text-gray-500 dark:text-gray-400">
                       <th className="text-left py-1 font-medium">{t('insights.month', 'Mês')}</th>
                       <th className="text-right py-1 font-medium">{t('insights.enrollments', 'Inscrições')}</th>
                       <th className="text-right py-1 font-medium">{t('insights.submissions', 'Submissões')}</th>
@@ -600,13 +618,13 @@ export default function Reports() {
                   </thead>
                   <tbody>
                     {data.monthly_trends.map(m => (
-                      <tr key={m.month} className={`border-t ${isDark ? 'border-white/5' : 'border-gray-50'}`}>
-                        <td className={`py-1.5 font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{m.month_label}</td>
-                        <td className={`py-1.5 text-right ${isDark ? 'text-white' : 'text-gray-900'}`}>{m.enrollments}</td>
-                        <td className={`py-1.5 text-right ${isDark ? 'text-white' : 'text-gray-900'}`}>{m.submissions}</td>
-                        <td className={`py-1.5 text-right ${isDark ? 'text-white' : 'text-gray-900'}`}>{m.completions}</td>
-                        <td className={`py-1.5 text-right ${isDark ? 'text-white' : 'text-gray-900'}`}>{m.new_students}</td>
-                        <td className={`py-1.5 text-right ${isDark ? 'text-white' : 'text-gray-900'}`}>{m.certificates}</td>
+                      <tr key={m.month} className="border-t border-gray-50 dark:border-gray-800">
+                        <td className="py-1.5 font-medium text-gray-700 dark:text-gray-300">{m.month_label}</td>
+                        <td className="py-1.5 text-right text-gray-900 dark:text-white">{m.enrollments}</td>
+                        <td className="py-1.5 text-right text-gray-900 dark:text-white">{m.submissions}</td>
+                        <td className="py-1.5 text-right text-gray-900 dark:text-white">{m.completions}</td>
+                        <td className="py-1.5 text-right text-gray-900 dark:text-white">{m.new_students}</td>
+                        <td className="py-1.5 text-right text-gray-900 dark:text-white">{m.certificates}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -620,27 +638,27 @@ export default function Reports() {
       {/* ═══════ TOP PERFORMERS (Full width, 2 cols) ═══════ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Students */}
-        <SectionCard title={t('insights.topStudents', 'Top Formandos')} icon={Users} iconColor="text-blue-500" delay={0.55}>
+        <SectionCard title={t('insights.topStudents', 'Top Formandos')} icon={Users} iconColor="text-blue-500">
           {data.top_students.length === 0 ? (
             <div className="text-center py-6">
-              <Users className={`w-10 h-10 mx-auto mb-2 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
-              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('insights.noStudentData', 'Sem dados de formandos')}</p>
+              <Users className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+              <p className="text-sm text-gray-400 dark:text-gray-500">{t('insights.noStudentData', 'Sem dados de formandos')}</p>
             </div>
           ) : (
             <div className="space-y-2">
               {data.top_students.map((s, i) => (
-                <div key={s.id} className={`flex items-center gap-3 py-2.5 px-3 rounded-lg ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+                <div key={s.id} className="flex items-center gap-3 py-2.5 px-3 rounded-lg bg-gray-50 dark:bg-gray-800">
                   <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                    i === 0 ? 'bg-amber-500 text-white' : i === 1 ? 'bg-gray-400 text-white' : i === 2 ? 'bg-orange-600 text-white' : isDark ? 'bg-white/10 text-gray-400' : 'bg-gray-200 text-gray-500'
+                    i === 0 ? 'bg-amber-500 text-white' : i === 1 ? 'bg-gray-400 text-white' : i === 2 ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                   }`}>{i + 1}</span>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{s.name}</p>
-                    <p className={`text-xs truncate ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{s.email}</p>
+                    <p className="text-sm font-semibold truncate text-gray-900 dark:text-white">{s.name}</p>
+                    <p className="text-xs truncate text-gray-400 dark:text-gray-500">{s.email}</p>
                   </div>
                   <div className="flex items-center gap-1">
                     <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{s.completed_lessons}</span>
-                    <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('insights.lessonsShort', 'aulas')}</span>
+                    <span className="text-sm font-bold text-gray-900 dark:text-white">{s.completed_lessons}</span>
+                    <span className="text-xs text-gray-400 dark:text-gray-500">{t('insights.lessonsShort', 'aulas')}</span>
                   </div>
                 </div>
               ))}
@@ -649,43 +667,43 @@ export default function Reports() {
         </SectionCard>
 
         {/* Top Trainers */}
-        <SectionCard title={t('insights.topTrainers', 'Top Formadores')} icon={Shield} iconColor="text-emerald-500" delay={0.6}>
+        <SectionCard title={t('insights.topTrainers', 'Top Formadores')} icon={Shield} iconColor="text-emerald-500">
           {data.top_trainers.length === 0 ? (
             <div className="text-center py-6">
-              <Shield className={`w-10 h-10 mx-auto mb-2 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
-              <p className={`text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('insights.noTrainerData', 'Sem dados de formadores')}</p>
+              <Shield className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+              <p className="text-sm text-gray-400 dark:text-gray-500">{t('insights.noTrainerData', 'Sem dados de formadores')}</p>
             </div>
           ) : (
             <div className="space-y-2">
               {data.top_trainers.map((tr, i) => (
-                <div key={tr.id} className={`flex items-center gap-3 py-2.5 px-3 rounded-lg ${isDark ? 'bg-white/5' : 'bg-gray-50'}`}>
+                <div key={tr.id} className="flex items-center gap-3 py-2.5 px-3 rounded-lg bg-gray-50 dark:bg-gray-800">
                   <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                    i === 0 ? 'bg-amber-500 text-white' : i === 1 ? 'bg-gray-400 text-white' : i === 2 ? 'bg-orange-600 text-white' : isDark ? 'bg-white/10 text-gray-400' : 'bg-gray-200 text-gray-500'
+                    i === 0 ? 'bg-amber-500 text-white' : i === 1 ? 'bg-gray-400 text-white' : i === 2 ? 'bg-orange-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                   }`}>{i + 1}</span>
                   <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{tr.name}</p>
-                    <p className={`text-xs truncate ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{tr.email}</p>
+                    <p className="text-sm font-semibold truncate text-gray-900 dark:text-white">{tr.name}</p>
+                    <p className="text-xs truncate text-gray-400 dark:text-gray-500">{tr.email}</p>
                   </div>
                   <div className="flex items-center gap-3">
                     {(tr.lessons_given ?? 0) > 0 && (
                       <div className="flex items-center gap-1" title={t('insights.lessonsGiven', 'Aulas dadas')}>
                         <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-                        <span className={`text-xs font-bold ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>{tr.lessons_given}</span>
+                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400">{tr.lessons_given}</span>
                       </div>
                     )}
                     {(tr.challenges_applied ?? 0) > 0 && (
                       <div className="flex items-center gap-1" title={t('insights.challengesApplied', 'Desafios aplicados')}>
                         <Target className="w-3.5 h-3.5 text-purple-500" />
-                        <span className={`text-xs font-bold ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>{tr.challenges_applied}</span>
+                        <span className="text-xs font-bold text-purple-600 dark:text-purple-400">{tr.challenges_applied}</span>
                       </div>
                     )}
                     {(tr.challenges_reviewed ?? 0) > 0 && (
                       <div className="flex items-center gap-1" title={t('insights.challengesReviewed', 'Desafios corrigidos')}>
                         <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                        <span className={`text-xs font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{tr.challenges_reviewed}</span>
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{tr.challenges_reviewed}</span>
                       </div>
                     )}
-                    <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{tr.total_activity}</span>
+                    <span className="text-sm font-bold text-gray-900 dark:text-white">{tr.total_activity}</span>
                   </div>
                 </div>
               ))}
@@ -695,14 +713,9 @@ export default function Reports() {
       </div>
 
       {/* ═══════ FOOTER ═══════ */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-        className={`text-center py-4 text-xs ${isDark ? 'text-gray-600' : 'text-gray-400'}`}
-      >
+      <div className="text-center py-4 text-xs text-gray-400 dark:text-gray-600">
         {t('insights.generatedAt', 'Relatório gerado em')} {new Date(data.generated_at).toLocaleString('pt-PT')}
-      </motion.div>
+      </div>
     </div>
   );
 }
