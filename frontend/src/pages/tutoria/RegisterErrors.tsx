@@ -138,6 +138,7 @@ export default function RegisterErrors() {
   const [productId, setProduct]         = useState('');
   const [description, setDescription]   = useState('');
   const [recurrenceType, setRecurrence] = useState('');
+  const [severity, setSeverity]         = useState('MEDIA');
 
   // ── Lists ─────────────────────────────────────────────────────────────────
   const [allUsers, setAllUsers]     = useState<UserItem[]>([]);  // All users except ADMIN
@@ -160,6 +161,13 @@ export default function RegisterErrors() {
     { value: 'FIRST',     label: t('registerError.recurrencePuntual') },
     { value: 'RECURRENT', label: t('registerError.recurrenceRecurrent') },
     { value: 'SYSTEMIC',  label: t('registerError.recurrenceSystemic') },
+  ];
+
+  const severityOptions = [
+    { value: 'BAIXA',   label: t('registerError.severityLow') },
+    { value: 'MEDIA',   label: t('registerError.severityMedium') },
+    { value: 'ALTA',    label: t('registerError.severityHigh') },
+    { value: 'CRITICA', label: t('registerError.severityCritical') },
   ];
 
   // ── Motivos do Erro ─────────────────────────────────────────────────────
@@ -299,7 +307,7 @@ export default function RegisterErrors() {
         tutorado_id:     tutoradoId ? Number(tutoradoId) : null,
         category_id:     categoryId  ? Number(categoryId) : null,
         product_id:      productId   ? Number(productId)  : null,
-        severity:        'MEDIA',
+        severity:        severity,
         // Dates
         date_detection:  dateDetection || null,
         date_solution:   dateSolution  || null,
@@ -628,8 +636,8 @@ export default function RegisterErrors() {
           <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('registerError.incidentDetails')}</p>
         </div>
         <div className="p-6 space-y-5">
-          {/* Depto · Evento · Tipo Error · Recurrencia */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
+          {/* Depto · Evento · Tipo Error · Recurrencia · Severidade */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
             <div>
               <FieldLabel icon={Building2} isDark={isDark}>{t('registerError.department')}</FieldLabel>
               <SelectField
@@ -666,6 +674,16 @@ export default function RegisterErrors() {
                 value={recurrenceType}
                 onChange={setRecurrence}
                 options={recurrenceOptions}
+                placeholder={t('registerError.select')}
+                isDark={isDark}
+              />
+            </div>
+            <div>
+              <FieldLabel icon={AlertTriangle} isDark={isDark}>{t('registerError.severity')}</FieldLabel>
+              <SelectField
+                value={severity}
+                onChange={setSeverity}
+                options={severityOptions}
                 placeholder={t('registerError.select')}
                 isDark={isDark}
               />

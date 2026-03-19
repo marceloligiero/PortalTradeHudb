@@ -471,16 +471,16 @@ export default function TrainingPlanForm() {
           </div>
 
           {/* Student Selection */}
-          <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
+          <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6">
             <div className="flex items-center gap-3 mb-6">
-              <Users className="w-5 h-5 text-green-400" />
-              <h2 className="text-xl font-bold text-white">
+              <Users className="w-5 h-5 text-green-500 dark:text-green-400" />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 {t('admin.students')}
               </h2>
             </div>
 
             {students.length === 0 ? (
-              <p className="text-slate-400 text-center py-8">
+              <p className="text-gray-500 dark:text-slate-400 text-center py-8">
                 {t('trainingPlan.noStudentsAvailable')}
               </p>
             ) : (
@@ -490,10 +490,10 @@ export default function TrainingPlanForm() {
                   return (
                   <label
                     key={student.id}
-                    className={`flex items-start gap-3 p-4 bg-white/5 rounded-lg border border-white/10 transition-colors ${
-                      isCurrentTrainer 
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : 'cursor-pointer hover:bg-white/10'
+                    className={`flex items-start gap-3 p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10 transition-colors ${
+                      isCurrentTrainer
+                        ? 'opacity-50 cursor-not-allowed'
+                        : 'cursor-pointer hover:bg-gray-100 dark:hover:bg-white/10'
                     }`}
                   >
                     <input
@@ -501,27 +501,27 @@ export default function TrainingPlanForm() {
                       checked={formData.selectedStudents.includes(student.id)}
                       onChange={() => handleStudentToggle(student.id)}
                       disabled={isCurrentTrainer}
-                      className="mt-1 w-4 h-4 text-green-500 bg-white/5 border-white/20 rounded focus:ring-green-500"
+                      className="mt-1 w-4 h-4 text-green-500 bg-gray-50 dark:bg-white/5 border-gray-300 dark:border-white/20 rounded focus:ring-green-500"
                     />
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 font-semibold text-white mb-1">
+                      <div className="flex items-center gap-2 font-semibold text-gray-900 dark:text-white mb-1">
                         {student.full_name}
                         {student.role === 'TRAINER' && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300">
                             {t('roles.trainer')}
                           </span>
                         )}
                         {isCurrentTrainer && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300">
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-300">
                             ({t('common.you')})
                           </span>
                         )}
                       </div>
-                      <div className="text-sm text-slate-400">
+                      <div className="text-sm text-gray-500 dark:text-slate-400">
                         {student.email}
                       </div>
                       {isCurrentTrainer && (
-                        <div className="text-xs text-amber-400 mt-1">
+                        <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                           {t('trainingPlan.cannotSelectSelf')}
                         </div>
                       )}
@@ -532,8 +532,8 @@ export default function TrainingPlanForm() {
             )}
 
             {formData.selectedStudents.length > 0 && (
-              <div className="mt-4 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                <p className="text-sm text-green-300">
+              <div className="mt-4 p-3 bg-green-50 dark:bg-green-500/10 border border-green-300 dark:border-green-500/30 rounded-lg">
+                <p className="text-sm text-green-600 dark:text-green-300">
                   {formData.selectedStudents.length} {t('trainingPlan.studentsSelected')}
                 </p>
               </div>

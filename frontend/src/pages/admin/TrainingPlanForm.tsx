@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Target, Calendar, CheckCircle2, AlertCircle, Building2, Package, Check, Infinity as InfinityIcon } from 'lucide-react';
+import { Target, Calendar, CheckCircle2, AlertCircle, Building2, Package, Check, Infinity as InfinityIcon, Users, GraduationCap } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 import { getTranslatedProductName } from '../../utils/productTranslation';
@@ -28,6 +28,18 @@ interface Product {
   code: string;
 }
 
+interface Trainer {
+  id: number;
+  name: string;
+  email: string;
+}
+
+interface Student {
+  id: number;
+  name: string;
+  email: string;
+}
+
 export default function AdminTrainingPlanForm() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -39,12 +51,16 @@ export default function AdminTrainingPlanForm() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [banks, setBanks] = useState<Bank[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [trainers, setTrainers] = useState<Trainer[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     bank_ids: [] as number[],
     product_ids: [] as number[],
+    trainer_ids: [] as number[],
+    student_ids: [] as number[],
     start_date: '',
     end_date: '',
     is_permanent: false,
@@ -64,19 +80,25 @@ export default function AdminTrainingPlanForm() {
       setLoading(true);
       console.log('🔄 Carregando dados do formulário...');
       
-      const [coursesRes, banksRes, productsRes] = await Promise.all([
+      const [coursesRes, banksRes, productsRes, trainersRes, studentsRes] = await Promise.all([
         api.get('/api/admin/courses'),
         api.get('/api/admin/banks'),
         api.get('/api/admin/products'),
+        api.get('/api/admin/trainers'),
+        api.get('/api/admin/students'),
       ]);
-      
+
       console.log('✅ Cursos carregados:', coursesRes.data.length);
       console.log('✅ Bancos carregados:', banksRes.data.length);
       console.log('✅ Produtos carregados:', productsRes.data.length);
-      
+      console.log('✅ Formadores carregados:', trainersRes.data.length);
+      console.log('✅ Formandos carregados:', studentsRes.data.length);
+
       setCourses(coursesRes.data || []);
       setBanks(banksRes.data || []);
       setProducts(productsRes.data || []);
+      setTrainers(trainersRes.data || []);
+      setStudents(studentsRes.data || []);
     } catch (error: any) {
       console.error('❌ Erro ao carregar dados:', error);
       console.error('❌ Detalhes:', error.response?.data);
@@ -153,6 +175,8 @@ export default function AdminTrainingPlanForm() {
         description: formData.description.trim(),
         bank_ids: formData.bank_ids,
         product_ids: formData.product_ids,
+        trainer_ids: formData.trainer_ids,
+        student_ids: formData.student_ids,
         start_date: formData.start_date || null,
         end_date: formData.is_permanent ? null : (formData.end_date || null),
         is_permanent: formData.is_permanent,
@@ -187,15 +211,15 @@ export default function AdminTrainingPlanForm() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-slate-100 to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-black flex items-center justify-center">
         <div className="text-center animate-fadeIn">
           <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-900/50">
             <CheckCircle2 className="w-10 h-10 text-white" />
           </div>
-          <h2 className="text-3xl font-bold text-white mb-2">
-            Plano criado com sucesso!
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            {t('trainingPlan.createdSuccess', 'Plano criado com sucesso!')}
           </h2>
-          <p className="text-gray-400">Redirecionando...</p>
+          <p className="text-gray-500 dark:text-gray-400">{t('common.redirecting', 'Redirecionando...')}</p>
         </div>
       </div>
     );
@@ -204,11 +228,11 @@ export default function AdminTrainingPlanForm() {
   // Mostrar loading enquanto carrega dados iniciais
   if (loading && courses.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-slate-100 to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-black flex items-center justify-center">
         <div className="text-center animate-fadeIn">
           <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-lg">Carregando dados...</p>
-          <p className="text-gray-400 text-sm mt-2">Aguarde um momento</p>
+          <p className="text-gray-900 dark:text-white text-lg">{t('common.loading', 'Carregando...')}</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">{t('common.wait', 'Aguarde um momento')}</p>
         </div>
       </div>
     );
@@ -217,18 +241,18 @@ export default function AdminTrainingPlanForm() {
   // Mostrar erro se falhou ao carregar
   if (errors.submit && courses.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center p-8">
-        <div className="max-w-md w-full glass rounded-2xl border border-red-500/20 p-8 text-center animate-fadeIn">
-          <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-red-400" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-slate-100 to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-black flex items-center justify-center p-8">
+        <div className="max-w-md w-full bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-8 text-center animate-fadeIn shadow-xl">
+          <div className="w-16 h-16 bg-red-50 dark:bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-red-500 dark:text-red-400" />
           </div>
-          <h2 className="text-xl font-bold text-white mb-2">Falha ao Carregar</h2>
-          <p className="text-gray-400 mb-6">{errors.submit}</p>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{t('common.loadFailed', 'Falha ao Carregar')}</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">{errors.submit}</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-medium hover:from-purple-700 hover:to-purple-800 transition-all"
+            className="px-6 py-3 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-medium transition-all"
           >
-            Tentar Novamente
+            {t('common.retry', 'Tentar Novamente')}
           </button>
         </div>
       </div>
@@ -236,19 +260,19 @@ export default function AdminTrainingPlanForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-slate-100 to-gray-100 dark:from-gray-900 dark:via-gray-800 dark:to-black p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-purple-700 flex items-center justify-center shadow-lg shadow-purple-900/50">
+            <div className="w-12 h-12 rounded-xl bg-[#EC0000] flex items-center justify-center shadow-lg">
               <Target className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300">
-                Novo Plano de Formação
+              <h1 className="text-3xl font-headline font-bold text-gray-900 dark:text-white">
+                {t('trainingPlan.create', 'Novo Plano de Formação')}
               </h1>
-              <p className="text-gray-400">Criar novo plano de formação</p>
+              <p className="text-gray-500 dark:text-gray-400">{t('trainingPlan.createDescription', 'Criar novo plano de formação')}</p>
             </div>
           </div>
 
@@ -260,7 +284,7 @@ export default function AdminTrainingPlanForm() {
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shrink-0 ${
                     currentStep >= step.number
                       ? 'bg-gradient-to-br from-purple-600 to-purple-700 shadow-lg shadow-purple-900/50'
-                      : 'bg-white/5 border border-white/10'
+                      : 'bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10'
                   }`}>
                     {currentStep > step.number ? (
                       <CheckCircle2 className="w-5 h-5 text-white" />
@@ -268,12 +292,12 @@ export default function AdminTrainingPlanForm() {
                       <step.icon className={`w-5 h-5 ${currentStep >= step.number ? 'text-white' : 'text-gray-500'}`} />
                     )}
                   </div>
-                  <span className={`text-xs md:text-sm font-medium truncate ${currentStep >= step.number ? 'text-white' : 'text-gray-500'}`}>
+                  <span className={`text-xs md:text-sm font-medium truncate ${currentStep >= step.number ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'}`}>
                     {step.title}
                   </span>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`flex-1 h-0.5 mx-2 ${currentStep > step.number ? 'bg-purple-600' : 'bg-white/10'}`} />
+                  <div className={`flex-1 h-0.5 mx-2 ${currentStep > step.number ? 'bg-purple-600' : 'bg-gray-200 dark:bg-white/10'}`} />
                 )}
               </div>
             ))}
@@ -281,25 +305,25 @@ export default function AdminTrainingPlanForm() {
         </div>
 
         {/* Form Content */}
-        <div className="glass rounded-2xl border border-white/10 p-8 animate-fadeIn">
+        <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-8 animate-fadeIn shadow-xl">
           {/* Step 1: Basic Info */}
           {currentStep === 1 && (
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-6">
                 <Target className="w-6 h-6 text-purple-400" />
-                <h2 className="text-xl font-semibold text-white">Informações Básicas</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Informações Básicas</h2>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Título do Plano *
                 </label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className={`w-full px-4 py-3 bg-white/5 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 transition-all ${
-                    errors.title ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-white/10 focus:border-purple-500 focus:ring-purple-500/20'
+                  className={`w-full px-4 py-3 bg-white dark:bg-white/5 border rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 transition-all ${
+                    errors.title ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 dark:border-white/10 focus:border-purple-500 focus:ring-purple-500/20'
                   }`}
                   placeholder="Ex: Formação em Produtos Bancários"
                 />
@@ -312,15 +336,15 @@ export default function AdminTrainingPlanForm() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Descrição *
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={6}
-                  className={`w-full px-4 py-3 bg-white/5 border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 transition-all resize-none ${
-                    errors.description ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-white/10 focus:border-purple-500 focus:ring-purple-500/20'
+                  className={`w-full px-4 py-3 bg-white dark:bg-white/5 border rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 transition-all resize-none ${
+                    errors.description ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 dark:border-white/10 focus:border-purple-500 focus:ring-purple-500/20'
                   }`}
                   placeholder="Descreva os objetivos e conteúdo do plano de formação..."
                 />
@@ -334,10 +358,10 @@ export default function AdminTrainingPlanForm() {
 
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-3">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                     <div className="flex items-center gap-2">
                       <Building2 className="w-4 h-4" />
-                      Bancos <span className="text-gray-400 text-xs">(selecione múltiplos)</span>
+                      Bancos <span className="text-gray-500 dark:text-gray-400 text-xs">(selecione múltiplos)</span>
                     </div>
                   </label>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -356,13 +380,13 @@ export default function AdminTrainingPlanForm() {
                         className={`p-4 rounded-xl border-2 text-left transition-all ${
                           formData.bank_ids.includes(bank.id)
                             ? 'border-purple-500 bg-purple-500/20'
-                            : 'border-white/10 hover:border-purple-500/50'
+                            : 'border-gray-200 dark:border-white/10 hover:border-purple-500/50'
                         }`}
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="font-medium text-white">{bank.name}</p>
-                            {bank.country && <p className="text-sm text-gray-400">{bank.country}</p>}
+                            <p className="font-medium text-gray-900 dark:text-white">{bank.name}</p>
+                            {bank.country && <p className="text-sm text-gray-500 dark:text-gray-400">{bank.country}</p>}
                           </div>
                           {formData.bank_ids.includes(bank.id) && (
                             <Check className="w-5 h-5 text-purple-500" />
@@ -377,10 +401,10 @@ export default function AdminTrainingPlanForm() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-3">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                     <div className="flex items-center gap-2">
                       <Package className="w-4 h-4" />
-                      Serviços <span className="text-gray-400 text-xs">(selecione múltiplos)</span>
+                      Serviços <span className="text-gray-500 dark:text-gray-400 text-xs">(selecione múltiplos)</span>
                     </div>
                   </label>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -399,13 +423,13 @@ export default function AdminTrainingPlanForm() {
                         className={`p-4 rounded-xl border-2 text-left transition-all ${
                           formData.product_ids.includes(product.id)
                             ? 'border-purple-500 bg-purple-500/20'
-                            : 'border-white/10 hover:border-purple-500/50'
+                            : 'border-gray-200 dark:border-white/10 hover:border-purple-500/50'
                         }`}
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="font-medium text-white">{getTranslatedProductName(t, product.code, product.name)}</p>
-                            <p className="text-xs text-gray-500">{product.code}</p>
+                            <p className="font-medium text-gray-900 dark:text-white">{getTranslatedProductName(t, product.code, product.name)}</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500">{product.code}</p>
                           </div>
                           {formData.product_ids.includes(product.id) && (
                             <Check className="w-5 h-5 text-purple-500" />
@@ -418,27 +442,113 @@ export default function AdminTrainingPlanForm() {
                     <div className="text-yellow-400 text-xs mt-1">⚠️ {t('errors.noProducts')}</div>
                   )}
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4" />
+                      Formadores <span className="text-gray-500 dark:text-gray-400 text-xs">(selecione múltiplos)</span>
+                    </div>
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {trainers.map(trainer => (
+                      <button
+                        key={trainer.id}
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            trainer_ids: prev.trainer_ids.includes(trainer.id)
+                              ? prev.trainer_ids.filter(id => id !== trainer.id)
+                              : [...prev.trainer_ids, trainer.id]
+                          }));
+                        }}
+                        className={`p-4 rounded-xl border-2 text-left transition-all ${
+                          formData.trainer_ids.includes(trainer.id)
+                            ? 'border-purple-500 bg-purple-500/20'
+                            : 'border-gray-200 dark:border-white/10 hover:border-purple-500/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-white">{trainer.name}</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500">{trainer.email}</p>
+                          </div>
+                          {formData.trainer_ids.includes(trainer.id) && (
+                            <Check className="w-5 h-5 text-purple-500" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  {trainers.length === 0 && (
+                    <div className="text-yellow-400 text-xs mt-1">Nenhum formador disponivel</div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="w-4 h-4" />
+                      Formandos <span className="text-gray-500 dark:text-gray-400 text-xs">(selecione múltiplos)</span>
+                    </div>
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {students.map(student => (
+                      <button
+                        key={student.id}
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            student_ids: prev.student_ids.includes(student.id)
+                              ? prev.student_ids.filter(id => id !== student.id)
+                              : [...prev.student_ids, student.id]
+                          }));
+                        }}
+                        className={`p-4 rounded-xl border-2 text-left transition-all ${
+                          formData.student_ids.includes(student.id)
+                            ? 'border-purple-500 bg-purple-500/20'
+                            : 'border-gray-200 dark:border-white/10 hover:border-purple-500/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-white">{student.name}</p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500">{student.email}</p>
+                          </div>
+                          {formData.student_ids.includes(student.id) && (
+                            <Check className="w-5 h-5 text-purple-500" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  {students.length === 0 && (
+                    <div className="text-yellow-400 text-xs mt-1">Nenhum formando disponivel</div>
+                  )}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Data de Início
                   </label>
                   <input
                     type="date"
                     value={formData.start_date}
                     onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                    className="w-full px-4 py-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Data de Fim
                   </label>
                   {formData.is_permanent ? (
-                    <div className="w-full px-4 py-3 bg-white/5 border border-purple-500/30 rounded-xl text-purple-300 text-sm flex items-center gap-2">
+                    <div className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-purple-300 dark:border-purple-500/30 rounded-xl text-purple-700 dark:text-purple-300 text-sm flex items-center gap-2">
                       <InfinityIcon className="w-4 h-4" />
                       {t('trainingPlan.permanentEndDateAuto', `31/12/${new Date().getFullYear()} (renovação automática)`)}
                     </div>
@@ -447,8 +557,8 @@ export default function AdminTrainingPlanForm() {
                     type="date"
                     value={formData.end_date}
                     onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
-                    className={`w-full px-4 py-3 bg-white/5 border rounded-xl text-white focus:outline-none focus:ring-2 transition-all ${
-                      errors.end_date ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-white/10 focus:border-purple-500 focus:ring-purple-500/20'
+                    className={`w-full px-4 py-3 bg-white dark:bg-white/5 border rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 transition-all ${
+                      errors.end_date ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-200 dark:border-white/10 focus:border-purple-500 focus:ring-purple-500/20'
                     }`}
                   />
                   )}
@@ -465,13 +575,13 @@ export default function AdminTrainingPlanForm() {
               <div 
                 onClick={() => setFormData(prev => ({ ...prev, is_permanent: !prev.is_permanent, end_date: '' }))}
                 className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                  formData.is_permanent 
-                    ? 'border-purple-500 bg-purple-500/10' 
-                    : 'border-white/10 hover:border-purple-500/30'
+                  formData.is_permanent
+                    ? 'border-purple-500 bg-purple-500/10'
+                    : 'border-gray-200 dark:border-white/10 hover:border-purple-500/30'
                 }`}
               >
                 <div className={`w-12 h-7 rounded-full transition-all relative ${
-                  formData.is_permanent ? 'bg-purple-600' : 'bg-white/10'
+                  formData.is_permanent ? 'bg-purple-600' : 'bg-gray-200 dark:bg-white/10'
                 }`}>
                   <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-all ${
                     formData.is_permanent ? 'left-6' : 'left-1'
@@ -480,11 +590,11 @@ export default function AdminTrainingPlanForm() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <InfinityIcon className={`w-5 h-5 ${formData.is_permanent ? 'text-purple-400' : 'text-gray-500'}`} />
-                    <span className={`font-medium ${formData.is_permanent ? 'text-white' : 'text-gray-300'}`}>
+                    <span className={`font-medium ${formData.is_permanent ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
                       {t('trainingPlan.permanentPlan', 'Plano de Formação Permanente')}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {t('trainingPlan.permanentPlanDescription', 'Sem data de fim fixa. A data de fim é definida automaticamente como 31/12 do ano corrente e renova automaticamente a cada ano.')}
                   </p>
                 </div>
@@ -497,11 +607,11 @@ export default function AdminTrainingPlanForm() {
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-6">
                 <Calendar className="w-6 h-6 text-purple-400" />
-                <h2 className="text-xl font-semibold text-white">Selecionar Cursos</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Selecionar Cursos</h2>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                   Selecione os cursos que farão parte deste plano de formação *
                 </label>
                 <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
@@ -517,7 +627,7 @@ export default function AdminTrainingPlanForm() {
                         className={`flex items-start gap-3 p-4 border rounded-xl cursor-pointer transition-all ${
                           formData.course_ids.includes(course.id)
                             ? 'bg-purple-500/10 border-purple-500/50'
-                            : 'bg-white/5 border-white/10 hover:border-purple-500/50'
+                            : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:border-purple-500/50'
                         }`}
                       >
                         <input
@@ -533,17 +643,17 @@ export default function AdminTrainingPlanForm() {
                           className="mt-1 w-5 h-5 rounded border-white/20 text-purple-600 focus:ring-2 focus:ring-purple-500/20"
                         />
                         <div className="flex-1">
-                          <div className="text-white font-medium mb-1">{course.title}</div>
-                          <div className="text-sm text-gray-400 mb-2">{course.description}</div>
+                          <div className="text-gray-900 dark:text-white font-medium mb-1">{course.title}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">{course.description}</div>
                           {(course.bank_name || course.product_name) && (
                             <div className="flex gap-2 text-xs">
                               {course.bank_name && (
-                                <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded">
+                                <span className="px-2 py-1 bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 rounded">
                                   {course.bank_name}
                                 </span>
                               )}
                               {course.product_name && (
-                                <span className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded">
+                                <span className="px-2 py-1 bg-purple-50 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 rounded">
                                   {getTranslatedProductName(t, course.product_code, course.product_name)}
                                 </span>
                               )}
@@ -561,8 +671,8 @@ export default function AdminTrainingPlanForm() {
                   </div>
                 )}
                 {formData.course_ids.length > 0 && (
-                  <div className="mt-3 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-                    <div className="text-purple-300 font-medium">
+                  <div className="mt-3 p-3 bg-purple-50 dark:bg-purple-500/10 border border-purple-300 dark:border-purple-500/30 rounded-lg">
+                    <div className="text-purple-700 dark:text-purple-300 font-medium">
                       {formData.course_ids.length} {t('errors.coursesSelected')}
                     </div>
                   </div>
@@ -576,26 +686,26 @@ export default function AdminTrainingPlanForm() {
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-6">
                 <CheckCircle2 className="w-6 h-6 text-purple-400" />
-                <h2 className="text-xl font-semibold text-white">Revisão</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Revisão</h2>
               </div>
 
               <div className="space-y-4">
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                  <div className="text-sm text-gray-400 mb-1">Informações Básicas</div>
-                  <div className="text-white font-medium text-lg mb-2">{formData.title}</div>
-                  <div className="text-gray-300">{formData.description}</div>
+                <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-200 dark:border-white/10">
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Informações Básicas</div>
+                  <div className="text-gray-900 dark:text-white font-medium text-lg mb-2">{formData.title}</div>
+                  <div className="text-gray-700 dark:text-gray-300">{formData.description}</div>
                 </div>
 
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                  <div className="text-sm text-gray-400 mb-3">Detalhes</div>
+                <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-200 dark:border-white/10">
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">Detalhes</div>
                   <div className="grid grid-cols-1 gap-3 text-sm">
                     <div>
-                      <span className="text-gray-400">Bancos:</span>
+                      <span className="text-gray-500 dark:text-gray-400">Bancos:</span>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {formData.bank_ids.length > 0 ? formData.bank_ids.map(bid => {
                           const bank = banks.find(b => b.id === bid);
                           return bank ? (
-                            <span key={bid} className="bg-purple-500/20 text-purple-300 px-2 py-1 rounded text-xs">
+                            <span key={bid} className="bg-purple-50 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 px-2 py-1 rounded text-xs">
                               {bank.name}
                             </span>
                           ) : null;
@@ -603,12 +713,12 @@ export default function AdminTrainingPlanForm() {
                       </div>
                     </div>
                     <div>
-                      <span className="text-gray-400">Serviços:</span>
+                      <span className="text-gray-500 dark:text-gray-400">Serviços:</span>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {formData.product_ids.length > 0 ? formData.product_ids.map(pid => {
                           const product = products.find(p => p.id === pid);
                           return product ? (
-                            <span key={pid} className="bg-green-500/20 text-green-300 px-2 py-1 rounded text-xs">
+                            <span key={pid} className="bg-green-50 dark:bg-green-500/20 text-green-700 dark:text-green-300 px-2 py-1 rounded text-xs">
                               {getTranslatedProductName(t, product.code, product.name)}
                             </span>
                           ) : null;
@@ -617,12 +727,12 @@ export default function AdminTrainingPlanForm() {
                     </div>
                     <div className="flex gap-6">
                       <div>
-                        <span className="text-gray-400">Data de Início:</span>
-                        <span className="text-white ml-2">{formData.start_date || '-'}</span>
+                        <span className="text-gray-500 dark:text-gray-400">Data de Início:</span>
+                        <span className="text-gray-900 dark:text-white ml-2">{formData.start_date || '-'}</span>
                       </div>
                       <div>
-                        <span className="text-gray-400">Data de Fim:</span>
-                        <span className="text-white ml-2">
+                        <span className="text-gray-500 dark:text-gray-400">Data de Fim:</span>
+                        <span className="text-gray-900 dark:text-white ml-2">
                           {formData.is_permanent 
                             ? `31/12/${new Date().getFullYear()} (Permanente ♾️)` 
                             : (formData.end_date || '-')}
@@ -632,9 +742,9 @@ export default function AdminTrainingPlanForm() {
                   </div>
                 </div>
 
-                <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                  <div className="text-sm text-gray-400 mb-1">Cursos</div>
-                  <div className="text-white font-medium">
+                <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-200 dark:border-white/10">
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Cursos</div>
+                  <div className="text-gray-900 dark:text-white font-medium">
                     {formData.course_ids.length} {t('errors.coursesSelected')}
                   </div>
                 </div>
@@ -655,7 +765,7 @@ export default function AdminTrainingPlanForm() {
               <button
                 type="button"
                 onClick={handleBack}
-                className="px-6 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-all border border-white/10"
+                className="px-6 py-3 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 text-gray-900 dark:text-white rounded-xl font-medium transition-all border border-gray-200 dark:border-white/10"
               >
                 Voltar
               </button>

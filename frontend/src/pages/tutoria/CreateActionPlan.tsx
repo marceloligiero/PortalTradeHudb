@@ -100,6 +100,11 @@ export default function CreateActionPlan() {
   const [correctiveAction, setCorrective]   = useState('');
   const [preventiveAction, setPreventive]   = useState('');
 
+  // Plan metadata
+  const [planType, setPlanType]         = useState('CORRECTIVO');
+  const [responsibleId, setResponsibleId] = useState('');
+  const [deadline, setDeadline]         = useState('');
+
   // Step 2 — 5W2H
   const [what, setWhat]           = useState('');
   const [why, setWhy]             = useState('');
@@ -171,6 +176,9 @@ export default function CreateActionPlan() {
     try {
       await axios.post(`/api/tutoria/errors/${errorId}/plans`, {
         tutorado_id: Number(tutoradoId),
+        plan_type: planType || null,
+        responsible_id: responsibleId ? Number(responsibleId) : null,
+        deadline: deadline || null,
         analysis_5_why: analysis5Why.trim() || null,
         immediate_correction: immediateCorrection.trim() || null,
         corrective_action: correctiveAction.trim() || null,
@@ -344,6 +352,69 @@ export default function CreateActionPlan() {
                   placeholder={t('createPlan.preventiveHint')}
                   rows={3} isDark={isDark} />
                 <p className={`text-xs ${isDark ? 'text-green-400/60' : 'text-green-700/60'}`}>{t('createPlan.preventiveNote')}</p>
+              </div>
+
+              {/* ── Plan metadata: type, responsible, deadline ──────── */}
+              <div className={`rounded-xl border p-4 space-y-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-gray-200 bg-gray-50'}`}>
+                <p className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  <Shield className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />
+                  {t('createPlan.planMetadata')}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Plan Type */}
+                  <div>
+                    <Label isDark={isDark}>{t('createPlan.planType')}</Label>
+                    <div className="relative">
+                      <select
+                        value={planType}
+                        onChange={e => setPlanType(e.target.value)}
+                        className={`w-full appearance-none px-3 py-2.5 pr-9 rounded-xl border text-sm outline-none transition-all ${
+                          isDark
+                            ? 'bg-white/[0.04] border-white/10 text-white focus:border-[#EC0000] focus:ring-2 focus:ring-[#EC0000]/10'
+                            : 'bg-white border-gray-200 text-gray-900 focus:border-[#EC0000] focus:ring-2 focus:ring-[#EC0000]/10'
+                        }`}
+                        style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : undefined }}
+                      >
+                        <option value="CORRECTIVO" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.planTypeCorrectivo')}</option>
+                        <option value="PREVENTIVO" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.planTypePreventivo')}</option>
+                        <option value="MELHORIA" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.planTypeMelhoria')}</option>
+                      </select>
+                      <FileText className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
+                    </div>
+                  </div>
+
+                  {/* Responsible */}
+                  <div>
+                    <Label isDark={isDark}>{t('createPlan.responsible')}</Label>
+                    <div className="relative">
+                      <select
+                        value={responsibleId}
+                        onChange={e => setResponsibleId(e.target.value)}
+                        className={`w-full appearance-none px-3 py-2.5 pr-9 rounded-xl border text-sm outline-none transition-all ${
+                          isDark
+                            ? 'bg-white/[0.04] border-white/10 text-white focus:border-[#EC0000] focus:ring-2 focus:ring-[#EC0000]/10'
+                            : 'bg-white border-gray-200 text-gray-900 focus:border-[#EC0000] focus:ring-2 focus:ring-[#EC0000]/10'
+                        }`}
+                        style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : undefined }}
+                      >
+                        <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.selectPlanResponsible')}</option>
+                        {team.map(u => (
+                          <option key={u.id} value={String(u.id)} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{u.full_name}</option>
+                        ))}
+                      </select>
+                      <User className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
+                    </div>
+                  </div>
+
+                  {/* Deadline */}
+                  <div>
+                    <Label isDark={isDark}>{t('createPlan.deadline')}</Label>
+                    <div className="relative">
+                      <Input type="date" value={deadline} onChange={setDeadline} isDark={isDark} />
+                      <Calendar className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>

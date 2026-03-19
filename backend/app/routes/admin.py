@@ -681,6 +681,45 @@ async def get_admin_lesson(
         "updated_at": lesson.updated_at.isoformat() if lesson.updated_at else None
     }
 
+@router.put("/courses/{course_id}/lessons/{lesson_id}")
+async def update_admin_lesson(
+    course_id: int,
+    lesson_id: int,
+    lesson_update: schemas.LessonUpdate,
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    db: Session = Depends(get_db)
+):
+    """Update a lesson"""
+    lesson = db.query(models.Lesson).filter(
+        models.Lesson.id == lesson_id,
+        models.Lesson.course_id == course_id
+    ).first()
+
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    update_data = lesson_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(lesson, key, value)
+
+    db.commit()
+    db.refresh(lesson)
+
+    return {
+        "id": lesson.id,
+        "course_id": lesson.course_id,
+        "title": lesson.title,
+        "description": lesson.description,
+        "content": lesson.content,
+        "lesson_type": lesson.lesson_type,
+        "order_index": lesson.order_index,
+        "estimated_minutes": lesson.estimated_minutes,
+        "video_url": lesson.video_url,
+        "materials_url": lesson.materials_url,
+        "created_at": lesson.created_at.isoformat() if lesson.created_at else None,
+        "updated_at": lesson.updated_at.isoformat() if lesson.updated_at else None
+    }
+
 @router.delete("/courses/{course_id}/lessons/{lesson_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_admin_lesson(
     course_id: int,
@@ -1589,6 +1628,10 @@ def _generic_list(table_key: str, db: Session):
             if r.origin_id:
                 org = db.query(models.ErrorOrigin).filter(models.ErrorOrigin.id == r.origin_id).first()
                 item["origin_name"] = org.name if org else None
+        if hasattr(r, 'level'):
+            item["level"] = r.level
+        if hasattr(r, 'image_url'):
+            item["image_url"] = r.image_url
         result.append(item)
     return result
 
@@ -1600,6 +1643,9 @@ def _generic_create(table_key: str, data: dict, db: Session):
     for fk in ("bank_id", "department_id", "activity_id", "origin_id"):
         if fk in data and data[fk] is not None:
             kwargs[fk] = data[fk]
+    for extra in ("level", "image_url", "is_active"):
+        if extra in data and data[extra] is not None:
+            kwargs[extra] = data[extra]
     obj = Model(**kwargs)
     db.add(obj)
     db.commit()
@@ -1608,6 +1654,10 @@ def _generic_create(table_key: str, data: dict, db: Session):
     for fk in ("bank_id", "department_id", "activity_id", "origin_id"):
         if hasattr(obj, fk):
             item[fk] = getattr(obj, fk)
+    if hasattr(obj, 'level'):
+        item["level"] = obj.level
+    if hasattr(obj, 'image_url'):
+        item["image_url"] = obj.image_url
     return item
 
 
@@ -1625,6 +1675,10 @@ def _generic_update(table_key: str, item_id: int, data: dict, db: Session):
     for fk in ("bank_id", "department_id", "activity_id", "origin_id"):
         if hasattr(obj, fk):
             item[fk] = getattr(obj, fk)
+    if hasattr(obj, 'level'):
+        item["level"] = obj.level
+    if hasattr(obj, 'image_url'):
+        item["image_url"] = obj.image_url
     return item
 
 

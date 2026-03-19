@@ -47,6 +47,7 @@ interface LookupItem {
   activity_id?: number | null; origin_id?: number | null;
   bank_name?: string | null; department_name?: string | null;
   activity_name?: string | null; origin_name?: string | null;
+  level?: string | null; image_url?: string | null;
 }
 
 type TabKey = 'banks' | 'products' | 'teams' | 'categories' | 'faqs' | 'impacts' | 'origins' | 'detected_by' | 'departments' | 'activities' | 'error_types';
@@ -180,14 +181,14 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
   /* ── Form data per tab ──────────────────────────────────────────── */
   const [bankForm, setBankForm] = useState({ name: '', country: 'PT', is_active: true });
   const [productForm, setProductForm] = useState({ code: '', name: '', description: '', is_active: true });
-  const [teamForm, setTeamForm] = useState({ name: '', description: '', service_ids: [] as number[], manager_id: '' });
+  const [teamForm, setTeamForm] = useState({ name: '', description: '', service_ids: [] as number[], manager_id: '', is_active: true });
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '', parent_id: '', origin_id: '' });
   const [faqForm, setFaqForm] = useState({
     keywords_pt: '', keywords_es: '', keywords_en: '',
     answer_pt: '', answer_es: '', answer_en: '',
     support_url: '', support_label: '', role_filter: '', priority: 0,
   });
-  const [lookupForm, setLookupForm] = useState({ name: '', description: '', bank_id: '', department_id: '', activity_id: '', origin_id: '' });
+  const [lookupForm, setLookupForm] = useState({ name: '', description: '', bank_id: '', department_id: '', activity_id: '', origin_id: '', level: '', image_url: '', is_active: true });
 
   /* ── Aux data ───────────────────────────────────────────────────── */
   const [managers, setManagers] = useState<{ id: number; full_name: string }[]>([]);
@@ -283,10 +284,10 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
     switch (tab) {
       case 'banks': setBankForm({ name: '', country: 'PT', is_active: true }); break;
       case 'products': setProductForm({ code: '', name: '', description: '', is_active: true }); break;
-      case 'teams': setTeamForm({ name: '', description: '', service_ids: [], manager_id: '' }); break;
+      case 'teams': setTeamForm({ name: '', description: '', service_ids: [], manager_id: '', is_active: true }); break;
       case 'categories': setCategoryForm({ name: '', description: '', parent_id: '', origin_id: '' }); break;
       case 'faqs': setFaqForm({ keywords_pt: '', keywords_es: '', keywords_en: '', answer_pt: '', answer_es: '', answer_en: '', support_url: '', support_label: '', role_filter: '', priority: 0 }); break;
-      default: setLookupForm({ name: '', description: '', bank_id: '', department_id: '', activity_id: '', origin_id: '' }); break;
+      default: setLookupForm({ name: '', description: '', bank_id: '', department_id: '', activity_id: '', origin_id: '', level: '', image_url: '', is_active: true }); break;
     }
     setShowForm(true);
   };
@@ -309,6 +310,7 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
         name: item.name || '', description: item.description || '',
         bank_id: item.bank_id?.toString() || '', department_id: item.department_id?.toString() || '',
         activity_id: item.activity_id?.toString() || '', origin_id: item.origin_id?.toString() || '',
+        level: item.level || '', image_url: item.image_url || '', is_active: item.is_active ?? true,
       }); break;
     }
     setShowForm(true);
@@ -372,6 +374,9 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
             if (lookupForm.department_id) payload.department_id = parseInt(lookupForm.department_id);
             if (lookupForm.activity_id) payload.activity_id = parseInt(lookupForm.activity_id);
             if (lookupForm.origin_id) payload.origin_id = parseInt(lookupForm.origin_id);
+            if (lookupForm.level) payload.level = lookupForm.level;
+            if (lookupForm.image_url) payload.image_url = lookupForm.image_url;
+            payload.is_active = lookupForm.is_active;
             if (editItem) await api.put(`${base}/${editItem.id}`, payload);
             else await api.post(base, payload);
           }
@@ -1092,6 +1097,41 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
                     <option value="">— {t('masterData.noActivity')} —</option>
                     {auxActivities.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                   </select>
+                </Field>
+              )}
+
+              {tab === 'impacts' && (
+                <>
+                  <Field label={t('masterData.level', 'Nível')}>
+                    <select className={selectCls} value={lookupForm.level} onChange={e => setLookupForm(p => ({ ...p, level: e.target.value }))}>
+                      <option value="">— {t('masterData.selectLevel', 'Selecionar nível')} —</option>
+                      <option value="LOW">{t('masterData.levelLow', 'Baixo')}</option>
+                      <option value="MEDIUM">{t('masterData.levelMedium', 'Médio')}</option>
+                      <option value="HIGH">{t('masterData.levelHigh', 'Alto')}</option>
+                      <option value="CRITICAL">{t('masterData.levelCritical', 'Crítico')}</option>
+                    </select>
+                  </Field>
+                  <Field label={t('masterData.imageUrl', 'URL da Imagem')}>
+                    <input className={inputCls} value={lookupForm.image_url} onChange={e => setLookupForm(p => ({ ...p, image_url: e.target.value }))} placeholder="https://..." />
+                  </Field>
+                </>
+              )}
+
+              {/* is_active toggle for all lookups */}
+              {editItem && (
+                <Field label={t('masterData.status', 'Estado')}>
+                  <button
+                    type="button"
+                    onClick={() => setLookupForm(p => ({ ...p, is_active: !p.is_active }))}
+                    className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl border text-sm transition-all ${
+                      lookupForm.is_active
+                        ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'
+                        : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
+                    }`}
+                  >
+                    {lookupForm.is_active ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                    {lookupForm.is_active ? t('masterData.active') : t('masterData.inactive')}
+                  </button>
                 </Field>
               )}
             </>

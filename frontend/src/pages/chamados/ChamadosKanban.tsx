@@ -451,6 +451,14 @@ export default function ChamadosKanban() {
     } catch (err) { console.error('Error assigning', err); }
   };
 
+  const handleUpdatePriority = async (chamadoId: number, newPriority: string) => {
+    if (!isAdmin) return;
+    try {
+      await api.put(`/chamados/${chamadoId}`, { priority: newPriority });
+      fetchChamados();
+    } catch (err) { console.error('Error updating priority', err); }
+  };
+
   const handleUpdateNotes = async (chamadoId: number) => {
     try {
       await api.put(`/chamados/${chamadoId}`, { admin_notes: adminNotes[chamadoId] || '' });
@@ -821,6 +829,49 @@ export default function ChamadosKanban() {
                         </select>
                       ) : (
                         <p className="text-xs mt-1.5 text-gray-600 dark:text-gray-300">{chamado.assignee_name || t('chamados.unassigned')}</p>
+                      )}
+                    </div>
+
+                    {/* Priority */}
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">{t('chamados.priorityLabel')}</span>
+                      {isAdmin ? (
+                        <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                          {(['BAIXA', 'MEDIA', 'ALTA', 'CRITICA'] as const).map(prio => {
+                            const active = chamado.priority === prio;
+                            const style = PRIO_STYLES[prio];
+                            const PIcon = PRIORITY_CONFIG[prio]?.icon || Minus;
+                            return (
+                              <button
+                                key={prio}
+                                onClick={() => handleUpdatePriority(chamado.id, prio)}
+                                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-medium transition-all ${
+                                  active
+                                    ? `${style.border} ${style.activeBg} ${style.text}`
+                                    : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
+                                }`}
+                              >
+                                <PIcon className="w-3 h-3" />
+                                {t(`chamados.${PRIO_LABEL_KEY[prio]}`)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                          {(() => {
+                            const PIcon = PRIORITY_CONFIG[chamado.priority]?.icon || Minus;
+                            const style = PRIO_STYLES[chamado.priority as keyof typeof PRIO_STYLES];
+                            return (
+                              <>
+                                <PIcon className={`w-3.5 h-3.5 ${style?.text || 'text-gray-400'}`} />
+                                <span className={`text-xs font-medium ${style?.text || 'text-gray-600 dark:text-gray-300'}`}>
+                                  {t(`chamados.${PRIO_LABEL_KEY[chamado.priority]}`) || chamado.priority}
+                                </span>
+                              </>
+                            );
+                          })()}
+                        </div>
                       )}
                     </div>
 

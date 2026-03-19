@@ -74,6 +74,7 @@ class CategoryIn(BaseModel):
     description: Optional[str] = None
     parent_id: Optional[int] = None
     origin_id: Optional[int] = None
+    is_active: Optional[bool] = None
 
 class CategoryOut(BaseModel):
     id: int
@@ -483,10 +484,14 @@ def _plans_query(db: Session, user: User):
 
 @router.get("/categories", response_model=List[CategoryOut])
 def list_categories(
+    include_inactive: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return db.query(ErrorCategory).filter(ErrorCategory.is_active == True).order_by(ErrorCategory.name).all()
+    query = db.query(ErrorCategory)
+    if not include_inactive:
+        query = query.filter(ErrorCategory.is_active == True)
+    return query.order_by(ErrorCategory.name).all()
 
 
 @router.post("/categories", response_model=CategoryOut, status_code=201)
@@ -496,7 +501,9 @@ def create_category(
     current_user: User = Depends(get_current_user),
 ):
     require_admin(current_user)
-    cat = ErrorCategory(**body.model_dump())
+    data = body.model_dump(exclude_unset=True)
+    data.pop("is_active", None)  # new categories are always active
+    cat = ErrorCategory(**data)
     db.add(cat)
     db.commit()
     db.refresh(cat)
@@ -514,7 +521,7 @@ def update_category(
     cat = db.get(ErrorCategory, cat_id)
     if not cat:
         raise HTTPException(404, "Categoria não encontrada")
-    for k, v in body.model_dump(exclude_none=True).items():
+    for k, v in body.model_dump(exclude_unset=True).items():
         setattr(cat, k, v)
     db.commit()
     db.refresh(cat)

@@ -49,7 +49,7 @@ import SensoManagement from './pages/tutoria/SensoManagement';
 import LearningSheets from './pages/tutoria/LearningSheets';
 import MyLearningSheets from './pages/tutoria/MyLearningSheets';
 import TutoriaNotifications from './pages/tutoria/TutoriaNotifications';
-import AdminTeams from './pages/admin/Teams';
+// AdminTeams standalone removed — MasterData.tsx is the single source
 import RelatoriosLayout from './pages/relatorios/RelatoriosLayout';
 import RelatoriosOverview from './pages/relatorios/Overview';
 import RelatoriosFormacoes from './pages/relatorios/FormacoesDashboard';
@@ -60,8 +60,7 @@ import RelatoriosIncidents from './pages/relatorios/IncidentsReport';
 import AdminRatingsPage from './pages/admin/Ratings';
 import KnowledgeMatrixPage from './pages/admin/KnowledgeMatrix';
 import AdminSettingsPage from './pages/admin/Settings';
-import AdminBanksPage from './pages/admin/Banks';
-import AdminProductsPage from './pages/admin/Products';
+// Banks.tsx and Products.tsx standalone pages removed — MasterData.tsx is the single source
 import MasterDataPage from './pages/admin/MasterData';
 import MasterDataLayout from './pages/admin/MasterDataLayout';
 import ChamadosLayout from './pages/chamados/ChamadosLayout';
@@ -229,6 +228,7 @@ function App() {
             <Route path="challenges/:challengeId/execute/complete" element={<ChallengeExecutionComplete />} />
             <Route path="pending-reviews" element={<PendingReviews />} />
             <Route path="courses/:courseId/lessons/new" element={<LessonForm />} />
+            <Route path="courses/:courseId/lessons/:lessonId/edit" element={<LessonForm />} />
             <Route path="courses/:courseId/challenges/:challengeId" element={<ChallengeDetail />} />
             <Route path="courses/:courseId/challenges/:challengeId/results" element={<ChallengeResult />} />
             <Route path="courses/:courseId/lessons/:lessonId" element={<LessonDetail />} />
@@ -247,11 +247,13 @@ function App() {
             <Route path="courses" element={<AdminCoursesPage />} />
             <Route path="courses/:courseId" element={<AdminCourseDetail />} />
             <Route path="course/new" element={<AdminCourseForm />} />
+            <Route path="courses/:courseId/edit" element={<AdminCourseForm />} />
             <Route path="courses/:courseId/challenges/new" element={<ChallengeForm />} />
             <Route path="courses/:courseId/challenges/:challengeId/edit" element={<ChallengeForm />} />
             <Route path="courses/:courseId/challenges/:challengeId" element={<ChallengeDetail />} />
             <Route path="courses/:courseId/challenges/:challengeId/results" element={<ChallengeResult />} />
             <Route path="courses/:courseId/lessons/new" element={<LessonForm />} />
+            <Route path="courses/:courseId/lessons/:lessonId/edit" element={<LessonForm />} />
             <Route path="courses/:courseId/lessons/:lessonId" element={<LessonDetail />} />
             <Route path="training-plans" element={<AdminTrainingPlans />} />
             <Route path="training-plan/new" element={<AdminTrainingPlanForm />} />
@@ -267,9 +269,9 @@ function App() {
             <Route path="knowledge-matrix" element={<KnowledgeMatrixPage />} />
             <Route path="ratings" element={<AdminRatingsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
-            <Route path="banks" element={<AdminBanksPage />} />
-            <Route path="products" element={<AdminProductsPage />} />
-            <Route path="teams" element={<AdminTeams />} />
+            <Route path="banks" element={<Navigate to="/master-data" replace />} />
+            <Route path="products" element={<Navigate to="/master-data/products" replace />} />
+            <Route path="teams" element={<Navigate to="/master-data/teams" replace />} />
             {/* tutoria movido para layout próprio abaixo */}
           </>
         )}

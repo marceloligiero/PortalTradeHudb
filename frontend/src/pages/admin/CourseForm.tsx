@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, Save, X, Users, Building2, Package, CheckCircle2, AlertCircle, Check, GraduationCap, TrendingUp, Shield, Star } from 'lucide-react';
 import api from '../../lib/axios';
@@ -28,7 +28,10 @@ interface Product {
 export default function CourseForm() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { courseId } = useParams<{ courseId: string }>();
+  const isEditing = Boolean(courseId);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [trainers, setTrainers] = useState<Trainer[]>([]);
@@ -48,6 +51,7 @@ export default function CourseForm() {
 
   const fetchData = async () => {
     try {
+      setInitialLoading(true);
       const [trainersRes, banksRes, productsRes] = await Promise.all([
         api.get('/api/admin/trainers'),
         api.get('/api/admin/banks'),
@@ -56,8 +60,24 @@ export default function CourseForm() {
       setTrainers(trainersRes.data);
       setBanks(banksRes.data);
       setProducts(productsRes.data);
+
+      if (isEditing && courseId) {
+        const courseRes = await api.get(`/api/admin/courses/${courseId}`);
+        const c = courseRes.data;
+        const bankIds = (c.banks || []).map((b: { id: number }) => b.id);
+        const productIds = (c.products || []).map((p: { id: number }) => p.id);
+        setFormData({
+          title: c.title || '',
+          description: c.description || '',
+          level: c.level || 'BEGINNER',
+          bank_ids: bankIds,
+          product_ids: productIds,
+        });
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
+    } finally {
+      setInitialLoading(false);
     }
   };
 
@@ -106,23 +126,29 @@ export default function CourseForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateStep(2)) return;
 
     try {
       setLoading(true);
-      await api.post('/api/admin/courses', {
+      const payload = {
         title: formData.title,
         description: formData.description,
         level: formData.level,
         bank_ids: formData.bank_ids,
         product_ids: formData.product_ids,
-      });
-      
+      };
+
+      if (isEditing && courseId) {
+        await api.put(`/api/admin/courses/${courseId}`, payload);
+      } else {
+        await api.post('/api/admin/courses', payload);
+      }
+
       // Success animation
       setCurrentStep(3);
       setTimeout(() => {
-        navigate('/courses');
+        navigate(isEditing ? `/courses/${courseId}` : '/courses');
       }, 2000);
     } catch (error) {
       console.error('Error creating course:', error);
@@ -149,9 +175,9 @@ export default function CourseForm() {
               </div>
               <div>
                 <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-100 to-gray-300">
-                  {t('admin.newCourse')}
+                  {isEditing ? t('admin.editCourse', 'Editar Curso') : t('admin.newCourse')}
                 </h1>
-                <p className="text-gray-400 mt-1">{t('admin.createNewCourse')}</p>
+                <p className="text-gray-400 mt-1">{isEditing ? t('admin.editCourseDesc', 'Alterar dados do curso') : t('admin.createNewCourse')}</p>
               </div>
             </div>
             <button
@@ -396,7 +422,7 @@ export default function CourseForm() {
                   className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-medium hover:from-green-700 hover:to-green-800 transition-all shadow-lg shadow-green-900/50 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
                 >
                   <CheckCircle2 className="w-5 h-5" />
-                  {loading ? t('messages.saving') : t('admin.createCourse')}
+                  {loading ? t('messages.saving') : isEditing ? t('common.save', 'Guardar') : t('admin.createCourse')}
                 </button>
               ) : null}
             </div>

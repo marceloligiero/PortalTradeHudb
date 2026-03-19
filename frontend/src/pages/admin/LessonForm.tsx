@@ -166,7 +166,9 @@ const LessonForm: React.FC = () => {
       const payload = {
         ...formData,
         course_id: parseInt(courseId || '0', 10),
-        order_index: formData.order_index - 1 // Backend uses 0-indexed
+        // For new lessons, order_index comes as 1-indexed from fetchNextOrderIndex → subtract 1
+        // For edits, order_index is already 0-indexed from DB → send as-is
+        order_index: isEditing ? formData.order_index : formData.order_index - 1
       };
 
       if (isEditing) {
@@ -375,6 +377,33 @@ const LessonForm: React.FC = () => {
                       className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all resize-none"
                       placeholder={t('lessons.descriptionPlaceholder')}
                     />
+                  </div>
+
+                  {/* Lesson Type */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      {t('lessons.lessonType', 'Tipo de Módulo')}
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { value: 'THEORETICAL', label: t('lessons.theoretical', 'Teórico'), icon: '📖' },
+                        { value: 'PRACTICAL', label: t('lessons.practical', 'Prático'), icon: '🔧' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, lesson_type: opt.value as 'THEORETICAL' | 'PRACTICAL' })}
+                          className={`p-4 rounded-xl border-2 text-left transition-all ${
+                            formData.lesson_type === opt.value
+                              ? 'border-purple-500 bg-purple-500/10'
+                              : 'border-white/10 hover:border-white/20'
+                          }`}
+                        >
+                          <span className="text-lg mr-2">{opt.icon}</span>
+                          <span className="font-medium text-white">{opt.label}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Quem Inicia a Aula */}
