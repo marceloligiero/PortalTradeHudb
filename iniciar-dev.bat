@@ -101,20 +101,24 @@ if exist "%~dp0frontend\dist\index.html" (
 :: Sem dist — instalar node_modules se preciso + compilar
 echo       frontend\dist nao encontrado. A compilar...
 cd /d "%~dp0frontend"
-if not exist "node_modules\.bin\vite.cmd" (
-    echo       Instalando node_modules (pode demorar)...
-    npm install --registry http://registry.npmjs.org/
-    if errorlevel 1 (
-        echo.
-        echo  [ERRO] npm install falhou.
-        echo  O proxy corporativo pode estar a bloquear o npm.
-        echo  Ligue a VPN e tente novamente.
-        cd /d "%~dp0"
-        pause
-        exit /b 1
-    )
-    echo       node_modules instalados.
+if not exist "node_modules\.bin\vite.cmd" goto :npm_install
+goto :npm_build
+
+:npm_install
+echo       Instalando node_modules (pode demorar)...
+npm install --registry http://registry.npmjs.org/
+if errorlevel 1 (
+    echo.
+    echo  [ERRO] npm install falhou.
+    echo  O proxy corporativo pode estar a bloquear o npm.
+    echo  Ligue a VPN e tente novamente.
+    cd /d "%~dp0"
+    pause
+    exit /b 1
 )
+echo       node_modules instalados.
+
+:npm_build
 echo       Compilando frontend (npm run build)...
 call npm run build
 if errorlevel 1 (
