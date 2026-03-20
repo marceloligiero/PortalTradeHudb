@@ -193,6 +193,8 @@ class Course(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text)
     level = Column(String(20), nullable=True)  # BEGINNER, INTERMEDIATE, EXPERT
+    course_type = Column(String(30), nullable=False, default='CURSO')  # CURSO | CAPSULA_METODOLOGIA | CAPSULA_FUNCIONALIDADE
+    managed_by_tutor = Column(Boolean, default=False, nullable=False)
     bank_id = Column(Integer, ForeignKey("banks.id"), nullable=True)  # Legacy - nullable for new multi-bank courses
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)  # Legacy - nullable for new multi-product courses
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -754,7 +756,7 @@ class TutoriaActionPlan(Base):
     how_much = Column(Text, nullable=True)
 
     # Tipo e responsável do plano
-    plan_type = Column(String(20), nullable=True)        # CORRECTIVO | PREVENTIVO | MELHORIA
+    plan_type = Column(String(20), nullable=True)        # CORRECTIVO | PREVENTIVO | MELHORIA | SEGUIMENTO
     responsible_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     expected_result = Column(Text, nullable=True)
     deadline = Column(Date, nullable=True)
@@ -762,6 +764,11 @@ class TutoriaActionPlan(Base):
     result_comment = Column(String(160), nullable=True)
     started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Side by Side / Plano de Seguimento (C.2)
+    side_by_side = Column(Boolean, default=False, nullable=False)
+    observation_date = Column(Date, nullable=True)
+    observation_notes = Column(Text, nullable=True)
 
     # Fluxo de aprovação/validação
     status = Column(String(30), default="OPEN", nullable=False)
@@ -1237,3 +1244,57 @@ class TutoriaNotification(Base):
     user = relationship("User", foreign_keys=[user_id])
     error = relationship("TutoriaError", foreign_keys=[error_id])
     plan = relationship("TutoriaActionPlan", foreign_keys=[plan_id])
+
+
+# ── Feedback dos Liberadores (B) ──────────────────────────────────────────────
+
+class ReleaserSurvey(Base):
+    """Questionário semanal criado pelo Tutor/Admin para avaliar gravadores pelos liberadores."""
+    __tablename__ = "releaser_surveys"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(200), nullable=False)
+    week_start = Column(Date, nullable=False)
+    week_end = Column(Date, nullable=False)
+    created_by_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    status = Column(String(20), nullable=False, default="OPEN")  # OPEN | CLOSED
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    creator = relationship("User", foreign_keys=[created_by_id])
+    responses = relationship("ReleaserSurveyResponse", back_populates="survey", cascade="all, delete-orphan")
+
+
+class ReleaserSurveyResponse(Base):
+    """Resposta de um liberador sobre um gravador numa survey semanal."""
+    __tablename__ = "releaser_survey_responses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    survey_id = Column(Integer, ForeignKey("releaser_surveys.id", ondelete="CASCADE"), nullable=False)
+    liberador_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    grabador_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    opinion = Column(Text, nullable=True)                        # Opinião geral (B.3)
+    sentiment = Column(String(20), nullable=True)                # POSITIVE | NEUTRAL | NEGATIVE (B.3)
+    concrete_situations = Column(Text, nullable=True)            # Situações concretas (B.3)
+    needs_tutor_intervention = Column(Boolean, default=False, nullable=False)  # (B.2)
+    submitted_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    survey = relationship("ReleaserSurvey", back_populates="responses")
+    liberador = relationship("User", foreign_keys=[liberador_id])
+    grabador = relationship("User", foreign_keys=[grabador_id])
+    actions = relationship("ReleaserSurveyAction", back_populates="response", cascade="all, delete-orphan")
+
+
+class ReleaserSurveyAction(Base):
+    """Acção acionável gerada a partir de uma resposta de survey (B.5)."""
+    __tablename__ = "releaser_survey_actions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    response_id = Column(Integer, ForeignKey("releaser_survey_responses.id", ondelete="CASCADE"), nullable=False)
+    action_type = Column(String(50), nullable=True)   # FEEDBACK_DIRETO | TUTORIA | SEGUIMENTO | OUTRO
+    description = Column(Text, nullable=True)
+    created_by_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    response = relationship("ReleaserSurveyResponse", back_populates="actions")
+    creator = relationship("User", foreign_keys=[created_by_id])

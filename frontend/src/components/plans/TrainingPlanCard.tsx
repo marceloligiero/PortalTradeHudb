@@ -1,12 +1,21 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, Users, Calendar, Clock, ArrowRight, TrendingUp, Target, User, GraduationCap, AlertCircle, CheckCircle2, Timer } from 'lucide-react';
+import { BookOpen, Users, Calendar, Clock, ArrowRight, AlertCircle, CheckCircle2, Timer, User } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 
 interface PlanCardProps {
   plan: any;
 }
+
+const STATUS_MAP: Record<string, { label: string; cls: string; Icon: typeof Timer }> = {
+  IN_PROGRESS: { label: 'planStatus.inProgress', cls: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', Icon: Timer },
+  ONGOING:     { label: 'planStatus.inProgress', cls: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', Icon: Timer },
+  PENDING:     { label: 'planStatus.pending', cls: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400', Icon: Clock },
+  UPCOMING:    { label: 'planStatus.pending', cls: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400', Icon: Clock },
+  DELAYED:     { label: 'planStatus.delayed', cls: 'bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400', Icon: AlertCircle },
+  COMPLETED:   { label: 'planStatus.completed', cls: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400', Icon: CheckCircle2 },
+  FINALIZED:   { label: 'planStatus.finalized', cls: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400', Icon: CheckCircle2 },
+};
 
 export default function TrainingPlanCard({ plan }: PlanCardProps) {
   const { t } = useTranslation();
@@ -15,226 +24,129 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
 
   const start = plan?.start_date ? new Date(plan.start_date) : null;
   const end = plan?.end_date ? new Date(plan.end_date) : null;
-  const today = new Date();
 
+  // Resolve status
   let status = plan?.status || 'UNKNOWN';
-  let daysRemaining: number | null = plan?.days_remaining ?? null;
-
-  // Se não tiver status calculado, calcular localmente
   if (status === 'UNKNOWN' && start && end) {
+    const today = new Date();
     if (today < start) status = 'UPCOMING';
     else if (today > end) status = 'COMPLETED';
     else status = 'ONGOING';
-    const diff = Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    daysRemaining = diff > 0 ? diff : 0;
   }
 
-  // Determinar a rota baseada no role do usuário
+  const sc = STATUS_MAP[status] || STATUS_MAP.IN_PROGRESS;
+  const StatusIcon = sc.Icon;
+  const progress = plan?.progress_percentage || 0;
+
   const getPlanRoute = () => {
     if (user?.role === 'ADMIN') return `/admin/training-plan/${plan?.id}`;
     if (user?.role === 'TRAINER') return `/trainer/training-plan/${plan?.id}`;
     return `/training-plan/${plan?.id}`;
   };
 
-  // Status config
-  const getStatusConfig = () => {
-    switch (status) {
-      case 'IN_PROGRESS':
-      case 'ONGOING':
-        return { label: t('planStatus.inProgress'), bg: 'bg-emerald-500', icon: Timer, iconColor: 'text-emerald-500' };
-      case 'PENDING':
-      case 'UPCOMING':
-        return { label: t('planStatus.pending'), bg: 'bg-amber-500', icon: Clock, iconColor: 'text-amber-500' };
-      case 'DELAYED':
-        return { label: t('planStatus.delayed'), bg: 'bg-red-500', icon: AlertCircle, iconColor: 'text-red-500' };
-      case 'COMPLETED':
-        return { label: t('planStatus.completed'), bg: 'bg-blue-500', icon: CheckCircle2, iconColor: 'text-blue-500' };
-      case 'FINALIZED':
-        return { label: t('planStatus.finalized', 'Finalizado'), bg: 'bg-gray-500', icon: CheckCircle2, iconColor: 'text-gray-500' };
-      default:
-        return { label: t('planCard.active'), bg: 'bg-emerald-500', icon: Timer, iconColor: 'text-emerald-500' };
-    }
-  };
+  const fmtDate = (d: Date | null) =>
+    d ? d.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: '2-digit' }) : '—';
 
-  const statusConfig = getStatusConfig();
-  const StatusIcon = statusConfig.icon;
-  const progress = plan?.progress_percentage || 0;
+  const studentName = plan?.student?.full_name;
+  const enrolledCount = plan?.enrolled_count || 0;
+  const trainerName = plan?.trainers?.[0]?.full_name || plan?.trainer?.full_name;
+  const extraTrainers = (plan?.trainers?.length || 0) > 1 ? plan.trainers.length - 1 : 0;
 
   return (
     <div
       onClick={() => navigate(getPlanRoute())}
-      className="group cursor-pointer h-full"
+      className="group cursor-pointer bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-[#EC0000]/30 transition-colors overflow-hidden"
     >
-      <div className="relative h-full overflow-hidden rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:border-[#EC0000]/30 transition-colors duration-200">
-        {/* Top Status Bar */}
-        <div className={`h-1 w-full ${statusConfig.bg}`} />
-
-        {/* Header Section */}
-        <div className="relative p-5 pb-4">
-          {/* Status Badge */}
-          <div className="absolute top-4 right-4">
-            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold text-white ${statusConfig.bg}`}>
-              <StatusIcon className="w-3 h-3" />
-              {statusConfig.label}
-            </div>
+      {/* Status bar + header */}
+      <div className="p-4 pb-3">
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${sc.cls}`}>
+            <StatusIcon className="w-3 h-3" />
+            {t(sc.label)}
           </div>
-
-          {/* Title & Description */}
-          <div className="pr-24">
-            <div className="flex items-center gap-2.5 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
-                <GraduationCap className="w-5 h-5 text-[#EC0000]" />
-              </div>
-            </div>
-            <h3 className="font-headline text-base font-bold text-gray-900 dark:text-white mb-1 group-hover:text-[#EC0000] transition-colors line-clamp-1">
-              {plan?.title ?? t('navigation.trainingPlans')}
-            </h3>
-            <p className="font-body text-sm text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
-              {plan?.description ?? t('planCard.noDescription')}
-            </p>
-          </div>
+          <span className="text-[10px] text-gray-400 dark:text-gray-500 font-mono">#{plan?.id}</span>
         </div>
 
-        {/* Progress Bar */}
-        {progress > 0 && (
-          <div className="px-5 pb-4">
-            <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="font-body font-medium text-gray-500 dark:text-gray-400">{t('planCard.progress')}</span>
-              <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{progress}%</span>
-            </div>
-            <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-              <div
-                style={{ width: `${progress}%` }}
-                className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-              />
-            </div>
+        <h3 className="font-headline text-sm font-bold text-gray-900 dark:text-white group-hover:text-[#EC0000] transition-colors line-clamp-1 mb-1">
+          {plan?.title ?? t('navigation.trainingPlans')}
+        </h3>
+        {plan?.description && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 leading-relaxed">
+            {plan.description}
+          </p>
+        )}
+      </div>
+
+      {/* Progress */}
+      {progress > 0 && (
+        <div className="px-4 pb-3">
+          <div className="flex items-center justify-between text-[10px] mb-1">
+            <span className="text-gray-400 dark:text-gray-500">{t('planCard.progress')}</span>
+            <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{progress}%</span>
+          </div>
+          <div className="h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+            <div style={{ width: `${progress}%` }} className="h-full bg-emerald-500 rounded-full transition-all duration-500" />
+          </div>
+        </div>
+      )}
+
+      {/* Info rows */}
+      <div className="px-4 pb-3 space-y-1.5">
+        {/* Student */}
+        <div className="flex items-center gap-2 text-xs">
+          <div className="w-5 h-5 rounded-full bg-[#EC0000] flex items-center justify-center flex-shrink-0">
+            {enrolledCount > 1 ? (
+              <span className="text-white text-[9px] font-bold">{enrolledCount}</span>
+            ) : studentName ? (
+              <span className="text-white text-[9px] font-bold">{studentName.charAt(0).toUpperCase()}</span>
+            ) : (
+              <User className="w-2.5 h-2.5 text-white" />
+            )}
+          </div>
+          <span className="text-gray-700 dark:text-gray-300 font-medium truncate">
+            {enrolledCount > 1
+              ? `${enrolledCount} ${t('planCard.students')}`
+              : studentName || t('planCard.noStudentAssigned')}
+          </span>
+        </div>
+
+        {/* Trainer */}
+        {trainerName && (
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+            <Users className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">{trainerName}</span>
+            {extraTrainers > 0 && (
+              <span className="text-[10px] font-bold bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">+{extraTrainers}</span>
+            )}
           </div>
         )}
+      </div>
 
-        {/* Student Section */}
-        <div className="mx-5 mb-4 p-3.5 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+      {/* Stats footer */}
+      <div className="px-4 pb-4 pt-2 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#EC0000] flex items-center justify-center shrink-0">
-              {(plan?.enrolled_count || 0) > 0 ? (
-                <span className="text-white font-bold text-sm">
-                  {plan.enrolled_count}
-                </span>
-              ) : plan?.student ? (
-                <span className="text-white font-bold text-sm">
-                  {plan.student.full_name?.charAt(0)?.toUpperCase() || 'F'}
-                </span>
-              ) : (
-                <User className="w-5 h-5 text-white" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold text-[#EC0000] uppercase tracking-wider mb-0.5">
-                {(plan?.enrolled_count || 0) > 1 ? t('planCard.enrolledStudents') : t('planCard.student')}
-              </p>
-              {(plan?.enrolled_count || 0) > 1 ? (
-                <>
-                  <p className="font-body font-bold text-sm text-gray-900 dark:text-white">
-                    {plan.enrolled_count} {t('planCard.students')}
-                  </p>
-                  <p className="font-body text-xs text-gray-500 dark:text-gray-400">
-                    {plan.enrolled_students?.filter((s: any) => s.status === 'IN_PROGRESS').length || 0} {t('planCard.active').toLowerCase()}
-                  </p>
-                </>
-              ) : plan?.student ? (
-                <>
-                  <p className="font-body font-bold text-sm text-gray-900 dark:text-white truncate">{plan.student.full_name}</p>
-                  <p className="font-body text-xs text-gray-500 dark:text-gray-400 truncate">{plan.student.email}</p>
-                </>
-              ) : (
-                <p className="font-body text-sm text-gray-400 italic">{t('planCard.noStudentAssigned')}</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="px-5 pb-4">
-          <div className="grid grid-cols-4 gap-2">
-            <div className="text-center p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl">
-              <BookOpen className="w-4 h-4 text-[#EC0000] mx-auto mb-1" />
-              <p className="font-mono text-base font-bold text-gray-900 dark:text-white">{plan?.total_courses ?? 0}</p>
-              <p className="font-body text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">{t('planCard.courses')}</p>
-            </div>
-            <div className="text-center p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl">
-              <Clock className="w-4 h-4 text-[#EC0000] mx-auto mb-1" />
-              <p className="font-mono text-base font-bold text-gray-900 dark:text-white">{plan?.total_duration_hours ?? 0}h</p>
-              <p className="font-body text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">{t('planCard.duration')}</p>
-            </div>
-            <div className="text-center p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl">
-              <Calendar className="w-4 h-4 text-[#EC0000] mx-auto mb-1" />
-              <p className="font-mono text-sm font-bold text-gray-900 dark:text-white">
-                {start ? start.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }) : '-'}
-              </p>
-              <p className="font-body text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">{t('planCard.startDate')}</p>
-            </div>
-            <div className="text-center p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl">
-              <Calendar className="w-4 h-4 text-[#EC0000] mx-auto mb-1" />
-              <p className="font-mono text-sm font-bold text-gray-900 dark:text-white">
-                {end ? end.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }) : '-'}
-              </p>
-              <p className="font-body text-[10px] text-gray-500 dark:text-gray-400 uppercase font-medium">
-                {plan?.is_permanent ? t('trainingPlan.permanent', 'Permanente') : t('planCard.endDate')}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Days Remaining or Trainer */}
-        <div className="px-5 pb-4 space-y-2">
-          {daysRemaining !== null && daysRemaining > 0 && (
-            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-amber-500" />
-                <span className="font-body text-sm font-medium text-gray-600 dark:text-gray-300">{t('planCard.daysRemaining')}</span>
-              </div>
-              <span className="font-mono text-sm font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-lg">{daysRemaining}</span>
-            </div>
-          )}
-
-          {plan?.trainer?.full_name && (
-            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-2">
-                <Target className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                <span className="font-body text-sm font-medium text-gray-600 dark:text-gray-300">
-                  {plan.trainers && plan.trainers.length > 1 ? t('planCard.trainers') : t('planCard.trainer')}
-                </span>
-              </div>
-              <div className="flex items-center gap-1 max-w-[160px]">
-                {plan.trainers && plan.trainers.length > 0 ? (
-                  <>
-                    <span className="font-body text-sm font-bold text-gray-900 dark:text-white truncate">
-                      {plan.trainers[0]?.full_name}
-                    </span>
-                    {plan.trainers.length > 1 && (
-                      <span className="text-xs font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                        +{plan.trainers.length - 1}
-                      </span>
-                    )}
-                  </>
-                ) : (
-                  <span className="font-body text-sm font-bold text-gray-900 dark:text-white truncate">{plan.trainer.full_name}</span>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-5 pb-5">
-          <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-800">
-            <span className="font-body text-xs text-gray-400 dark:text-gray-500">
-              #{plan?.id}
+            <span className="flex items-center gap-1">
+              <BookOpen className="w-3.5 h-3.5 text-[#EC0000]" />
+              <span className="font-mono font-bold text-gray-900 dark:text-white">{plan?.total_courses ?? 0}</span>
+              {t('planCard.courses')}
             </span>
-            <span className="flex items-center gap-1 font-body text-xs font-bold text-[#EC0000] group-hover:gap-2 transition-all">
-              {t('planCard.viewDetails')}
-              <ArrowRight className="w-3.5 h-3.5" />
+            <span className="flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-[#EC0000]" />
+              <span className="font-mono font-bold text-gray-900 dark:text-white">{plan?.total_duration_hours ?? 0}h</span>
             </span>
           </div>
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3.5 h-3.5" />
+            {fmtDate(start)}—{fmtDate(end)}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-end mt-2">
+          <span className="flex items-center gap-1 text-[11px] font-bold text-[#EC0000] group-hover:gap-2 transition-all">
+            {t('planCard.viewDetails')}
+            <ArrowRight className="w-3 h-3" />
+          </span>
         </div>
       </div>
     </div>

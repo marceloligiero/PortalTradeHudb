@@ -9,6 +9,7 @@ import {
   Zap, Target, RefreshCw, ClipboardList, Plus, Trash2,
 } from 'lucide-react';
 import axios from '../../lib/axios';
+import { CURRENCY_OPTIONS } from '../../lib/currencies';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -118,10 +119,6 @@ export default function RegisterErrors() {
   // Row 2 — Transaction + Classification
   const [bankId, setBankId]               = useState('');
   const [office, setOffice]               = useState('');
-  const [referenceCode, setReferenceCode] = useState('');
-  const [currency, setCurrency]           = useState('');
-  const [amount, setAmount]               = useState('');
-  const [finalClient, setFinalClient]     = useState('');
   const [impactId, setImpactId]           = useState('');
   const [originId, setOriginId]           = useState('');
   const [categoryId, setCategory]         = useState('');   // Tipología Error
@@ -180,14 +177,14 @@ export default function RegisterErrors() {
     { value: 'PROCEDURE',   label: t('registerError.typologyProcedure'), color: 'from-emerald-500 to-teal-500' },
   ];
   const [motivos, setMotivos] = useState<Motivo[]>([]);
-  // ── Refs (Ref/Divisa/Importe/Cliente Final) ────────────────────────────
+  // ── Refs (Referências) ────────────────────────────────────────────────
   const [refs, setRefs] = useState<RefRow[]>([{ id: 1, referencia: '', divisa: '', importe: '', cliente_final: '' }]);
   let refIdCounter = refs.length > 0 ? Math.max(...refs.map(r => r.id)) + 1 : 1;
   const addRef = () => setRefs(prev => [...prev, { id: refIdCounter++, referencia: '', divisa: '', importe: '', cliente_final: '' }]);
   const removeRef = (id: number) => setRefs(prev => prev.length > 1 ? prev.filter(r => r.id !== id) : prev);
   const updateRef = (id: number, field: keyof RefRow, value: string) => setRefs(prev => prev.map(r => r.id === id ? { ...r, [field]: value } : r));
-  // Parse comma-separated references from the Referencia field
-  const parsedRefs = referenceCode.split(',').map(r => r.trim()).filter(Boolean);
+  // Parse references from the Referências group rows
+  const parsedRefs = refs.map(r => r.referencia.trim()).filter(Boolean);
   let motivoIdCounter = motivos.length > 0 ? Math.max(...motivos.map(m => m.id)) + 1 : 1;
   const addMotivo = (typology: string) => {
     setMotivos(prev => [...prev, { id: motivoIdCounter++, typology, description: '', references: [] }]);
@@ -283,7 +280,7 @@ export default function RegisterErrors() {
   }, [originId]);
 
   const isManager = user?.role === 'ADMIN' || user?.role === 'MANAGER' || (user as any)?.is_tutor || (user as any)?.is_team_lead || (user as any)?.is_referente;
-  const canSave = description.trim() && dateOccurrence;
+  const canSave = description.trim() && dateOccurrence && bankId && office.trim() && departmentId;
 
   const handleSave = async () => {
     if (!canSave) {
@@ -314,10 +311,7 @@ export default function RegisterErrors() {
         // Transaction
         bank_id:         bankId        ? Number(bankId)        : null,
         office:          office.trim() || null,
-        reference_code:  referenceCode.trim() || null,
-        currency:        currency.trim() || null,
-        amount:          amount ? parseFloat(amount) : null,
-        final_client:    finalClient.trim() || null,
+        reference_code:  parsedRefs.join(', ') || null,
         // Classification
         impact_id:       impactId      ? Number(impactId)      : null,
         origin_id:       originId      ? Number(originId)      : null,
@@ -419,8 +413,7 @@ export default function RegisterErrors() {
       </motion.div>
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          ROW 2 — Banco(Cliente) · Oficina · Referencia · Div · Importe ·
-                  Cliente Final · Impacto · Origen · Tipología Error · Detectado Por
+          ROW 2 — Banco(Cliente) · Oficina · Impacto · Origen · Tipología Error · Detectado Por
           ═══════════════════════════════════════════════════════════════════════ */}
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.15 }}
@@ -433,10 +426,10 @@ export default function RegisterErrors() {
           <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('registerError.transactionClassification')}</p>
         </div>
         <div className="p-6 space-y-5">
-          {/* Banco(Cliente) · Oficina · Referencia */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          {/* Banco(Cliente) · Oficina */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-              <FieldLabel icon={Building2} isDark={isDark}>{t('registerError.bankClient')}</FieldLabel>
+              <FieldLabel icon={Building2} isDark={isDark} required>{t('registerError.bankClient')}</FieldLabel>
               <SelectField
                 value={bankId}
                 onChange={setBankId}
@@ -446,31 +439,8 @@ export default function RegisterErrors() {
               />
             </div>
             <div>
-              <FieldLabel icon={Globe} isDark={isDark}>{t('registerError.office')}</FieldLabel>
-              <InputField value={office} onChange={setOffice} placeholder={t('registerError.officeHint')} isDark={isDark} />
-            </div>
-            <div>
-              <FieldLabel icon={FileText} isDark={isDark}>{t('registerError.reference')}</FieldLabel>
-              <InputField value={referenceCode} onChange={setReferenceCode} placeholder="3530CLI0000057, 1924CLI0000321…" isDark={isDark} />
-              <p className={`mt-1 text-[10px] ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                {t('registerError.multiRefHint')}
-              </p>
-            </div>
-          </div>
-
-          {/* Div · Importe · Cliente Final */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            <div>
-              <FieldLabel icon={DollarSign} isDark={isDark}>{t('registerError.currency')}</FieldLabel>
-              <InputField value={currency} onChange={setCurrency} placeholder="EUR, USD…" isDark={isDark} />
-            </div>
-            <div>
-              <FieldLabel icon={DollarSign} isDark={isDark}>{t('registerError.amount')}</FieldLabel>
-              <InputField type="number" value={amount} onChange={setAmount} placeholder="0.00" isDark={isDark} />
-            </div>
-            <div>
-              <FieldLabel icon={User} isDark={isDark}>{t('registerError.finalClient')}</FieldLabel>
-              <InputField value={finalClient} onChange={setFinalClient} placeholder={t('registerError.finalClientHint')} isDark={isDark} />
+              <FieldLabel icon={Globe} isDark={isDark} required>{t('registerError.office')}</FieldLabel>
+              <InputField type="number" value={office} onChange={setOffice} placeholder="1234" isDark={isDark} />
             </div>
           </div>
 
@@ -521,7 +491,7 @@ export default function RegisterErrors() {
       </motion.div>
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          ROW 2b — Refs (Ref / Divisa / Importe / Cliente Final) — dynamic array
+          ROW 2b — Refs (apenas Referência) — dynamic array
           ═══════════════════════════════════════════════════════════════════════ */}
       <motion.div
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.17 }}
@@ -554,7 +524,7 @@ export default function RegisterErrors() {
               </div>
               <div>
                 {idx === 0 && <FieldLabel icon={DollarSign} isDark={isDark}>{t('registerError.currency', 'Divisa')}</FieldLabel>}
-                <InputField value={r.divisa} onChange={v => updateRef(r.id, 'divisa', v)} placeholder="EUR" isDark={isDark} />
+                <SelectField value={r.divisa} onChange={v => updateRef(r.id, 'divisa', v)} options={CURRENCY_OPTIONS} placeholder="—" isDark={isDark} />
               </div>
               <div>
                 {idx === 0 && <FieldLabel icon={DollarSign} isDark={isDark}>{t('registerError.amount', 'Importe')}</FieldLabel>}
@@ -639,7 +609,7 @@ export default function RegisterErrors() {
           {/* Depto · Evento · Tipo Error · Recurrencia · Severidade */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
             <div>
-              <FieldLabel icon={Building2} isDark={isDark}>{t('registerError.department')}</FieldLabel>
+              <FieldLabel icon={Building2} isDark={isDark} required>{t('registerError.department')}</FieldLabel>
               <SelectField
                 value={departmentId}
                 onChange={setDepartmentId}

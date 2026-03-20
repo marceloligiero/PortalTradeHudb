@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Target, Clock, TrendingUp, AlertCircle, CheckSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import {
+  ArrowLeft, Save, Target, Clock, TrendingUp, AlertCircle,
+  CheckCircle2, Loader2, CheckSquare, Shield, Star, Zap, RotateCcw,
+  Minus, Plus
+} from 'lucide-react';
 import api from '../../lib/axios';
 
 interface ChallengeFormData {
@@ -14,34 +18,38 @@ interface ChallengeFormData {
   target_mpu: number;
   max_errors: number;
   is_active: boolean;
-  // KPIs selecionáveis
   use_volume_kpi: boolean;
   use_mpu_kpi: boolean;
   use_errors_kpi: boolean;
-  // Modo de avaliação
   kpi_mode: 'AUTO' | 'MANUAL';
-  // Permitir nova tentativa
   allow_retry: boolean;
 }
 
-const ChallengeForm: React.FC = () => {
+const DIFFICULTIES = [
+  { value: 'easy' as const, label: 'challenges.difficultyEasy', fallback: 'Fácil', icon: TrendingUp, cls: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
+  { value: 'medium' as const, label: 'challenges.difficultyMedium', fallback: 'Médio', icon: Shield, cls: 'border-amber-500 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400', dot: 'bg-amber-500' },
+  { value: 'hard' as const, label: 'challenges.difficultyHard', fallback: 'Difícil', icon: Star, cls: 'border-red-500 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400', dot: 'bg-red-500' },
+] as const;
+
+export default function ChallengeForm() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { courseId, challengeId } = useParams<{ courseId: string; challengeId: string }>();
-  const { t } = useTranslation();
   const isEditing = !!challengeId;
-  
-  const [loading, setLoading] = useState(false);
-  const [loadingChallenge, setLoadingChallenge] = useState(isEditing);
-  const [error, setError] = useState('');
-  
-  const [formData, setFormData] = useState<ChallengeFormData>({
+
+  const [saving, setSaving] = useState(false);
+  const [loadingData, setLoadingData] = useState(isEditing);
+  const [success, setSuccess] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const [form, setForm] = useState<ChallengeFormData>({
     title: '',
     description: '',
     difficulty: 'medium',
     challenge_type: 'COMPLETE',
     operations_required: 10,
     time_limit_minutes: 60,
-    target_mpu: 6, // 60 minutos / 10 operações = 6 min/op
+    target_mpu: 6,
     max_errors: 0,
     is_active: true,
     use_volume_kpi: true,
@@ -51,582 +59,475 @@ const ChallengeForm: React.FC = () => {
     allow_retry: false,
   });
 
-  // Fetch challenge data if editing
+  const set = <K extends keyof ChallengeFormData>(key: K, val: ChallengeFormData[K]) =>
+    setForm(prev => ({ ...prev, [key]: val }));
+
+  const recalcMpu = (ops: number, time: number) =>
+    ops > 0 && time > 0 ? parseFloat((time / ops).toFixed(2)) : 0;
+
+  const handleOpsOrTimeChange = (field: 'operations_required' | 'time_limit_minutes', value: number) => {
+    const next = { ...form, [field]: value };
+    next.target_mpu = recalcMpu(next.operations_required, next.time_limit_minutes);
+    setForm(next);
+  };
+
+  /* ── Load data ── */
+
   useEffect(() => {
-    if (isEditing && courseId && challengeId) {
-      fetchChallenge();
+    if (!isEditing || !courseId || !challengeId) {
+      setLoadingData(false);
+      return;
     }
-  }, [isEditing, courseId, challengeId]);
+    (async () => {
+      try {
+        const { data: c } = await api.get(`/api/admin/courses/${courseId}/challenges/${challengeId}`);
+        setForm({
+          title: c.title || '',
+          description: c.description || '',
+          difficulty: c.difficulty || 'medium',
+          challenge_type: c.challenge_type || 'COMPLETE',
+          operations_required: c.operations_required || 10,
+          time_limit_minutes: c.time_limit_minutes || 60,
+          target_mpu: c.target_mpu || 6,
+          max_errors: c.max_errors || 0,
+          is_active: c.is_active !== undefined ? c.is_active : true,
+          use_volume_kpi: c.use_volume_kpi !== undefined ? c.use_volume_kpi : true,
+          use_mpu_kpi: c.use_mpu_kpi !== undefined ? c.use_mpu_kpi : true,
+          use_errors_kpi: c.use_errors_kpi !== undefined ? c.use_errors_kpi : true,
+          kpi_mode: c.kpi_mode || 'AUTO',
+          allow_retry: c.allow_retry !== undefined ? c.allow_retry : false,
+        });
+      } catch (err) {
+        console.error('Error loading challenge:', err);
+      } finally {
+        setLoadingData(false);
+      }
+    })();
+  }, []);
 
-  const fetchChallenge = async () => {
-    try {
-      setLoadingChallenge(true);
-      const response = await api.get(`/api/admin/courses/${courseId}/challenges/${challengeId}`);
-      const challenge = response.data;
-      setFormData({
-        title: challenge.title || '',
-        description: challenge.description || '',
-        difficulty: challenge.difficulty || 'medium',
-        challenge_type: challenge.challenge_type || 'COMPLETE',
-        operations_required: challenge.operations_required || 10,
-        time_limit_minutes: challenge.time_limit_minutes || 60,
-        target_mpu: challenge.target_mpu || 6,
-        max_errors: challenge.max_errors || 0,
-        is_active: challenge.is_active !== undefined ? challenge.is_active : true,
-        use_volume_kpi: challenge.use_volume_kpi !== undefined ? challenge.use_volume_kpi : true,
-        use_mpu_kpi: challenge.use_mpu_kpi !== undefined ? challenge.use_mpu_kpi : true,
-        use_errors_kpi: challenge.use_errors_kpi !== undefined ? challenge.use_errors_kpi : true,
-        kpi_mode: challenge.kpi_mode || 'AUTO',
-        allow_retry: challenge.allow_retry !== undefined ? challenge.allow_retry : false,
-      });
-    } catch (err: any) {
-      console.error('Erro ao carregar desafio:', err);
-      setError(err.response?.data?.detail || t('challenges.loadError'));
-    } finally {
-      setLoadingChallenge(false);
+  /* ── Validate ── */
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!form.title.trim()) e.title = t('admin.titleRequired');
+    if (form.operations_required < 1) e.operations_required = t('challenges.minOperations', 'Mínimo 1 operação');
+    if (form.time_limit_minutes < 1) e.time_limit_minutes = t('challenges.minTime', 'Mínimo 1 minuto');
+    if (form.kpi_mode === 'AUTO' && !form.use_volume_kpi && !form.use_mpu_kpi && !form.use_errors_kpi) {
+      e.kpis = t('challenges.kpiSelectWarning');
     }
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  // Calcular MPU automaticamente quando operações ou tempo mudam
-  const handleOperationsOrTimeChange = (field: 'operations_required' | 'time_limit_minutes', value: number) => {
-    const newFormData = { ...formData, [field]: value };
-    
-    // Recalcular target_mpu (Minutos Por Unidade = tempo / operações)
-    if (newFormData.operations_required > 0 && newFormData.time_limit_minutes > 0) {
-      newFormData.target_mpu = parseFloat(
-        (newFormData.time_limit_minutes / newFormData.operations_required).toFixed(2)
-      );
-    }
-    
-    setFormData(newFormData);
-  };
+  /* ── Submit ── */
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    if (!validate()) return;
 
     try {
+      setSaving(true);
       if (isEditing) {
-        await api.put(`/api/admin/courses/${courseId}/challenges/${challengeId}`, formData);
+        await api.put(`/api/admin/courses/${courseId}/challenges/${challengeId}`, form);
       } else {
-        await api.post('/api/challenges/', {
-          ...formData,
-          course_id: parseInt(courseId || '0'),
-        });
+        await api.post('/api/challenges/', { ...form, course_id: parseInt(courseId || '0') });
       }
-
-      navigate(`/courses/${courseId}`);
+      setSuccess(true);
+      setTimeout(() => navigate(`/courses/${courseId}`), 1500);
     } catch (err: any) {
-      console.error('Erro ao salvar desafio:', err);
-      setError(err.response?.data?.detail || (isEditing ? t('challenges.updateError') : t('challenges.createError')));
+      console.error('Error saving challenge:', err);
+      setErrors({ submit: err.response?.data?.detail || t('messages.error') });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  if (loadingChallenge) {
+  /* ── Loading ── */
+
+  if (loadingData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-400">{t('common.loading')}</p>
-        </div>
+      <div className="flex items-center justify-center py-20">
+        <div className="w-10 h-10 border-[3px] border-[#EC0000] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
+  /* ── Success ── */
+
+  if (success) {
+    return (
+      <div className="max-w-lg mx-auto mt-20 text-center">
+        <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-3" />
+        <p className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+          {isEditing ? t('challenges.challengeUpdated', 'Desafio atualizado!') : t('challenges.challengeCreated', 'Desafio criado!')}
+        </p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.redirecting')}</p>
+      </div>
+    );
+  }
+
+  /* ── Helpers ── */
+
+  const inputCls = (key: string) =>
+    `w-full px-3.5 py-2.5 bg-white dark:bg-gray-900 border rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#EC0000]/20 focus:border-[#EC0000]/40 transition-colors ${
+      errors[key] ? 'border-red-400 dark:border-red-500' : 'border-gray-200 dark:border-gray-700'
+    }`;
+
+  const ErrorMsg = ({ field }: { field: string }) =>
+    errors[field] ? (
+      <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors[field]}</p>
+    ) : null;
+
+  const toggleCls = (selected: boolean) =>
+    `flex items-center gap-2.5 p-3 rounded-lg border text-left transition-colors ${
+      selected
+        ? 'border-[#EC0000] bg-red-50 dark:bg-red-500/10'
+        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+    }`;
+
+  const checkBox = (selected: boolean) =>
+    `w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${
+      selected ? 'bg-[#EC0000] text-white' : 'border border-gray-300 dark:border-gray-600'
+    }`;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-red-900/20 to-gray-900 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
+    <div className="max-w-3xl mx-auto">
+
+      {/* ═══ Top bar ═══ */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(`/courses/${courseId}`)}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
+            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" />
-            {t('common.backToCourse')}
+            <ArrowLeft className="w-4 h-4" />
           </button>
-          
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-red-500 to-yellow-500 bg-clip-text text-transparent">
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
             {isEditing ? t('challenges.editChallenge') : t('challenges.createChallenge')}
           </h1>
-          <p className="text-gray-400 mt-2">
-            {t('challenges.formDescription')}
-          </p>
         </div>
+        <button
+          onClick={handleSubmit as any}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-4 py-2 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving ? t('messages.saving') : isEditing ? t('common.save', 'Guardar') : t('challenges.createChallenge')}
+        </button>
+      </div>
 
-        {/* Error Alert */}
-        {error && (
-          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/50 rounded-lg flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-red-500 font-medium">{t('messages.error')}</p>
-              <p className="text-red-400 text-sm">{error}</p>
+      {/* ═══ Form card ═══ */}
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+
+        {/* ── Identity ── */}
+        <div className="p-5 sm:p-6 space-y-4 border-b border-gray-100 dark:border-gray-700/50">
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-1.5">
+              {t('challenges.titleLabel')} *
+            </label>
+            <input
+              type="text"
+              value={form.title}
+              onChange={e => set('title', e.target.value)}
+              className={inputCls('title')}
+              placeholder={t('challenges.titlePlaceholder')}
+            />
+            <ErrorMsg field="title" />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-1.5">
+              {t('challenges.descriptionLabel')}
+            </label>
+            <textarea
+              value={form.description}
+              onChange={e => set('description', e.target.value)}
+              rows={3}
+              className={`${inputCls('description')} resize-none`}
+              placeholder={t('challenges.descriptionPlaceholder')}
+            />
+          </div>
+
+          {/* Challenge Type */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">
+              <Target className="w-3.5 h-3.5 inline mr-1" />
+              {t('challenges.typeLabel')}
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { value: 'COMPLETE', label: t('challenges.typeCompleteTitle'), desc: t('challenges.typeCompleteDesc'), Icon: Target },
+                { value: 'SUMMARY', label: t('challenges.typeSummaryTitle'), desc: t('challenges.typeSummaryDesc'), Icon: TrendingUp },
+              ]).map(opt => {
+                const sel = form.challenge_type === opt.value;
+                return (
+                  <button key={opt.value} type="button" onClick={() => set('challenge_type', opt.value)} className={toggleCls(sel)}>
+                    <div className={checkBox(sel)}>
+                      {sel && <CheckCircle2 className="w-3 h-3" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{opt.label}</p>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">{opt.desc}</p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
-        )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Card Principal */}
-          <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-6 space-y-6">
-            
-            {/* Título */}
+          {/* Difficulty */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">
+              <Zap className="w-3.5 h-3.5 inline mr-1" />
+              {t('challenges.difficultyLabel', 'Dificuldade')}
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {DIFFICULTIES.map(d => {
+                const sel = form.difficulty === d.value;
+                const Icon = d.icon;
+                return (
+                  <button
+                    key={d.value}
+                    type="button"
+                    onClick={() => set('difficulty', d.value)}
+                    className={`relative p-3 rounded-lg border text-center transition-colors ${
+                      sel ? `border-current ${d.cls}` : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    {sel && <CheckCircle2 className="absolute top-1.5 right-1.5 w-3.5 h-3.5" />}
+                    <Icon className="w-4 h-4 mx-auto mb-1" />
+                    <p className="text-xs font-semibold">{t(d.label, d.fallback)}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Targets ── */}
+        <div className="p-5 sm:p-6 space-y-4 border-b border-gray-100 dark:border-gray-700/50">
+          <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-0">
+            <Target className="w-3.5 h-3.5 inline mr-1" />
+            {t('challenges.targetsSection', 'Metas')}
+          </label>
+
+          <div className="grid grid-cols-2 gap-4">
+            {/* Operations */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                {t('challenges.titleLabel')}
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1">
+                <Target className="w-3.5 h-3.5" />
+                {t('challenges.operationsLabel')}
               </label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder={t('challenges.titlePlaceholder')}
-                required
-              />
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => form.operations_required > 1 && handleOpsOrTimeChange('operations_required', form.operations_required - 5)}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-30"
+                  disabled={form.operations_required <= 1}><Minus className="w-3.5 h-3.5" /></button>
+                <input type="number" value={form.operations_required}
+                  onChange={e => handleOpsOrTimeChange('operations_required', Math.max(1, parseInt(e.target.value) || 1))}
+                  min={1}
+                  className="flex-1 px-2 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white text-center font-semibold focus:ring-2 focus:ring-[#EC0000]/20 focus:border-[#EC0000]/40 transition-colors" />
+                <button type="button" onClick={() => handleOpsOrTimeChange('operations_required', form.operations_required + 5)}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"><Plus className="w-3.5 h-3.5" /></button>
+              </div>
+              <div className="flex gap-1 mt-1.5">
+                {[5, 10, 20, 50].map(v => (
+                  <button key={v} type="button" onClick={() => handleOpsOrTimeChange('operations_required', v)}
+                    className={`flex-1 py-1 text-[11px] font-medium rounded transition-colors ${
+                      form.operations_required === v
+                        ? 'bg-[#EC0000] text-white'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}>{v}</button>
+                ))}
+              </div>
+              <ErrorMsg field="operations_required" />
             </div>
 
-            {/* Descrição */}
+            {/* Time Limit */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                {t('challenges.descriptionLabel')}
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                {t('challenges.timeLimitLabel')}
               </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={4}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-                placeholder={t('challenges.descriptionPlaceholder')}
-              />
-            </div>
-
-            {/* Tipo de Desafio */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-3">
-                {t('challenges.typeLabel')}
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* COMPLETE */}
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, challenge_type: 'COMPLETE' })}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${
-                    formData.challenge_type === 'COMPLETE'
-                      ? 'border-red-500 bg-red-500/10'
-                      : 'border-white/10 bg-white/5 hover:border-white/20'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      formData.challenge_type === 'COMPLETE' ? 'bg-red-500' : 'bg-white/10'
-                    }`}>
-                      <Target className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-white mb-1">{t('challenges.typeCompleteTitle')}</h3>
-                      <p className="text-sm text-gray-400">{t('challenges.typeCompleteDesc')}</p>
-                    </div>
-                  </div>
-                </button>
-
-                {/* SUMMARY */}
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, challenge_type: 'SUMMARY' })}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${
-                    formData.challenge_type === 'SUMMARY'
-                      ? 'border-red-500 bg-red-500/10'
-                      : 'border-white/10 bg-white/5 hover:border-white/20'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      formData.challenge_type === 'SUMMARY' ? 'bg-red-500' : 'bg-white/10'
-                    }`}>
-                      <TrendingUp className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-white mb-1">{t('challenges.typeSummaryTitle')}</h3>
-                      <p className="text-sm text-gray-400">{t('challenges.typeSummaryDesc')}</p>
-                    </div>
-                  </div>
-                </button>
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => form.time_limit_minutes > 1 && handleOpsOrTimeChange('time_limit_minutes', Math.max(1, form.time_limit_minutes - 15))}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-30"
+                  disabled={form.time_limit_minutes <= 1}><Minus className="w-3.5 h-3.5" /></button>
+                <div className="flex-1 relative">
+                  <input type="number" value={form.time_limit_minutes}
+                    onChange={e => handleOpsOrTimeChange('time_limit_minutes', Math.max(1, parseInt(e.target.value) || 1))}
+                    min={1}
+                    className="w-full px-2 py-2 pr-9 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white text-center font-semibold focus:ring-2 focus:ring-[#EC0000]/20 focus:border-[#EC0000]/40 transition-colors" />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-gray-400 pointer-events-none">min</span>
+                </div>
+                <button type="button" onClick={() => handleOpsOrTimeChange('time_limit_minutes', form.time_limit_minutes + 15)}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"><Plus className="w-3.5 h-3.5" /></button>
               </div>
-            </div>
-
-            {/* Dificuldade */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-3">
-                {t('challenges.difficultyLabel') || 'Dificuldade'}
-              </label>
-              <div className="grid grid-cols-3 gap-4">
-                {/* Fácil */}
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, difficulty: 'easy' })}
-                  className={`p-4 rounded-lg border-2 transition-all text-center ${
-                    formData.difficulty === 'easy'
-                      ? 'border-green-500 bg-green-500/10'
-                      : 'border-white/10 bg-white/5 hover:border-white/20'
-                  }`}
-                >
-                  <span className="text-2xl mb-2 block">🟢</span>
-                  <h3 className="font-semibold text-white">{t('challenges.difficultyEasy') || 'Fácil'}</h3>
-                </button>
-
-                {/* Médio */}
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, difficulty: 'medium' })}
-                  className={`p-4 rounded-lg border-2 transition-all text-center ${
-                    formData.difficulty === 'medium'
-                      ? 'border-yellow-500 bg-yellow-500/10'
-                      : 'border-white/10 bg-white/5 hover:border-white/20'
-                  }`}
-                >
-                  <span className="text-2xl mb-2 block">🟡</span>
-                  <h3 className="font-semibold text-white">{t('challenges.difficultyMedium') || 'Médio'}</h3>
-                </button>
-
-                {/* Difícil */}
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, difficulty: 'hard' })}
-                  className={`p-4 rounded-lg border-2 transition-all text-center ${
-                    formData.difficulty === 'hard'
-                      ? 'border-red-500 bg-red-500/10'
-                      : 'border-white/10 bg-white/5 hover:border-white/20'
-                  }`}
-                >
-                  <span className="text-2xl mb-2 block">🔴</span>
-                  <h3 className="font-semibold text-white">{t('challenges.difficultyHard') || 'Difícil'}</h3>
-                </button>
+              <div className="flex gap-1 mt-1.5">
+                {[15, 30, 60, 120].map(v => (
+                  <button key={v} type="button" onClick={() => handleOpsOrTimeChange('time_limit_minutes', v)}
+                    className={`flex-1 py-1 text-[11px] font-medium rounded transition-colors ${
+                      form.time_limit_minutes === v
+                        ? 'bg-[#EC0000] text-white'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}>{v >= 60 ? `${v / 60}h` : `${v}m`}</button>
+                ))}
               </div>
-            </div>
-
-            {/* Metas */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Operações Necessárias */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  <div className="flex items-center gap-2">
-                    <Target className="w-4 h-4 text-red-500" />
-                    {t('challenges.operationsLabel')}
-                  </div>
-                </label>
-                <input
-                  type="number"
-                  value={formData.operations_required}
-                  onChange={(e) => handleOperationsOrTimeChange('operations_required', parseInt(e.target.value))}
-                  min="1"
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">{t('challenges.operationsHelp')}</p>
-              </div>
-
-              {/* Tempo Limite */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-yellow-500" />
-                    {t('challenges.timeLimitLabel')}
-                  </div>
-                </label>
-                <input
-                  type="number"
-                  value={formData.time_limit_minutes}
-                  onChange={(e) => handleOperationsOrTimeChange('time_limit_minutes', parseInt(e.target.value))}
-                  min="1"
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">{t('challenges.timeLimitHelp')}</p>
-              </div>
+              <ErrorMsg field="time_limit_minutes" />
             </div>
 
             {/* Max Errors */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-pink-500" />
-                  {t('challenges.maxErrorsLabel')}
-                </div>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5" />
+                {t('challenges.maxErrorsLabel')}
               </label>
-              <input
-                type="number"
-                value={formData.max_errors}
-                onChange={(e) => setFormData({ ...formData, max_errors: parseInt(e.target.value || '0') })}
-                min="0"
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              />
-              <p className="text-xs text-gray-500 mt-1">{t('challenges.maxErrorsHelp')}</p>
+              <div className="flex items-center gap-1">
+                <button type="button" onClick={() => form.max_errors > 0 && set('max_errors', form.max_errors - 1)}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-30"
+                  disabled={form.max_errors <= 0}><Minus className="w-3.5 h-3.5" /></button>
+                <input type="number" value={form.max_errors}
+                  onChange={e => set('max_errors', Math.max(0, parseInt(e.target.value || '0')))}
+                  min={0}
+                  className="flex-1 px-2 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white text-center font-semibold focus:ring-2 focus:ring-[#EC0000]/20 focus:border-[#EC0000]/40 transition-colors" />
+                <button type="button" onClick={() => set('max_errors', form.max_errors + 1)}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"><Plus className="w-3.5 h-3.5" /></button>
+              </div>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+                {form.max_errors === 0 ? t('challenges.zeroTolerance', '0 = tolerância zero') : `${t('challenges.allowUpTo', 'Até')} ${form.max_errors} ${t('challenges.errorsAllowed', 'erros')}`}
+              </p>
             </div>
 
-            {/* KPIs de Aprovação */}
-            <div className="bg-white/5 rounded-lg p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <CheckSquare className="w-5 h-5 text-green-500" />
-                <h3 className="text-lg font-medium text-white">{t('challenges.kpisTitle')}</h3>
+            {/* MPU Target (auto-calculated) */}
+            <div>
+              <label className="block text-xs text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1">
+                <TrendingUp className="w-3.5 h-3.5" />
+                {t('challenges.mpuMetaTitle', 'MPU Meta')}
+              </label>
+              <div className="flex items-center gap-2 px-3.5 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <span className="text-lg font-bold text-gray-900 dark:text-white">{form.target_mpu.toFixed(2)}</span>
+                <span className="text-xs text-gray-400">min/op</span>
               </div>
-              <p className="text-sm text-gray-400 mb-4">{t('challenges.kpisDesc')}</p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Volume KPI */}
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, use_volume_kpi: !formData.use_volume_kpi })}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${
-                    formData.use_volume_kpi
-                      ? 'border-green-500 bg-green-500/10'
-                      : 'border-white/10 bg-white/5 hover:border-white/20'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
-                      formData.use_volume_kpi ? 'bg-green-500 border-green-500' : 'border-gray-500'
-                    }`}>
-                      {formData.use_volume_kpi && <span className="text-white text-sm">✓</span>}
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+                {form.time_limit_minutes} min &divide; {form.operations_required} ops = {form.target_mpu.toFixed(2)}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Evaluation ── */}
+        <div className="p-5 sm:p-6 space-y-4 border-b border-gray-100 dark:border-gray-700/50">
+          <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+            <CheckSquare className="w-3.5 h-3.5 inline mr-1" />
+            {t('challenges.kpisTitle')}
+          </label>
+          <p className="text-xs text-gray-400 dark:text-gray-500 -mt-2">{t('challenges.kpisDesc')}</p>
+
+          {/* KPI toggles */}
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { key: 'use_volume_kpi' as const, label: t('challenges.volumeLabel'), desc: t('challenges.volumeHelp') },
+              { key: 'use_mpu_kpi' as const, label: t('challenges.mpuLabel'), desc: t('challenges.mpuHelp') },
+              { key: 'use_errors_kpi' as const, label: t('challenges.errorsLabel'), desc: t('challenges.errorsHelp') },
+            ]).map(kpi => {
+              const sel = form[kpi.key];
+              return (
+                <button key={kpi.key} type="button" onClick={() => set(kpi.key, !sel)} className={toggleCls(sel)}>
+                  <div className={checkBox(sel)}>
+                    {sel && <CheckCircle2 className="w-3 h-3" />}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{kpi.label}</p>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500">{kpi.desc}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <ErrorMsg field="kpis" />
+
+          {/* KPI Mode */}
+          <div>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-2">
+              {t('challenges.kpiModeTitle')}
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { value: 'AUTO' as const, label: t('challenges.modeAutoTitle'), desc: t('challenges.modeAutoDesc') },
+                { value: 'MANUAL' as const, label: t('challenges.modeManualTitle'), desc: t('challenges.modeManualDesc') },
+              ]).map(mode => {
+                const sel = form.kpi_mode === mode.value;
+                return (
+                  <button key={mode.value} type="button" onClick={() => set('kpi_mode', mode.value)} className={toggleCls(sel)}>
+                    <div className={checkBox(sel)}>
+                      {sel && <CheckCircle2 className="w-3 h-3" />}
                     </div>
                     <div>
-                      <p className="font-medium text-white">{t('challenges.volumeLabel')}</p>
-                      <p className="text-xs text-gray-400">{t('challenges.volumeHelp')}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{mode.label}</p>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500">{mode.desc}</p>
                     </div>
-                  </div>
-                </button>
-
-                {/* MPU KPI */}
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, use_mpu_kpi: !formData.use_mpu_kpi })}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${
-                    formData.use_mpu_kpi
-                      ? 'border-green-500 bg-green-500/10'
-                      : 'border-white/10 bg-white/5 hover:border-white/20'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
-                      formData.use_mpu_kpi ? 'bg-green-500 border-green-500' : 'border-gray-500'
-                    }`}>
-                      {formData.use_mpu_kpi && <span className="text-white text-sm">✓</span>}
-                    </div>
-                    <div>
-                      <p className="font-medium text-white">{t('challenges.mpuLabel')}</p>
-                      <p className="text-xs text-gray-400">{t('challenges.mpuHelp')}</p>
-                    </div>
-                  </div>
-                </button>
-
-                {/* Errors KPI */}
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, use_errors_kpi: !formData.use_errors_kpi })}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${
-                    formData.use_errors_kpi
-                      ? 'border-green-500 bg-green-500/10'
-                      : 'border-white/10 bg-white/5 hover:border-white/20'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
-                      formData.use_errors_kpi ? 'bg-green-500 border-green-500' : 'border-gray-500'
-                    }`}>
-                      {formData.use_errors_kpi && <span className="text-white text-sm">✓</span>}
-                    </div>
-                    <div>
-                      <p className="font-medium text-white">{t('challenges.errorsLabel')}</p>
-                      <p className="text-xs text-gray-400">{t('challenges.errorsHelp')}</p>
-                    </div>
-                  </div>
-                </button>
-              </div>
-              {!formData.use_volume_kpi && !formData.use_mpu_kpi && !formData.use_errors_kpi && formData.kpi_mode === 'AUTO' && (
-                <p className="text-yellow-500 text-sm mt-3">{t('challenges.kpiSelectWarning')}</p>
-              )}
-            </div>
-
-            {/* Modo de Avaliação de KPI */}
-            <div className="bg-white/5 rounded-lg p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <CheckSquare className="w-5 h-5 text-blue-500" />
-                <h3 className="text-lg font-medium text-white">{t('challenges.kpiModeTitle')}</h3>
-              </div>
-              <p className="text-sm text-gray-400 mb-4">{t('challenges.kpiModeDesc')}</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* AUTO */}
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, kpi_mode: 'AUTO' })}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${
-                    formData.kpi_mode === 'AUTO'
-                      ? 'border-blue-500 bg-blue-500/10'
-                      : 'border-white/10 bg-white/5 hover:border-white/20'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      formData.kpi_mode === 'AUTO' ? 'bg-blue-500' : 'bg-white/10'
-                    }`}>
-                      <TrendingUp className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-white mb-1">{t('challenges.modeAutoTitle')}</h3>
-                      <p className="text-sm text-gray-400">{t('challenges.modeAutoDesc')}</p>
-                    </div>
-                  </div>
-                </button>
-
-                {/* MANUAL */}
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, kpi_mode: 'MANUAL' })}
-                  className={`p-4 rounded-lg border-2 transition-all text-left ${
-                    formData.kpi_mode === 'MANUAL'
-                      ? 'border-purple-500 bg-purple-500/10'
-                      : 'border-white/10 bg-white/5 hover:border-white/20'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-lg ${
-                      formData.kpi_mode === 'MANUAL' ? 'bg-purple-500' : 'bg-white/10'
-                    }`}>
-                      <AlertCircle className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-white mb-1">{t('challenges.modeManualTitle')}</h3>
-                      <p className="text-sm text-gray-400">{t('challenges.modeManualDesc')}</p>
-                    </div>
-                  </div>
-                </button>
-              </div>
-              {formData.kpi_mode === 'MANUAL' && (
-                <p className="text-purple-400 text-sm mt-3">{t('challenges.manualInfo')}</p>
-              )}
-            </div>
-
-            {/* Permitir Retentativa */}
-            <div className="bg-white/5 rounded-lg p-6">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, allow_retry: !formData.allow_retry })}
-                className="w-full flex items-center justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-12 h-6 rounded-full transition-colors ${
-                    formData.allow_retry ? 'bg-green-500' : 'bg-gray-600'
-                  }`}>
-                    <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform mt-0.5 ${
-                      formData.allow_retry ? 'translate-x-6' : 'translate-x-0.5'
-                    }`} />
-                  </div>
-                  <div className="text-left">
-                    <h3 className="text-lg font-medium text-white">{t('challenges.allowRetryTitle')}</h3>
-                    <p className="text-sm text-gray-400">{t('challenges.allowRetryDesc')}</p>
-                  </div>
-                </div>
-                <div className={`px-3 py-1 rounded-full text-sm ${
-                  formData.allow_retry 
-                    ? 'bg-green-500/20 text-green-400' 
-                    : 'bg-gray-500/20 text-gray-400'
-                }`}>
-                  {formData.allow_retry ? t('challenges.allowRetryActive') : t('challenges.allowRetryInactive')}
-                </div>
-              </button>
-            </div>
-
-            {/* MPU Meta (calculado automaticamente) */}
-            <div className="bg-gradient-to-br from-yellow-500/10 to-red-500/10 border border-yellow-500/30 rounded-lg p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="w-5 h-5 text-yellow-500" />
-                    <span className="text-sm font-medium text-gray-300">{t('challenges.mpuMetaTitle')}</span>
-                  </div>
-                  <p className="text-3xl font-bold text-white">
-                    {formData.target_mpu.toFixed(2)} <span className="text-lg text-gray-400">min/op</span>
-                  </p>
-                  <p className="text-sm text-gray-400 mt-1">
-                    {t('challenges.mpuFormula', { time: formData.time_limit_minutes, ops: formData.operations_required })}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-gray-400 mb-1">{t('challenges.mpuApprovalLabel')}</p>
-                  <p className="text-sm text-green-500 font-medium">{t('challenges.mpuReached', { value: formData.target_mpu.toFixed(2) })}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Status (only in edit mode) */}
-            {isEditing && (
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
-                  {t('admin.status')}
-                </label>
-                <div className="flex gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, is_active: true })}
-                    className={`flex-1 p-4 rounded-lg border-2 transition-all ${
-                      formData.is_active
-                        ? 'border-green-500 bg-green-500/10'
-                        : 'border-white/10 bg-white/5 hover:border-white/20'
-                    }`}
-                  >
-                    <span className={formData.is_active ? 'text-green-400' : 'text-gray-400'}>
-                      {t('admin.active')}
-                    </span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, is_active: false })}
-                    className={`flex-1 p-4 rounded-lg border-2 transition-all ${
-                      !formData.is_active
-                        ? 'border-red-500 bg-red-500/10'
-                        : 'border-white/10 bg-white/5 hover:border-white/20'
-                    }`}
-                  >
-                    <span className={!formData.is_active ? 'text-red-400' : 'text-gray-400'}>
-                      {t('admin.inactive')}
-                    </span>
-                  </button>
-                </div>
-              </div>
-            )}
+                );
+              })}
+            </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-4">
+          {/* Allow Retry */}
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2">
+              <RotateCcw className="w-3.5 h-3.5 text-gray-400" />
+              <div>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{t('challenges.allowRetryTitle')}</p>
+                <p className="text-[11px] text-gray-400 dark:text-gray-500">{t('challenges.allowRetryDesc')}</p>
+              </div>
+            </div>
             <button
               type="button"
-              onClick={() => navigate(`/courses/${courseId}`)}
-              className="px-6 py-3 bg-white/5 text-white rounded-lg hover:bg-white/10 transition-colors"
+              onClick={() => set('allow_retry', !form.allow_retry)}
+              className={`relative w-10 h-5 rounded-full transition-colors ${
+                form.allow_retry ? 'bg-[#EC0000]' : 'bg-gray-300 dark:bg-gray-600'
+              }`}
             >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  {isEditing ? t('common.saving') : t('common.creating')}
-                </>
-              ) : (
-                <>
-                  <Save className="w-5 h-5" />
-                  {isEditing ? t('common.save') : t('challenges.createChallenge')}
-                </>
-              )}
+              <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                form.allow_retry ? 'translate-x-5' : 'translate-x-0.5'
+              }`} />
             </button>
           </div>
-        </form>
-      </div>
+        </div>
+
+        {/* ── Status (edit only) ── */}
+        {isEditing && (
+          <div className="p-5 sm:p-6">
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">
+              {t('admin.status')}
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                { value: true, label: t('admin.active') },
+                { value: false, label: t('admin.inactive') },
+              ]).map(opt => {
+                const sel = form.is_active === opt.value;
+                return (
+                  <button key={String(opt.value)} type="button" onClick={() => set('is_active', opt.value)} className={toggleCls(sel)}>
+                    <div className={checkBox(sel)}>
+                      {sel && <CheckCircle2 className="w-3 h-3" />}
+                    </div>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </form>
+
+      {/* Submit error */}
+      {errors.submit && (
+        <div className="mt-3 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg">
+          <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />{errors.submit}
+          </p>
+        </div>
+      )}
     </div>
   );
-};
-
-export default ChallengeForm;
+}

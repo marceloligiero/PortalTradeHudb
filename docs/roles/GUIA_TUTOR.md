@@ -104,6 +104,7 @@ Após a análise ser aprovada:
    - **Ação Corretiva:** O que fazer para corrigir a causa
    - **Ação Preventiva:** Como evitar que volte a acontecer
    - **Tipo do Plano:** Corretivo, Preventivo ou Melhoria
+     > **Regra:** Plano **Melhoria** só pode ser criado para incidências cuja Origem é **Trade_Personas**. Para outras origens, apenas Corretivo e Preventivo estão disponíveis.
    - **Responsável:** Quem vai executar
    - **Prazo** (deadline)
    - **5W2H:** O Quê, Porquê, Onde, Quando, Quem, Como, Quanto

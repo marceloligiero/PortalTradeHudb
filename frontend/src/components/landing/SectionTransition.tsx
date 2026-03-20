@@ -21,6 +21,8 @@ interface SectionTransitionProps {
   align?: Align;
   /** Show immediately on load (no scroll trigger). Default false. */
   eager?: boolean;
+  /** Target section id to smooth-scroll to on click. */
+  targetId?: string;
 }
 
 const ALIGN_CLASSES: Record<Align, string> = {
@@ -30,11 +32,17 @@ const ALIGN_CLASSES: Record<Align, string> = {
   below:  'items-center pt-16 sm:pt-20',
 };
 
-export default function SectionTransition({ textKey, align = 'center', eager = false }: SectionTransitionProps) {
+export default function SectionTransition({ textKey, align = 'center', eager = false, targetId }: SectionTransitionProps) {
   const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(eager);
   const [parallaxY, setParallaxY] = useState(0);
+
+  const handleClick = () => {
+    if (!targetId) return;
+    const el = document.getElementById(targetId);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
 
   useEffect(() => {
     if (eager) return; // already visible

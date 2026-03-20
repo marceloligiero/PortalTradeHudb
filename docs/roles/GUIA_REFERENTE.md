@@ -54,12 +54,35 @@ Clicar em **"Tutoria"** na barra superior.
 1. Clicar no erro na lista
 2. Vê toda a informação: descrição, análise, planos de ação, comentários, estado
 
-### 3.3 Análise (Aprovação em nome do Chefe)
+### 3.3 Análise — Preencher e Aprovar
 
 - **Menu lateral:** Clicar em **"Análise"**
-- Vê erros que estão pendentes de aprovação
+- Vê erros que estão pendentes de análise ou no estado **"Em Análise"**
 
-**Aprovar análise em nome do chefe:**
+**Preencher a Análise (formulário editável):**
+
+> **Novo (2026-03-20):** A tab "Análise" na ficha de cada incidência é agora um formulário editável.
+
+1. Clicar no erro no estado **"Registado"** ou **"Em Análise"**
+2. Clicar na tab **"Análise"**
+3. Preencher os campos:
+   - **Nível Impacto** (BAIXO / MEDIO / ALTO / CRITICO)
+   - **Detalhe Impacto** — descrever o impacto operacional
+   - **Origem** — selecionar da lista de origens (Trade_Personas, etc.)
+   - **Detalhe Origem** — detalhar a origem
+   - **Grabador** — selecionar o operador que gerou o erro
+   - **Liberador** — selecionar o operador que liberou a operação
+   - **Data Solução** — data em que o erro foi corrigido (se já resolvido)
+   - **Solução Confirmada** — marcar quando a solução está confirmada
+   - **Recorrência** (SI / NO / PERIODICA)
+   - **Análise 5 Porquês** — análise de causa raiz em formato 5-Why
+   - **Solução** — descrição da solução aplicada
+   - **Resumo Plano Ação** — resumo do plano de ação
+4. Clicar em **"Guardar"** para salvar o rascunho (sem mudar estado)
+5. Quando a análise estiver completa, clicar em **"Submeter para Tutor"** (botão no cabeçalho)
+   - O estado muda para **"Pendente de Aprovação do Chefe"** (se Referente) ou **"Pendente de Revisão do Tutor"** (se Chefe/Manager)
+
+**Aprovar análise em nome do chefe (quando autorizado):**
 1. Clicar no erro no estado **"Pendente de Aprovação do Chefe"**
 2. Rever a análise (5 Porquês, solução proposta)
 3. Se estiver correto: clicar em **"Aprovar Análise"**

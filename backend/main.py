@@ -14,6 +14,7 @@ from app.routers import relatorios
 from app.routers import chamados
 from app.routers import internal_errors
 from app.routers import dw
+from app.routers import feedback
 from app.database import init_db
 from app.migrate import run_migrations
 from contextlib import asynccontextmanager
@@ -40,6 +41,42 @@ async def _etl_scheduler():
                 db.close()
         except Exception as e:
             logger.warning("Scheduled ETL failed (non-fatal): %s", e)
+
+
+async def _deadline_scheduler():
+    """Daily task: notify responsible parties about overdue errors (A.6.1)."""
+    import asyncio
+    from datetime import date
+    while True:
+        await asyncio.sleep(86400)  # 24 hours
+        try:
+            from app.database import SessionLocal
+            from app.models import TutoriaError, TutoriaNotification
+            from app.routers.tutoria import _get_error_deadline, create_notification
+            db = SessionLocal()
+            try:
+                today = date.today()
+                errors = db.query(TutoriaError).filter(
+                    TutoriaError.status.notin_(['RESOLVED', 'CANCELLED'])
+                ).all()
+                count = 0
+                for e in errors:
+                    dl = _get_error_deadline(e.date_occurrence)
+                    if dl and today > dl:
+                        # Check if notification already sent today
+                        existing = db.query(TutoriaNotification).filter(
+                            TutoriaNotification.error_id == e.id,
+                            TutoriaNotification.ntype == 'OVERDUE_ALERT',
+                        ).first()
+                        if not existing and e.responsible_id:
+                            create_notification(db, e.responsible_id, 'OVERDUE_ALERT',
+                                f'Erro #{e.id} ultrapassou o prazo de fecho mensal.', error_id=e.id)
+                            count += 1
+                logger.info("Deadline check: %d overdue notifications sent.", count)
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("Deadline scheduler failed (non-fatal): %s", exc)
 
 
 @asynccontextmanager
@@ -69,11 +106,14 @@ async def lifespan(app):
 
     # Start hourly ETL scheduler
     scheduler_task = asyncio.create_task(_etl_scheduler())
+    # Start daily deadline enforcement scheduler (A.6.1)
+    deadline_task = asyncio.create_task(_deadline_scheduler())
 
     yield
 
     # Cleanup
     scheduler_task.cancel()
+    deadline_task.cancel()
 
 app = FastAPI(
     title="Trade Data Hub API",
@@ -194,6 +234,8 @@ app.include_router(lessons.router, tags=["lessons"])
 app.include_router(finalization.router, tags=["finalization"])
 # Tutoria (tutoring portal) API
 app.include_router(tutoria.router, prefix="/api/tutoria", tags=["tutoria"])
+# Feedback dos Liberadores
+app.include_router(feedback.router, prefix="/api/feedback", tags=["feedback"])
 # Internal Errors (sensos, erros internos, fichas de aprendizagem)
 app.include_router(internal_errors.router, tags=["internal-errors"])
 # Chatbot (rule-based + custom FAQ)

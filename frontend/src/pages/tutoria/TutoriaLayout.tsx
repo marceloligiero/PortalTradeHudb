@@ -1,35 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
-import { useAuthStore } from '../../stores/authStore';
-import ChatBot from '../../components/ChatBot';
-import Header from '../../components/layout/Header';
 import {
-  LayoutDashboard,
-  AlertTriangle,
-  ClipboardList,
-  BarChart3,
-  BookOpen,
-  ShieldAlert,
-  Calendar,
-  FileText,
-  Bell,
-  Search as SearchIcon,
-  PenTool,
-  CheckCircle,
-  MessageSquare,
+  LayoutDashboard, AlertTriangle, ClipboardList, BarChart3,
+  BookOpen, ShieldAlert, Calendar, FileText, Bell,
+  Search as SearchIcon, PenTool, CheckCircle, MessageSquare,
+  Star, BookMarked, GraduationCap,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useAuthStore } from '../../stores/authStore';
+import PortalLayout from '../../components/layout/PortalLayout';
+import { SidebarLink, SidebarSection } from '../../components/layout/sidebar/index';
 import axios from '../../lib/axios';
 
-function navClass(isActive: boolean) {
-  return `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors text-sm font-medium ${
-    isActive
-      ? 'bg-[#EC0000] text-white'
-      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
-  }`;
-}
-
-export default function TutoriaLayout() {
+function TutoriaSidebar() {
   const { user } = useAuthStore();
   const { t } = useTranslation();
 
@@ -45,11 +27,6 @@ export default function TutoriaLayout() {
   const [notifCount, setNotifCount] = useState(0);
 
   useEffect(() => {
-    document.title = t('tutoriaLayout.pageTitle');
-    return () => { document.title = t('tutoriaLayout.defaultTitle'); };
-  }, []);
-
-  useEffect(() => {
     const fetchCount = async () => {
       try {
         const { data } = await axios.get('/tutoria/notifications');
@@ -61,142 +38,98 @@ export default function TutoriaLayout() {
     return () => clearInterval(iv);
   }, []);
 
-  const sectionLabel = 'mt-6 mb-2 px-4 text-[11px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500';
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#09090B] text-gray-900 dark:text-white transition-colors duration-300">
-      <Header />
+    <>
+      {/* Core navigation */}
+      <SidebarLink to="/tutoria" icon={LayoutDashboard} label={t('tutoriaSidebar.dashboard')} end />
+      <SidebarLink to="/tutoria/errors" icon={AlertTriangle} label={t('tutoriaSidebar.errors')} />
 
-      <div className="relative flex pt-16">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 min-h-[calc(100vh-64px)] sticky top-16">
-          <nav className="p-4 space-y-1">
-            <NavLink to="/tutoria" end className={({ isActive }) => navClass(isActive)}>
-              <LayoutDashboard className="w-4 h-4" />
-              <span>{t('tutoriaSidebar.dashboard')}</span>
-            </NavLink>
+      {canAnalyze && (
+        <SidebarLink to="/tutoria/analysis" icon={SearchIcon} label={t('tutoriaSidebar.analysis', 'Análise')} />
+      )}
 
-            <NavLink to="/tutoria/errors" className={({ isActive }) => navClass(isActive)}>
-              <AlertTriangle className="w-4 h-4" />
-              <span>{t('tutoriaSidebar.errors')}</span>
-            </NavLink>
+      {isTutor && (
+        <SidebarLink to="/tutoria/tutor-review" icon={CheckCircle} label={t('tutoriaSidebar.tutorReview', 'Revisão Tutor')} />
+      )}
 
-            {canAnalyze && (
-              <NavLink to="/tutoria/analysis" className={({ isActive }) => navClass(isActive)}>
-                <SearchIcon className="w-4 h-4" />
-                <span>{t('tutoriaSidebar.analysis', 'Análise')}</span>
-              </NavLink>
-            )}
+      {(isTutor || isAdmin) && (
+        <SidebarLink to="/tutoria/capsulas" icon={GraduationCap} label={t('tutoriaSidebar.capsulas', 'Cápsulas Formativas')} />
+      )}
 
-            {isTutor && (
-              <NavLink to="/tutoria/tutor-review" className={({ isActive }) => navClass(isActive)}>
-                <CheckCircle className="w-4 h-4" />
-                <span>{t('tutoriaSidebar.tutorReview', 'Revisão Tutor')}</span>
-              </NavLink>
-            )}
+      {(isTutor || isChefe || isManager) && (
+        <SidebarLink to="/tutoria/plans" icon={ClipboardList} label={t('tutoriaSidebar.actionPlans')} />
+      )}
 
-            {(isTutor || isChefe || isManager) && (
-              <NavLink to="/tutoria/plans" className={({ isActive }) => navClass(isActive)}>
-                <ClipboardList className="w-4 h-4" />
-                <span>{t('tutoriaSidebar.actionPlans')}</span>
-              </NavLink>
-            )}
+      {!isManager && !isChefe && !isReferente && (
+        <>
+          <SidebarLink to="/tutoria/my-errors" icon={BookOpen} label={t('tutoriaSidebar.myErrors')} />
+          <SidebarLink to="/tutoria/my-plans" icon={ClipboardList} label={t('tutoriaSidebar.myPlans')} />
+        </>
+      )}
 
-            {!isManager && !isChefe && !isReferente && (
-              <>
-                <NavLink to="/tutoria/my-errors" className={({ isActive }) => navClass(isActive)}>
-                  <BookOpen className="w-4 h-4" />
-                  <span>{t('tutoriaSidebar.myErrors')}</span>
-                </NavLink>
-                <NavLink to="/tutoria/my-plans" className={({ isActive }) => navClass(isActive)}>
-                  <ClipboardList className="w-4 h-4" />
-                  <span>{t('tutoriaSidebar.myPlans')}</span>
-                </NavLink>
-              </>
-            )}
+      <SidebarLink
+        to="/tutoria/report"
+        icon={BarChart3}
+        label={(isManager || isChefe) ? t('tutoriaSidebar.report') : t('tutoriaSidebar.myProgress')}
+      />
 
-            {(isManager || isChefe) ? (
-              <NavLink to="/tutoria/report" className={({ isActive }) => navClass(isActive)}>
-                <BarChart3 className="w-4 h-4" />
-                <span>{t('tutoriaSidebar.report')}</span>
-              </NavLink>
-            ) : (
-              <NavLink to="/tutoria/report" className={({ isActive }) => navClass(isActive)}>
-                <BarChart3 className="w-4 h-4" />
-                <span>{t('tutoriaSidebar.myProgress')}</span>
-              </NavLink>
-            )}
+      {(isManager || isChefe || isReferente) && (
+        <SidebarLink to="/tutoria/learning-sheets" icon={FileText} label={t('tutoriaSidebar.learningSheets', 'Fichas de Aprendizagem')} />
+      )}
 
-            {canSeeInternalErrors && (
-              <>
-                <div className={sectionLabel}>
-                  {t('tutoriaSidebar.internalErrors', 'Erros Internos')}
-                </div>
-                <NavLink to="/tutoria/internal-errors" className={({ isActive }) => navClass(isActive)}>
-                  <ShieldAlert className="w-4 h-4" />
-                  <span>{t('tutoriaSidebar.internalErrorsList', 'Erros Internos')}</span>
-                </NavLink>
-                <NavLink to="/tutoria/censos" className={({ isActive }) => navClass(isActive)}>
-                  <Calendar className="w-4 h-4" />
-                  <span>{t('tutoriaSidebar.censos', 'Censos')}</span>
-                </NavLink>
-              </>
-            )}
+      {!isManager && !isChefe && !isReferente && (
+        <SidebarLink to="/tutoria/my-learning-sheets" icon={FileText} label={t('tutoriaSidebar.myLearningSheets', 'Minhas Fichas')} />
+      )}
 
-            {(isManager || isChefe || isReferente) && (
-              <NavLink to="/tutoria/learning-sheets" className={({ isActive }) => navClass(isActive)}>
-                <FileText className="w-4 h-4" />
-                <span>{t('tutoriaSidebar.learningSheets', 'Fichas de Aprendizagem')}</span>
-              </NavLink>
-            )}
+      {/* Quality section */}
+      {canSeeInternalErrors && (
+        <>
+          <SidebarSection label={t('tutoriaSidebar.qualitySection', 'Qualidade')} />
+          <SidebarLink to="/tutoria/internal-errors" icon={ShieldAlert} label={t('tutoriaSidebar.internalErrorsList', 'Erros Internos')} />
+          {/* Censos — oculto por enquanto, descomentar quando necessário */}
+          {/* <SidebarLink to="/tutoria/censos" icon={Calendar} label={t('tutoriaSidebar.censos', 'Censos')} /> */}
+        </>
+      )}
 
-            {!isManager && !isChefe && !isReferente && (
-              <NavLink to="/tutoria/my-learning-sheets" className={({ isActive }) => navClass(isActive)}>
-                <FileText className="w-4 h-4" />
-                <span>{t('tutoriaSidebar.myLearningSheets', 'Minhas Fichas')}</span>
-              </NavLink>
-            )}
+      {/* Feedback dos Liberadores */}
+      {(isTutor || isAdmin || (user as any)?.is_liberador) && (
+        <>
+          <SidebarSection label={t('tutoriaSidebar.feedbackSection', 'Feedback')} />
+          {(isTutor || isAdmin) && (
+            <>
+              <SidebarLink to="/tutoria/feedback" icon={Star} label={t('tutoriaSidebar.feedbackSurveys', 'Surveys Liberadores')} />
+              <SidebarLink to="/tutoria/feedback/dashboard" icon={BarChart3} label={t('tutoriaSidebar.feedbackDashboard', 'Dashboard Feedback')} />
+            </>
+          )}
+          {(user as any)?.is_liberador && (
+            <SidebarLink to="/tutoria/feedback/respond" icon={BookMarked} label={t('tutoriaSidebar.feedbackRespond', 'Responder Feedback')} />
+          )}
+        </>
+      )}
 
-            {isAdmin && (
-              <>
-                <div className={sectionLabel}>
-                  {t('tutoriaSidebar.adminSection', 'Administração')}
-                </div>
-                <NavLink to="/tutoria/categories" className={({ isActive }) => navClass(isActive)}>
-                  <PenTool className="w-4 h-4" />
-                  <span>{t('tutoriaSidebar.categories', 'Categorias')}</span>
-                </NavLink>
-                <NavLink to="/tutoria/chat-faqs" className={({ isActive }) => navClass(isActive)}>
-                  <MessageSquare className="w-4 h-4" />
-                  <span>{t('tutoriaSidebar.chatFaqs', 'Chat FAQs')}</span>
-                </NavLink>
-              </>
-            )}
+      {/* Config section — admin only */}
+      {isAdmin && (
+        <>
+          <SidebarSection label={t('tutoriaSidebar.configSection', 'Configuração')} />
+          <SidebarLink to="/tutoria/categories" icon={PenTool} label={t('tutoriaSidebar.categories', 'Categorias')} />
+          <SidebarLink to="/tutoria/chat-faqs" icon={MessageSquare} label={t('tutoriaSidebar.chatFaqs', 'Chat FAQs')} />
+        </>
+      )}
 
-            <div className="mt-4" />
-            <NavLink to="/tutoria/notifications" className={({ isActive }) => navClass(isActive)}>
-              <div className="relative">
-                <Bell className="w-4 h-4" />
-                {notifCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#EC0000] rounded-full text-[9px] font-bold text-white flex items-center justify-center">
-                    {notifCount > 9 ? '9+' : notifCount}
-                  </span>
-                )}
-              </div>
-              <span>{t('tutoriaSidebar.notifications', 'Notificações')}</span>
-            </NavLink>
-          </nav>
-        </aside>
+      {/* Notifications */}
+      <SidebarLink to="/tutoria/notifications" icon={Bell} label={t('tutoriaSidebar.notifications', 'Notificações')} badge={notifCount} />
+    </>
+  );
+}
 
-        {/* Main content */}
-        <main className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full">
-          <div className="animate-in fade-in duration-300">
-            <Outlet />
-          </div>
-        </main>
-      </div>
-
-      <ChatBot />
-    </div>
+export default function TutoriaLayout() {
+  const { t } = useTranslation();
+  return (
+    <PortalLayout
+      title={t('tutoriaLayout.pageTitle')}
+      fallbackTitle={t('tutoriaLayout.defaultTitle')}
+      sidebarContent={<TutoriaSidebar />}
+      animateOnRouteChange
+    />
   );
 }

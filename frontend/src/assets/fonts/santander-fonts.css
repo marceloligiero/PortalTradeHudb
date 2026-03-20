@@ -1,26 +1,21 @@
 /*
  * Santander Brand Typography — @font-face declarations
+ * Fontes extraídas de fonts.zip (2026-03-20).
+ * Formatos disponíveis: .woff2 (preferido) + .ttf / .otf (fallback).
  *
- * TODO: Solicitar os ficheiros .woff2 ao departamento de Branding/IT Santander
- *       e colocar nesta directoria (frontend/src/assets/fonts/).
- *       Nomes esperados:
- *         SantanderHeadline-Regular.woff2 / .woff
- *         SantanderHeadline-Bold.woff2 / .woff
- *         SantanderHeadline-Italic.woff2 / .woff
- *         SantanderHeadline-BoldItalic.woff2 / .woff
- *         SantanderText-Light.woff2 / .woff
- *         SantanderText-Regular.woff2 / .woff
- *         SantanderText-Bold.woff2 / .woff
- *         SantanderLogo-Regular.woff2 / .woff
- *
- * Enquanto os ficheiros não existirem, Arial é usado como fallback.
+ * Famílias registadas:
+ *   Santander Headline  — Regular, Bold, Italic, BoldItalic
+ *   Santander Text      — Light, Regular, Bold + variantes (Italic, BoldItalic, LightItalic, SemiBold, ExtraBold)
+ *   Santander Condensed — Regular, Bold, Black
+ *   Santander Script    — Regular, Bold
+ *   Santander Logo      — Regular
  */
 
 /* === Santander Headline === */
 @font-face {
   font-family: 'Santander Headline';
   src: url('./SantanderHeadline-Regular.woff2') format('woff2'),
-       url('./SantanderHeadline-Regular.woff') format('woff');
+       url('./SantanderHeadline-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -29,7 +24,7 @@
 @font-face {
   font-family: 'Santander Headline';
   src: url('./SantanderHeadline-Bold.woff2') format('woff2'),
-       url('./SantanderHeadline-Bold.woff') format('woff');
+       url('./SantanderHeadline-Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -38,7 +33,7 @@
 @font-face {
   font-family: 'Santander Headline';
   src: url('./SantanderHeadline-Italic.woff2') format('woff2'),
-       url('./SantanderHeadline-Italic.woff') format('woff');
+       url('./SantanderHeadline-It.ttf') format('truetype');
   font-weight: 400;
   font-style: italic;
   font-display: swap;
@@ -47,7 +42,7 @@
 @font-face {
   font-family: 'Santander Headline';
   src: url('./SantanderHeadline-BoldItalic.woff2') format('woff2'),
-       url('./SantanderHeadline-BoldItalic.woff') format('woff');
+       url('./SantanderHeadline-BoldIt.ttf') format('truetype');
   font-weight: 700;
   font-style: italic;
   font-display: swap;
@@ -57,7 +52,7 @@
 @font-face {
   font-family: 'Santander Text';
   src: url('./SantanderText-Light.woff2') format('woff2'),
-       url('./SantanderText-Light.woff') format('woff');
+       url('./SantanderText-Light.ttf') format('truetype');
   font-weight: 300;
   font-style: normal;
   font-display: swap;
@@ -65,8 +60,16 @@
 
 @font-face {
   font-family: 'Santander Text';
+  src: url('./SantanderText-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Santander Text';
   src: url('./SantanderText-Regular.woff2') format('woff2'),
-       url('./SantanderText-Regular.woff') format('woff');
+       url('./SantanderText-Regular.ttf') format('truetype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -74,8 +77,101 @@
 
 @font-face {
   font-family: 'Santander Text';
+  src: url('./SantanderText-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Santander Text';
   src: url('./SantanderText-Bold.woff2') format('woff2'),
-       url('./SantanderText-Bold.woff') format('woff');
+       url('./SantanderText-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Santander Text';
+  src: url('./SantanderText-BoldItalic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* SemiBold (600) */
+@font-face {
+  font-family: 'Santander Text';
+  src: url('./SantanderTextSmBd.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Santander Text';
+  src: url('./SantanderTextSmBdIt.ttf') format('truetype');
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* ExtraBold (800) */
+@font-face {
+  font-family: 'Santander Text';
+  src: url('./SantanderTextXBd.ttf') format('truetype');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Santander Text';
+  src: url('./SantanderTextXBdIt.ttf') format('truetype');
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* === Santander Condensed === */
+@font-face {
+  font-family: 'Santander Condensed';
+  src: url('./SantanderCondensed-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Santander Condensed';
+  src: url('./SantanderCondensed-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Santander Condensed';
+  src: url('./SantanderCondensed-Black.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* === Santander Script === */
+@font-face {
+  font-family: 'Santander Script';
+  src: url('./SantanderScript-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Santander Script';
+  src: url('./SantanderScript-Bold.otf') format('opentype'),
+       url('./SantanderScript-Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -84,8 +180,7 @@
 /* === Santander Logo === */
 @font-face {
   font-family: 'Santander Logo';
-  src: url('./SantanderLogo-Regular.woff2') format('woff2'),
-       url('./SantanderLogo-Regular.woff') format('woff');
+  src: url('./SantanderLogo-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
   font-display: swap;

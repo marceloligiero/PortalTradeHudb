@@ -40,7 +40,7 @@ Barra superior com portais:
 | Portal | O que faz |
 |--------|-----------|
 | **Formações** | Dashboard, meus cursos, lições, desafios, planos, certificados, relatórios |
-| **Tutoria** | Consulta de erros que lhe dizem respeito |
+| **Tutoria** | **Registar** incidências operacionais + consultar erros que lhe dizem respeito |
 | **Relatórios** | Dashboards analíticos (pessoais) |
 | **Chamados** | Criar e acompanhar tickets de suporte |
 
@@ -171,6 +171,25 @@ Barra superior com portais:
 ## 4. Portal de Tutoria
 
 Clicar em **"Tutoria"** na barra superior.
+
+### 4.0 Registar Nova Incidência
+
+> **Novo (2026-03-20):** Todos os utilizadores podem agora registar incidências operacionais diretamente.
+
+1. **Menu lateral:** Clicar em **"Incidências"** ou **"Meus Erros"**
+2. Clicar no botão **"+ Registar Erro"** (canto superior direito)
+3. Preencher o formulário:
+   - **Data do Erro** (obrigatório)
+   - **Banco** (obrigatório) — selecionar da lista
+   - **Oficina** (obrigatório) — número da oficina
+   - **Departamento** (obrigatório) — selecionar da lista
+   - **Actividad**, **Tipo Error** — cascata dependente dos anteriores
+   - **Descrição** (obrigatório) — detalhar a incidência
+   - Referências de transação (Referência, Divisa, Importe, Cliente Final) — adicionar com **"+ Ref"**
+4. Clicar em **"Guardar"**
+5. A incidência fica no estado **"Registado"** e o chefe/referente é notificado
+
+> **Campos obrigatórios:** Data do erro, Banco, Oficina, Departamento, Descrição.
 
 ### 4.1 Meus Erros
 

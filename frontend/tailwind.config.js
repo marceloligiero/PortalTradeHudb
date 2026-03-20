@@ -43,11 +43,13 @@ export default {
         },
       },
       fontFamily: {
-        // Santander official fonts — TODO: add .woff2 files to src/assets/fonts/
-        headline: ['"Santander Headline"', 'Arial', 'sans-serif'],
-        text:     ['"Santander Text"',     'Arial', 'sans-serif'],
-        body:     ['"Santander Text"',     'Arial', 'sans-serif'],
-        logo:     ['"Santander Logo"', '"Santander Headline"', 'Arial', 'sans-serif'],
+        // Santander official fonts — fontes extraídas de fonts.zip (2026-03-20)
+        headline:   ['"Santander Headline"',  'Arial', 'sans-serif'],
+        text:       ['"Santander Text"',      'Arial', 'sans-serif'],
+        body:       ['"Santander Text"',      'Arial', 'sans-serif'],
+        logo:       ['"Santander Logo"', '"Santander Headline"', 'Arial', 'sans-serif'],
+        condensed:  ['"Santander Condensed"', '"Arial Narrow"', 'Arial', 'sans-serif'],
+        script:     ['"Santander Script"',    'cursive'],
         micro:    ['"Santander MicroText"', 'Arial', 'sans-serif'],
         // Non-landing pages
         display:  ['"Instrument Serif"', 'Georgia', 'serif'],

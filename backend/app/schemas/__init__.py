@@ -66,6 +66,8 @@ class CourseBase(BaseModel):
     title: str
     description: Optional[str] = None
     level: Optional[str] = None  # BEGINNER, INTERMEDIATE, EXPERT
+    course_type: Optional[str] = 'CURSO'  # CURSO | CAPSULA_METODOLOGIA | CAPSULA_FUNCIONALIDADE
+    managed_by_tutor: Optional[bool] = False
     # Legacy single bank/product (for backward compatibility)
     bank_id: Optional[int] = None
     product_id: Optional[int] = None
@@ -80,6 +82,8 @@ class CourseUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     level: Optional[str] = None  # BEGINNER, INTERMEDIATE, EXPERT
+    course_type: Optional[str] = None
+    managed_by_tutor: Optional[bool] = None
     bank_id: Optional[int] = None
     product_id: Optional[int] = None
     bank_ids: Optional[list[int]] = None

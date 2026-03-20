@@ -17,7 +17,7 @@ export default function ProblemSection() {
   const { ref, visible } = useScrollReveal(0.08);
 
   return (
-    <SectionWrapper ref={ref as React.RefObject<HTMLElement>}>
+    <SectionWrapper id="problema" ref={ref as React.RefObject<HTMLElement>}>
       {/* ── Abstract depth background ──────────────────────────────── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div

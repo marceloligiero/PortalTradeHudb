@@ -189,29 +189,52 @@ export default function IncidentsReport() {
 
   const hasActiveFilters = dateFrom || dateTo || impactId || originId || bankId || departmentId || detectedById || categoryId || productId || recurrence;
 
-  // Excel Export
+  // Excel Export — headers always in Spanish (regulatory requirement)
+  const ES_EXCEL_HEADERS = {
+    dateError: 'Fecha error',
+    dateDetection: 'Fecha Detección',
+    office: 'Oficina',
+    client: 'Cliente',
+    product: 'Producto',
+    event: 'EVENTO',
+    reference: 'Referencia',
+    finalClient: 'Cliente (final)',
+    amount: 'Importe del evento',
+    currency: 'Divisa',
+    classification: 'Clasificación',
+    origin: 'Origen',
+    errorTypology: 'Tipología del error',
+    impact: 'Impacto',
+    recurrence: 'Recurrencia',
+    detectedBy: 'Detectado por',
+    description: 'Descripción incidencia',
+    actionPlan: 'Análisis y Plan de Acción',
+    escalated: 'Escalado',
+    meetingComments: 'Comentarios vistos en la reunión',
+  } as const;
+
   const exportToExcel = () => {
     const rows = filtered.map(i => ({
-      [t('relIncidents.excelDateError')]: fmtDate(i.date_occurrence),
-      [t('relIncidents.excelDateDetection')]: fmtDate(i.date_detection),
-      [t('relIncidents.excelOffice')]: i.office || '',
-      [t('relIncidents.excelClient')]: i.bank_name || '',
-      [t('relIncidents.excelProduct')]: i.product_name || '',
-      [t('relIncidents.excelEvent')]: i.activity_name || '',
-      [t('relIncidents.excelReference')]: i.reference_code || '',
-      [t('relIncidents.excelFinalClient')]: i.final_client || '',
-      [t('relIncidents.excelAmount')]: i.amount ?? '',
-      [t('relIncidents.excelCurrency')]: i.currency || '',
-      [t('relIncidents.excelClassification')]: i.clasificacion || '',
-      [t('relIncidents.excelOrigin')]: i.origin_name || '',
-      [t('relIncidents.excelErrorTypology')]: i.category_name || '',
-      [t('relIncidents.excelImpact')]: i.impact_name || '',
-      [t('relIncidents.excelRecurrence')]: recurrenceLabel(i.recurrence_type, t),
-      [t('relIncidents.excelDetectedBy')]: i.detected_by_name || '',
-      [t('relIncidents.excelDescription')]: i.description || '',
-      [t('relIncidents.excelActionPlan')]: i.action_plan_text || '',
-      [t('relIncidents.excelEscalated')]: i.escalado || '',
-      [t('relIncidents.excelMeetingComments')]: i.comentarios_reunion || '',
+      [ES_EXCEL_HEADERS.dateError]: fmtDate(i.date_occurrence),
+      [ES_EXCEL_HEADERS.dateDetection]: fmtDate(i.date_detection),
+      [ES_EXCEL_HEADERS.office]: i.office || '',
+      [ES_EXCEL_HEADERS.client]: i.bank_name || '',
+      [ES_EXCEL_HEADERS.product]: i.product_name || '',
+      [ES_EXCEL_HEADERS.event]: i.activity_name || '',
+      [ES_EXCEL_HEADERS.reference]: i.reference_code || '',
+      [ES_EXCEL_HEADERS.finalClient]: i.final_client || '',
+      [ES_EXCEL_HEADERS.amount]: i.amount ?? '',
+      [ES_EXCEL_HEADERS.currency]: i.currency || '',
+      [ES_EXCEL_HEADERS.classification]: i.clasificacion || '',
+      [ES_EXCEL_HEADERS.origin]: i.origin_name || '',
+      [ES_EXCEL_HEADERS.errorTypology]: i.category_name || '',
+      [ES_EXCEL_HEADERS.impact]: i.impact_name || '',
+      [ES_EXCEL_HEADERS.recurrence]: ({ SI: 'Sí', NO: 'No', PERIODICA: 'Periódica', FIRST: 'Primera Vez', RECURRENT: 'Recurrente', SYSTEMIC: 'Sistémico' } as Record<string, string>)[i.recurrence_type ?? ''] ?? i.recurrence_type ?? '',
+      [ES_EXCEL_HEADERS.detectedBy]: i.detected_by_name || '',
+      [ES_EXCEL_HEADERS.description]: i.description || '',
+      [ES_EXCEL_HEADERS.actionPlan]: i.action_plan_text || '',
+      [ES_EXCEL_HEADERS.escalated]: i.escalado || '',
+      [ES_EXCEL_HEADERS.meetingComments]: i.comentarios_reunion || '',
     }));
 
     const ws = XLSX.utils.json_to_sheet(rows);

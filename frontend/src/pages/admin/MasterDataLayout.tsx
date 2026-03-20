@@ -1,127 +1,47 @@
-import { useEffect } from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
-import { useAuthStore } from '../../stores/authStore';
-import ChatBot from '../../components/ChatBot';
-import Header from '../../components/layout/Header';
 import {
   Building2, Package, Users, FolderTree, MessageCircle,
   Zap, Globe, Eye, Building, Activity, AlertTriangle, UserCog,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useAuthStore } from '../../stores/authStore';
+import PortalLayout from '../../components/layout/PortalLayout';
+import { SidebarLink, SidebarSection } from '../../components/layout/sidebar/index';
 
-function navClass(isActive: boolean) {
-  return `flex items-center gap-3 px-4 py-2.5 rounded-xl transition-colors text-sm font-medium ${
-    isActive
-      ? 'bg-[#EC0000] text-white'
-      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
-  }`;
+function MasterDataSidebar() {
+  const { t } = useTranslation();
+  return (
+    <>
+      <SidebarLink to="/master-data" icon={Building2} label={t('masterData.banks')} end />
+      <SidebarLink to="/master-data/products" icon={Package} label={t('masterData.products')} />
+      <SidebarLink to="/master-data/teams" icon={Users} label={t('masterData.teams')} />
+      <SidebarLink to="/master-data/categories" icon={FolderTree} label={t('masterData.categories')} />
+
+      <SidebarSection label={t('masterData.errorMasterData')} />
+      <SidebarLink to="/master-data/impacts" icon={Zap} label={t('masterData.impacts')} />
+      <SidebarLink to="/master-data/origins" icon={Globe} label={t('masterData.origins')} />
+      <SidebarLink to="/master-data/detected-by" icon={Eye} label={t('masterData.detectedBy')} />
+      <SidebarLink to="/master-data/departments" icon={Building} label={t('masterData.departments')} />
+      <SidebarLink to="/master-data/activities" icon={Activity} label={t('masterData.events')} />
+      <SidebarLink to="/master-data/error-types" icon={AlertTriangle} label={t('masterData.errorTypes')} />
+      <SidebarLink to="/master-data/faqs" icon={MessageCircle} label={t('masterData.faqs')} />
+
+      <SidebarSection label={t('masterData.management')} />
+      <SidebarLink to="/master-data/users" icon={UserCog} label={t('masterData.users')} />
+    </>
+  );
 }
 
 export default function MasterDataLayout() {
   const { user } = useAuthStore();
   const { t } = useTranslation();
 
-  useEffect(() => {
-    document.title = t('masterData.portalTitle');
-    return () => { document.title = t('masterData.portalTitleFallback'); };
-  }, []);
-
-  // Only ADMIN, MANAGER and GESTOR can access
-  if (user?.role !== 'ADMIN' && user?.role !== 'MANAGER' && user?.role !== 'GESTOR') {
-    return null;
-  }
-
-  const sectionLabel = 'mt-6 mb-2 px-4 text-[11px] font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500';
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#09090B] text-gray-900 dark:text-white transition-colors duration-300">
-      <Header />
-
-      <div className="relative flex pt-16">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 min-h-[calc(100vh-64px)] sticky top-16">
-          <nav className="p-4 space-y-1">
-            <NavLink to="/master-data" end className={({ isActive }) => navClass(isActive)}>
-              <Building2 className="w-4 h-4" />
-              <span>{t('masterData.banks')}</span>
-            </NavLink>
-
-            <NavLink to="/master-data/products" className={({ isActive }) => navClass(isActive)}>
-              <Package className="w-4 h-4" />
-              <span>{t('masterData.products')}</span>
-            </NavLink>
-
-            <NavLink to="/master-data/teams" className={({ isActive }) => navClass(isActive)}>
-              <Users className="w-4 h-4" />
-              <span>{t('masterData.teams')}</span>
-            </NavLink>
-
-            <NavLink to="/master-data/categories" className={({ isActive }) => navClass(isActive)}>
-              <FolderTree className="w-4 h-4" />
-              <span>{t('masterData.categories')}</span>
-            </NavLink>
-
-            {/* ── Error Master Data ── */}
-            <div className={sectionLabel}>
-              {t('masterData.errorMasterData')}
-            </div>
-
-            <NavLink to="/master-data/impacts" className={({ isActive }) => navClass(isActive)}>
-              <Zap className="w-4 h-4" />
-              <span>{t('masterData.impacts')}</span>
-            </NavLink>
-
-            <NavLink to="/master-data/origins" className={({ isActive }) => navClass(isActive)}>
-              <Globe className="w-4 h-4" />
-              <span>{t('masterData.origins')}</span>
-            </NavLink>
-
-            <NavLink to="/master-data/detected-by" className={({ isActive }) => navClass(isActive)}>
-              <Eye className="w-4 h-4" />
-              <span>{t('masterData.detectedBy')}</span>
-            </NavLink>
-
-            <NavLink to="/master-data/departments" className={({ isActive }) => navClass(isActive)}>
-              <Building className="w-4 h-4" />
-              <span>{t('masterData.departments')}</span>
-            </NavLink>
-
-            <NavLink to="/master-data/activities" className={({ isActive }) => navClass(isActive)}>
-              <Activity className="w-4 h-4" />
-              <span>{t('masterData.events')}</span>
-            </NavLink>
-
-            <NavLink to="/master-data/error-types" className={({ isActive }) => navClass(isActive)}>
-              <AlertTriangle className="w-4 h-4" />
-              <span>{t('masterData.errorTypes')}</span>
-            </NavLink>
-
-            <NavLink to="/master-data/faqs" className={({ isActive }) => navClass(isActive)}>
-              <MessageCircle className="w-4 h-4" />
-              <span>{t('masterData.faqs')}</span>
-            </NavLink>
-
-            {/* ── Management ── */}
-            <div className={sectionLabel}>
-              {t('masterData.management')}
-            </div>
-
-            <NavLink to="/master-data/users" className={({ isActive }) => navClass(isActive)}>
-              <UserCog className="w-4 h-4" />
-              <span>{t('masterData.users')}</span>
-            </NavLink>
-          </nav>
-        </aside>
-
-        {/* Main content */}
-        <main className="flex-1 p-6 lg:p-8 max-w-7xl mx-auto w-full">
-          <div className="animate-in fade-in duration-300">
-            <Outlet />
-          </div>
-        </main>
-      </div>
-
-      <ChatBot />
-    </div>
+    <PortalLayout
+      title={t('masterData.portalTitle')}
+      fallbackTitle={t('masterData.portalTitleFallback')}
+      sidebarContent={<MasterDataSidebar />}
+      guard={() => user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'GESTOR'}
+      animateOnRouteChange
+    />
   );
 }

@@ -4,6 +4,7 @@ import { LogOut, Sun, Moon, Menu, X, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore, getEffectiveRole } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useSidebarStore } from '../../stores/sidebarStore';
 
 const LANGUAGES = [
   { code: 'pt-PT', label: 'PT' },
@@ -23,6 +24,7 @@ export default function Header() {
   const { user, logout } = useAuthStore();
   const { t, i18n } = useTranslation();
   const { theme, toggleTheme } = useTheme();
+  const { openMobile } = useSidebarStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -220,7 +222,7 @@ export default function Header() {
             <span className="text-[10px] font-bold text-gray-400">{currentLang}</span>
             <button
               className="p-2 rounded-lg transition-colors text-[#6B7280] dark:text-gray-400 hover:text-[#111827] dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10"
-              onClick={() => setMenuOpen(true)}
+              onClick={() => user ? openMobile() : setMenuOpen(true)}
               aria-label="Menu"
             >
               <Menu className="w-5 h-5" />

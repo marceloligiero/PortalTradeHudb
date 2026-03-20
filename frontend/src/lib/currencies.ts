@@ -1,0 +1,33 @@
+/** Dropdown options for the Divisa (currency) field across the portal. */
+export const CURRENCIES = [
+  { code: 'EUR', label: 'EUR - EURO' },
+  { code: 'USD', label: 'USD - DOLAR' },
+  { code: 'JPY', label: 'JPY - YEN JAPONES' },
+  { code: 'GBP', label: 'GBP - LIBRA ESTERLINA' },
+  { code: 'AUD', label: 'AUD - DOLAR AUSTRALIANO' },
+  { code: 'CAD', label: 'CAD - DOLAR CANADA' },
+  { code: 'CHF', label: 'CHF - FRANCO SUIZO' },
+  { code: 'MXN', label: 'MXN - PESO MEXICANO' },
+  { code: 'NZD', label: 'NZD - DOLAR NEOZELANDES' },
+  { code: 'SGD', label: 'SGD - DOLAR DE SINGAPUR' },
+  { code: 'HKD', label: 'HKD - DOLAR HONG-KONG' },
+  { code: 'NOK', label: 'NOK - CORONA NORUEGA' },
+  { code: 'TRY', label: 'TRY - YENI TÜRK' },
+  { code: 'KWD', label: 'KWD - DINAR KUWAITI' },
+  { code: 'BRL', label: 'BRL - REAL BRASILEÑO' },
+  { code: 'ZAR', label: 'ZAR - RAND' },
+  { code: 'DKK', label: 'DKK - CORONA DANESA' },
+  { code: 'AED', label: 'AED - DIRHAM E.A.U.' },
+  { code: 'SAR', label: 'SAR - RIAL ARABE' },
+  { code: 'HUF', label: 'HUF - FORINT HUNGARO' },
+  { code: 'QAR', label: 'QAR - RIAL DE QATAR' },
+  { code: 'MAD', label: 'MAD - DIRHAMS' },
+  { code: 'CZK', label: 'CZK - CORONA CHECA' },
+  { code: 'RON', label: 'RON - LEIS' },
+  { code: 'PLN', label: 'PLN - ZLOTY' },
+  { code: 'ILS', label: 'ILS - NUEVO SHÉQUEL ISRAELÍ' },
+  { code: 'CNH', label: 'CNH - YUAN CHINO EXTRACONTINENTAL' },
+  { code: 'SEK', label: 'SEK - CORONA SUECA' },
+] as const;
+
+export const CURRENCY_OPTIONS = CURRENCIES.map(c => ({ value: c.code, label: c.label }));

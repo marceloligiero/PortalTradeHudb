@@ -516,6 +516,8 @@ async def list_admin_courses(
             "title": course.title,
             "description": course.description,
             "level": course.level,
+            "course_type": getattr(course, 'course_type', 'CURSO'),
+            "managed_by_tutor": getattr(course, 'managed_by_tutor', False),
             "bank_id": course.bank_id,  # Legacy
             "product_id": course.product_id,  # Legacy
             "bank_ids": [b["id"] for b in banks],
@@ -590,6 +592,8 @@ async def get_admin_course(
         "title": course.title,
         "description": course.description,
         "level": course.level,
+        "course_type": getattr(course, 'course_type', 'CURSO'),
+        "managed_by_tutor": getattr(course, 'managed_by_tutor', False),
         "bank_id": course.bank_id,  # Legacy
         "product_id": course.product_id,  # Legacy
         "bank_ids": [b["id"] for b in banks],
@@ -915,6 +919,8 @@ async def create_admin_course(
         "title": db_course.title,
         "description": db_course.description,
         "level": db_course.level,
+        "course_type": getattr(db_course, 'course_type', 'CURSO'),
+        "managed_by_tutor": getattr(db_course, 'managed_by_tutor', False),
         "bank_id": db_course.bank_id,
         "product_id": db_course.product_id,
         "bank_ids": bank_ids,
@@ -972,6 +978,8 @@ async def update_admin_course(
         "title": db_course.title,
         "description": db_course.description,
         "level": db_course.level,
+        "course_type": getattr(db_course, 'course_type', 'CURSO'),
+        "managed_by_tutor": getattr(db_course, 'managed_by_tutor', False),
         "bank_id": db_course.bank_id,
         "product_id": db_course.product_id,
         "bank_ids": bank_ids,

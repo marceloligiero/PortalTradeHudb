@@ -19,6 +19,7 @@ interface Plan {
   created_by_name?: string;
   tutorado_id: number;
   tutorado_name?: string;
+  plan_type?: string;
   analysis_5_why?: string;
   immediate_correction?: string;
   corrective_action?: string;
@@ -30,6 +31,9 @@ interface Plan {
   who?: string;
   how?: string;
   how_much?: string;
+  side_by_side?: boolean;
+  observation_date?: string;
+  observation_notes?: string;
   status: string;
   approved_by_name?: string;
   approved_at?: string;
@@ -193,7 +197,9 @@ export default function PlanDetail() {
   const [editData, setEditData] = useState({
     analysis_5_why: '', immediate_correction: '', corrective_action: '', preventive_action: '',
     what: '', why: '', where_field: '', when_deadline: '', who: '', how: '', how_much: '',
+    observation_date: '', observation_notes: '',
   });
+  const [editSideByS, setEditSideByS] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
 
   useEffect(() => {
@@ -244,7 +250,10 @@ export default function PlanDetail() {
       who: plan.who ?? '',
       how: plan.how ?? '',
       how_much: plan.how_much ?? '',
+      observation_date: plan.observation_date ? plan.observation_date.slice(0, 10) : '',
+      observation_notes: plan.observation_notes ?? '',
     });
+    setEditSideByS(plan.side_by_side ?? false);
     setEditing(true);
   };
 
@@ -252,10 +261,11 @@ export default function PlanDetail() {
     if (!planId) return;
     setSavingPlan(true);
     try {
-      const payload: Record<string, string | null> = {};
+      const payload: Record<string, any> = {};
       for (const [k, v] of Object.entries(editData)) {
         payload[k] = v.trim() || null;
       }
+      payload.side_by_side = editSideByS;
       const res = await axios.patch(`/api/tutoria/plans/${planId}`, payload);
       setPlan(res.data);
       setEditing(false);
@@ -603,6 +613,24 @@ export default function PlanDetail() {
                 <label className={`block text-xs font-semibold mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('planDetail.preventiveAction')}</label>
                 <textarea value={editData.preventive_action} onChange={e => setEditData(d => ({ ...d, preventive_action: e.target.value }))} rows={2} className={`${inputCls} resize-none`} placeholder={t('planDetail.preventiveActionPlaceholder')} />
               </div>
+              {/* Side by Side / Seguimento */}
+              <div className={`border-t pt-4 space-y-3 ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+                <p className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>{t('planDetail.sideBySSection')}</p>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" checked={editSideByS} onChange={e => setEditSideByS(e.target.checked)} className="w-4 h-4 rounded accent-[#EC0000]" />
+                  <span className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>{t('planDetail.sideByS')}</span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className={`block text-xs font-semibold mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('planDetail.observationDate')}</label>
+                    <input type="date" value={editData.observation_date} onChange={e => setEditData(d => ({ ...d, observation_date: e.target.value }))} className={inputCls} />
+                  </div>
+                  <div>
+                    <label className={`block text-xs font-semibold mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('planDetail.observationNotes')}</label>
+                    <textarea value={editData.observation_notes} onChange={e => setEditData(d => ({ ...d, observation_notes: e.target.value }))} rows={3} className={`${inputCls} resize-none`} placeholder={t('planDetail.observationNotesPlaceholder')} />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         ) : (
@@ -622,6 +650,18 @@ export default function PlanDetail() {
                 <InfoSection title={t('planDetail.immediateCorrection')} value={plan.immediate_correction} isDark={isDark} />
                 <InfoSection title={t('planDetail.correctiveAction')} value={plan.corrective_action} isDark={isDark} />
                 <InfoSection title={t('planDetail.preventiveAction')} value={plan.preventive_action} isDark={isDark} />
+              </div>
+            )}
+            {(plan.side_by_side || plan.observation_date || plan.observation_notes) && (
+              <div className={`px-5 pb-5 border-t pt-4 space-y-3 ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
+                <p className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>{t('planDetail.sideBySSection')}</p>
+                {plan.side_by_side && (
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border ${isDark ? 'bg-purple-500/15 text-purple-400 border-purple-500/20' : 'bg-purple-50 text-purple-700 border-purple-200'}`}>
+                    {t('planDetail.sideByS')}
+                  </span>
+                )}
+                <InfoSection title={t('planDetail.observationDate')} value={plan.observation_date ? new Date(plan.observation_date).toLocaleDateString('pt-PT') : undefined} isDark={isDark} />
+                <InfoSection title={t('planDetail.observationNotes')} value={plan.observation_notes} isDark={isDark} />
               </div>
             )}
           </>

@@ -49,6 +49,11 @@ import SensoManagement from './pages/tutoria/SensoManagement';
 import LearningSheets from './pages/tutoria/LearningSheets';
 import MyLearningSheets from './pages/tutoria/MyLearningSheets';
 import TutoriaNotifications from './pages/tutoria/TutoriaNotifications';
+import FeedbackSurveys from './pages/tutoria/FeedbackSurveys';
+import FeedbackSurveyDetail from './pages/tutoria/FeedbackSurveyDetail';
+import FeedbackRespond from './pages/tutoria/FeedbackRespond';
+import FeedbackDashboard from './pages/tutoria/FeedbackDashboard';
+import TutorCapsules from './pages/tutoria/TutorCapsules';
 // AdminTeams standalone removed — MasterData.tsx is the single source
 import RelatoriosLayout from './pages/relatorios/RelatoriosLayout';
 import RelatoriosOverview from './pages/relatorios/Overview';
@@ -137,6 +142,11 @@ function App() {
         <Route path="analysis" element={<TutoriaErrors />} />
         <Route path="tutor-review" element={<TutoriaErrors />} />
         <Route path="notifications" element={<TutoriaNotifications />} />
+        <Route path="feedback" element={<FeedbackSurveys />} />
+        <Route path="feedback/dashboard" element={<FeedbackDashboard />} />
+        <Route path="feedback/respond" element={<FeedbackRespond />} />
+        <Route path="feedback/:id" element={<FeedbackSurveyDetail />} />
+        <Route path="capsulas" element={<TutorCapsules />} />
       </Route>
 
       {/* ── Portal de Relatórios (todos os roles autenticados) ── */}

@@ -107,7 +107,21 @@ Clicar em **"Tutoria"** na barra superior.
 ### 4.3 Análise
 
 - **Menu lateral:** Clicar em **"Análise"**
-- Vê erros que requerem a sua aprovação
+- Vê erros que requerem análise (estado REGISTADO ou EM_ANALISE)
+
+> **Novo (2026-03-20):** O formulário de análise na ficha de cada incidência é agora editável para Chefes/Managers.
+
+**Preencher análise de uma incidência:**
+1. Clicar no erro na lista
+2. Clicar na tab **"Análise"**
+3. Preencher: Nível Impacto, Origem, Grabador, Liberador, Data Solução, 5 Porquês, Solução, Plano de Ação
+4. Clicar em **"Guardar"** para guardar rascunho
+5. Quando completo, clicar em **"Submeter para Tutor"** → estado muda para PENDING_TUTOR_REVIEW
+
+**Aprovar análise submetida por Referente:**
+1. Clicar no erro no estado **"Pendente de Aprovação do Chefe"**
+2. Rever a análise
+3. Clicar em **"Aprovar Análise"** ou **"Devolver"** (com motivo)
 
 ### 4.4 Planos de Ação
 

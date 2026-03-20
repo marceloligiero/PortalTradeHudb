@@ -105,6 +105,11 @@ export default function CreateActionPlan() {
   const [responsibleId, setResponsibleId] = useState('');
   const [deadline, setDeadline]         = useState('');
 
+  // Side by Side (Seguimento)
+  const [sideByS, setSideByS]     = useState(false);
+  const [obsDate, setObsDate]     = useState('');
+  const [obsNotes, setObsNotes]   = useState('');
+
   // Step 2 — 5W2H
   const [what, setWhat]           = useState('');
   const [why, setWhy]             = useState('');
@@ -149,7 +154,7 @@ export default function CreateActionPlan() {
   }, [errorId]);
 
   const canNextStep0 = analysis5Why.trim().length > 0;
-  const canNextStep1 = immediateCorrection.trim() || correctiveAction.trim() || preventiveAction.trim();
+  const canNextStep1 = planType === 'SEGUIMENTO' || !!(immediateCorrection.trim() || correctiveAction.trim() || preventiveAction.trim());
   const canSave = what.trim() && tutoradoId;
 
   const handleNext = () => {
@@ -190,6 +195,9 @@ export default function CreateActionPlan() {
         who: who.trim() || null,
         how: how.trim() || null,
         how_much: howMuch.trim() || null,
+        side_by_side: planType === 'SEGUIMENTO' ? sideByS : undefined,
+        observation_date: planType === 'SEGUIMENTO' && obsDate ? obsDate : undefined,
+        observation_notes: planType === 'SEGUIMENTO' && obsNotes.trim() ? obsNotes.trim() : undefined,
       });
       setSaved(true);
       setTimeout(() => navigate(`/tutoria/errors/${errorId}`), 1200);
@@ -378,6 +386,7 @@ export default function CreateActionPlan() {
                         <option value="CORRECTIVO" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.planTypeCorrectivo')}</option>
                         <option value="PREVENTIVO" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.planTypePreventivo')}</option>
                         <option value="MELHORIA" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.planTypeMelhoria')}</option>
+                        <option value="SEGUIMENTO" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.planTypeSeguimento')}</option>
                       </select>
                       <FileText className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
                     </div>
@@ -415,6 +424,33 @@ export default function CreateActionPlan() {
                     </div>
                   </div>
                 </div>
+
+                {/* Side by Side (Seguimento) */}
+                {planType === 'SEGUIMENTO' && (
+                  <div className={`border-t pt-4 space-y-3 ${isDark ? 'border-white/5' : 'border-gray-200'}`}>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={sideByS}
+                        onChange={e => setSideByS(e.target.checked)}
+                        className="w-4 h-4 rounded accent-[#EC0000]"
+                      />
+                      <span className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                        {t('createPlan.sideByS')}
+                      </span>
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label isDark={isDark}>{t('createPlan.observationDate')}</Label>
+                        <Input type="date" value={obsDate} onChange={setObsDate} isDark={isDark} />
+                      </div>
+                      <div>
+                        <Label isDark={isDark}>{t('createPlan.observationNotes')}</Label>
+                        <Textarea value={obsNotes} onChange={setObsNotes} placeholder={t('createPlan.observationNotesHint')} rows={3} isDark={isDark} />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
