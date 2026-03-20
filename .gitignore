@@ -122,3 +122,9 @@ install-service-output.txt
 
 # ── Deploy keys (public key stored for reference, keep out of repo) ────────
 .github/deploy-keys/
+
+# Artefactos locais
+fonts.zip
+icone/
+icone
+deploy-now.ps1
