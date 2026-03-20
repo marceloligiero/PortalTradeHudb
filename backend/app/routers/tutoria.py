@@ -5,7 +5,7 @@ Roles:
   TRAINER → apenas seus tutorados (tutor_id = current user)
   STUDENT/TRAINEE → apenas os seus próprios dados
 """
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -17,7 +17,7 @@ from app.database import get_db
 from app.models import (
     ErrorCategory, TutoriaError, TutoriaErrorMotivo, TutoriaErrorRef,
     TutoriaActionPlan, TutoriaActionItem, TutoriaComment, TutoriaNotification,
-    TutoriaLearningSheet, User, Product, Bank,
+    TutoriaLearningSheet, User, Product, Bank, Course,
     ErrorImpact, ErrorOrigin, ErrorDetectedBy, Department, Activity,
 )
 from app.auth import get_current_user
@@ -59,6 +59,20 @@ def is_tutor_or_above(u: User) -> bool:
 def _user_name(u) -> Optional[str]:
     return u.full_name if u else None
 
+def _get_error_deadline(date_occurrence) -> Optional[date]:
+    """Returns the 1st business day of the month following the error occurrence (A.6.1)."""
+    if not date_occurrence:
+        return None
+    year, month = date_occurrence.year, date_occurrence.month
+    if month == 12:
+        year, month = year + 1, 1
+    else:
+        month += 1
+    d = date(year, month, 1)
+    while d.weekday() >= 5:  # Skip Saturday (5) and Sunday (6)
+        d += timedelta(days=1)
+    return d
+
 def create_notification(db: Session, user_id: int, ntype: str, message: str, error_id: int = None, plan_id: int = None):
     notif = TutoriaNotification(
         user_id=user_id, type=ntype, message=message,
@@ -74,6 +88,7 @@ class CategoryIn(BaseModel):
     description: Optional[str] = None
     parent_id: Optional[int] = None
     origin_id: Optional[int] = None
+    is_active: Optional[bool] = None
 
 class CategoryOut(BaseModel):
     id: int
@@ -141,6 +156,8 @@ class AnalysisIn(BaseModel):
     solution_confirmed: Optional[bool] = None
     recurrence_type: Optional[str] = None
     action_plan_summary: Optional[str] = None
+    analysis_5_why: Optional[str] = None
+    excel_sent: Optional[bool] = None
 
 class CancelErrorIn(BaseModel):
     reason: str
@@ -151,6 +168,11 @@ class ConfirmSolutionIn(BaseModel):
 
 class ReturnAnalysisIn(BaseModel):
     reason: str
+
+class TutorReviewIn(BaseModel):
+    solution: Optional[str] = None
+    date_solution: Optional[date] = None
+    solution_confirmed: Optional[bool] = None
 
 class ErrorUpdate(BaseModel):
     status: Optional[str] = None
@@ -275,13 +297,19 @@ def _error_out(e: TutoriaError) -> dict:
         "refs": [{"id": r.id, "referencia": r.referencia, "divisa": r.divisa, "importe": r.importe, "cliente_final": r.cliente_final} for r in (getattr(e, 'refs', None) or [])],
         "created_at": e.created_at,
         "updated_at": e.updated_at,
+        "deadline_date": _get_error_deadline(e.date_occurrence),
+        "is_overdue": bool(
+            _get_error_deadline(e.date_occurrence) and
+            date.today() > _get_error_deadline(e.date_occurrence) and
+            getattr(e, 'status', '') not in ("RESOLVED", "APPROVED", "CANCELLED")
+        ),
     }
 
 # ── Action Plans ──
 
 class PlanIn(BaseModel):
     tutorado_id: int
-    plan_type: Optional[str] = None        # CORRECTIVO | PREVENTIVO | MELHORIA
+    plan_type: Optional[str] = None        # CORRECTIVO | PREVENTIVO | MELHORIA | SEGUIMENTO
     responsible_id: Optional[int] = None
     expected_result: Optional[str] = None
     deadline: Optional[date] = None
@@ -297,6 +325,10 @@ class PlanIn(BaseModel):
     who: Optional[str] = None
     how: Optional[str] = None
     how_much: Optional[str] = None
+    # Side by Side / Plano de Seguimento (C.2)
+    side_by_side: Optional[bool] = None
+    observation_date: Optional[date] = None
+    observation_notes: Optional[str] = None
 
     @validator("when_deadline", pre=True)
     def _empty_date_to_none(cls, v):
@@ -316,6 +348,9 @@ class PlanUpdate(BaseModel):
     who: Optional[str] = None
     how: Optional[str] = None
     how_much: Optional[str] = None
+    side_by_side: Optional[bool] = None
+    observation_date: Optional[date] = None
+    observation_notes: Optional[str] = None
 
 class ReturnPlanIn(BaseModel):
     comment: str
@@ -366,6 +401,9 @@ def _plan_out(p: TutoriaActionPlan) -> dict:
         "items_completed": s["completed"],
         "created_at": p.created_at,
         "updated_at": p.updated_at,
+        "side_by_side": getattr(p, 'side_by_side', False),
+        "observation_date": getattr(p, 'observation_date', None),
+        "observation_notes": getattr(p, 'observation_notes', None),
     }
 
 # ── Action Items ──
@@ -483,10 +521,14 @@ def _plans_query(db: Session, user: User):
 
 @router.get("/categories", response_model=List[CategoryOut])
 def list_categories(
+    include_inactive: bool = False,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return db.query(ErrorCategory).filter(ErrorCategory.is_active == True).order_by(ErrorCategory.name).all()
+    query = db.query(ErrorCategory)
+    if not include_inactive:
+        query = query.filter(ErrorCategory.is_active == True)
+    return query.order_by(ErrorCategory.name).all()
 
 
 @router.post("/categories", response_model=CategoryOut, status_code=201)
@@ -496,7 +538,9 @@ def create_category(
     current_user: User = Depends(get_current_user),
 ):
     require_admin(current_user)
-    cat = ErrorCategory(**body.model_dump())
+    data = body.model_dump(exclude_unset=True)
+    data.pop("is_active", None)  # new categories are always active
+    cat = ErrorCategory(**data)
     db.add(cat)
     db.commit()
     db.refresh(cat)
@@ -514,7 +558,7 @@ def update_category(
     cat = db.get(ErrorCategory, cat_id)
     if not cat:
         raise HTTPException(404, "Categoria não encontrada")
-    for k, v in body.model_dump(exclude_none=True).items():
+    for k, v in body.model_dump(exclude_unset=True).items():
         setattr(cat, k, v)
     db.commit()
     db.refresh(cat)
@@ -564,7 +608,7 @@ def list_errors(
         q = q.filter(TutoriaError.status == status)
     if category_id:
         q = q.filter(TutoriaError.category_id == category_id)
-    if tutorado_id and current_user.role == "ADMIN":
+    if tutorado_id and current_user.role in ("ADMIN", "GESTOR"):
         q = q.filter(TutoriaError.tutorado_id == tutorado_id)
     if is_recurrent is not None:
         q = q.filter(TutoriaError.is_recurrent == is_recurrent)
@@ -849,6 +893,17 @@ def create_plan(
     tutorado = db.get(User, body.tutorado_id)
     if not tutorado:
         raise HTTPException(400, "Tutorado não encontrado")
+
+    # MELHORIA plans only allowed for Trade_Personas origin errors
+    if body.plan_type == "MELHORIA":
+        origin = error.origin
+        if not origin or "persona" not in (origin.name or "").lower():
+            raise HTTPException(400, "Plano MELHORIA apenas aplicável a erros com origem Trade_Personas")
+        # Responsible for MELHORIA plan must be a tutor
+        if body.responsible_id:
+            responsible = db.get(User, body.responsible_id)
+            if not responsible or not getattr(responsible, 'is_tutor', False):
+                raise HTTPException(400, "Responsável do Plano MELHORIA deve ser Tutor")
 
     try:
         data = body.model_dump()
@@ -1374,6 +1429,9 @@ def save_analysis(
         error.status = "ANALYSIS"
     for k, v in body.model_dump(exclude_none=True).items():
         setattr(error, k, v)
+    # Auto-set excel_sent=True for high/critical impact
+    if getattr(error, 'impact_level', None) in ("ALTO", "CRITICO") and not getattr(error, 'excel_sent', False):
+        error.excel_sent = True
     db.commit()
     error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
     return _error_out(error)
@@ -1393,6 +1451,15 @@ def submit_analysis(
         raise HTTPException(404, "Erro não encontrado")
     if error.status not in ("ANALYSIS", "REGISTERED"):
         raise HTTPException(400, "Incidência não está em estado para submissão de análise")
+
+    # A.6.1 — Deadline enforcement: close by 1st business day of following month
+    if current_user.role != "ADMIN":
+        deadline = _get_error_deadline(error.date_occurrence)
+        if deadline and date.today() > deadline:
+            raise HTTPException(
+                400,
+                f"Prazo de encerramento expirado ({deadline}). Apenas ADMIN pode submeter fora do prazo."
+            )
 
     # If referente, needs chief approval first
     if is_referente_user(current_user) and not is_chefe_or_manager(current_user):
@@ -1603,6 +1670,28 @@ def return_analysis(
     return _error_out(error)
 
 
+@router.patch("/errors/{error_id}/tutor-review")
+def tutor_review_edit(
+    error_id: int,
+    body: TutorReviewIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Tutor can update solution fields during PENDING_TUTOR_REVIEW."""
+    if not is_tutor_or_above(current_user):
+        raise HTTPException(403, "Apenas Tutor/Manager/Admin pode editar em revisão")
+    error = db.get(TutoriaError, error_id)
+    if not error or not error.is_active:
+        raise HTTPException(404, "Erro não encontrado")
+    if error.status != "PENDING_TUTOR_REVIEW":
+        raise HTTPException(400, "Incidência não está em PENDING_TUTOR_REVIEW")
+    for k, v in body.model_dump(exclude_none=True).items():
+        setattr(error, k, v)
+    db.commit()
+    error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+    return _error_out(error)
+
+
 @router.post("/errors/{error_id}/confirm-solution")
 def confirm_solution(
     error_id: int,
@@ -1804,7 +1893,7 @@ def list_learning_sheets(
     status: Optional[str] = None,
 ):
     """List learning sheets — Tutors see submitted sheets from their tutorados."""
-    if not is_tutor_or_above(current_user):
+    if not is_tutor_or_above(current_user) and current_user.role != "GESTOR":
         raise HTTPException(403, "Apenas Tutor/Manager/Admin pode listar fichas")
     q = (
         db.query(TutoriaLearningSheet)
@@ -1813,7 +1902,7 @@ def list_learning_sheets(
             joinedload(TutoriaLearningSheet.tutor),
         )
     )
-    if current_user.role not in ("ADMIN", "MANAGER"):
+    if current_user.role not in ("ADMIN", "MANAGER", "GESTOR"):
         # Tutor sees sheets where they are the tutor
         q = q.filter(TutoriaLearningSheet.tutor_id == current_user.id)
     if status:
@@ -1975,3 +2064,106 @@ def review_sheet(
         .first()
     )
     return _sheet_out(sheet)
+
+
+# ─── CÁPSULAS FORMATIVAS (C.1) — Tutor CRUD ─────────────────────────────────
+
+class CapsulaIn(BaseModel):
+    title: str
+    description: Optional[str] = None
+    course_type: str = "CAPSULA_METODOLOGIA"  # CAPSULA_METODOLOGIA | CAPSULA_FUNCIONALIDADE
+    level: Optional[str] = None
+
+class CapsulaUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    course_type: Optional[str] = None
+    level: Optional[str] = None
+    is_active: Optional[bool] = None
+
+def _capsula_out(c: Course) -> dict:
+    return {
+        "id": c.id,
+        "title": c.title,
+        "description": c.description,
+        "course_type": getattr(c, 'course_type', 'CURSO'),
+        "managed_by_tutor": getattr(c, 'managed_by_tutor', False),
+        "level": c.level,
+        "is_active": c.is_active,
+        "created_by": c.created_by,
+        "created_at": c.created_at,
+    }
+
+@router.get("/capsulas")
+def list_capsulas(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all capsules managed by tutors."""
+    q = db.query(Course).filter(
+        Course.managed_by_tutor == True,
+        Course.is_active == True,
+    )
+    return [_capsula_out(c) for c in q.all()]
+
+
+@router.post("/capsulas", status_code=201)
+def create_capsula(
+    body: CapsulaIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Tutor/Admin creates a new Cápsula Formativa (C.1.2, C.1.8)."""
+    if not is_tutor_or_above(current_user):
+        raise HTTPException(403, "Apenas Tutor/Admin pode criar cápsulas formativas")
+    if body.course_type not in ("CAPSULA_METODOLOGIA", "CAPSULA_FUNCIONALIDADE"):
+        raise HTTPException(400, "course_type deve ser CAPSULA_METODOLOGIA ou CAPSULA_FUNCIONALIDADE")
+    c = Course(
+        title=body.title,
+        description=body.description,
+        course_type=body.course_type,
+        level=body.level,
+        managed_by_tutor=True,
+        created_by=current_user.id,
+        is_active=True,
+    )
+    db.add(c)
+    db.commit()
+    db.refresh(c)
+    return _capsula_out(c)
+
+
+@router.put("/capsulas/{capsula_id}")
+def update_capsula(
+    capsula_id: int,
+    body: CapsulaUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Tutor/Admin updates a Cápsula Formativa."""
+    if not is_tutor_or_above(current_user):
+        raise HTTPException(403, "Apenas Tutor/Admin pode editar cápsulas formativas")
+    c = db.get(Course, capsula_id)
+    if not c or not getattr(c, 'managed_by_tutor', False):
+        raise HTTPException(404, "Cápsula não encontrada")
+    for k, v in body.model_dump(exclude_none=True).items():
+        setattr(c, k, v)
+    db.commit()
+    db.refresh(c)
+    return _capsula_out(c)
+
+
+@router.delete("/capsulas/{capsula_id}", status_code=204)
+def delete_capsula(
+    capsula_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Tutor/Admin deactivates (soft-delete) a Cápsula Formativa."""
+    if not is_tutor_or_above(current_user):
+        raise HTTPException(403, "Apenas Tutor/Admin pode eliminar cápsulas")
+    c = db.get(Course, capsula_id)
+    if not c or not getattr(c, 'managed_by_tutor', False):
+        raise HTTPException(404, "Cápsula não encontrada")
+    c.is_active = False
+    db.commit()

@@ -43,11 +43,13 @@ Executar:
 """
 
 import pytest
+import time
 from fastapi.testclient import TestClient
 from main import app
 from app.auth import create_access_token
 
 client = TestClient(app)
+_RUN_ID = str(int(time.time()))[-6:]  # unique 6-digit suffix per test run
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -61,6 +63,23 @@ def _token(email: str) -> str:
 
 def _h(token):
     return {"Authorization": f"Bearer {token}"} if token else {}
+
+
+def _create_or_find(endpoint: str, headers: dict, payload: dict, name_field: str = "name"):
+    """Create a resource; if it already exists (duplicate), find it by name.
+    Returns (status_code, id)."""
+    r = client.post(endpoint, headers=headers, json=payload)
+    if r.status_code == 201:
+        return 201, r.json()["id"]
+    # Likely duplicate — list and find by name
+    rl = client.get(endpoint, headers=headers)
+    if rl.status_code == 200:
+        items = rl.json() if isinstance(rl.json(), list) else rl.json().get("items", rl.json())
+        for item in items:
+            if item.get(name_field) == payload.get(name_field):
+                return 200, item["id"]
+    # Fallback — propagate original error
+    return r.status_code, None
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -341,10 +360,10 @@ class TestAdminUsers:
 class TestAdminBanksProducts:
 
     def test_create_bank(self, admin_headers):
-        r = client.post("/api/admin/banks", headers=admin_headers,
-                        json={"name": "Banco Teste V5", "country": "PT"})
-        assert r.status_code == 201
-        st.bank_id = r.json()["id"]
+        code, bid = _create_or_find("/api/admin/banks", admin_headers,
+                                     {"name": "Banco Teste V5", "country": "PT"})
+        assert code in (200, 201)
+        st.bank_id = bid
 
     def test_list_banks(self, admin_headers):
         r = client.get("/api/admin/banks", headers=admin_headers)
@@ -353,14 +372,14 @@ class TestAdminBanksProducts:
 
     def test_update_bank(self, admin_headers):
         r = client.put(f"/api/admin/banks/{st.bank_id}", headers=admin_headers,
-                       json={"name": "Banco Teste V5 Updated", "country": "PT"})
+                       json={"name": f"Banco Teste V5 Upd{_RUN_ID}", "country": "PT"})
         assert r.status_code == 200
 
     def test_create_product(self, admin_headers):
-        r = client.post("/api/admin/products", headers=admin_headers,
-                        json={"name": "Produto Teste V5"})
-        assert r.status_code == 201
-        st.product_id = r.json()["id"]
+        code, pid = _create_or_find("/api/admin/products", admin_headers,
+                                     {"name": "Produto Teste V5"})
+        assert code in (200, 201)
+        st.product_id = pid
 
     def test_list_products(self, admin_headers):
         r = client.get("/api/admin/products", headers=admin_headers)
@@ -369,7 +388,7 @@ class TestAdminBanksProducts:
 
     def test_update_product(self, admin_headers):
         r = client.put(f"/api/admin/products/{st.product_id}", headers=admin_headers,
-                       json={"name": "Produto Teste V5 Updated"})
+                       json={"name": f"Produto Teste V5 Upd{_RUN_ID}"})
         assert r.status_code == 200
 
     def test_banks_trainer_can_list(self, trainer_headers):
@@ -417,10 +436,10 @@ class TestAdminBanksProducts:
 class TestAdminMasterImpacts:
 
     def test_create_impact(self, admin_headers):
-        r = client.post("/api/admin/master/impacts", headers=admin_headers,
-                        json={"name": "Impacto Alto", "description": "Impacto grave"})
-        assert r.status_code == 201
-        st.impact_id = r.json()["id"]
+        code, iid = _create_or_find("/api/admin/master/impacts", admin_headers,
+                                     {"name": "Impacto Alto", "description": "Impacto grave"})
+        assert code in (200, 201)
+        st.impact_id = iid
 
     def test_list_impacts(self, admin_headers):
         r = client.get("/api/admin/master/impacts", headers=admin_headers)
@@ -434,12 +453,12 @@ class TestAdminMasterImpacts:
     def test_update_impact(self, admin_headers):
         r = client.put(f"/api/admin/master/impacts/{st.impact_id}",
                        headers=admin_headers,
-                       json={"name": "Impacto Alto Updated"})
+                       json={"name": f"Impacto Alto Upd{_RUN_ID}"})
         assert r.status_code == 200
 
     def test_delete_impact(self, admin_headers):
         r = client.post("/api/admin/master/impacts", headers=admin_headers,
-                        json={"name": "Impacto Temp"})
+                        json={"name": f"Impacto Tmp{_RUN_ID}"})
         assert r.status_code == 201
         temp_id = r.json()["id"]
         r2 = client.delete(f"/api/admin/master/impacts/{temp_id}",
@@ -455,10 +474,10 @@ class TestAdminMasterImpacts:
 class TestAdminMasterOrigins:
 
     def test_create_origin(self, admin_headers):
-        r = client.post("/api/admin/master/origins", headers=admin_headers,
-                        json={"name": "Origem Interna", "description": "Erro interno"})
-        assert r.status_code == 201
-        st.origin_id = r.json()["id"]
+        code, oid = _create_or_find("/api/admin/master/origins", admin_headers,
+                                     {"name": "Origem Interna", "description": "Erro interno"})
+        assert code in (200, 201)
+        st.origin_id = oid
 
     def test_list_origins(self, admin_headers):
         r = client.get("/api/admin/master/origins", headers=admin_headers)
@@ -468,12 +487,12 @@ class TestAdminMasterOrigins:
     def test_update_origin(self, admin_headers):
         r = client.put(f"/api/admin/master/origins/{st.origin_id}",
                        headers=admin_headers,
-                       json={"name": "Origem Interna Updated"})
+                       json={"name": f"Origem Interna Upd{_RUN_ID}"})
         assert r.status_code == 200
 
     def test_delete_origin(self, admin_headers):
         r = client.post("/api/admin/master/origins", headers=admin_headers,
-                        json={"name": "Origem Temp"})
+                        json={"name": f"Origem Tmp{_RUN_ID}"})
         assert r.status_code == 201
         temp_id = r.json()["id"]
         r2 = client.delete(f"/api/admin/master/origins/{temp_id}",
@@ -484,10 +503,10 @@ class TestAdminMasterOrigins:
 class TestAdminMasterDetectedBy:
 
     def test_create_detected_by(self, admin_headers):
-        r = client.post("/api/admin/master/detected-by", headers=admin_headers,
-                        json={"name": "Auditoria Interna"})
-        assert r.status_code == 201
-        st.detected_by_id = r.json()["id"]
+        code, did = _create_or_find("/api/admin/master/detected-by", admin_headers,
+                                     {"name": "Auditoria Interna"})
+        assert code in (200, 201)
+        st.detected_by_id = did
 
     def test_list_detected_by(self, admin_headers):
         r = client.get("/api/admin/master/detected-by", headers=admin_headers)
@@ -497,12 +516,12 @@ class TestAdminMasterDetectedBy:
     def test_update_detected_by(self, admin_headers):
         r = client.put(f"/api/admin/master/detected-by/{st.detected_by_id}",
                        headers=admin_headers,
-                       json={"name": "Auditoria Interna Updated"})
+                       json={"name": f"Auditoria Interna Upd{_RUN_ID}"})
         assert r.status_code == 200
 
     def test_delete_detected_by(self, admin_headers):
         r = client.post("/api/admin/master/detected-by", headers=admin_headers,
-                        json={"name": "DetectedBy Temp"})
+                        json={"name": f"DetectedBy Tmp{_RUN_ID}"})
         assert r.status_code == 201
         temp_id = r.json()["id"]
         r2 = client.delete(f"/api/admin/master/detected-by/{temp_id}",
@@ -513,10 +532,10 @@ class TestAdminMasterDetectedBy:
 class TestAdminMasterDepartments:
 
     def test_create_department(self, admin_headers):
-        r = client.post("/api/admin/master/departments", headers=admin_headers,
-                        json={"name": "Operações", "description": "Dept operações"})
-        assert r.status_code == 201
-        st.department_id = r.json()["id"]
+        code, did = _create_or_find("/api/admin/master/departments", admin_headers,
+                                     {"name": "Operações", "description": "Dept operações"})
+        assert code in (200, 201)
+        st.department_id = did
 
     def test_list_departments(self, admin_headers):
         r = client.get("/api/admin/master/departments", headers=admin_headers)
@@ -526,12 +545,12 @@ class TestAdminMasterDepartments:
     def test_update_department(self, admin_headers):
         r = client.put(f"/api/admin/master/departments/{st.department_id}",
                        headers=admin_headers,
-                       json={"name": "Operações Updated"})
+                       json={"name": f"Operações Upd{_RUN_ID}"})
         assert r.status_code == 200
 
     def test_delete_department(self, admin_headers):
         r = client.post("/api/admin/master/departments", headers=admin_headers,
-                        json={"name": "Dept Temp"})
+                        json={"name": f"Dept Tmp{_RUN_ID}"})
         assert r.status_code == 201
         temp_id = r.json()["id"]
         r2 = client.delete(f"/api/admin/master/departments/{temp_id}",
@@ -542,12 +561,12 @@ class TestAdminMasterDepartments:
 class TestAdminMasterActivities:
 
     def test_create_activity(self, admin_headers):
-        r = client.post("/api/admin/master/activities", headers=admin_headers,
-                        json={"name": "Operações Bancárias",
-                              "bank_id": st.bank_id,
-                              "department_id": st.department_id})
-        assert r.status_code == 201
-        st.activity_id = r.json()["id"]
+        code, aid = _create_or_find("/api/admin/master/activities", admin_headers,
+                                     {"name": "Operações Bancárias",
+                                      "bank_id": st.bank_id,
+                                      "department_id": st.department_id})
+        assert code in (200, 201)
+        st.activity_id = aid
 
     def test_list_activities(self, admin_headers):
         r = client.get("/api/admin/master/activities", headers=admin_headers)
@@ -557,12 +576,12 @@ class TestAdminMasterActivities:
     def test_update_activity(self, admin_headers):
         r = client.put(f"/api/admin/master/activities/{st.activity_id}",
                        headers=admin_headers,
-                       json={"name": "Operações Bancárias Updated"})
+                       json={"name": f"Operações Bancárias Upd{_RUN_ID}"})
         assert r.status_code == 200
 
     def test_delete_activity(self, admin_headers):
         r = client.post("/api/admin/master/activities", headers=admin_headers,
-                        json={"name": "Activity Temp"})
+                        json={"name": f"Activity Tmp{_RUN_ID}"})
         assert r.status_code == 201
         temp_id = r.json()["id"]
         r2 = client.delete(f"/api/admin/master/activities/{temp_id}",
@@ -579,11 +598,11 @@ class TestAdminMasterActivities:
 class TestAdminMasterErrorTypes:
 
     def test_create_error_type(self, admin_headers):
-        r = client.post("/api/admin/master/error-types", headers=admin_headers,
-                        json={"name": "Erro de Procedimento",
-                              "activity_id": st.activity_id})
-        assert r.status_code == 201
-        st.error_type_id = r.json()["id"]
+        code, eid = _create_or_find("/api/admin/master/error-types", admin_headers,
+                                     {"name": "Erro de Procedimento",
+                                      "activity_id": st.activity_id})
+        assert code in (200, 201)
+        st.error_type_id = eid
 
     def test_list_error_types(self, admin_headers):
         r = client.get("/api/admin/master/error-types", headers=admin_headers)
@@ -593,12 +612,12 @@ class TestAdminMasterErrorTypes:
     def test_update_error_type(self, admin_headers):
         r = client.put(f"/api/admin/master/error-types/{st.error_type_id}",
                        headers=admin_headers,
-                       json={"name": "Erro de Procedimento Updated"})
+                       json={"name": f"Erro de Procedimento Upd{_RUN_ID}"})
         assert r.status_code == 200
 
     def test_delete_error_type(self, admin_headers):
         r = client.post("/api/admin/master/error-types", headers=admin_headers,
-                        json={"name": "ErrorType Temp"})
+                        json={"name": f"ErrorType Tmp{_RUN_ID}"})
         assert r.status_code == 201
         temp_id = r.json()["id"]
         r2 = client.delete(f"/api/admin/master/error-types/{temp_id}",
@@ -643,7 +662,7 @@ class TestAdminCourses:
     def test_update_course(self, admin_headers):
         r = client.put(f"/api/admin/courses/{st.course_id_2}",
                        headers=admin_headers,
-                       json={"title": "Curso Admin V5 Updated"})
+                       json={"title": f"Curso Admin V5 Upd{_RUN_ID}"})
         assert r.status_code == 200
 
     def test_delete_course(self, admin_headers):
@@ -815,7 +834,7 @@ class TestTrainerCourses:
     def test_update_course(self, trainer_headers):
         r = client.put(f"/api/trainer/courses/{st.course_id}",
                        headers=trainer_headers,
-                       json={"title": "Curso Teste V5 Updated",
+                       json={"title": f"Curso Teste V5 Upd{_RUN_ID}",
                              "description": "Desc updated"})
         assert r.status_code == 200
 
@@ -1087,7 +1106,7 @@ class TestChallenges:
     def test_update_challenge(self, trainer_headers):
         r = client.put(f"/api/challenges/{st.challenge_id}",
                        headers=trainer_headers,
-                       json={"title": "Desafio V5 Updated"})
+                       json={"title": f"Desafio V5 Upd{_RUN_ID}"})
         assert r.status_code == 200
 
     def test_release_challenge(self, trainer_headers):
@@ -1406,7 +1425,7 @@ class TestTutoriaCategories:
     def test_update_category(self, admin_headers):
         r = client.patch(f"/api/tutoria/categories/{st.tut_category_id}",
                          headers=admin_headers,
-                         json={"name": "Categoria V5 Updated"})
+                         json={"name": f"Categoria V5 Upd{_RUN_ID}"})
         assert r.status_code == 200
 
     def test_create_category_student_forbidden(self, student_headers):
@@ -2075,7 +2094,7 @@ class TestTeams:
 
     def test_update_team(self, admin_headers):
         r = client.patch(f"/api/teams/{st.team_id}", headers=admin_headers,
-                         json={"name": "Equipa V5 Updated"})
+                         json={"name": f"Equipa V5 Upd{_RUN_ID}"})
         assert r.status_code == 200
 
     def test_assign_member(self, admin_headers):

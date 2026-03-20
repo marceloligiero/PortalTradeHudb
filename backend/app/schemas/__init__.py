@@ -20,8 +20,8 @@ class UserRegister(BaseModel):
     is_trainer: bool = False
     is_tutor: bool = False
     is_liberador: bool = False
-
-class UserUpdate(BaseModel):
+    is_team_lead: bool = False
+    is_referente: bool = False
     full_name: Optional[str] = None
     role: Optional[str] = None
     is_active: Optional[bool] = None
@@ -66,6 +66,8 @@ class CourseBase(BaseModel):
     title: str
     description: Optional[str] = None
     level: Optional[str] = None  # BEGINNER, INTERMEDIATE, EXPERT
+    course_type: Optional[str] = 'CURSO'  # CURSO | CAPSULA_METODOLOGIA | CAPSULA_FUNCIONALIDADE
+    managed_by_tutor: Optional[bool] = False
     # Legacy single bank/product (for backward compatibility)
     bank_id: Optional[int] = None
     product_id: Optional[int] = None
@@ -80,6 +82,8 @@ class CourseUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
     level: Optional[str] = None  # BEGINNER, INTERMEDIATE, EXPERT
+    course_type: Optional[str] = None
+    managed_by_tutor: Optional[bool] = None
     bank_id: Optional[int] = None
     product_id: Optional[int] = None
     bank_ids: Optional[list[int]] = None
@@ -130,9 +134,9 @@ class BankUpdate(BaseModel):
 
 class Bank(BankBase):
     id: int
-    is_active: bool
-    created_at: datetime
-    
+    is_active: Optional[bool] = True
+    created_at: Optional[datetime] = None
+
     model_config = {"from_attributes": True}
 
 # Product Schemas
@@ -151,9 +155,9 @@ class ProductUpdate(BaseModel):
 
 class Product(ProductBase):
     id: int
-    is_active: bool
-    created_at: datetime
-    
+    is_active: Optional[bool] = True
+    created_at: Optional[datetime] = None
+
     model_config = {"from_attributes": True}
 
 # Training Plan Schemas

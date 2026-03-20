@@ -108,10 +108,10 @@ async def register(
     """
     try:
         # Validate role
-        if user_in.role not in ["TRAINEE", "MANAGER"]:
+        if user_in.role not in ["TRAINEE", "MANAGER", "GESTOR"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Role must be 'TRAINEE' or 'MANAGER'"
+                detail="Role must be 'TRAINEE', 'MANAGER' or 'GESTOR'"
             )
         
         # Check if user already exists
@@ -134,9 +134,9 @@ async def register(
                 detail="Internal server error"
             )
         
-        # Pending if MANAGER or has trainer/tutor capabilities
-        is_pending = user_in.role == "MANAGER" or user_in.is_trainer or user_in.is_tutor or user_in.is_liberador
-        
+        # Pending if MANAGER/GESTOR or has trainer/tutor/team_lead/referente capabilities
+        is_pending = user_in.role in ("MANAGER", "GESTOR") or user_in.is_trainer or user_in.is_tutor or user_in.is_liberador or user_in.is_team_lead or user_in.is_referente
+
         db_user = models.User(
             email=user_in.email,
             full_name=user_in.full_name,
@@ -144,7 +144,9 @@ async def register(
             role=user_in.role,
             is_trainer=user_in.is_trainer,
             is_tutor=user_in.is_tutor,
-            is_liberador=getattr(user_in, 'is_liberador', False),
+            is_liberador=user_in.is_liberador,
+            is_team_lead=user_in.is_team_lead,
+            is_referente=user_in.is_referente,
             is_active=True,
             is_pending=is_pending
         )

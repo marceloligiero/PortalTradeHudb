@@ -2,14 +2,13 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { 
-  BookOpen, Calendar, ArrowLeft, Clock, Target, AlertCircle, PlayCircle, 
+import {
+  BookOpen, Calendar, ArrowLeft, Clock, Target, AlertCircle, PlayCircle,
   CheckCircle2, Pause, Play, Eye, Settings2, TrendingUp, Timer, Award, Download, Star, User, ChevronDown, Users, UserPlus, UserMinus, Edit3, Search, Trash2, RotateCcw, Shield
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
-import { PremiumHeader } from '../../components/premium';
 import RatingModal from '../../components/RatingModal';
 
 interface LessonItem {
@@ -618,30 +617,30 @@ export default function TrainingPlanDetail() {
   };
 
   const getLessonStatusBadge = (progress?: LessonProgressData) => {
-    if (!progress) return { color: 'bg-gray-500/20 text-gray-400', label: t('trainingPlanDetail.notStarted') };
+    if (!progress) return { color: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400', label: t('trainingPlanDetail.notStarted') };
     switch (progress.status) {
-      case 'COMPLETED': 
+      case 'COMPLETED':
         if (progress.is_approved) {
-          return { color: 'bg-green-500/20 text-green-400', label: `✓ ${t('trainingPlanDetail.approved')}` };
+          return { color: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', label: t('trainingPlanDetail.approved') };
         }
         if (progress.student_confirmed) {
-          return { color: 'bg-amber-500/20 text-amber-400', label: `⚠️ ${t('trainingPlanDetail.awaitingApproval')}` };
+          return { color: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', label: t('trainingPlanDetail.awaitingApproval') };
         }
-        return { color: 'bg-blue-500/20 text-blue-400', label: t('trainingPlanDetail.awaitingConfirmation') };
-      case 'IN_PROGRESS': return { color: 'bg-blue-500/20 text-blue-400', label: t('trainingPlanDetail.inProgress') };
-      case 'PAUSED': return { color: 'bg-yellow-500/20 text-yellow-400', label: t('trainingPlanDetail.paused') };
-      case 'RELEASED': return { color: 'bg-purple-500/20 text-purple-400', label: `🔓 ${t('trainingPlanDetail.released')}` };
-      default: return { color: 'bg-gray-500/20 text-gray-400', label: t('trainingPlanDetail.notStarted') };
+        return { color: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400', label: t('trainingPlanDetail.awaitingConfirmation') };
+      case 'IN_PROGRESS': return { color: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400', label: t('trainingPlanDetail.inProgress') };
+      case 'PAUSED': return { color: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', label: t('trainingPlanDetail.paused') };
+      case 'RELEASED': return { color: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400', label: t('trainingPlanDetail.released') };
+      default: return { color: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400', label: t('trainingPlanDetail.notStarted') };
     }
   };
 
   const getSubmissionStatusBadge = (submission?: SubmissionData) => {
     if (!submission) return null;
-    if (submission.is_approved) return { color: 'bg-green-500/20 text-green-400', label: t('trainingPlanDetail.approved') };
-    if (submission.status === 'PENDING_REVIEW') return { color: 'bg-yellow-500/20 text-yellow-400', label: t('trainingPlanDetail.pendingReview') };
-    if (submission.status === 'IN_PROGRESS') return { color: 'bg-blue-500/20 text-blue-400', label: t('trainingPlanDetail.inProgress') };
-    if (submission.status === 'REJECTED' || submission.is_approved === false) return { color: 'bg-red-500/20 text-red-400', label: t('trainingPlanDetail.rejected') };
-    return { color: 'bg-gray-500/20 text-gray-400', label: submission.status };
+    if (submission.is_approved) return { color: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400', label: t('trainingPlanDetail.approved') };
+    if (submission.status === 'PENDING_REVIEW') return { color: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400', label: t('trainingPlanDetail.pendingReview') };
+    if (submission.status === 'IN_PROGRESS') return { color: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400', label: t('trainingPlanDetail.inProgress') };
+    if (submission.status === 'REJECTED' || submission.is_approved === false) return { color: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400', label: t('trainingPlanDetail.rejected') };
+    return { color: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400', label: submission.status };
   };
 
   if (loading) return (
@@ -671,186 +670,184 @@ export default function TrainingPlanDetail() {
 
   return (
     <div className="space-y-6">
-      {/* Premium Header */}
-      <PremiumHeader
-        icon={BookOpen}
-        title={plan.title}
-        subtitle={plan.description}
-        badge={isStudent ? t('trainingPlanDetail.myPlan') : t('trainingPlanDetail.trainingPlan')}
-        iconColor="from-red-500 to-red-700"
-        actions={
-          <div className="flex items-center gap-3">
-            {/* Botão Finalizar Plano - só para formador quando pode finalizar */}
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+              <BookOpen className="w-6 h-6 text-[#EC0000]" />
+            </div>
+            <div>
+              <p className="font-body text-xs font-bold uppercase tracking-widest text-[#EC0000] mb-1">
+                {isStudent ? t('trainingPlanDetail.myPlan') : t('trainingPlanDetail.trainingPlan')}
+              </p>
+              <h1 className="font-headline text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+                {plan.title}
+              </h1>
+              {plan.description && (
+                <p className="font-body text-gray-500 dark:text-gray-400 mt-1">{plan.description}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-3 shrink-0">
             {isTrainer && completionStatus && !completionStatus.is_finalized && completionStatus.can_finalize && (
               <button
                 onClick={handleFinalizePlan}
                 disabled={finalizingPlan}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-50"
               >
                 <Award className="w-5 h-5" />
                 {finalizingPlan ? t('trainingPlanDetail.finalizing') : t('trainingPlanDetail.finalizePlan')}
               </button>
             )}
-            
-            {/* Botão Ver Certificado - quando já finalizado */}
             {completionStatus?.is_finalized && completionStatus?.certificate_id && (
               <button
                 onClick={() => navigate(`/certificates/${completionStatus.certificate_id}`)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-600 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-yellow-700 transition-all shadow-lg hover:shadow-xl"
+                className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-sm transition-colors"
               >
                 <Award className="w-5 h-5" />
                 {t('trainingPlanDetail.viewCertificate')}
               </button>
             )}
-            
             <button
               onClick={() => navigate(-1)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all ${
-                isDark 
-                  ? 'bg-white/5 hover:bg-white/10 text-white border border-white/10' 
-                  : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
-              }`}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl transition-colors bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm"
             >
               <ArrowLeft className="w-4 h-4" />
               {t('trainingPlanDetail.back')}
             </button>
           </div>
-        }
-      >
-        {/* Stats */}
+        </div>
+
+        {/* Stats bar */}
         {(() => {
-          // Determine effective status: if a student is selected (admin/trainer), use that student's status
           const selectedStudent = selectedStudentId && plan.enrolled_students?.find((s: any) => s.id === selectedStudentId);
           const effectiveStatus = (isTrainer && selectedStudent) ? selectedStudent.status : plan.status;
           return (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-          <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-white/80 border-gray-200'} backdrop-blur-sm rounded-xl p-4 border`}>
-            <div className="flex items-center gap-3 mb-2">
-              <BookOpen className={`w-5 h-5 ${isDark ? 'text-red-400' : 'text-red-600'}`} />
-              <span className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{plan.courses?.length ?? 0}</span>
-            </div>
-            <p className={isDark ? 'text-gray-400 text-sm' : 'text-gray-600 text-sm'}>{t('trainingPlanDetail.courses')}</p>
-          </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+              <div className="flex items-center gap-3">
+                <BookOpen className="w-5 h-5 text-[#EC0000] shrink-0" />
+                <div>
+                  <p className="font-mono text-xl font-bold text-gray-900 dark:text-white">{plan.courses?.length ?? 0}</p>
+                  <p className="font-body text-xs text-gray-500 dark:text-gray-400">{t('trainingPlanDetail.courses')}</p>
+                </div>
+              </div>
 
-          <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-white/80 border-gray-200'} backdrop-blur-sm rounded-xl p-4 border`}>
-            <div className="flex items-center gap-3 mb-2">
-              <Calendar className={`w-5 h-5 ${isDark ? 'text-blue-400' : 'text-blue-600'}`} />
-              <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {plan.start_date ? new Date(plan.start_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
-              </span>
-            </div>
-            <p className={isDark ? 'text-gray-400 text-sm' : 'text-gray-600 text-sm'}>{t('trainingPlanDetail.startDate')}</p>
-          </div>
+              <div className="flex items-center gap-3">
+                <Calendar className="w-5 h-5 text-blue-500 shrink-0" />
+                <div>
+                  <p className="font-body text-sm font-bold text-gray-900 dark:text-white">
+                    {plan.start_date ? new Date(plan.start_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
+                  </p>
+                  <p className="font-body text-xs text-gray-500 dark:text-gray-400">{t('trainingPlanDetail.startDate')}</p>
+                </div>
+              </div>
 
-          <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-white/80 border-gray-200'} backdrop-blur-sm rounded-xl p-4 border`}>
-            <div className="flex items-center gap-3 mb-2">
-              <Clock className={`w-5 h-5 ${isDark ? 'text-yellow-400' : 'text-yellow-600'}`} />
-              <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {plan.end_date ? new Date(plan.end_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
-              </span>
-              {plan.is_permanent && (
-                <span className="px-2 py-0.5 rounded-lg text-xs font-bold bg-purple-500/20 text-purple-400 flex items-center gap-1">
-                  ♾️ {t('trainingPlan.permanent', 'Permanente')}
+              <div className="flex items-center gap-3">
+                <Clock className="w-5 h-5 text-amber-500 shrink-0" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-body text-sm font-bold text-gray-900 dark:text-white">
+                      {plan.end_date ? new Date(plan.end_date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}
+                    </p>
+                    {plan.is_permanent && (
+                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                        {t('trainingPlan.permanent', 'Permanente')}
+                      </span>
+                    )}
+                  </div>
+                  <p className="font-body text-xs text-gray-500 dark:text-gray-400">{t('trainingPlanDetail.endDate')}</p>
+                </div>
+              </div>
+
+              <div>
+                <span className={`inline-block px-3 py-1 rounded-lg text-xs font-bold ${
+                  effectiveStatus === 'COMPLETED' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
+                  effectiveStatus === 'FINALIZED' ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400' :
+                  effectiveStatus === 'ONGOING' || effectiveStatus === 'IN_PROGRESS' ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' :
+                  effectiveStatus === 'UPCOMING' || effectiveStatus === 'PENDING' || effectiveStatus === 'NOT_STARTED' ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400' :
+                  effectiveStatus === 'DELAYED' ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400' :
+                  'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                }`}>
+                  {effectiveStatus === 'COMPLETED' ? t('trainingPlanDetail.completed') :
+                   effectiveStatus === 'FINALIZED' ? t('planStatus.finalized', 'Finalizado') :
+                   effectiveStatus === 'IN_PROGRESS' || effectiveStatus === 'ONGOING' ? t('trainingPlanDetail.inProgress') :
+                   effectiveStatus === 'NOT_STARTED' ? t('planStatus.notStarted') :
+                   effectiveStatus === 'PENDING' || effectiveStatus === 'UPCOMING' ? t('trainingPlanDetail.pending') :
+                   effectiveStatus === 'DELAYED' ? t('trainingPlanDetail.delayed') :
+                   effectiveStatus || t('trainingPlanDetail.active')}
                 </span>
-              )}
+                <p className="font-body text-xs text-gray-500 dark:text-gray-400 mt-1">{t('trainingPlanDetail.status')}</p>
+              </div>
             </div>
-            <p className={isDark ? 'text-gray-400 text-sm' : 'text-gray-600 text-sm'}>{t('trainingPlanDetail.endDate')}</p>
-          </div>
-
-          <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-white/80 border-gray-200'} backdrop-blur-sm rounded-xl p-4 border`}>
-            <div className={`px-3 py-1 rounded-lg text-sm font-bold inline-block ${
-              effectiveStatus === 'COMPLETED' ? 'bg-amber-500/20 text-amber-400' :
-              effectiveStatus === 'FINALIZED' ? 'bg-gray-500/20 text-gray-400' :
-              effectiveStatus === 'ONGOING' || effectiveStatus === 'IN_PROGRESS' ? 'bg-green-500/20 text-green-400' : 
-              effectiveStatus === 'UPCOMING' || effectiveStatus === 'PENDING' || effectiveStatus === 'NOT_STARTED' ? 'bg-blue-500/20 text-blue-400' : 
-              effectiveStatus === 'DELAYED' ? 'bg-red-500/20 text-red-400' :
-              'bg-gray-500/20 text-gray-400'
-            }`}>
-              {effectiveStatus === 'COMPLETED' ? `✅ ${t('trainingPlanDetail.completed')}` : 
-               effectiveStatus === 'FINALIZED' ? `✅ ${t('planStatus.finalized', 'Finalizado')}` :
-               effectiveStatus === 'IN_PROGRESS' || effectiveStatus === 'ONGOING' ? `🔄 ${t('trainingPlanDetail.inProgress')}` :
-               effectiveStatus === 'NOT_STARTED' ? `📋 ${t('planStatus.notStarted')}` :
-               effectiveStatus === 'PENDING' || effectiveStatus === 'UPCOMING' ? `⏳ ${t('trainingPlanDetail.pending')}` :
-               effectiveStatus === 'DELAYED' ? `⚠️ ${t('trainingPlanDetail.delayed')}` :
-               effectiveStatus || t('trainingPlanDetail.active')}
-            </div>
-            <p className={`${isDark ? 'text-gray-400 text-sm' : 'text-gray-600 text-sm'} mt-2`}>{t('trainingPlanDetail.status')}</p>
-          </div>
-        </div>
           );
         })()}
-      </PremiumHeader>
+      </div>
 
-      {/* Status de Conclusão do Plano - Painel Informativo */}
+      {/* Completion Status */}
       {completionStatus && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`rounded-2xl border p-6 ${
+        <div
+          className={`rounded-2xl border border-l-4 p-5 ${
             completionStatus.is_finalized
-              ? isDark ? 'bg-green-500/10 border-green-500/30' : 'bg-green-50 border-green-200'
+              ? 'bg-emerald-50 dark:bg-emerald-500/5 border-gray-200 dark:border-gray-800 border-l-emerald-500'
               : completionStatus.can_finalize
-                ? isDark ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-emerald-50 border-emerald-200'
-                : isDark ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-yellow-50 border-yellow-200'
+                ? 'bg-emerald-50 dark:bg-emerald-500/5 border-gray-200 dark:border-gray-800 border-l-emerald-500'
+                : 'bg-amber-50 dark:bg-amber-500/5 border-gray-200 dark:border-gray-800 border-l-amber-500'
           }`}
         >
           <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-              completionStatus.is_finalized
-                ? 'bg-green-500/20'
-                : completionStatus.can_finalize
-                  ? 'bg-emerald-500/20'
-                  : 'bg-yellow-500/20'
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+              completionStatus.is_finalized || completionStatus.can_finalize
+                ? 'bg-emerald-100 dark:bg-emerald-500/10'
+                : 'bg-amber-100 dark:bg-amber-500/10'
             }`}>
               {completionStatus.is_finalized ? (
-                <Award className="w-6 h-6 text-green-400" />
+                <Award className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               ) : completionStatus.can_finalize ? (
-                <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               ) : (
-                <Clock className="w-6 h-6 text-yellow-400" />
+                <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               )}
             </div>
             <div className="flex-1">
-              <h3 className={`text-lg font-bold ${
-                completionStatus.is_finalized
-                  ? 'text-green-400'
-                  : completionStatus.can_finalize
-                    ? 'text-emerald-400'
-                    : 'text-yellow-400'
+              <h3 className={`font-headline text-sm font-bold ${
+                completionStatus.is_finalized || completionStatus.can_finalize
+                  ? 'text-emerald-700 dark:text-emerald-400'
+                  : 'text-amber-700 dark:text-amber-400'
               }`}>
                 {completionStatus.is_finalized
-                  ? `✓ ${t('trainingPlanDetail.planFinalized')}`
+                  ? t('trainingPlanDetail.planFinalized')
                   : completionStatus.can_finalize && isTrainer
-                    ? `✓ ${t('trainingPlanDetail.readyToFinalize')}`
+                    ? t('trainingPlanDetail.readyToFinalize')
                     : completionStatus.can_finalize && isStudent
-                      ? `✓ ${t('trainingPlanDetail.completed')}`
+                      ? t('trainingPlanDetail.completed')
                       : t('trainingPlanDetail.awaitingCoursesCompletion')
                 }
               </h3>
-              <p className={isDark ? 'text-gray-400 text-sm' : 'text-gray-600 text-sm'}>
+              <p className="font-body text-sm text-gray-500 dark:text-gray-400">
                 {completionStatus.is_finalized
                   ? `${t('trainingPlanDetail.certificate')}: ${completionStatus.certificate_number}`
                   : completionStatus.can_finalize && isTrainer
                     ? t('trainingPlanDetail.allCoursesCompleted', { count: completionStatus.total_courses })
-                    : completionStatus.can_finalize && isStudent
-                      ? t('trainingPlanDetail.coursesCompletedProgress', { completed: completionStatus.completed_courses, total: completionStatus.total_courses })
-                      : t('trainingPlanDetail.coursesCompletedProgress', { completed: completionStatus.completed_courses, total: completionStatus.total_courses })
+                    : t('trainingPlanDetail.coursesCompletedProgress', { completed: completionStatus.completed_courses, total: completionStatus.total_courses })
                 }
               </p>
             </div>
-            
+
             {/* Rating button for finalized plan - students only */}
             {isStudent && completionStatus.is_finalized && (
               <div className="flex items-center">
                 {hasPlanRating ? (
-                  <span className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-xl text-sm font-medium">
-                    <Star className="w-4 h-4 fill-green-400" />
-                    {t('trainingPlanDetail.planRated', 'Plano Classificado')} ✓
+                  <span className="flex items-center gap-2 px-3 py-1.5 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold">
+                    <Star className="w-3.5 h-3.5" />
+                    {t('trainingPlanDetail.planRated', 'Plano Classificado')}
                   </span>
                 ) : (
                   <button
                     onClick={() => setShowPlanRatingModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-600 text-white rounded-xl font-medium hover:from-amber-600 hover:to-yellow-700 transition-all shadow-lg hover:shadow-xl"
+                    className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-bold text-sm transition-colors"
                   >
                     <Star className="w-4 h-4" />
                     {t('trainingPlanDetail.ratePlan', 'Classificar Plano')}
@@ -859,62 +856,36 @@ export default function TrainingPlanDetail() {
               </div>
             )}
           </div>
-        </motion.div>
+        </div>
       )}
 
-      {/* Pending Ratings Alert - Only for students when plan is finalized */}
+      {/* Pending Ratings Alert */}
       {isStudent && completionStatus?.is_finalized && pendingRatingsCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          className="bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-orange-500/20 border-2 border-amber-500/50 rounded-2xl p-6"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-amber-500 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg animate-pulse">
-                <Star className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-amber-400 flex items-center gap-2">
-                  🎉 {t('trainingPlanDetail.pendingRatings', 'Avaliações Pendentes')}
-                  <span className="px-3 py-1 bg-amber-500 text-white rounded-full text-sm font-bold animate-bounce">
-                    {pendingRatingsCount}
-                  </span>
-                </h3>
-                <p className="text-amber-300/80 mt-1">
-                  {t('trainingPlanDetail.pendingRatingsDesc', 'Parabéns pela conclusão! Avalie o plano, formadores e cursos para nos ajudar a melhorar.')}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-2">
-                <div className="w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center border-2 border-amber-600">
-                  <BookOpen className="w-4 h-4 text-white" />
-                </div>
-                <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center border-2 border-yellow-600">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center border-2 border-orange-600">
-                  <Award className="w-4 h-4 text-white" />
-                </div>
-              </div>
-              <ChevronDown className="w-5 h-5 text-amber-400 animate-bounce" />
-            </div>
+        <div className="flex items-center gap-4 p-4 rounded-2xl border border-l-4 border-l-amber-500 border-gray-200 dark:border-gray-800 bg-amber-50 dark:bg-amber-500/5">
+          <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-500/10 flex items-center justify-center shrink-0">
+            <Star className="w-5 h-5 text-amber-600 dark:text-amber-400" />
           </div>
-        </motion.div>
+          <div className="flex-1">
+            <h3 className="font-headline text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              {t('trainingPlanDetail.pendingRatings', 'Avaliações Pendentes')}
+              <span className="px-2 py-0.5 bg-amber-500 text-white rounded-full text-xs font-bold">
+                {pendingRatingsCount}
+              </span>
+            </h3>
+            <p className="font-body text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+              {t('trainingPlanDetail.pendingRatingsDesc', 'Parabéns pela conclusão! Avalie o plano, formadores e cursos para nos ajudar a melhorar.')}
+            </p>
+          </div>
+        </div>
       )}
 
       {/* Trainers Section */}
       {(plan.trainers && plan.trainers.length > 0 || isTrainer) && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`rounded-2xl border p-6 ${
-            isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'
-          }`}
+        <div
+          className="rounded-2xl border p-6 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800"
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            <h3 className="font-headline text-lg font-bold text-gray-900 dark:text-white">
               {t('trainingPlanDetail.trainers', 'Formadores')} ({plan.trainers?.length || 0})
             </h3>
             {isTrainer && plan.status !== 'FINALIZED' && (
@@ -930,7 +901,7 @@ export default function TrainingPlanDetail() {
                     }
                   }
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl text-sm font-medium hover:from-purple-700 hover:to-indigo-700 transition-all"
+                className="flex items-center gap-2 px-4 py-2 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl text-sm font-bold transition-colors"
               >
                 <UserPlus className="w-4 h-4" />
                 {t('trainingPlanDetail.addTrainer', 'Adicionar Formador')}
@@ -1059,9 +1030,9 @@ export default function TrainingPlanDetail() {
                 {isStudent && completionStatus?.is_finalized && (
                   <div className="ml-2">
                     {trainerRatings[trainer.id] ? (
-                      <span className="flex items-center gap-1 px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-xs font-medium">
-                        <Star className="w-3 h-3 fill-green-400" />
-                        {t('trainingPlanDetail.rated', 'Classificado')} ✓
+                      <span className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold">
+                        <Star className="w-3 h-3" />
+                        {t('trainingPlanDetail.rated', 'Classificado')}
                       </span>
                     ) : (
                       <button
@@ -1069,7 +1040,7 @@ export default function TrainingPlanDetail() {
                           setSelectedTrainer(trainer);
                           setShowTrainerRatingModal(true);
                         }}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-600 text-white rounded-lg text-xs font-medium hover:from-amber-600 hover:to-yellow-700 transition-all"
+                        className="flex items-center gap-1 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-colors"
                       >
                         <Star className="w-3 h-3" />
                         {t('trainingPlanDetail.rateTrainer', 'Classificar')}
@@ -1100,17 +1071,13 @@ export default function TrainingPlanDetail() {
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Enrolled Students Section - for trainers/admins */}
       {isTrainer && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`rounded-2xl border p-6 ${
-            isDark ? 'bg-white/5 border-white/10' : 'bg-white border-gray-200'
-          }`}
+        <div
+          className="rounded-2xl border p-6 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800"
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className={`text-lg font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
@@ -1130,7 +1097,7 @@ export default function TrainingPlanDetail() {
                     }
                   }
                 }}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all"
+                className="flex items-center gap-2 px-4 py-2 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl text-sm font-bold transition-colors"
               >
                 <UserPlus className="w-4 h-4" />
                 {t('trainingPlanDetail.addStudent', 'Inscrever Formando')}
@@ -1264,7 +1231,7 @@ export default function TrainingPlanDetail() {
                   </div>
                   {student.is_delayed && (
                     <span className="text-xs text-red-400 mt-1">
-                      ⚠️ {t('trainingPlanDetail.delayed')}
+                      {t('trainingPlanDetail.delayed')}
                     </span>
                   )}
                 </div>
@@ -1289,11 +1256,11 @@ export default function TrainingPlanDetail() {
                     student.status === 'DELAYED' ? 'bg-red-500/20 text-red-400' :
                     isDark ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-100 text-gray-500'
                   }`}>
-                    {student.status === 'COMPLETED' ? `✅ ${t('trainingPlanDetail.completed')}` :
-                     student.status === 'IN_PROGRESS' ? `🔄 ${t('trainingPlanDetail.inProgress')}` :
-                     student.status === 'DELAYED' ? `⚠️ ${t('trainingPlanDetail.delayed')}` :
-                     student.status === 'NOT_STARTED' ? `📋 ${t('planStatus.notStarted')}` :
-                     `⏳ ${t('trainingPlanDetail.pending')}`}
+                    {student.status === 'COMPLETED' ? t('trainingPlanDetail.completed') :
+                     student.status === 'IN_PROGRESS' ? t('trainingPlanDetail.inProgress') :
+                     student.status === 'DELAYED' ? t('trainingPlanDetail.delayed') :
+                     student.status === 'NOT_STARTED' ? t('planStatus.notStarted') :
+                     t('trainingPlanDetail.pending')}
                   </span>
                   {/* Remove button */}
                   <button
@@ -1322,7 +1289,7 @@ export default function TrainingPlanDetail() {
                 {activeStudents.length > 0 && (
                   <div>
                     <h4 className={`text-sm font-bold mb-2 flex items-center gap-2 ${isDark ? 'text-blue-300' : 'text-blue-700'}`}>
-                      🔄 {t('trainingPlanDetail.activeStudents', 'Formandos em Formação')} ({activeStudents.length})
+                      {t('trainingPlanDetail.activeStudents', 'Formandos em Formação')} ({activeStudents.length})
                     </h4>
                     <div className="space-y-3">
                       {activeStudents.map(renderStudentRow)}
@@ -1334,7 +1301,7 @@ export default function TrainingPlanDetail() {
                 {completedStudents.length > 0 && (
                   <div>
                     <h4 className={`text-sm font-bold mb-2 flex items-center gap-2 ${isDark ? 'text-green-300' : 'text-green-700'}`}>
-                      ✅ {t('trainingPlanDetail.completedStudents', 'Formandos que Concluíram')} ({completedStudents.length})
+                      {t('trainingPlanDetail.completedStudents', 'Formandos que Concluíram')} ({completedStudents.length})
                     </h4>
                     <div className="space-y-3">
                       {completedStudents.map(renderStudentRow)}
@@ -1359,7 +1326,7 @@ export default function TrainingPlanDetail() {
               </p>
             </div>
           )}
-        </motion.div>
+        </div>
       )}
 
       {/* Content Section */}
@@ -1385,7 +1352,7 @@ export default function TrainingPlanDetail() {
               const grouped = levelOrder
                 .map(level => ({
                   level,
-                  courses: plan.courses.filter(c => (c.level || 'BEGINNER') === level)
+                  courses: plan.courses!.filter(c => (c.level || 'BEGINNER') === level)
                 }))
                 .filter(g => g.courses.length > 0);
               let globalIdx = 0;
@@ -1408,14 +1375,14 @@ export default function TrainingPlanDetail() {
                 variants={cardVariants}
                 className={`rounded-2xl border overflow-hidden ${
                   isDark 
-                    ? 'bg-white/5 border-white/10 backdrop-blur-xl' 
+                    ? 'bg-white/5 border-white/10'
                     : 'bg-white border-gray-200 shadow-sm'
                 }`}
               >
                 {/* Course Header */}
                 <div className={`p-6 border-b ${isDark ? 'border-white/10' : 'border-gray-100'}`}>
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-700 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-red-600/30">
+                    <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-700 rounded-xl flex items-center justify-center text-white font-bold text-lg">
                       {idx + 1}
                     </div>
                     <div className="flex-1">
@@ -1462,8 +1429,8 @@ export default function TrainingPlanDetail() {
                     {isStudent && completionStatus?.is_finalized && getCourseCompletionStatus(course.id)?.is_complete && (
                       <div className="flex items-center ml-4">
                         {courseRatings[course.id] ? (
-                          <span className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-xl text-sm font-medium">
-                            <Star className="w-4 h-4 fill-green-400" />
+                          <span className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-sm font-bold">
+                            <Star className="w-4 h-4 fill-emerald-500" />
                             {t('trainingPlanDetail.courseRated', 'Curso Classificado')} ✓
                           </span>
                         ) : (
@@ -1472,7 +1439,7 @@ export default function TrainingPlanDetail() {
                               setSelectedCourse(course);
                               setShowCourseRatingModal(true);
                             }}
-                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-600 text-white rounded-xl font-medium hover:from-amber-600 hover:to-yellow-700 transition-all shadow-lg hover:shadow-xl"
+                            className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold transition-colors"
                           >
                             <Star className="w-4 h-4" />
                             {t('trainingPlanDetail.rateCourse', 'Classificar Curso')}
@@ -1618,7 +1585,7 @@ export default function TrainingPlanDetail() {
                                               <button
                                                 onClick={() => handleLessonAction(lesson.id, 'start')}
                                                 disabled={actionLoading === lesson.id}
-                                                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50"
+                                                className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                                               >
                                                 <Play className="w-4 h-4" />
                                                 {t('trainingPlanDetail.start')}
@@ -1631,7 +1598,7 @@ export default function TrainingPlanDetail() {
                                                 <button
                                                   onClick={() => handleLessonAction(lesson.id, 'pause')}
                                                   disabled={actionLoading === lesson.id}
-                                                  className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-lg text-sm font-medium hover:from-yellow-700 hover:to-orange-700 transition-all disabled:opacity-50"
+                                                  className="flex items-center gap-2 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                                                 >
                                                   <Pause className="w-4 h-4" />
                                                   {t('trainingPlanDetail.pause')}
@@ -1639,7 +1606,7 @@ export default function TrainingPlanDetail() {
                                                 <button
                                                   onClick={() => handleLessonAction(lesson.id, 'finish')}
                                                   disabled={actionLoading === lesson.id}
-                                                  className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
+                                                  className="flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                                                 >
                                                   <CheckCircle2 className="w-4 h-4" />
                                                   {t('trainingPlanDetail.finish')}
@@ -1653,7 +1620,7 @@ export default function TrainingPlanDetail() {
                                                 <button
                                                   onClick={() => handleLessonAction(lesson.id, 'resume')}
                                                   disabled={actionLoading === lesson.id}
-                                                  className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50"
+                                                  className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                                                 >
                                                   <Play className="w-4 h-4" />
                                                   {t('trainingPlanDetail.resume')}
@@ -1661,7 +1628,7 @@ export default function TrainingPlanDetail() {
                                                 <button
                                                   onClick={() => handleLessonAction(lesson.id, 'finish')}
                                                   disabled={actionLoading === lesson.id}
-                                                  className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
+                                                  className="flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                                                 >
                                                   <CheckCircle2 className="w-4 h-4" />
                                                   {t('trainingPlanDetail.finish')}
@@ -1684,7 +1651,7 @@ export default function TrainingPlanDetail() {
                                           <button
                                             onClick={() => handleLessonAction(lesson.id, 'confirm')}
                                             disabled={actionLoading === lesson.id}
-                                            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
+                                            className="flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                                           >
                                             <CheckCircle2 className="w-4 h-4" />
                                             {t('trainingPlanDetail.confirm')}
@@ -1709,8 +1676,8 @@ export default function TrainingPlanDetail() {
                                         {/* Classificar aula - quando plano finalizado e aula aprovada */}
                                         {completionStatus?.is_finalized && progress?.is_approved && (
                                           lessonRatings[lesson.id] ? (
-                                            <span className="flex items-center gap-1 px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-xs font-medium">
-                                              <Star className="w-3 h-3 fill-green-400" />
+                                            <span className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold">
+                                              <Star className="w-3 h-3 fill-emerald-500" />
                                               {t('trainingPlanDetail.rated', 'Classificado')} ✓
                                             </span>
                                           ) : (
@@ -1719,7 +1686,7 @@ export default function TrainingPlanDetail() {
                                                 setSelectedLesson(lesson);
                                                 setShowLessonRatingModal(true);
                                               }}
-                                              className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-600 text-white rounded-lg text-xs font-medium hover:from-amber-600 hover:to-yellow-700 transition-all"
+                                              className="flex items-center gap-1 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-colors"
                                             >
                                               <Star className="w-3 h-3" />
                                               {t('trainingPlanDetail.rateLesson', 'Classificar Aula')}
@@ -1737,7 +1704,7 @@ export default function TrainingPlanDetail() {
                                           <button
                                             onClick={() => handleLessonAction(lesson.id, 'release')}
                                             disabled={actionLoading === lesson.id}
-                                            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50"
+                                            className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                                           >
                                             <PlayCircle className="w-4 h-4" />
                                             {t('trainingPlanDetail.release')}
@@ -1749,7 +1716,7 @@ export default function TrainingPlanDetail() {
                                           <button
                                             onClick={() => handleLessonAction(lesson.id, 'start')}
                                             disabled={actionLoading === lesson.id}
-                                            className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
+                                            className="flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                                           >
                                             <Play className="w-4 h-4" />
                                             {t('trainingPlanDetail.startLesson')}
@@ -1780,7 +1747,7 @@ export default function TrainingPlanDetail() {
                                             <button
                                               onClick={() => handleLessonAction(lesson.id, 'pause')}
                                               disabled={actionLoading === lesson.id}
-                                              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-lg text-sm font-medium hover:from-yellow-700 hover:to-orange-700 transition-all disabled:opacity-50"
+                                              className="flex items-center gap-2 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                                             >
                                               <Pause className="w-4 h-4" />
                                               {t('trainingPlanDetail.pause')}
@@ -1788,7 +1755,7 @@ export default function TrainingPlanDetail() {
                                             <button
                                               onClick={() => handleLessonAction(lesson.id, 'finish')}
                                               disabled={actionLoading === lesson.id}
-                                              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
+                                              className="flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                                             >
                                               <CheckCircle2 className="w-4 h-4" />
                                               {t('trainingPlanDetail.finish')}
@@ -1815,7 +1782,7 @@ export default function TrainingPlanDetail() {
                                             <button
                                               onClick={() => handleLessonAction(lesson.id, 'resume')}
                                               disabled={actionLoading === lesson.id}
-                                              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50"
+                                              className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                                             >
                                               <Play className="w-4 h-4" />
                                               {t('trainingPlanDetail.resume')}
@@ -1823,7 +1790,7 @@ export default function TrainingPlanDetail() {
                                             <button
                                               onClick={() => handleLessonAction(lesson.id, 'finish')}
                                               disabled={actionLoading === lesson.id}
-                                              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50"
+                                              className="flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                                             >
                                               <CheckCircle2 className="w-4 h-4" />
                                               {t('trainingPlanDetail.finish')}
@@ -1849,7 +1816,7 @@ export default function TrainingPlanDetail() {
                                             })()}
                                             <button
                                               onClick={() => navigate(`/lessons/${lesson.id}/manage?planId=${id}&courseId=${course.id}`)}
-                                              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all"
+                                              className="flex items-center gap-2 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-bold transition-colors"
                                             >
                                               <Eye className="w-4 h-4" />
                                               {t('trainingPlanDetail.viewProgress')}
@@ -1875,7 +1842,7 @@ export default function TrainingPlanDetail() {
                                             <button
                                               onClick={() => handleLessonAction(lesson.id, 'approve')}
                                               disabled={actionLoading === lesson.id}
-                                              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg text-sm font-medium hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50 shadow-lg shadow-green-500/25"
+                                              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50"
                                             >
                                               <CheckCircle2 className="w-4 h-4" />
                                               {t('trainingPlanDetail.approveLesson')}
@@ -2011,7 +1978,7 @@ export default function TrainingPlanDetail() {
                                       challenge.challenge_type?.toUpperCase() === 'COMPLETE' ? (
                                         <button
                                           onClick={() => navigate(`/challenges/${challenge.id}/execute/complete?planId=${id}`)}
-                                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md"
+                                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold"
                                         >
                                           <Play className="w-4 h-4" />
                                           {t('trainingPlanDetail.startChallenge')}
@@ -2045,8 +2012,8 @@ export default function TrainingPlanDetail() {
                                           {/* Classificar desafio - quando plano finalizado e desafio aprovado */}
                                           {completionStatus?.is_finalized && submission.status === 'APPROVED' && (
                                             challengeRatings[challenge.id] ? (
-                                              <span className="flex items-center gap-1 px-3 py-1.5 bg-green-500/20 text-green-400 rounded-lg text-xs font-medium">
-                                                <Star className="w-3 h-3 fill-green-400" />
+                                              <span className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold">
+                                                <Star className="w-3 h-3 fill-emerald-500" />
                                                 {t('trainingPlanDetail.rated', 'Classificado')} ✓
                                               </span>
                                             ) : (
@@ -2055,7 +2022,7 @@ export default function TrainingPlanDetail() {
                                                   setSelectedChallengeForRating(challenge);
                                                   setShowChallengeRatingModal(true);
                                                 }}
-                                                className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-600 text-white rounded-lg text-xs font-medium hover:from-amber-600 hover:to-yellow-700 transition-all"
+                                                className="flex items-center gap-1 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-colors"
                                               >
                                                 <Star className="w-3 h-3" />
                                                 {t('trainingPlanDetail.rateChallenge', 'Classificar Desafio')}
@@ -2068,8 +2035,8 @@ export default function TrainingPlanDetail() {
                                           onClick={() => navigate(`/challenges/${challenge.id}/execute/complete?planId=${id}&submissionId=${submission.id}`)}
                                           className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                                             isDark 
-                                              ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600' 
-                                              : 'bg-gradient-to-r from-orange-500 to-amber-500 text-white hover:from-orange-600 hover:to-amber-600'
+                                              ? 'bg-orange-500 hover:bg-orange-600 text-white'
+                                              : 'bg-orange-500 hover:bg-orange-600 text-white'
                                           }`}
                                         >
                                           <Play className="w-4 h-4" />
@@ -2083,7 +2050,7 @@ export default function TrainingPlanDetail() {
                                       <button
                                         onClick={() => handleReleaseChallenge(challenge.id)}
                                         disabled={actionLoading === challenge.id}
-                                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md disabled:opacity-50"
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold disabled:opacity-50"
                                       >
                                         <PlayCircle className="w-4 h-4" />
                                         {t('trainingPlanDetail.release')}
@@ -2094,7 +2061,7 @@ export default function TrainingPlanDetail() {
                                       challenge.challenge_type?.toUpperCase() === 'SUMMARY' ? (
                                         <button
                                           onClick={() => navigate(`/challenges/${challenge.id}/execute/summary?planId=${id}${selectedStudentId ? `&studentId=${selectedStudentId}` : ''}`)}
-                                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all shadow-sm hover:shadow-md"
+                                          className="flex items-center gap-2 px-4 py-2 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-bold"
                                         >
                                           <Play className="w-4 h-4" />
                                           {t('trainingPlanDetail.applyChallenge')}
@@ -2125,7 +2092,7 @@ export default function TrainingPlanDetail() {
                                         {(submission.status === 'PENDING_REVIEW' || submission.status === 'SUBMITTED') && !submission.is_approved && (
                                           <button
                                             onClick={() => navigate(`/submissions/${submission.id}/review?planId=${id}`)}
-                                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-600 to-orange-600 text-white rounded-xl font-semibold hover:from-yellow-700 hover:to-orange-700 transition-all shadow-sm hover:shadow-md"
+                                            className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold"
                                           >
                                             <Settings2 className="w-4 h-4" />
                                             {t('trainingPlanDetail.correct')}
@@ -2158,7 +2125,7 @@ export default function TrainingPlanDetail() {
                                                     alert(err.response?.data?.detail || t('trainingPlanDetail.retryError', 'Erro ao liberar nova tentativa'));
                                                   }
                                                 }}
-                                                className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg text-sm font-medium hover:from-orange-600 hover:to-amber-600 transition-all shadow-sm"
+                                                className="flex items-center gap-2 px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-bold transition-colors shadow-sm"
                                               >
                                                 <RotateCcw className="w-4 h-4" />
                                                 {t('trainingPlanDetail.allowRetry', 'Nova Tentativa')}

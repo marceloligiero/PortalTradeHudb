@@ -98,13 +98,13 @@ O backend lê as variáveis de ambiente do ficheiro `backend/.env`.
 
 | Variável | Obrigatória | Descrição | Exemplo |
 |---|:---:|---|---|
-| `DATABASE_URL` | ✅ | Connection string da base de dados | `mysql+pymysql://root:pass@localhost/tradehub_db` |
+| `DATABASE_URL` | ✅ | Connection string da base de dados | `mysql+pymysql://tradehub_user:SENHA@localhost/tradehub_db` |
 | `SECRET_KEY` | ✅ | Chave para assinar tokens JWT | gerar com `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
 | `ALLOWED_ORIGINS` | ❌ | Origens CORS permitidas (separadas por vírgula) | `http://localhost:5173` |
 | `ALGORITHM` | ❌ | Algoritmo JWT (padrão: `HS256`) | `HS256` |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | ❌ | Validade do token em minutos (padrão: `480`) | `480` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | ❌ | Validade do token em minutos (padrão: `30`) | `30` |
 | `DEBUG` | ❌ | Modo debug, desativa CORS restrito (padrão: `false`) | `true` |
-| `FRONTEND_URL` | ❌ | URL base do frontend, para links de e-mail | `https://srv1242193.hstgr.cloud` |
+| `FRONTEND_URL` | ❌ | URL base do frontend, para links de e-mail | `https://portaltradedatahub.example.com` |
 | `SMTP_HOST` | ❌ | Servidor SMTP para recuperação de senha | `smtp.gmail.com` |
 | `SMTP_PORT` | ❌ | Porta SMTP (padrão: `587`) | `587` |
 | `SMTP_USER` | ❌ | Utilizador SMTP | `no-reply@tradehub.com` |
@@ -136,10 +136,6 @@ Acessos locais:
 - Backend API: http://localhost:8000
 - Documentação interactiva da API: http://localhost:8000/docs
 
-**Credenciais padrão (alterar em produção):**
-- Email: `admin@tradehub.com`
-- Password: `admin123`
-
 ### Windows (scripts de arranque rápido)
 
 ```bat
@@ -150,21 +146,16 @@ start-frontend.bat   # Apenas frontend
 
 ### Produção (VPS)
 
-O projecto corre num VPS Ubuntu com PM2 + Nginx.
-
-- **IP**: 72.60.188.172
-- **Domínio**: srv1242193.hstgr.cloud
-- **Frontend**: https://srv1242193.hstgr.cloud
-- **API**: https://srv1242193.hstgr.cloud/api
+O projecto corre num VPS Ubuntu com Docker Compose + Nginx.
 
 ```bash
-# No VPS: /var/www/tradehub
-./start-vps.sh update    # Pull + deps + build frontend + restart PM2
+# No VPS: /opt/tradehub
+./start-vps.sh update    # Pull + deps + build frontend + restart
 ./start-vps.sh quick     # Pull + deps Python + restart backend (sem rebuild)
 ./start-vps.sh frontend  # Pull + build frontend apenas
-./start-vps.sh restart   # Reiniciar todos os serviços PM2
-./start-vps.sh stop      # Parar todos os serviços PM2
-./start-vps.sh status    # Status PM2 + últimos 20 logs
+./start-vps.sh restart   # Reiniciar todos os serviços
+./start-vps.sh stop      # Parar todos os serviços
+./start-vps.sh status    # Status + últimos 20 logs
 ```
 
 O deploy automático é feito via GitHub Actions a cada push para `main` (ver `.github/workflows/deploy.yml`).
@@ -172,27 +163,19 @@ O deploy automático é feito via GitHub Actions a cada push para `main` (ver `.
 #### Primeiro deploy manual
 
 ```bash
-ssh root@72.60.188.172
-cd /var/www
+# Ligar ao servidor via SSH (configurar SERVER_HOST, SERVER_USER nos secrets)
+ssh <user>@<servidor>
+cd /opt
 git clone https://github.com/marceloligiero/PortalTradeHudb.git tradehub
 cd tradehub
 
-# Backend
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-# Criar backend/.env com DATABASE_URL e SECRET_KEY
+# Configurar variáveis de ambiente
+cp .env.example .env
+cp backend/.env.example backend/.env
+# Editar ambos os ficheiros com valores de produção
 
-# Frontend
-cd ../frontend
-npm ci
-npm run build
-
-# Iniciar com PM2
-pm2 start ecosystem.config.js
-pm2 save
-pm2 startup
+# Iniciar
+docker compose up -d
 ```
 
 ---

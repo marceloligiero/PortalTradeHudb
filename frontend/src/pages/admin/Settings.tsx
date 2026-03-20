@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Settings as SettingsIcon, Save, Bell, Shield, Database } from 'lucide-react';
+import { useAuthStore, canWrite } from '../../stores/authStore';
 
 export default function SettingsPage() {
   const { t } = useTranslation();
+  const { user: authUser } = useAuthStore();
+  const writable = canWrite(authUser);
   const [settings, setSettings] = useState({
     siteName: 'Portal de Formações',
     siteDescription: 'Plataforma de gestão de formações',
@@ -54,7 +57,8 @@ export default function SettingsPage() {
                   type="text"
                   value={settings.siteName}
                   onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all"
+                  disabled={!writable}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
               <div>
@@ -65,7 +69,8 @@ export default function SettingsPage() {
                   value={settings.siteDescription}
                   onChange={(e) => setSettings({ ...settings, siteDescription: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all resize-none"
+                  disabled={!writable}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all resize-none disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
@@ -92,6 +97,7 @@ export default function SettingsPage() {
                     type="checkbox"
                     checked={settings.emailNotifications}
                     onChange={(e) => setSettings({ ...settings, emailNotifications: e.target.checked })}
+                    disabled={!writable}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-gray-200 dark:bg-white/10 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-red-600 peer-checked:to-red-700"></div>
@@ -121,6 +127,7 @@ export default function SettingsPage() {
                     type="checkbox"
                     checked={settings.autoApproveTrainers}
                     onChange={(e) => setSettings({ ...settings, autoApproveTrainers: e.target.checked })}
+                    disabled={!writable}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-gray-200 dark:bg-white/10 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-red-600 peer-checked:to-red-700"></div>
@@ -141,6 +148,7 @@ export default function SettingsPage() {
                     type="checkbox"
                     checked={settings.requireEmailVerification}
                     onChange={(e) => setSettings({ ...settings, requireEmailVerification: e.target.checked })}
+                    disabled={!writable}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-gray-200 dark:bg-white/10 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-red-600 peer-checked:to-red-700"></div>
@@ -161,6 +169,7 @@ export default function SettingsPage() {
                     type="checkbox"
                     checked={settings.allowSelfRegistration}
                     onChange={(e) => setSettings({ ...settings, allowSelfRegistration: e.target.checked })}
+                    disabled={!writable}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-gray-200 dark:bg-white/10 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-red-600 peer-checked:to-red-700"></div>
@@ -175,20 +184,23 @@ export default function SettingsPage() {
                   type="number"
                   value={settings.maxStudentsPerCourse}
                   onChange={(e) => setSettings({ ...settings, maxStudentsPerCourse: parseInt(e.target.value) })}
-                  className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all"
+                  disabled={!writable}
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 />
               </div>
             </div>
           </div>
 
           {/* Save Button */}
-          <button
-            onClick={handleSave}
-            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-medium hover:from-red-700 hover:to-red-800 transition-all shadow-lg shadow-red-900/50"
-          >
-            <Save className="w-5 h-5" />
-            {t('admin.saveSettings')}
-          </button>
+          {writable && (
+            <button
+              onClick={handleSave}
+              className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-medium hover:from-red-700 hover:to-red-800 transition-all shadow-lg shadow-red-900/50"
+            >
+              <Save className="w-5 h-5" />
+              {t('admin.saveSettings')}
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -75,10 +75,10 @@ const StudentChallengeExecution: React.FC = () => {
   const getPausedDurationKey = () => `challenge_paused_${submissionId}`;
   const getPauseStartKey = () => `challenge_pause_start_${submissionId}`;
   const savePausedDuration = (duration: number) => {
-    try { localStorage.setItem(getPausedDurationKey(), String(duration)); } catch {}
+    try { localStorage.setItem(getPausedDurationKey(), String(duration)); } catch { /* ignore */ }
   };
   const savePauseStart = (timestamp: number) => {
-    try { localStorage.setItem(getPauseStartKey(), String(timestamp)); } catch {}
+    try { localStorage.setItem(getPauseStartKey(), String(timestamp)); } catch { /* ignore */ }
   };
   const loadPausedDuration = (): number => {
     try { return parseInt(localStorage.getItem(getPausedDurationKey()) || '0') || 0; } catch { return 0; }
@@ -88,9 +88,9 @@ const StudentChallengeExecution: React.FC = () => {
   };
   const clearPausedDuration = () => {
     try { 
-      localStorage.removeItem(getPausedDurationKey()); 
+      localStorage.removeItem(getPausedDurationKey());
       localStorage.removeItem(getPauseStartKey());
-    } catch {}
+    } catch { /* ignore */ }
   };
 
   // Carregar operações existentes se houver submissionId

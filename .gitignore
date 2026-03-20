@@ -19,18 +19,22 @@ backend/venv/
 dist/
 build/
 *.whl
+wheels/
 
 # ── Node.js / Frontend ─────────────────────────────────
 frontend/node_modules/
 frontend/.vite/
 frontend/.cache/
-# frontend/dist/ é commitado intencionalmente (build de produção)
+frontend/dist/
 
 # ── Ambiente (NUNCA commitar .env com valores reais) ───
 .env
 .env.local
 .env.*.local
 backend/.env
+backend/.env.*
+!backend/.env.example
+!backend/.env.*.example
 frontend/.env
 frontend/.env.local
 frontend/.env.production
@@ -87,6 +91,11 @@ ssl/
 *_backup*
 *_dump*
 *.dump.sql
+database/backup_*.sql
+
+# ── Community Skills (instalação local) ──────────────
+.agents/
+skills-lock.json
 
 # ── Ferramentas de tunnel (dev local) ──────────────────
 cloudflared.exe
@@ -100,7 +109,16 @@ win-acme.zip
 # ── Claude Code (IDE local) ────────────────────────────
 .claude/
 
+# ── Deploy nativo Windows (sem Docker) ────────────────
+.nodocker-config
+backups/
+logs/
+
 # ── Outros artefactos ──────────────────────────────────
 backend/exception_trace.txt
+backend/error_trace.txt
 frontend/src/pages/admin/Reports_backup.tsx
 install-service-output.txt
+
+# ── Deploy keys (public key stored for reference, keep out of repo) ────────
+.github/deploy-keys/

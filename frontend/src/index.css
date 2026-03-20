@@ -1,6 +1,34 @@
+@import './assets/fonts/santander-fonts.css';
+
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+html.dark {
+  color-scheme: dark;
+}
+html.dark body {
+  background-color: #09090B;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Landing page marquee animation */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 45s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+  }
+}
 
 /* Animações Blob */
 @keyframes blob {
@@ -59,14 +87,10 @@
   animation: fadeInScale 0.2s ease-out;
 }
 
-/* Shimmer */
+/* Shimmer — ANIM 12: usado no hero titleHighlight e no .animate-shimmer genérico */
 @keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
-  }
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
 }
 
 .animate-shimmer {
@@ -102,6 +126,18 @@
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
+/* ══ Browser autofill — transparent bg regardless of theme ═════════════ */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: inherit !important;
+  caret-color: inherit !important;
+  -webkit-box-shadow: none !important;
+  box-shadow: none !important;
+  transition: background-color 9999s ease-in-out 0s !important;
+}
+
 @layer base {
   * {
     @apply border-gray-200 dark:border-gray-800;
@@ -111,6 +147,18 @@
   }
   html {
     scroll-behavior: smooth;
+  }
+
+  /* ══ Chart CSS variables (light / dark) ═══════════════════════════════ */
+  :root {
+    --tooltip-bg: #ffffff;
+    --axis-color: #9ca3af;
+    --grid-color: #f3f4f6;
+  }
+  .dark {
+    --tooltip-bg: #1a1a2e;
+    --axis-color: #6b7280;
+    --grid-color: rgba(255, 255, 255, 0.06);
   }
 }
 
@@ -304,6 +352,21 @@
   }
 }
 
+/* ==================== ACESSIBILIDADE — REDUCED MOTION ==================== */
+/* OBRIGATÓRIO (skill 10) — desliga todas as animações/transições */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-marquee,
+  .animate-bounce-down {
+    animation: none !important;
+  }
+}
+
 /* ==================== PRINT STYLES ==================== */
 @media print {
   /* Hide everything except the certificate */
@@ -368,4 +431,142 @@
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+}
+
+/* ══ Tab fade-in animation (SolutionTabs) ═════════════════════════════ */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ══ CineFadeIn — lower third entrance ══════════════════════════════ */
+@keyframes cineFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ══ ThoughtBubble — pensamento que se materializa ══════════════════ */
+@keyframes thoughtBubbleLeft {
+  0%   { opacity: 0; transform: translateY(20px) translateX(-5px) scale(0.92); filter: blur(4px); }
+  100% { opacity: 1; transform: translateY(0)    translateX(0)    scale(1);    filter: blur(0);   }
+}
+@keyframes thoughtBubbleRight {
+  0%   { opacity: 0; transform: translateY(20px) translateX(5px)  scale(0.92); filter: blur(4px); }
+  100% { opacity: 1; transform: translateY(0)    translateX(0)    scale(1);    filter: blur(0);   }
+}
+
+/* ══ ThoughtFloat — flutuação subtil após aparecimento ══════════════ */
+@keyframes thoughtFloat {
+  0%, 100% { transform: translateY(0);    }
+  50%       { transform: translateY(-4px); }
+}
+
+/* ══ LineGlow — vertical divider red pulse ═══════════════════════════ */
+@keyframes lineGlow {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.85; }
+}
+
+/* ══ ParticleDrop — red dot sliding down center line ════════════════ */
+@keyframes particleDrop {
+  0%   { top: -6px;             opacity: 0; }
+  8%   { opacity: 1; }
+  92%  { opacity: 1; }
+  100% { top: calc(100% + 6px); opacity: 0; }
+}
+
+/* ══ GrainShift — subtle film grain movement ════════════════════════ */
+@keyframes grainShift {
+  0%, 100% { transform: translate(0, 0); }
+  25%       { transform: translate(-2px, 1px); }
+  50%       { transform: translate(1px, -1px); }
+  75%       { transform: translate(-1px, 2px); }
+}
+
+/* ══ Shine — used in LandingNavbar register button ═══════════════════ */
+@keyframes shine {
+  0% { transform: translateX(-100%); }
+  20% { transform: translateX(100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ══ ChatSlideIn — Teams-style message entrance ══════════════════════ */
+@keyframes chatSlideInLeft {
+  from { opacity: 0; transform: translateX(-20px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0)     scale(1);    }
+}
+@keyframes chatSlideInRight {
+  from { opacity: 0; transform: translateX(20px)  scale(0.95); }
+  to   { opacity: 1; transform: translateX(0)     scale(1);    }
+}
+
+/* ══ TypingDot — bouncing dots for "Escribiendo…" indicator ══════════ */
+@keyframes typingDot {
+  0%, 100% { opacity: 0.3; transform: translateY(0);    }
+  50%       { opacity: 1;   transform: translateY(-2px); }
+}
+
+/* ══ Stock Ticker — horizontal infinite scroll ═══════════════════════ */
+@keyframes tickerScrollL {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes tickerScrollR {
+  0%   { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+/* ══ TickerFadeIn — card entrance with delay ═════════════════════════ */
+@keyframes tickerFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+/* ══ Scroll reveal ════════════════════════════════════════════════════ */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ══ Scroll cue — mouse wheel dot ═════════════════════════════════════ */
+@keyframes scrollDot {
+  0%         { opacity: 1; transform: translateX(-50%) translateY(0); }
+  50%        { opacity: 0.3; transform: translateX(-50%) translateY(12px); }
+  51%        { opacity: 0; transform: translateX(-50%) translateY(0); }
+  70%        { opacity: 1; transform: translateX(-50%) translateY(0); }
+  100%       { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ══ Bounce chevron — subtle down-arrow pulse ═════════════════════════ */
+@keyframes bounceChevron {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50%      { transform: translateY(4px); opacity: 1; }
+}
+
+/* ══ OrbPulse — section transition pulsing orb ════════════════════════ */
+@keyframes orbPulse {
+  0%, 100% { transform: scale(1);   opacity: 0.7; }
+  50%       { transform: scale(1.6); opacity: 0.3; }
+}
+
+/* ══ Reduced motion — disable scroll cue animations ═══════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes scrollDot     { 0%, 100% { opacity: 1; transform: translateX(-50%); } }
+  @keyframes bounceChevron { 0%, 100% { opacity: 1; transform: none; } }
+  @keyframes orbPulse      { 0%, 100% { transform: scale(1); opacity: 0.5; } }
 }

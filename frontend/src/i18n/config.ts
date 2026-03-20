@@ -40,8 +40,8 @@ i18n
     },
   });
 
-// Temporary runtime diagnostics - remove after debugging translations
-if (typeof window !== 'undefined') {
+// Temporary runtime diagnostics — only in development (H10)
+if (import.meta.env.DEV && typeof window !== 'undefined') {
   // Log current language and check if pt-PT resources exist
   // eslint-disable-next-line no-console
   console.log('i18n: current language =', i18n.language);

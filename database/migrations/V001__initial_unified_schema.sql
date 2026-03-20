@@ -132,11 +132,32 @@ SELECT '=== SECÇÃO 1: Adicionando colunas ===' AS progress;
 
 -- ─── 1.1 users ──────────────────────────────────────────────────────
 CALL add_column_if_not_exists('users', 'validated_at',  'DATETIME NULL');
+CALL add_column_if_not_exists('users', 'is_pending',    'BOOLEAN NOT NULL DEFAULT FALSE');
 CALL add_column_if_not_exists('users', 'is_trainer',    'BOOLEAN NOT NULL DEFAULT FALSE');
 CALL add_column_if_not_exists('users', 'is_tutor',      'BOOLEAN NOT NULL DEFAULT FALSE');
 CALL add_column_if_not_exists('users', 'is_liberador',  'BOOLEAN NOT NULL DEFAULT FALSE');
+CALL add_column_if_not_exists('users', 'is_team_lead',  'BOOLEAN NOT NULL DEFAULT FALSE');
+CALL add_column_if_not_exists('users', 'is_referente',  'BOOLEAN NOT NULL DEFAULT FALSE');
 CALL add_column_if_not_exists('users', 'tutor_id',      'INT NULL');
 CALL add_column_if_not_exists('users', 'team_id',       'INT NULL');
+
+-- ─── 1.X banks ──────────────────────────────────────────────────
+-- Adicionar code/country se vieram de schema antigo (sem essas colunas)
+CALL add_column_if_not_exists('banks', 'code',    'VARCHAR(10) NULL');
+CALL add_column_if_not_exists('banks', 'country', 'VARCHAR(50) NULL');
+-- Gerar codes unicos para linhas existentes sem code
+UPDATE banks SET code = CONCAT('BANK', LPAD(id, 3, '0')) WHERE code IS NULL OR code = '';
+UPDATE banks SET country = 'ES' WHERE country IS NULL OR country = '';
+
+-- ─── 1.Y products ───────────────────────────────────────────────
+CALL add_column_if_not_exists('products', 'code', 'VARCHAR(50) NULL');
+UPDATE products SET code = CONCAT('PROD', LPAD(id, 3, '0')) WHERE code IS NULL OR code = '';
+
+-- Garantir is_active NOT NULL com DEFAULT 1 em banks e products
+UPDATE banks    SET is_active = 1 WHERE is_active IS NULL;
+UPDATE products SET is_active = 1 WHERE is_active IS NULL;
+CALL safe_modify_column('banks',    'is_active', 'TINYINT(1) NOT NULL DEFAULT 1');
+CALL safe_modify_column('products', 'is_active', 'TINYINT(1) NOT NULL DEFAULT 1');
 
 -- ─── 1.2 training_plans ────────────────────────────────────────────
 CALL add_column_if_not_exists('training_plans', 'student_id',    'INT NULL');

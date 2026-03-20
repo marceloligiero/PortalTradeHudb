@@ -7,15 +7,24 @@ import { useNavigate } from 'react-router-dom';
 import {
   Loader2, Tag, Plus, Pencil, ToggleLeft, ToggleRight,
   ChevronRight, AlertTriangle, Check, X, FolderOpen,
+  Eye, EyeOff, RefreshCw,
 } from 'lucide-react';
 import TutoriaPage from './TutoriaPage';
 import { useTranslation } from 'react-i18next';
+
+interface Origin {
+  id: number;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+}
 
 interface Category {
   id: number;
   name: string;
   description: string | null;
   parent_id: number | null;
+  origin_id: number | null;
   is_active: boolean;
   created_at: string;
 }
@@ -24,9 +33,10 @@ interface FormState {
   name: string;
   description: string;
   parent_id: string;
+  origin_id: string;
 }
 
-const EMPTY_FORM: FormState = { name: '', description: '', parent_id: '' };
+const EMPTY_FORM: FormState = { name: '', description: '', parent_id: '', origin_id: '' };
 
 export default function TutoriaCategories() {
   const { user } = useAuthStore();
@@ -35,10 +45,12 @@ export default function TutoriaCategories() {
   const { t } = useTranslation();
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [origins, setOrigins] = useState<Origin[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
 
   // Form state
   const [showForm, setShowForm] = useState(false);

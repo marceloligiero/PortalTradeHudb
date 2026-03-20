@@ -1,19 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { 
-  BookOpen, 
-  Play, 
-  Pause, 
-  Square, 
-  User, 
-  ArrowLeft,
-  RefreshCw,
-  CheckCircle,
-  AlertCircle,
-  Timer,
-  Users
+import {
+  BookOpen, Play, Pause, Square, User, ArrowLeft,
+  RefreshCw, CheckCircle, AlertCircle, Timer, Users
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -57,59 +47,57 @@ export default function LessonManagement() {
   const { lessonId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { token } = useAuthStore();
+  const { token, user } = useAuthStore();
   const { t } = useTranslation();
-  
+  const isTutor = user?.is_tutor === true;
+
   const trainingPlanId = searchParams.get('planId');
-  
+
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [progressMap, setProgressMap] = useState<Record<number, LessonProgress>>({});
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
+  const [error, setError] = useState('');
+
+  /* ── Load data ── */
 
   const loadData = useCallback(async () => {
     if (!token || !lessonId) return;
-    
     try {
       setLoading(true);
-      
-      // Buscar dados da lição
+      setError('');
       const lessonResp = await api.get(`/api/lessons/${lessonId}/detail`);
       setLesson(lessonResp.data);
-      
-      // Buscar alunos do plano de formação
+
       if (trainingPlanId) {
         const studentsResp = await api.get(`/api/training-plans/${trainingPlanId}/students`);
         setStudents(studentsResp.data || []);
-        
-        // Buscar progresso de cada aluno
+
         const progressData: Record<number, LessonProgress> = {};
         for (const student of studentsResp.data || []) {
           try {
             const progResp = await api.get(`/api/lessons/${lessonId}/progress`, {
-              params: { user_id: student.user_id, training_plan_id: trainingPlanId }
+              params: { user_id: student.user_id, training_plan_id: trainingPlanId },
             });
             progressData[student.user_id] = progResp.data;
-          } catch (e) {
-            // Sem progresso ainda
+          } catch {
+            // No progress yet
           }
         }
         setProgressMap(progressData);
       }
-    } catch (error) {
-      console.error('Error loading data:', error);
+    } catch {
+      setError(t('messages.error'));
     } finally {
       setLoading(false);
     }
-  }, [token, lessonId, trainingPlanId]);
+  }, [token, lessonId, trainingPlanId, t]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  // Atualizar tempos a cada segundo
+  // Tick timers every second
   useEffect(() => {
     const interval = setInterval(() => {
       setProgressMap(prev => {
@@ -120,422 +108,315 @@ export default function LessonManagement() {
               ...prog,
               elapsed_seconds: prog.elapsed_seconds + 1,
               remaining_seconds: Math.max(0, prog.remaining_seconds - 1),
-              is_delayed: (prog.elapsed_seconds + 1) > (prog.estimated_minutes * 60)
+              is_delayed: (prog.elapsed_seconds + 1) > (prog.estimated_minutes * 60),
             };
           }
         }
         return updated;
       });
     }, 1000);
-    
     return () => clearInterval(interval);
   }, []);
 
-  const handleStartLesson = async (studentId: number) => {
+  /* ── Actions ── */
+
+  const doAction = async (action: string, studentId: number) => {
     try {
       setActionLoading(studentId);
-      await api.post(`/api/lessons/${lessonId}/start`, null, {
-        params: { user_id: studentId, training_plan_id: trainingPlanId }
+      setError('');
+      await api.post(`/api/lessons/${lessonId}/${action}`, null, {
+        params: { user_id: studentId, training_plan_id: trainingPlanId },
       });
       await loadData();
-    } catch (error: any) {
-      alert(error.response?.data?.detail || 'Erro ao iniciar módulo');
+    } catch (err: any) {
+      setError(err.response?.data?.detail || t('messages.error'));
     } finally {
       setActionLoading(null);
     }
   };
 
-  const handlePauseLesson = async (studentId: number) => {
-    try {
-      setActionLoading(studentId);
-      await api.post(`/api/lessons/${lessonId}/pause`, null, {
-        params: { user_id: studentId, training_plan_id: trainingPlanId }
-      });
-      await loadData();
-    } catch (error: any) {
-      alert(error.response?.data?.detail || 'Erro ao pausar módulo');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleResumeLesson = async (studentId: number) => {
-    try {
-      setActionLoading(studentId);
-      await api.post(`/api/lessons/${lessonId}/resume`, null, {
-        params: { user_id: studentId, training_plan_id: trainingPlanId }
-      });
-      await loadData();
-    } catch (error: any) {
-      alert(error.response?.data?.detail || 'Erro ao retomar módulo');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleFinishLesson = async (studentId: number) => {
-    try {
-      setActionLoading(studentId);
-      await api.post(`/api/lessons/${lessonId}/finish`, null, {
-        params: { user_id: studentId, training_plan_id: trainingPlanId }
-      });
-      await loadData();
-    } catch (error: any) {
-      alert(error.response?.data?.detail || 'Erro ao terminar módulo');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleBulkStart = async () => {
-    if (selectedStudents.length === 0) {
-      alert(t('lessonManagement.selectAtLeastOne'));
-      return;
-    }
-    
-    for (const studentId of selectedStudents) {
-      await handleStartLesson(studentId);
-    }
-    setSelectedStudents([]);
-  };
-
-  const handleBulkFinish = async () => {
-    if (selectedStudents.length === 0) {
-      alert(t('lessonManagement.selectAtLeastOne'));
-      return;
-    }
-    
-    for (const studentId of selectedStudents) {
-      const prog = progressMap[studentId];
-      if (prog && prog.status === 'IN_PROGRESS') {
-        await handleFinishLesson(studentId);
+  const handleBulkAction = async (action: 'start' | 'finish') => {
+    if (selectedStudents.length === 0) return;
+    for (const sid of selectedStudents) {
+      if (action === 'finish') {
+        const prog = progressMap[sid];
+        if (!prog || prog.status !== 'IN_PROGRESS') continue;
       }
+      await doAction(action, sid);
     }
     setSelectedStudents([]);
   };
 
-  const formatTime = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    if (h > 0) {
-      return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    }
-    return `${m}:${s.toString().padStart(2, '0')}`;
+  /* ── Helpers ── */
+
+  const fmtTime = (s: number) => {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    return h > 0
+      ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+      : `${m}:${String(sec).padStart(2, '0')}`;
   };
 
-  const getStatusBadge = (progress?: LessonProgress) => {
-    if (!progress || progress.status === 'NOT_STARTED') {
-      return (
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-500/20 text-gray-500 dark:text-gray-400 border border-gray-500/30">
-          {t('lessonManagement.notStarted')}
-        </span>
-      );
-    }
-    if (progress.status === 'COMPLETED') {
-      return (
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30">
-          <CheckCircle className="w-3 h-3 inline mr-1" />
-          {t('lessonManagement.completed')}
-        </span>
-      );
-    }
-    if (progress.is_paused) {
-      return (
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30">
-          <Pause className="w-3 h-3 inline mr-1" />
-          {t('lessonManagement.paused')}
-        </span>
-      );
-    }
-    return (
-      <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30">
-        <Play className="w-3 h-3 inline mr-1" />
-        {t('lessonManagement.inProgress')}
-      </span>
-    );
+  const progressPct = (prog: LessonProgress) => {
+    const totalSec = (lesson?.estimated_minutes || 1) * 60;
+    return Math.min(100, (prog.elapsed_seconds / totalSec) * 100);
   };
+
+  const toggleStudent = (uid: number) =>
+    setSelectedStudents(prev => prev.includes(uid) ? prev.filter(id => id !== uid) : [...prev, uid]);
+
+  const toggleAll = () =>
+    setSelectedStudents(prev => prev.length === students.length ? [] : students.map(s => s.user_id));
+
+  /* ── Loading ── */
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full"
-        />
+        <div className="w-10 h-10 border-[3px] border-[#EC0000] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
+  const estMin = lesson?.estimated_minutes || 0;
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+    <div className="max-w-4xl mx-auto space-y-4">
+
+      {/* ── Header ── */}
+      <div className="flex items-center gap-3">
+        <button onClick={() => navigate(-1)}
+          className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+          <ArrowLeft className="w-4 h-4" />
         </button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-500 rounded-xl">
-              <BookOpen className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {t('lessonManagement.title')}: {lesson?.title}
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                {lesson?.lesson_type} • {t('lessonManagement.estimatedMinutes', { minutes: lesson?.estimated_minutes })}
-              </p>
-            </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white truncate">
+              {lesson?.title}
+            </h1>
+            {isTutor && (
+              <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#EC0000] text-white">
+                {t('lessonManagement.tutorMode')}
+              </span>
+            )}
           </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {lesson?.lesson_type === 'THEORETICAL' ? t('lessons.theoretical', 'Teórico') : t('lessons.practical', 'Prático')}
+            {' · '}{estMin} min
+          </p>
         </div>
-        <button
-          onClick={loadData}
-          className="p-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg transition-colors"
-        >
-          <RefreshCw className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+        <button onClick={loadData}
+          className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+          <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Ações em massa */}
-      <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm dark:shadow-none">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
-              <input
-                type="checkbox"
-                checked={selectedStudents.length === students.length && students.length > 0}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    setSelectedStudents(students.map(s => s.user_id));
-                  } else {
-                    setSelectedStudents([]);
-                  }
-                }}
-                className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-red-600"
-              />
-              {t('lessonManagement.selectAll')} ({selectedStudents.length}/{students.length})
-            </label>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={handleBulkStart}
-              disabled={selectedStudents.length === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
-            >
-              <Play className="w-4 h-4" />
-              {t('lessonManagement.startSelected')}
-            </button>
-            <button
-              onClick={handleBulkFinish}
-              disabled={selectedStudents.length === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
-            >
-              <Square className="w-4 h-4" />
-              {t('lessonManagement.finishSelected')}
-            </button>
-          </div>
+      {/* Error */}
+      {error && (
+        <div className="flex items-center gap-2 p-3 rounded-lg border border-red-200 dark:border-red-500/20 bg-red-50 dark:bg-red-500/5 text-sm text-red-700 dark:text-red-400">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
+      {/* ── Bulk actions bar ── */}
+      <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-2.5">
+        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={selectedStudents.length === students.length && students.length > 0}
+            onChange={toggleAll}
+            className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-[#EC0000] focus:ring-[#EC0000]/20"
+          />
+          {t('lessonManagement.selectAll')} ({selectedStudents.length}/{students.length})
+        </label>
+        <div className="flex gap-2">
+          <button onClick={() => handleBulkAction('start')} disabled={selectedStudents.length === 0}
+            title={isTutor ? t('lessonManagement.initiatedByTutor') : undefined}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold transition-colors">
+            <Play className="w-3.5 h-3.5" />
+            {isTutor ? t('lessonManagement.startAllTutor') : t('lessonManagement.startSelected')}
+          </button>
+          <button onClick={() => handleBulkAction('finish')} disabled={selectedStudents.length === 0}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#EC0000] hover:bg-[#CC0000] disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg text-xs font-semibold transition-colors">
+            <Square className="w-3.5 h-3.5" />
+            {t('lessonManagement.finishSelected')}
+          </button>
         </div>
       </div>
 
-      {/* Lista de alunos */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-          <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          {t('lessonManagement.students')} ({students.length})
-        </h2>
+      {/* ── Students list ── */}
+      {students.length === 0 ? (
+        <div className="text-center py-16">
+          <Users className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+            {t('lessonManagement.noStudentsAssigned')}
+          </p>
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            {t('lessonManagement.planHasNoStudents')}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {students.map(student => {
+            const prog = progressMap[student.user_id];
+            const isSelected = selectedStudents.includes(student.user_id);
+            const status = prog?.status || 'NOT_STARTED';
+            const isActive = status === 'IN_PROGRESS';
+            const isPaused = prog?.is_paused ?? false;
+            const isCompleted = status === 'COMPLETED';
+            const isDelayed = prog?.is_delayed ?? false;
+            const hasTimer = prog && status !== 'NOT_STARTED';
+            const isLoading = actionLoading === student.user_id;
 
-        {students.length === 0 ? (
-          <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-12 text-center">
-            <Users className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              {t('lessonManagement.noStudentsAssigned')}
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400">
-              {t('lessonManagement.planHasNoStudents')}
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-4">
-            {students.map((student, index) => {
-              const progress = progressMap[student.user_id];
-              const isSelected = selectedStudents.includes(student.user_id);
-              
-              return (
-                <motion.div
-                  key={student.user_id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className={`relative overflow-hidden bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border transition-all shadow-sm dark:shadow-none ${
-                    isSelected ? 'border-red-500/50 bg-red-50 dark:bg-red-500/10' : 'border-gray-200 dark:border-white/10'
-                  }`}
-                >
-                  <div className="p-6">
-                    <div className="flex items-center justify-between">
-                      {/* Checkbox + Info do aluno */}
-                      <div className="flex items-center gap-4">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedStudents([...selectedStudents, student.user_id]);
-                            } else {
-                              setSelectedStudents(selectedStudents.filter(id => id !== student.user_id));
-                            }
-                          }}
-                          className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-red-600"
-                        />
-                        <div className="p-2 bg-gray-100 dark:bg-white/10 rounded-lg">
-                          <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-bold text-gray-900 dark:text-white">{student.name}</h3>
-                          <p className="text-gray-500 dark:text-gray-400 text-sm">{student.email}</p>
-                        </div>
-                        {getStatusBadge(progress)}
-                      </div>
+            return (
+              <div
+                key={student.user_id}
+                className={`bg-white dark:bg-gray-800 rounded-lg border overflow-hidden transition-colors ${
+                  isSelected
+                    ? 'border-[#EC0000]/40 bg-red-50/50 dark:bg-red-500/5'
+                    : 'border-gray-200 dark:border-gray-700'
+                }`}
+              >
+                <div className="p-4">
+                  {/* Row 1: checkbox + student + status + timer */}
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleStudent(student.user_id)}
+                      className="w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-[#EC0000] focus:ring-[#EC0000]/20 flex-shrink-0"
+                    />
 
-                      {/* Cronómetro e ações */}
-                      <div className="flex items-center gap-6">
-                        {/* Timer */}
-                        {progress && progress.status !== 'NOT_STARTED' && (
-                          <div className="text-right">
-                            <div className={`text-2xl font-mono font-bold ${
-                              progress.is_delayed ? 'text-red-500 dark:text-red-400' : 
-                              progress.status === 'COMPLETED' ? 'text-green-500 dark:text-green-400' : 
-                              'text-gray-900 dark:text-white'
-                            }`}>
-                              <Timer className="w-5 h-5 inline mr-2" />
-                              {formatTime(progress.elapsed_seconds)}
-                            </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              Estimado: {lesson?.estimated_minutes} min
-                              {progress.is_delayed && (
-                                <span className="ml-2 text-red-500 dark:text-red-400">
-                                  <AlertCircle className="w-3 h-3 inline" /> {t('lessonManagement.delayed')}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Botões de ação */}
-                        <div className="flex gap-2">
-                          {(!progress || progress.status === 'NOT_STARTED') && (
-                            <button
-                              onClick={() => handleStartLesson(student.user_id)}
-                              disabled={actionLoading === student.user_id}
-                              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-                            >
-                              {actionLoading === student.user_id ? (
-                                <RefreshCw className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Play className="w-4 h-4" />
-                              )}
-                              {t('lessonManagement.start')}
-                            </button>
-                          )}
-
-                          {progress?.status === 'IN_PROGRESS' && !progress.is_paused && (
-                            <>
-                              <button
-                                onClick={() => handlePauseLesson(student.user_id)}
-                                disabled={actionLoading === student.user_id}
-                                className="flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-                              >
-                                {actionLoading === student.user_id ? (
-                                  <RefreshCw className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Pause className="w-4 h-4" />
-                                )}
-                                {t('lessonManagement.pause')}
-                              </button>
-                              <button
-                                onClick={() => handleFinishLesson(student.user_id)}
-                                disabled={actionLoading === student.user_id}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-                              >
-                                {actionLoading === student.user_id ? (
-                                  <RefreshCw className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Square className="w-4 h-4" />
-                                )}
-                                {t('lessonManagement.finish')}
-                              </button>
-                            </>
-                          )}
-
-                          {progress?.status === 'IN_PROGRESS' && progress.is_paused && (
-                            <>
-                              <button
-                                onClick={() => handleResumeLesson(student.user_id)}
-                                disabled={actionLoading === student.user_id}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-                              >
-                                {actionLoading === student.user_id ? (
-                                  <RefreshCw className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Play className="w-4 h-4" />
-                                )}
-                                {t('lessonManagement.resume')}
-                              </button>
-                              <button
-                                onClick={() => handleFinishLesson(student.user_id)}
-                                disabled={actionLoading === student.user_id}
-                                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-                              >
-                                {actionLoading === student.user_id ? (
-                                  <RefreshCw className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Square className="w-4 h-4" />
-                                )}
-                                {t('lessonManagement.finish')}
-                              </button>
-                            </>
-                          )}
-
-                          {progress?.status === 'COMPLETED' && (
-                            <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-400 rounded-lg">
-                              <CheckCircle className="w-4 h-4" />
-                              {t('lessonManagement.time')}: {formatTime(progress.elapsed_seconds)}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                    {/* Avatar */}
+                    <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center flex-shrink-0">
+                      <User className="w-4 h-4 text-gray-400" />
                     </div>
 
-                    {/* Barra de progresso do tempo */}
-                    {progress && progress.status !== 'NOT_STARTED' && progress.status !== 'COMPLETED' && (
-                      <div className="mt-4">
-                        <div className="h-2 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full transition-all duration-1000 ${
-                              progress.is_delayed ? 'bg-red-500' : 'bg-green-500'
-                            }`}
-                            style={{ 
-                              width: `${Math.min(100, (progress.elapsed_seconds / (lesson?.estimated_minutes || 1) / 60) * 100)}%` 
-                            }}
-                          />
-                        </div>
-                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          <span>0 min</span>
-                          <span>{lesson?.estimated_minutes} min ({t('lessonManagement.estimated')})</span>
-                        </div>
+                    {/* Name + email */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{student.name}</p>
+                      <p className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{student.email}</p>
+                    </div>
+
+                    {/* Status badge */}
+                    <StatusBadge status={status} isPaused={isPaused} t={t} />
+
+                    {/* Timer */}
+                    {hasTimer && (
+                      <div className="text-right flex-shrink-0">
+                        <p className={`text-lg font-mono font-bold tabular-nums ${
+                          isDelayed ? 'text-red-500' : isCompleted ? 'text-emerald-500' : 'text-gray-900 dark:text-white'
+                        }`}>
+                          {fmtTime(prog.elapsed_seconds)}
+                        </p>
+                        {isDelayed && (
+                          <p className="text-[10px] text-red-500 flex items-center gap-0.5 justify-end">
+                            <AlertCircle className="w-3 h-3" />{t('lessonManagement.delayed')}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+
+                  {/* Row 2: progress bar (only for active lessons) */}
+                  {hasTimer && !isCompleted && (
+                    <div className="mt-3 ml-[3.25rem]">
+                      <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-1000 ${isDelayed ? 'bg-red-500' : 'bg-emerald-500'}`}
+                          style={{ width: `${progressPct(prog)}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
+                        <span>{fmtTime(prog.elapsed_seconds)}</span>
+                        <span>{estMin} min ({t('lessonManagement.estimated')})</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Row 3: actions */}
+                  <div className="mt-3 ml-[3.25rem] flex flex-wrap items-center gap-2">
+                    {status !== 'NOT_STARTED' && isTutor && (
+                      <span className="text-[10px] font-semibold text-[#EC0000] dark:text-red-400">
+                        {t('lessonManagement.initiatedByTutor')}
+                      </span>
+                    )}
+                    {status === 'NOT_STARTED' && (
+                      <ActionBtn onClick={() => doAction('start', student.user_id)} loading={isLoading}
+                        cls="bg-emerald-600 hover:bg-emerald-700" icon={Play} label={t('lessonManagement.start')}
+                        title={isTutor ? t('lessonManagement.initiatedByTutor') : undefined} />
+                    )}
+
+                    {isActive && !isPaused && (
+                      <>
+                        <ActionBtn onClick={() => doAction('pause', student.user_id)} loading={isLoading}
+                          cls="bg-amber-500 hover:bg-amber-600" icon={Pause} label={t('lessonManagement.pause')} />
+                        <ActionBtn onClick={() => doAction('finish', student.user_id)} loading={isLoading}
+                          cls="bg-[#EC0000] hover:bg-[#CC0000]" icon={Square} label={t('lessonManagement.finish')} />
+                      </>
+                    )}
+
+                    {isActive && isPaused && (
+                      <>
+                        <ActionBtn onClick={() => doAction('resume', student.user_id)} loading={isLoading}
+                          cls="bg-blue-600 hover:bg-blue-700" icon={Play} label={t('lessonManagement.resume')} />
+                        <ActionBtn onClick={() => doAction('finish', student.user_id)} loading={isLoading}
+                          cls="bg-[#EC0000] hover:bg-[#CC0000]" icon={Square} label={t('lessonManagement.finish')} />
+                      </>
+                    )}
+
+                    {isCompleted && (
+                      <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-semibold">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        {t('lessonManagement.time')}: {fmtTime(prog.elapsed_seconds)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
+  );
+}
+
+/* ── Small sub-components ── */
+
+function StatusBadge({ status, isPaused, t }: { status: string; isPaused: boolean; t: any }) {
+  if (status === 'COMPLETED') return (
+    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+      <CheckCircle className="w-3 h-3 inline mr-0.5" />{t('lessonManagement.completed')}
+    </span>
+  );
+  if (status === 'IN_PROGRESS' && isPaused) return (
+    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400">
+      <Pause className="w-3 h-3 inline mr-0.5" />{t('lessonManagement.paused')}
+    </span>
+  );
+  if (status === 'IN_PROGRESS') return (
+    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
+      <Play className="w-3 h-3 inline mr-0.5" />{t('lessonManagement.inProgress')}
+    </span>
+  );
+  return (
+    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+      {t('lessonManagement.notStarted')}
+    </span>
+  );
+}
+
+function ActionBtn({ onClick, loading, cls, icon: Icon, label, title }: {
+  onClick: () => void; loading: boolean; cls: string; icon: typeof Play; label: string; title?: string;
+}) {
+  return (
+    <button onClick={onClick} disabled={loading} title={title}
+      className={`flex items-center gap-1.5 px-3 py-1.5 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 ${cls}`}>
+      {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Icon className="w-3.5 h-3.5" />}
+      {label}
+    </button>
   );
 }

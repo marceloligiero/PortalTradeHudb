@@ -57,7 +57,7 @@ api.interceptors.request.use((config) => {
     try {
       // eslint-disable-next-line no-console
       console.debug(`[api] baseURL=${config.baseURL} url=${config.url}`);
-    } catch (e) {}
+    } catch (_e) { /* ignore */ }
   }
   return config;
 });
@@ -73,7 +73,7 @@ api.interceptors.request.use(
       try {
         // eslint-disable-next-line no-console
         console.debug('[api] Authorization header set:', config.headers.Authorization ? 'YES' : 'NO');
-      } catch (e) {}
+      } catch (_e) { /* ignore */ }
     }
     return config;
   },
@@ -93,7 +93,7 @@ api.interceptors.response.use(
       try {
         // eslint-disable-next-line no-console
         console.debug('[api] response error status:', error.response?.status, 'url:', error.config?.url);
-      } catch (e) {}
+      } catch (_e) { /* ignore */ }
     }
     return Promise.reject(error);
   }

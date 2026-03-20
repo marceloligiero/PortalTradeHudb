@@ -404,7 +404,7 @@ export default function LessonDetail() {
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3 }}
                     className="prose prose-slate max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-gray-700 prose-p:leading-relaxed prose-ul:list-disc prose-ol:list-decimal prose-li:text-gray-700 prose-blockquote:border-l-4 prose-blockquote:border-gray-300 prose-blockquote:pl-4 prose-blockquote:italic prose-a:text-red-600 prose-a:underline prose-code:bg-gray-100 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-900 prose-pre:text-gray-100 min-h-[300px]"
-                    dangerouslySetInnerHTML={{ __html: contentPages[currentPage - 1] || '' }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contentPages[currentPage - 1] || '') }}
                   />
                 </AnimatePresence>
               ) : (

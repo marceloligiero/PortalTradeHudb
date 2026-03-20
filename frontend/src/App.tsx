@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthStore } from './stores/authStore';
-import TradeDatahubLanding from './pages/TradeDatahubLanding';
+import ScrollToTop from './components/ScrollToTop';
+import { useAuthStore, getEffectiveRole } from './stores/authStore';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPassword from './pages/ForgotPassword';
@@ -27,6 +28,10 @@ import AdminReportsPage from './pages/admin/Reports';
 import AdminAdvancedReportsPage from './pages/admin/AdvancedReports';
 import PortalTutoria from './pages/admin/PortalTutoria';
 import PortalTutoriaPublic from './pages/PortalTutoriaPublic';
+import AboutPage from './pages/AboutPage';
+import FAQPage from './pages/FAQPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
 import TutoriaLayout from './pages/tutoria/TutoriaLayout';
 import TutoriaErrors from './pages/tutoria/TutoriaErrors';
 import TutoriaPlans from './pages/tutoria/TutoriaPlans';
@@ -44,7 +49,12 @@ import SensoManagement from './pages/tutoria/SensoManagement';
 import LearningSheets from './pages/tutoria/LearningSheets';
 import MyLearningSheets from './pages/tutoria/MyLearningSheets';
 import TutoriaNotifications from './pages/tutoria/TutoriaNotifications';
-import AdminTeams from './pages/admin/Teams';
+import FeedbackSurveys from './pages/tutoria/FeedbackSurveys';
+import FeedbackSurveyDetail from './pages/tutoria/FeedbackSurveyDetail';
+import FeedbackRespond from './pages/tutoria/FeedbackRespond';
+import FeedbackDashboard from './pages/tutoria/FeedbackDashboard';
+import TutorCapsules from './pages/tutoria/TutorCapsules';
+// AdminTeams standalone removed — MasterData.tsx is the single source
 import RelatoriosLayout from './pages/relatorios/RelatoriosLayout';
 import RelatoriosOverview from './pages/relatorios/Overview';
 import RelatoriosFormacoes from './pages/relatorios/FormacoesDashboard';
@@ -55,8 +65,7 @@ import RelatoriosIncidents from './pages/relatorios/IncidentsReport';
 import AdminRatingsPage from './pages/admin/Ratings';
 import KnowledgeMatrixPage from './pages/admin/KnowledgeMatrix';
 import AdminSettingsPage from './pages/admin/Settings';
-import AdminBanksPage from './pages/admin/Banks';
-import AdminProductsPage from './pages/admin/Products';
+// Banks.tsx and Products.tsx standalone pages removed — MasterData.tsx is the single source
 import MasterDataPage from './pages/admin/MasterData';
 import MasterDataLayout from './pages/admin/MasterDataLayout';
 import ChamadosLayout from './pages/chamados/ChamadosLayout';
@@ -82,22 +91,32 @@ import Layout from './components/layout/Layout';
 
 function App() {
   const { user, isAuthenticated } = useAuthStore();
+  const effectiveRole = getEffectiveRole(user);
 
   if (!isAuthenticated) {
     return (
+      <>
+      <ScrollToTop />
       <Routes>
-        <Route path="/" element={<TradeDatahubLanding />} />
+        <Route path="/" element={<LandingPage />} />
         <Route path="/portal-tutoria" element={<PortalTutoriaPublic />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/faq" element={<FAQPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </>
     );
   }
 
   return (
+    <>
+    <ScrollToTop />
     <Routes>
       {/* ── Portal de Tutoria (layout próprio, todos os roles) ── */}
       <Route path="/tutoria" element={<TutoriaLayout />}>
@@ -123,6 +142,11 @@ function App() {
         <Route path="analysis" element={<TutoriaErrors />} />
         <Route path="tutor-review" element={<TutoriaErrors />} />
         <Route path="notifications" element={<TutoriaNotifications />} />
+        <Route path="feedback" element={<FeedbackSurveys />} />
+        <Route path="feedback/dashboard" element={<FeedbackDashboard />} />
+        <Route path="feedback/respond" element={<FeedbackRespond />} />
+        <Route path="feedback/:id" element={<FeedbackSurveyDetail />} />
+        <Route path="capsulas" element={<TutorCapsules />} />
       </Route>
 
       {/* ── Portal de Relatórios (todos os roles autenticados) ── */}
@@ -158,7 +182,7 @@ function App() {
 
       {/* ── Portal de Formações ─────────────────────────────── */}
       <Route path="/" element={<Layout />}>
-        {user?.role === 'MANAGER' && (
+        {effectiveRole === 'MANAGER' && (
           <>
             <Route index element={<AdminDashboard />} />
             <Route path="courses" element={<AdminCoursesPage />} />
@@ -179,7 +203,7 @@ function App() {
             <Route path="ratings" element={<AdminRatingsPage />} />
           </>
         )}
-        {(user?.role === 'STUDENT' || user?.role === 'TRAINEE') && (
+        {(effectiveRole === 'STUDENT' || effectiveRole === 'TRAINEE') && (
           <>
             <Route index element={<StudentDashboard />} />
             <Route path="my-plans" element={<MyPlans />} />
@@ -200,7 +224,7 @@ function App() {
         {/* Rotas compartilhadas por todos os roles */}
         <Route path="challenges/result/:submissionId" element={<ChallengeResult />} />
         <Route path="certificates/:id" element={<CertificateView />} />
-        {user?.role === 'TRAINER' && (
+        {effectiveRole === 'TRAINER' && (
           <>
             <Route index element={<TrainerDashboard />} />
             <Route path="courses" element={<TrainerCoursesPage />} />
@@ -214,6 +238,7 @@ function App() {
             <Route path="challenges/:challengeId/execute/complete" element={<ChallengeExecutionComplete />} />
             <Route path="pending-reviews" element={<PendingReviews />} />
             <Route path="courses/:courseId/lessons/new" element={<LessonForm />} />
+            <Route path="courses/:courseId/lessons/:lessonId/edit" element={<LessonForm />} />
             <Route path="courses/:courseId/challenges/:challengeId" element={<ChallengeDetail />} />
             <Route path="courses/:courseId/challenges/:challengeId/results" element={<ChallengeResult />} />
             <Route path="courses/:courseId/lessons/:lessonId" element={<LessonDetail />} />
@@ -225,18 +250,20 @@ function App() {
         {/* Support direct links that include a 'trainer/' or 'admin/' prefix used in some navigation code */}
         <Route path="trainer/training-plan/:id" element={<TrainingPlanDetail />} />
         <Route path="training-plan/:id" element={<TrainingPlanDetail />} />
-        {user?.role === 'ADMIN' && (
+        {(effectiveRole === 'ADMIN' || effectiveRole === 'GESTOR') && (
           <>
             <Route index element={<AdminDashboard />} />
             <Route path="trainer-validation" element={<AdminTrainerValidation />} />
             <Route path="courses" element={<AdminCoursesPage />} />
             <Route path="courses/:courseId" element={<AdminCourseDetail />} />
             <Route path="course/new" element={<AdminCourseForm />} />
+            <Route path="courses/:courseId/edit" element={<AdminCourseForm />} />
             <Route path="courses/:courseId/challenges/new" element={<ChallengeForm />} />
             <Route path="courses/:courseId/challenges/:challengeId/edit" element={<ChallengeForm />} />
             <Route path="courses/:courseId/challenges/:challengeId" element={<ChallengeDetail />} />
             <Route path="courses/:courseId/challenges/:challengeId/results" element={<ChallengeResult />} />
             <Route path="courses/:courseId/lessons/new" element={<LessonForm />} />
+            <Route path="courses/:courseId/lessons/:lessonId/edit" element={<LessonForm />} />
             <Route path="courses/:courseId/lessons/:lessonId" element={<LessonDetail />} />
             <Route path="training-plans" element={<AdminTrainingPlans />} />
             <Route path="training-plan/new" element={<AdminTrainingPlanForm />} />
@@ -252,15 +279,16 @@ function App() {
             <Route path="knowledge-matrix" element={<KnowledgeMatrixPage />} />
             <Route path="ratings" element={<AdminRatingsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
-            <Route path="banks" element={<AdminBanksPage />} />
-            <Route path="products" element={<AdminProductsPage />} />
-            <Route path="teams" element={<AdminTeams />} />
+            <Route path="banks" element={<Navigate to="/master-data" replace />} />
+            <Route path="products" element={<Navigate to="/master-data/products" replace />} />
+            <Route path="teams" element={<Navigate to="/master-data/teams" replace />} />
             {/* tutoria movido para layout próprio abaixo */}
           </>
         )}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
+    </>
   );
 }
 

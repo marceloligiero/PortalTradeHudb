@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  ShieldAlert, Save, ArrowLeft, Calendar, User, Scale,
+  ShieldAlert, Save, ArrowLeft, Calendar, User,
   Building2, FolderOpen, AlertTriangle, Hash, FileText, Loader2, Plus, X,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -39,7 +39,7 @@ export default function RegisterInternalError() {
   const [activityId, setActivityId] = useState('');
   const [bankId, setBankId] = useState('');
   const [classifications, setClassifications] = useState<{type: string; description: string}[]>([]);
-  const [pesoLiberador, setPesoLiberador] = useState('');
+  // pesoLiberador — oculto, enviado como 0 automaticamente
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -69,7 +69,7 @@ export default function RegisterInternalError() {
   }, []);
 
   const handleSave = async () => {
-    if (!sensoId || !gravadorId || !description.trim()) {
+    if (!gravadorId || !description.trim()) {
       setError(t('registerInternalError.fillRequired'));
       return;
     }
@@ -77,7 +77,7 @@ export default function RegisterInternalError() {
     setError('');
     try {
       await axios.post('/internal-errors/errors', {
-        senso_id: Number(sensoId),
+        senso_id: sensoId ? Number(sensoId) : undefined,
         gravador_id: Number(gravadorId),
         description,
         reference_code: referenceCode || undefined,
@@ -91,7 +91,7 @@ export default function RegisterInternalError() {
         classifications: classifications.length > 0
           ? classifications.map(c => ({ classification: c.type, description: c.description || undefined }))
           : undefined,
-        peso_liberador: pesoLiberador ? Number(pesoLiberador) : undefined,
+        peso_liberador: 0,
       });
       navigate('/tutoria/internal-errors');
     } catch (err: any) {
@@ -133,15 +133,16 @@ export default function RegisterInternalError() {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
         className={`p-6 rounded-2xl border space-y-6 ${isDark ? 'bg-white/[0.02] border-white/5' : 'bg-white border-gray-200'}`}>
 
-        {/* Censo + Gravador */}
+        {/* Gravador */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+          {/* Censo — oculto por enquanto, descomentar quando necessário */}
+          {/* <div>
             <label className={labelCls}><Calendar className="w-3 h-3 inline mr-1" />{t('registerInternalError.senso')}</label>
             <select value={sensoId} onChange={e => setSensoId(e.target.value)} className={selectCls}>
               <option value="">{t('registerInternalError.selectSenso')}</option>
               {sensos.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
-          </div>
+          </div> */}
           <div>
             <label className={labelCls}><User className="w-3 h-3 inline mr-1" />{t('registerInternalError.gravador')}</label>
             <select value={gravadorId} onChange={e => setGravadorId(e.target.value)} className={selectCls}>
@@ -212,12 +213,12 @@ export default function RegisterInternalError() {
           </div>
         </div>
 
-        {/* Peso Liberador */}
-        <div className="max-w-xs">
+        {/* Peso Liberador — oculto, preenchido automaticamente como 0 */}
+        {/* <div className="max-w-xs">
           <label className={labelCls}><Scale className="w-3 h-3 inline mr-1" />{t('registerInternalError.weightLiberador')}</label>
           <input type="number" min="1" max="10" value={pesoLiberador} onChange={e => setPesoLiberador(e.target.value)} placeholder="1-10" className={inputCls} />
           <p className={`text-xs mt-1 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{t('registerInternalError.weightHint')}</p>
-        </div>
+        </div> */}
 
         {/* Classificação do Erro (múltiplas) */}
         <div className={`p-4 rounded-xl border ${isDark ? 'bg-white/[0.01] border-white/5' : 'bg-gray-50 border-gray-200'}`}>

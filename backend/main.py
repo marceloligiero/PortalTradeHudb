@@ -4,6 +4,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from app.config import settings
 from app.routes import auth, admin, student, trainer, training_plans, advanced_reports, certificates, student_reports, ratings, password_reset, knowledge_matrix, public
 from app.routers import challenges, stats, lessons, finalization
 from app.routers import tutoria
@@ -12,6 +13,8 @@ from app.routers import teams
 from app.routers import relatorios
 from app.routers import chamados
 from app.routers import internal_errors
+from app.routers import dw
+from app.routers import feedback
 from app.database import init_db
 from app.migrate import run_migrations
 from contextlib import asynccontextmanager
@@ -22,8 +25,63 @@ logger = logging.getLogger("app.startup")
 # Rate limiter (shared instance used by route modules)
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 
+async def _etl_scheduler():
+    """Background task that re-runs ETL every hour."""
+    import asyncio
+    while True:
+        await asyncio.sleep(3600)
+        try:
+            from app.database import SessionLocal
+            from app.etl.etl_runner import run_full_etl
+            db = SessionLocal()
+            try:
+                run_full_etl(db)
+                logger.info("Scheduled ETL completed.")
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning("Scheduled ETL failed (non-fatal): %s", e)
+
+
+async def _deadline_scheduler():
+    """Daily task: notify responsible parties about overdue errors (A.6.1)."""
+    import asyncio
+    from datetime import date
+    while True:
+        await asyncio.sleep(86400)  # 24 hours
+        try:
+            from app.database import SessionLocal
+            from app.models import TutoriaError, TutoriaNotification
+            from app.routers.tutoria import _get_error_deadline, create_notification
+            db = SessionLocal()
+            try:
+                today = date.today()
+                errors = db.query(TutoriaError).filter(
+                    TutoriaError.status.notin_(['RESOLVED', 'CANCELLED'])
+                ).all()
+                count = 0
+                for e in errors:
+                    dl = _get_error_deadline(e.date_occurrence)
+                    if dl and today > dl:
+                        # Check if notification already sent today
+                        existing = db.query(TutoriaNotification).filter(
+                            TutoriaNotification.error_id == e.id,
+                            TutoriaNotification.ntype == 'OVERDUE_ALERT',
+                        ).first()
+                        if not existing and e.responsible_id:
+                            create_notification(db, e.responsible_id, 'OVERDUE_ALERT',
+                                f'Erro #{e.id} ultrapassou o prazo de fecho mensal.', error_id=e.id)
+                            count += 1
+                logger.info("Deadline check: %d overdue notifications sent.", count)
+            finally:
+                db.close()
+        except Exception as exc:
+            logger.warning("Deadline scheduler failed (non-fatal): %s", exc)
+
+
 @asynccontextmanager
 async def lifespan(app):
+    import asyncio
     init_db()
     # Run pending SQL migrations automatically
     try:
@@ -32,15 +90,44 @@ async def lifespan(app):
             logger.info("Applied %d pending migration(s).", count)
     except Exception as e:
         logger.error("Migration failed: %s", e)
+
+    # Run ETL on startup (populates DW tables after migrations)
+    try:
+        from app.database import SessionLocal
+        from app.etl.etl_runner import run_full_etl
+        db = SessionLocal()
+        try:
+            result = run_full_etl(db)
+            logger.info("ETL initial run completed: %s", result)
+        finally:
+            db.close()
+    except Exception as e:
+        logger.warning("ETL startup run failed (non-fatal): %s", e)
+
+    # Start hourly ETL scheduler
+    scheduler_task = asyncio.create_task(_etl_scheduler())
+    # Start daily deadline enforcement scheduler (A.6.1)
+    deadline_task = asyncio.create_task(_deadline_scheduler())
+
     yield
 
-app = FastAPI(title="Trade Data Hub API", version="1.0.0", lifespan=lifespan)
+    # Cleanup
+    scheduler_task.cancel()
+    deadline_task.cancel()
+
+app = FastAPI(
+    title="Trade Data Hub API",
+    version="1.0.0",
+    lifespan=lifespan,
+    # Swagger/OpenAPI apenas em desenvolvimento (H02)
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
+    openapi_url="/openapi.json" if settings.DEBUG else None,
+)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware
-from app.config import settings
-
 def get_allowed_origins_and_regex():
     """Return a tuple (origins_list, origin_regex) where origins_list is
     the explicit allow_origins list parsed from settings and origin_regex
@@ -62,11 +149,11 @@ def get_allowed_origins_and_regex():
         r"^https?://10\.\d+\.\d+\.\d+(:\d+)?$",
     ]
 
-    allow_origin_regex = "(" + ")|(".join(regex_parts) + ")" if not settings.DEBUG else None
+    allow_origin_regex = "(" + ")|(".join(regex_parts) + ")"
 
-    # If DEBUG and no explicit origins provided, allow '*' for convenience
-    if settings.DEBUG and not origins:
-        return ["*"], None
+    # If DEBUG and no explicit origins provided, use localhost only (H06 — never use wildcard)
+    if not origins:
+        return [], allow_origin_regex
 
     return origins, allow_origin_regex
 
@@ -103,7 +190,15 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "object-src 'none'; "
+        "frame-ancestors 'none';"
+    )
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https":
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
@@ -139,6 +234,8 @@ app.include_router(lessons.router, tags=["lessons"])
 app.include_router(finalization.router, tags=["finalization"])
 # Tutoria (tutoring portal) API
 app.include_router(tutoria.router, prefix="/api/tutoria", tags=["tutoria"])
+# Feedback dos Liberadores
+app.include_router(feedback.router, prefix="/api/feedback", tags=["feedback"])
 # Internal Errors (sensos, erros internos, fichas de aprendizagem)
 app.include_router(internal_errors.router, tags=["internal-errors"])
 # Chatbot (rule-based + custom FAQ)
@@ -159,6 +256,8 @@ app.include_router(ratings.router, tags=["ratings"])
 app.include_router(knowledge_matrix.router, tags=["knowledge_matrix"])
 # Mount public routes (landing page stats — no auth)
 app.include_router(public.router, tags=["public"])
+# Data Warehouse aggregated data for dashboards
+app.include_router(dw.router, prefix="/api/dw", tags=["data-warehouse"])
 
 @app.get("/api")
 async def api_root():
@@ -207,8 +306,8 @@ if _frontend_dist.is_dir():
         file_path = _frontend_dist / full_path
         if full_path and file_path.is_file():
             return FileResponse(str(file_path))
-        # Otherwise serve index.html for SPA client-side routing
-        return FileResponse(str(_frontend_dist / "index.html"))
+        # Otherwise serve index.html for SPA client-side routing (no-cache so new builds load immediately)
+        return FileResponse(str(_frontend_dist / "index.html"), headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 else:
     @app.get("/")
     async def root():

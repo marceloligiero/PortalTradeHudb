@@ -14,7 +14,7 @@ router = APIRouter()
 async def list_users(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
     db: Session = Depends(get_db)
 ):
     """List users with simple dict response to avoid pydantic ORM serialization issues.
@@ -55,12 +55,6 @@ async def list_users(
         tb = traceback.format_exc()
         logger = __import__('logging').getLogger('admin.routes')
         logger.error(f"Error in list_users: {e}\n{tb}")
-        try:
-            with open("backend/error_trace.txt", "w", encoding="utf-8") as _f:
-                _f.write(tb)
-        except Exception:
-            # best-effort file logging for local debugging
-            pass
         return JSONResponse(status_code=500, content={"detail": "Erro interno do servidor"})
 
 @router.post("/users", response_model=schemas.User, status_code=status.HTTP_201_CREATED)
@@ -105,7 +99,7 @@ async def create_user(
 @router.get("/users/{user_id}")
 async def get_user(
     user_id: int,
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_ROLES)),
     db: Session = Depends(get_db)
 ):
     """Get detailed information about a specific user"""
@@ -236,7 +230,7 @@ async def delete_user(
 # Trainer (Formador) & Manager Validation Management
 @router.get("/pending-trainers", response_model=List[schemas.UserWithPendingStatus])
 async def list_pending_trainers(
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_ROLES)),
     db: Session = Depends(get_db)
 ):
     """
@@ -302,7 +296,7 @@ async def reject_trainer(
 # Banks Management
 @router.get("/banks", response_model=List[schemas.Bank])
 async def list_banks(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_TRAINER_MANAGER_ROLES)),
     db: Session = Depends(get_db)
 ):
     banks = db.query(models.Bank).all()
@@ -382,7 +376,7 @@ async def delete_bank(
 # Products Management
 @router.get("/products", response_model=List[schemas.Product])
 async def list_products(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_TRAINER_MANAGER_ROLES)),
     db: Session = Depends(get_db)
 ):
     products = db.query(models.Product).all()
@@ -473,7 +467,7 @@ async def delete_product(
 # Courses Management (Admin)
 @router.get("/courses")
 async def list_admin_courses(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """List all courses with trainer and student information"""
@@ -522,6 +516,8 @@ async def list_admin_courses(
             "title": course.title,
             "description": course.description,
             "level": course.level,
+            "course_type": getattr(course, 'course_type', 'CURSO'),
+            "managed_by_tutor": getattr(course, 'managed_by_tutor', False),
             "bank_id": course.bank_id,  # Legacy
             "product_id": course.product_id,  # Legacy
             "bank_ids": [b["id"] for b in banks],
@@ -542,7 +538,7 @@ async def list_admin_courses(
 @router.get("/courses/{course_id}")
 async def get_admin_course(
     course_id: int,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
     db: Session = Depends(get_db)
 ):
     """Get course details with lessons and challenges"""
@@ -596,6 +592,8 @@ async def get_admin_course(
         "title": course.title,
         "description": course.description,
         "level": course.level,
+        "course_type": getattr(course, 'course_type', 'CURSO'),
+        "managed_by_tutor": getattr(course, 'managed_by_tutor', False),
         "bank_id": course.bank_id,  # Legacy
         "product_id": course.product_id,  # Legacy
         "bank_ids": [b["id"] for b in banks],
@@ -657,7 +655,7 @@ async def delete_admin_course(
 async def get_admin_lesson(
     course_id: int,
     lesson_id: int,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
     db: Session = Depends(get_db)
 ):
     """Get lesson details"""
@@ -675,6 +673,45 @@ async def get_admin_lesson(
         "id": lesson.id,
         "course_id": lesson.course_id,
         "course_title": course.title if course else None,
+        "title": lesson.title,
+        "description": lesson.description,
+        "content": lesson.content,
+        "lesson_type": lesson.lesson_type,
+        "order_index": lesson.order_index,
+        "estimated_minutes": lesson.estimated_minutes,
+        "video_url": lesson.video_url,
+        "materials_url": lesson.materials_url,
+        "created_at": lesson.created_at.isoformat() if lesson.created_at else None,
+        "updated_at": lesson.updated_at.isoformat() if lesson.updated_at else None
+    }
+
+@router.put("/courses/{course_id}/lessons/{lesson_id}")
+async def update_admin_lesson(
+    course_id: int,
+    lesson_id: int,
+    lesson_update: schemas.LessonUpdate,
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    db: Session = Depends(get_db)
+):
+    """Update a lesson"""
+    lesson = db.query(models.Lesson).filter(
+        models.Lesson.id == lesson_id,
+        models.Lesson.course_id == course_id
+    ).first()
+
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    update_data = lesson_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(lesson, key, value)
+
+    db.commit()
+    db.refresh(lesson)
+
+    return {
+        "id": lesson.id,
+        "course_id": lesson.course_id,
         "title": lesson.title,
         "description": lesson.description,
         "content": lesson.content,
@@ -712,7 +749,7 @@ async def delete_admin_lesson(
 async def get_admin_challenge(
     course_id: int,
     challenge_id: int,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
     db: Session = Depends(get_db)
 ):
     """Get challenge details with stats"""
@@ -882,6 +919,8 @@ async def create_admin_course(
         "title": db_course.title,
         "description": db_course.description,
         "level": db_course.level,
+        "course_type": getattr(db_course, 'course_type', 'CURSO'),
+        "managed_by_tutor": getattr(db_course, 'managed_by_tutor', False),
         "bank_id": db_course.bank_id,
         "product_id": db_course.product_id,
         "bank_ids": bank_ids,
@@ -939,6 +978,8 @@ async def update_admin_course(
         "title": db_course.title,
         "description": db_course.description,
         "level": db_course.level,
+        "course_type": getattr(db_course, 'course_type', 'CURSO'),
+        "managed_by_tutor": getattr(db_course, 'managed_by_tutor', False),
         "bank_id": db_course.bank_id,
         "product_id": db_course.product_id,
         "bank_ids": bank_ids,
@@ -952,7 +993,7 @@ async def update_admin_course(
 # TRAINERs can be students in training plans where they are not trainers
 @router.get("/students")
 async def list_all_students(
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_ROLES)),
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """List all active students for dropdowns (includes TRAINERs as they can be students in other plans)"""
@@ -973,7 +1014,7 @@ async def list_all_students(
 # Trainers List (for dropdowns)
 @router.get("/trainers")
 async def list_trainers(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_TRAINER_ROLES)),
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """List all active trainers"""
@@ -996,7 +1037,7 @@ async def list_trainers(
 # Reports
 @router.get("/reports/stats")
 async def get_admin_stats(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """Get overall platform statistics"""
@@ -1136,7 +1177,7 @@ async def get_admin_stats(
 
 @router.get("/reports/courses")
 async def get_admin_courses_report(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """Get detailed report of all courses"""
@@ -1171,7 +1212,7 @@ async def get_admin_courses_report(
 
 @router.get("/reports/trainers")
 async def get_admin_trainers_report(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """Get detailed report of all trainers"""
@@ -1210,7 +1251,7 @@ async def get_admin_trainers_report(
 
 @router.get("/reports/training-plans")
 async def get_admin_training_plans_report(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """Get detailed report of all training plans"""
@@ -1242,7 +1283,7 @@ async def get_admin_training_plans_report(
 
 @router.get("/reports/insights")
 async def get_admin_insights(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
     db: Session = Depends(get_db)
 ) -> Dict[str, Any]:
     """
@@ -1595,6 +1636,10 @@ def _generic_list(table_key: str, db: Session):
             if r.origin_id:
                 org = db.query(models.ErrorOrigin).filter(models.ErrorOrigin.id == r.origin_id).first()
                 item["origin_name"] = org.name if org else None
+        if hasattr(r, 'level'):
+            item["level"] = r.level
+        if hasattr(r, 'image_url'):
+            item["image_url"] = r.image_url
         result.append(item)
     return result
 
@@ -1606,6 +1651,9 @@ def _generic_create(table_key: str, data: dict, db: Session):
     for fk in ("bank_id", "department_id", "activity_id", "origin_id"):
         if fk in data and data[fk] is not None:
             kwargs[fk] = data[fk]
+    for extra in ("level", "image_url", "is_active"):
+        if extra in data and data[extra] is not None:
+            kwargs[extra] = data[extra]
     obj = Model(**kwargs)
     db.add(obj)
     db.commit()
@@ -1614,6 +1662,10 @@ def _generic_create(table_key: str, data: dict, db: Session):
     for fk in ("bank_id", "department_id", "activity_id", "origin_id"):
         if hasattr(obj, fk):
             item[fk] = getattr(obj, fk)
+    if hasattr(obj, 'level'):
+        item["level"] = obj.level
+    if hasattr(obj, 'image_url'):
+        item["image_url"] = obj.image_url
     return item
 
 
@@ -1631,6 +1683,10 @@ def _generic_update(table_key: str, item_id: int, data: dict, db: Session):
     for fk in ("bank_id", "department_id", "activity_id", "origin_id"):
         if hasattr(obj, fk):
             item[fk] = getattr(obj, fk)
+    if hasattr(obj, 'level'):
+        item["level"] = obj.level
+    if hasattr(obj, 'image_url'):
+        item["image_url"] = obj.image_url
     return item
 
 
@@ -1647,7 +1703,7 @@ def _generic_delete(table_key: str, item_id: int, db: Session):
 
 @router.get("/master/impacts")
 async def list_impacts(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
     db: Session = Depends(get_db),
 ):
     return _generic_list("impacts", db)
@@ -1684,7 +1740,7 @@ async def delete_impact(
 
 @router.get("/master/origins")
 async def list_origins(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
     db: Session = Depends(get_db),
 ):
     return _generic_list("origins", db)
@@ -1721,7 +1777,7 @@ async def delete_origin(
 
 @router.get("/master/detected-by")
 async def list_detected_by(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
     db: Session = Depends(get_db),
 ):
     return _generic_list("detected_by", db)
@@ -1758,7 +1814,7 @@ async def delete_detected_by(
 
 @router.get("/master/departments")
 async def list_departments(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
     db: Session = Depends(get_db),
 ):
     return _generic_list("departments", db)
@@ -1795,7 +1851,7 @@ async def delete_department(
 
 @router.get("/master/activities")
 async def list_activities(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
     db: Session = Depends(get_db),
 ):
     return _generic_list("activities", db)
@@ -1832,7 +1888,7 @@ async def delete_activity(
 
 @router.get("/master/error-types")
 async def list_error_types(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
     db: Session = Depends(get_db),
 ):
     return _generic_list("error_types", db)
@@ -1873,7 +1929,7 @@ async def delete_error_type(
 async def list_activities_filtered(
     bank_id: int = None,
     department_id: int = None,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_TRAINER_MANAGER_ROLES)),
     db: Session = Depends(get_db),
 ):
     """Activities filtered by bank + department (cascading dependency)."""
@@ -1891,7 +1947,7 @@ async def list_activities_filtered(
 @router.get("/master/error-types/filter")
 async def list_error_types_filtered(
     activity_id: int = None,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_TRAINER_MANAGER_ROLES)),
     db: Session = Depends(get_db),
 ):
     """Error types filtered by activity (cascading dependency)."""
@@ -1907,7 +1963,7 @@ async def list_error_types_filtered(
 @router.get("/master/categories/filter")
 async def list_categories_filtered(
     origin_id: int = None,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "MANAGER", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_TRAINER_MANAGER_ROLES)),
     db: Session = Depends(get_db),
 ):
     """Categories (Tipología Error) filtered by origin (cascading dependency)."""

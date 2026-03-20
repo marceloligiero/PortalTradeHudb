@@ -38,6 +38,7 @@ interface Lesson {
   lesson_type: string;
   order_index: number;
   estimated_minutes: number;
+  estimated_duration?: number;
   video_url: string;
   materials_url: string;
   started_by?: 'TRAINER' | 'TRAINEE';
@@ -51,6 +52,7 @@ interface LessonProgress {
   student_confirmed?: boolean;
   started_at?: string;
   elapsed_seconds: number;
+  accumulated_seconds?: number;
 }
 
 // Characters per page for pagination
@@ -633,7 +635,7 @@ export default function LessonView() {
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.3 }}
                     className="prose prose-slate dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed prose-ul:list-disc prose-ol:list-decimal prose-li:text-gray-700 dark:prose-li:text-gray-300 prose-blockquote:border-l-4 prose-blockquote:border-gray-300 dark:prose-blockquote:border-gray-600 prose-blockquote:pl-4 prose-blockquote:italic prose-a:text-red-600 prose-a:underline prose-code:bg-gray-100 dark:prose-code:bg-gray-700 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-900 prose-pre:text-gray-100 min-h-[300px]"
-                    dangerouslySetInnerHTML={{ __html: contentPages[currentPage - 1] || '' }}
+                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contentPages[currentPage - 1] || '') }}
                   />
                 </AnimatePresence>
               ) : (

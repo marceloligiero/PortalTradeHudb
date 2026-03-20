@@ -25,6 +25,7 @@ router = APIRouter()
 class ChamadoCreate(BaseModel):
     title: str = Field(..., min_length=3, max_length=300)
     description: str = Field(..., min_length=5)
+    # TODO: expand to SISTEMA|ACESSO|PROCEDIMENTO|EQUIPAMENTO|OUTRO when DB migration is ready
     type: str = Field("BUG", pattern=r"^(BUG|MELHORIA)$")
     priority: str = Field("MEDIA", pattern=r"^(BAIXA|MEDIA|ALTA|CRITICA)$")
     portal: str = Field("GERAL", pattern=r"^(FORMACOES|TUTORIA|RELATORIOS|DADOS_MESTRES|CHAMADOS|GERAL)$")

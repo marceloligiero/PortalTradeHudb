@@ -118,7 +118,7 @@ async def get_knowledge_matrix(
     with proficiency levels, completion rates, MPU, error analysis, etc.
     Admin only.
     """
-    if current_user.role not in ("ADMIN", "MANAGER"):
+    if current_user.role not in ("ADMIN", "MANAGER", "GESTOR"):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # ============ COLUMNS: All active courses ============

@@ -1,16 +1,24 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 export interface User {
   id: number;
   email: string;
   full_name: string;
-  role: 'STUDENT' | 'TRAINEE' | 'TRAINER' | 'ADMIN' | 'MANAGER';
+  role: 'STUDENT' | 'TRAINEE' | 'TRAINER' | 'ADMIN' | 'MANAGER' | 'GESTOR';
   is_active: boolean;
+  is_pending?: boolean;
   is_trainer?: boolean;
   is_tutor?: boolean;
   is_liberador?: boolean;
 }
+
+export const getEffectiveRole = (user: User | null) =>
+  user?.is_pending ? 'TRAINEE' : user?.role;
+export const hasAdminAccess = (user: User | null) =>
+  !user?.is_pending && (user?.role === 'ADMIN' || user?.role === 'GESTOR');
+export const canWrite = (user: User | null) =>
+  !user?.is_pending && user?.role !== 'GESTOR';
 
 interface AuthState {
   user: User | null;
@@ -33,6 +41,8 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
+      // sessionStorage: cleared on tab close, not accessible cross-tab (C04 fix)
+      storage: createJSONStorage(() => sessionStorage),
     }
   )
 );

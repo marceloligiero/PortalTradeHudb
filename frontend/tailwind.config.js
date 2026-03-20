@@ -21,16 +21,43 @@ export default {
           900: '#7f1d1d',
         },
         brand: {
-          red: '#dc2626',
+          red: '#EC0000',
           black: '#000000',
           white: '#ffffff',
           gray: {
             800: '#1f2937',
             900: '#111827',
           }
-        }
+        },
+        santander: {
+          50: '#FFF5F5',
+          100: '#FFE0E0',
+          200: '#FFB3B3',
+          300: '#FF6666',
+          400: '#FF3333',
+          500: '#EC0000',
+          600: '#CC0000',
+          700: '#990000',
+          800: '#660000',
+          900: '#330000',
+        },
+      },
+      fontFamily: {
+        // Santander official fonts — fontes extraídas de fonts.zip (2026-03-20)
+        headline:   ['"Santander Headline"',  'Arial', 'sans-serif'],
+        text:       ['"Santander Text"',      'Arial', 'sans-serif'],
+        body:       ['"Santander Text"',      'Arial', 'sans-serif'],
+        logo:       ['"Santander Logo"', '"Santander Headline"', 'Arial', 'sans-serif'],
+        condensed:  ['"Santander Condensed"', '"Arial Narrow"', 'Arial', 'sans-serif'],
+        script:     ['"Santander Script"',    'cursive'],
+        micro:    ['"Santander MicroText"', 'Arial', 'sans-serif'],
+        // Non-landing pages
+        display:  ['"Instrument Serif"', 'Georgia', 'serif'],
+        mono:     ['"JetBrains Mono"', 'monospace'],
       },
       animation: {
+        'marquee': 'marquee 30s linear infinite',
+        'bounce-down': 'bounce-down 2s ease-in-out infinite',
         'fade-in': 'fadeIn 1s ease-in',
         'slide-up': 'slideUp 0.5s ease-out',
         'slide-down': 'slideDown 0.3s ease-out',
@@ -42,6 +69,14 @@ export default {
         'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
       },
       keyframes: {
+        'marquee': {
+          from: { transform: 'translateX(0)' },
+          to:   { transform: 'translateX(-50%)' },
+        },
+        'bounce-down': {
+          '0%, 100%': { transform: 'translateY(0)',  opacity: '0.6' },
+          '50%':       { transform: 'translateY(8px)', opacity: '1' },
+        },
         fadeIn: {
           '0%': { opacity: '0', transform: 'translateY(20px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },

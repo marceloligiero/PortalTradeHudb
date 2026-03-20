@@ -1,0 +1,37 @@
+# frontend/.dockerignore
+# Exclui ficheiros desnecessários do contexto de build Docker
+
+# Dependências (instaladas pelo npm ci no Dockerfile)
+node_modules/
+
+# Builds anteriores
+dist/
+build/
+
+# Variáveis de ambiente (nunca incluir em imagens)
+.env
+.env.local
+.env.*.local
+.env.production
+
+# Caches de ferramentas
+.vite/
+.cache/
+.eslintcache
+
+# Ficheiros de testes e cobertura
+coverage/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# IDE e OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Documentação e outros ficheiros não necessários para o build
+*.md
+!LICENSE

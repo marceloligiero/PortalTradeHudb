@@ -20,7 +20,7 @@ def _require_admin(user: User):
         raise HTTPException(status_code=403, detail="Apenas administradores podem gerir equipas")
 
 def _require_admin_or_manager(user: User):
-    if user.role not in ("ADMIN", "MANAGER"):
+    if user.role not in ("ADMIN", "MANAGER", "GESTOR"):
         raise HTTPException(status_code=403, detail="Acesso restrito")
 
 

@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import Card from '../../components/Card';
 import StarRating from '../../components/StarRating';
 import api from '../../lib/axios';
 import { useTranslation } from 'react-i18next';
+import {
+  Star, BarChart3, Users, BookOpen, Award, MessageSquare,
+  Clock, TrendingUp, RefreshCw, Filter
+} from 'lucide-react';
 
 interface Rating {
   id: number;
@@ -43,6 +46,55 @@ interface DashboardData {
   recent_ratings: Rating[];
 }
 
+/* ── Santander DS helpers ────────────────────────── */
+
+function SectionCard({ icon: Icon, title, children, className = '' }: {
+  icon: React.ElementType; title: string; children: React.ReactNode; className?: string;
+}) {
+  return (
+    <div className={`bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden ${className}`}>
+      <div className="p-5 border-b border-gray-200 dark:border-gray-800">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+            <Icon className="w-4 h-4 text-[#EC0000]" />
+          </div>
+          <h2 className="text-base font-headline font-semibold text-gray-900 dark:text-white">{title}</h2>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function KpiCard({ icon: Icon, label, value, sub, color }: {
+  icon: React.ElementType; label: string; value: string | number; sub?: string;
+  color: 'red' | 'blue' | 'emerald' | 'purple' | 'amber';
+}) {
+  const bg: Record<string, string> = {
+    red:     'bg-red-50 dark:bg-red-900/20 text-[#EC0000]',
+    blue:    'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400',
+    emerald: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400',
+    purple:  'bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400',
+    amber:   'bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400',
+  };
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+      <div className="flex items-center gap-3 mb-3">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bg[color]}`}>
+          <Icon className="w-5 h-5" />
+        </div>
+        <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</span>
+      </div>
+      <div className="flex items-baseline gap-2">
+        <span className="text-3xl font-mono font-bold text-gray-900 dark:text-white">{value}</span>
+      </div>
+      {sub && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{sub}</p>}
+    </div>
+  );
+}
+
+/* ── Main component ──────────────────────────────── */
+
 export const Ratings: React.FC = () => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -56,26 +108,25 @@ export const Ratings: React.FC = () => {
     TRAINER: t('ratings.trainers'),
     TRAINING_PLAN: t('ratings.trainingPlans')
   };
-  
-  // Dashboard data
+
+  const ratingTypeColors: Record<string, string> = {
+    COURSE: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    LESSON: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+    CHALLENGE: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    TRAINER: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    TRAINING_PLAN: 'bg-red-100 text-[#EC0000] dark:bg-red-900/30 dark:text-red-400',
+  };
+
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  
-  // All ratings data
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [filterType, setFilterType] = useState<string>('');
-  
-  // Summary data
   const [summaries, setSummaries] = useState<RatingSummary[]>([]);
   const [summaryFilterType, setSummaryFilterType] = useState<string>('');
 
   useEffect(() => {
-    if (activeTab === 'dashboard') {
-      fetchDashboard();
-    } else if (activeTab === 'all') {
-      fetchAllRatings();
-    } else if (activeTab === 'summary') {
-      fetchSummary();
-    }
+    if (activeTab === 'dashboard') fetchDashboard();
+    else if (activeTab === 'all') fetchAllRatings();
+    else if (activeTab === 'summary') fetchSummary();
   }, [activeTab, filterType, summaryFilterType]);
 
   const fetchDashboard = async () => {
@@ -137,216 +188,250 @@ export const Ratings: React.FC = () => {
 
   const formatDate = (dateStr: string): string => {
     return new Date(dateStr).toLocaleDateString('pt-PT', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
     });
   };
 
+  const selectCls = 'w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-gray-200 focus:outline-none focus:border-[#EC0000]/40 focus:ring-1 focus:ring-[#EC0000]/20 transition-all';
+  const thCls = 'px-5 py-3 text-left text-xs font-medium text-white uppercase tracking-wider';
+
+  /* ── Dashboard Tab ─────────────────────────── */
   const renderDashboard = () => {
     if (!dashboardData) return null;
 
     return (
       <div className="space-y-6">
-        {/* KPI Cards */}
+        {/* KPI Cards — Total + per type */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="p-4">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">{dashboardData.total_ratings}</div>
-              <div className="text-sm text-gray-500">{t('ratings.totalRatings')}</div>
-            </div>
-          </Card>
-          
-          {Object.entries(dashboardData.averages_by_type).map(([type, data]) => (
-            <Card key={type} className="p-4">
-              <div className="text-center">
-                <div className="flex justify-center mb-2">
-                  <StarRating value={data.avg_stars} readonly size="sm" showValue={false} />
-                </div>
-                <div className="text-xl font-semibold">{data.avg_stars.toFixed(1)}</div>
-                <div className="text-sm text-gray-500">{ratingTypeLabels[type]}</div>
-                <div className="text-xs text-gray-400">{data.total_count} {t('ratings.ratingsFound')}</div>
+          <KpiCard icon={Star} label={t('ratings.totalRatings')} value={dashboardData.total_ratings} color="red" />
+          {Object.entries(dashboardData.averages_by_type).slice(0, 3).map(([type, data]) => (
+            <div key={type} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <StarRating value={data.avg_stars} readonly size="sm" showValue={false} />
+                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${ratingTypeColors[type]}`}>{ratingTypeLabels[type]}</span>
               </div>
-            </Card>
+              <div className="text-3xl font-mono font-bold text-gray-900 dark:text-white">{data.avg_stars.toFixed(1)}</div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{data.total_count} {t('ratings.ratingsFound')}</p>
+            </div>
           ))}
         </div>
 
+        {/* Additional type averages if more than 3 */}
+        {Object.entries(dashboardData.averages_by_type).length > 3 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(dashboardData.averages_by_type).slice(3).map(([type, data]) => (
+              <div key={type} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <StarRating value={data.avg_stars} readonly size="sm" showValue={false} />
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${ratingTypeColors[type]}`}>{ratingTypeLabels[type]}</span>
+                </div>
+                <div className="text-3xl font-mono font-bold text-gray-900 dark:text-white">{data.avg_stars.toFixed(1)}</div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{data.total_count} {t('ratings.ratingsFound')}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Star Distribution */}
-        <Card className="p-4">
-          <h3 className="text-lg font-semibold mb-4">{t('ratings.starDistribution')}</h3>
-          <div className="space-y-2">
+        <SectionCard icon={BarChart3} title={t('ratings.starDistribution')}>
+          <div className="p-5 space-y-3">
             {[5, 4, 3, 2, 1, 0].map((star) => {
               const count = dashboardData.star_distribution[String(star)] || 0;
-              const percentage = dashboardData.total_ratings > 0 
-                ? (count / dashboardData.total_ratings) * 100 
+              const percentage = dashboardData.total_ratings > 0
+                ? (count / dashboardData.total_ratings) * 100
                 : 0;
-              
+
               return (
                 <div key={star} className="flex items-center gap-3">
-                  <div className="w-16 text-sm">{star} {t('ratings.stars')}</div>
-                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-4">
+                  <div className="w-20 text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                    <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                    <span className="font-mono">{star}</span>
+                  </div>
+                  <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-3 overflow-hidden">
                     <div
-                      className="bg-yellow-400 h-4 rounded-full transition-all"
+                      className="bg-amber-400 h-3 rounded-full transition-all duration-500"
                       style={{ width: `${percentage}%` }}
                     />
                   </div>
-                  <div className="w-16 text-sm text-gray-600">{count} ({percentage.toFixed(1)}%)</div>
+                  <div className="w-24 text-right text-sm text-gray-500 dark:text-gray-400 font-mono">
+                    {count} <span className="text-xs">({percentage.toFixed(1)}%)</span>
+                  </div>
                 </div>
               );
             })}
           </div>
-        </Card>
+        </SectionCard>
 
         {/* Top Rankings */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Top Trainers */}
-          <Card className="p-4">
-            <h3 className="text-lg font-semibold mb-4">🏆 {t('ratings.topTrainers')}</h3>
-            {dashboardData.top_trainers.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">{t('ratings.noTrainerRatings')}</p>
-            ) : (
-              <div className="space-y-3">
-                {dashboardData.top_trainers.map((trainer, idx) => (
-                  <div key={trainer.trainer_id} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                    <span className="text-lg font-bold text-gray-400">#{idx + 1}</span>
-                    <div className="flex-1">
-                      <div className="font-medium">{trainer.trainer_name}</div>
-                      <div className="text-xs text-gray-500">{trainer.total_ratings} {t('ratings.ratingsFound')}</div>
+          <SectionCard icon={Award} title={t('ratings.topTrainers')}>
+            <div className="p-5">
+              {dashboardData.top_trainers.length === 0 ? (
+                <p className="text-gray-500 dark:text-gray-400 text-center py-4">{t('ratings.noTrainerRatings')}</p>
+              ) : (
+                <div className="space-y-3">
+                  {dashboardData.top_trainers.map((trainer, idx) => (
+                    <div key={trainer.trainer_id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-sm ${
+                        idx === 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                        idx === 1 ? 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300' :
+                        idx === 2 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                        'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                      }`}>
+                        {idx + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 dark:text-white truncate">{trainer.trainer_name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{trainer.total_ratings} {t('ratings.ratingsFound')}</div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <StarRating value={trainer.avg_stars} readonly size="sm" showValue={false} />
+                        <span className="text-sm font-mono font-bold text-gray-900 dark:text-white">{trainer.avg_stars.toFixed(1)}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <StarRating value={trainer.avg_stars} readonly size="sm" showValue={false} />
-                      <span className="text-sm font-semibold">{trainer.avg_stars.toFixed(1)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </SectionCard>
 
           {/* Top Courses */}
-          <Card className="p-4">
-            <h3 className="text-lg font-semibold mb-4">📚 {t('ratings.topCourses')}</h3>
-            {dashboardData.top_courses.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">{t('ratings.noCourseRatings')}</p>
-            ) : (
-              <div className="space-y-3">
-                {dashboardData.top_courses.map((course, idx) => (
-                  <div key={course.course_id} className="flex items-center gap-3 p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                    <span className="text-lg font-bold text-gray-400">#{idx + 1}</span>
-                    <div className="flex-1">
-                      <div className="font-medium">{course.course_title}</div>
-                      <div className="text-xs text-gray-500">{course.total_ratings} {t('ratings.ratingsFound')}</div>
+          <SectionCard icon={BookOpen} title={t('ratings.topCourses')}>
+            <div className="p-5">
+              {dashboardData.top_courses.length === 0 ? (
+                <p className="text-gray-500 dark:text-gray-400 text-center py-4">{t('ratings.noCourseRatings')}</p>
+              ) : (
+                <div className="space-y-3">
+                  {dashboardData.top_courses.map((course, idx) => (
+                    <div key={course.course_id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-mono font-bold text-sm ${
+                        idx === 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                        idx === 1 ? 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300' :
+                        idx === 2 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                        'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                      }`}>
+                        {idx + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 dark:text-white truncate">{course.course_title}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{course.total_ratings} {t('ratings.ratingsFound')}</div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <StarRating value={course.avg_stars} readonly size="sm" showValue={false} />
+                        <span className="text-sm font-mono font-bold text-gray-900 dark:text-white">{course.avg_stars.toFixed(1)}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <StarRating value={course.avg_stars} readonly size="sm" showValue={false} />
-                      <span className="text-sm font-semibold">{course.avg_stars.toFixed(1)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </SectionCard>
         </div>
 
         {/* Recent Ratings */}
-        <Card className="p-4">
-          <h3 className="text-lg font-semibold mb-4">📝 {t('ratings.recentRatings')}</h3>
-          {dashboardData.recent_ratings.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">{t('ratings.noRecentRatings')}</p>
-          ) : (
-            <div className="space-y-4">
-              {dashboardData.recent_ratings.map((rating) => (
-                <div key={rating.id} className="border-b dark:border-gray-700 pb-4 last:border-0">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="font-medium">{rating.user_name}</div>
-                      <div className="text-sm text-gray-500">
-                        {ratingTypeLabels[rating.rating_type]}: {getItemTitle(rating)}
+        <SectionCard icon={Clock} title={t('ratings.recentRatings')}>
+          <div className="p-5">
+            {dashboardData.recent_ratings.length === 0 ? (
+              <p className="text-gray-500 dark:text-gray-400 text-center py-4">{t('ratings.noRecentRatings')}</p>
+            ) : (
+              <div className="space-y-4">
+                {dashboardData.recent_ratings.map((rating) => (
+                  <div key={rating.id} className="border-b border-gray-100 dark:border-gray-800 pb-4 last:border-0 last:pb-0">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="min-w-0">
+                        <div className="font-medium text-gray-900 dark:text-white">{rating.user_name}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${ratingTypeColors[rating.rating_type]}`}>
+                            {ratingTypeLabels[rating.rating_type]}
+                          </span>
+                          <span className="text-sm text-gray-500 dark:text-gray-400 truncate">{getItemTitle(rating)}</span>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <StarRating value={rating.stars} readonly size="sm" showValue={false} />
+                        <div className="text-xs text-gray-400 mt-1 font-mono">{formatDate(rating.created_at)}</div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <StarRating value={rating.stars} readonly size="sm" showValue={false} />
-                      <div className="text-xs text-gray-400">{formatDate(rating.created_at)}</div>
-                    </div>
+                    {rating.comment && (
+                      <div className="mt-2 flex items-start gap-2">
+                        <MessageSquare className="w-3.5 h-3.5 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <p className="text-sm text-gray-600 dark:text-gray-400 italic">
+                          "{rating.comment}"
+                        </p>
+                      </div>
+                    )}
                   </div>
-                  {rating.comment && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 italic">
-                      "{rating.comment}"
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </SectionCard>
       </div>
     );
   };
 
+  /* ── All Ratings Tab ───────────────────────── */
   const renderAllRatings = () => {
     return (
       <div className="space-y-4">
-        {/* Filters */}
-        <Card className="p-4">
-          <div className="flex gap-4 items-center">
+        {/* Filter Bar */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4">
+          <div className="flex items-center gap-4">
+            <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
             <div className="flex-1 max-w-xs">
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-              >
-                <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.allTypes')}</option>
-                <option value="COURSE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.courses')}</option>
-                <option value="LESSON" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.lessons')}</option>
-                <option value="CHALLENGE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.challenges')}</option>
-                <option value="TRAINER" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.trainers')}</option>
-                <option value="TRAINING_PLAN" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.trainingPlans')}</option>
+              <select value={filterType} onChange={(e) => setFilterType(e.target.value)} className={selectCls}>
+                <option value="">{t('ratings.allTypes')}</option>
+                <option value="COURSE">{t('ratings.courses')}</option>
+                <option value="LESSON">{t('ratings.lessons')}</option>
+                <option value="CHALLENGE">{t('ratings.challenges')}</option>
+                <option value="TRAINER">{t('ratings.trainers')}</option>
+                <option value="TRAINING_PLAN">{t('ratings.trainingPlans')}</option>
               </select>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-500 dark:text-gray-400 font-mono">
               {ratings.length} {t('ratings.ratingsFound')}
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Ratings Table */}
-        <Card className="overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-800">
+            <table className="min-w-full">
+              <thead className="bg-[#EC0000]">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('ratings.student')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('ratings.type')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('ratings.item')}</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">{t('ratings.rating')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('ratings.comment')}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('ratings.date')}</th>
+                  <th className={thCls}>{t('ratings.student')}</th>
+                  <th className={thCls}>{t('ratings.type')}</th>
+                  <th className={thCls}>{t('ratings.item')}</th>
+                  <th className={`${thCls} text-center`}>{t('ratings.rating')}</th>
+                  <th className={thCls}>{t('ratings.comment')}</th>
+                  <th className={thCls}>{t('ratings.date')}</th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {ratings.map((rating) => (
-                  <tr key={rating.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-sm">{rating.user_name}</div>
+                  <tr key={rating.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <td className="px-5 py-3">
+                      <div className="font-medium text-sm text-gray-900 dark:text-white">{rating.user_name}</div>
                       <div className="text-xs text-gray-500">{rating.user_email}</div>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                    <td className="px-5 py-3">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ratingTypeColors[rating.rating_type]}`}>
                         {ratingTypeLabels[rating.rating_type]}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm">{getItemTitle(rating)}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-5 py-3 text-sm text-gray-900 dark:text-white max-w-[200px] truncate">{getItemTitle(rating)}</td>
+                    <td className="px-5 py-3 text-center">
                       <div className="flex justify-center">
                         <StarRating value={rating.stars} readonly size="sm" showValue={false} />
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">
-                      {rating.comment || '-'}
+                    <td className="px-5 py-3 text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">
+                      {rating.comment || <span className="text-gray-300 dark:text-gray-600">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">
+                    <td className="px-5 py-3 text-sm text-gray-500 font-mono whitespace-nowrap">
                       {formatDate(rating.created_at)}
                     </td>
                   </tr>
@@ -355,150 +440,173 @@ export const Ratings: React.FC = () => {
             </table>
           </div>
           {ratings.length === 0 && (
-            <div className="p-8 text-center text-gray-500">
-              {t('ratings.noRatingsFound')}
+            <div className="p-12 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+                <Star className="w-8 h-8 text-gray-400" />
+              </div>
+              <p className="text-gray-500 dark:text-gray-400">{t('ratings.noRatingsFound')}</p>
             </div>
           )}
-        </Card>
+        </div>
       </div>
     );
   };
 
+  /* ── Summary Tab ───────────────────────────── */
   const renderSummary = () => {
     return (
       <div className="space-y-4">
-        {/* Filters */}
-        <Card className="p-4">
-          <div className="flex gap-4 items-center">
+        {/* Filter Bar */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4">
+          <div className="flex items-center gap-4">
+            <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
             <div className="flex-1 max-w-xs">
-              <select
-                value={summaryFilterType}
-                onChange={(e) => setSummaryFilterType(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-              >
-                <option value="" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.allTypes')}</option>
-                <option value="COURSE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.courses')}</option>
-                <option value="LESSON" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.lessons')}</option>
-                <option value="CHALLENGE" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.challenges')}</option>
-                <option value="TRAINER" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.trainers')}</option>
-                <option value="TRAINING_PLAN" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{t('ratings.trainingPlans')}</option>
+              <select value={summaryFilterType} onChange={(e) => setSummaryFilterType(e.target.value)} className={selectCls}>
+                <option value="">{t('ratings.allTypes')}</option>
+                <option value="COURSE">{t('ratings.courses')}</option>
+                <option value="LESSON">{t('ratings.lessons')}</option>
+                <option value="CHALLENGE">{t('ratings.challenges')}</option>
+                <option value="TRAINER">{t('ratings.trainers')}</option>
+                <option value="TRAINING_PLAN">{t('ratings.trainingPlans')}</option>
               </select>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-500 dark:text-gray-400 font-mono">
               {summaries.length} {t('ratings.itemsRated')}
             </div>
           </div>
-        </Card>
+        </div>
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {summaries.map((summary) => (
-            <Card key={`${summary.rating_type}-${summary.item_id}`} className="p-4">
-              <div className="flex justify-between items-start mb-3">
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+            <div key={`${summary.rating_type}-${summary.item_id}`}
+              className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+              <div className="flex justify-between items-start mb-4">
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${ratingTypeColors[summary.rating_type]}`}>
                   {ratingTypeLabels[summary.rating_type]}
                 </span>
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-yellow-500">{summary.avg_stars.toFixed(1)}</div>
-                  <div className="text-xs text-gray-500">{summary.total_ratings} {t('ratings.ratingsFound')}</div>
+                  <div className="text-2xl font-mono font-bold text-amber-500">{summary.avg_stars.toFixed(1)}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{summary.total_ratings} {t('ratings.ratingsFound')}</div>
                 </div>
               </div>
-              <h4 className="font-semibold text-lg mb-3">{summary.item_title}</h4>
-              <div className="flex justify-center mb-3">
+              <h4 className="font-headline font-semibold text-lg text-gray-900 dark:text-white mb-3 truncate" title={summary.item_title}>
+                {summary.item_title}
+              </h4>
+              <div className="flex justify-center mb-4">
                 <StarRating value={summary.avg_stars} readonly size="md" showValue={false} />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 {[5, 4, 3, 2, 1].map((star) => {
                   const count = summary.star_distribution[String(star)] || 0;
-                  const percentage = summary.total_ratings > 0 
-                    ? (count / summary.total_ratings) * 100 
+                  const percentage = summary.total_ratings > 0
+                    ? (count / summary.total_ratings) * 100
                     : 0;
-                  
+
                   return (
                     <div key={star} className="flex items-center gap-2 text-xs">
-                      <span className="w-4">{star}★</span>
-                      <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded h-2">
+                      <span className="w-6 font-mono text-gray-500 dark:text-gray-400 text-right">{star}</span>
+                      <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                      <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded h-2 overflow-hidden">
                         <div
-                          className="bg-yellow-400 h-2 rounded"
+                          className="bg-amber-400 h-2 rounded transition-all duration-500"
                           style={{ width: `${percentage}%` }}
                         />
                       </div>
-                      <span className="w-8 text-right text-gray-500">{count}</span>
+                      <span className="w-8 text-right text-gray-500 dark:text-gray-400 font-mono">{count}</span>
                     </div>
                   );
                 })}
               </div>
-            </Card>
+            </div>
           ))}
         </div>
 
         {summaries.length === 0 && (
-          <Card className="p-8 text-center text-gray-500">
-            {t('ratings.noItemsRated')}
-          </Card>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-12 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
+              <TrendingUp className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-gray-500 dark:text-gray-400">{t('ratings.noItemsRated')}</p>
+          </div>
         )}
       </div>
     );
   };
 
+  /* ── Tab config ────────────────────────────── */
+  const tabs = [
+    { id: 'dashboard', label: t('ratings.dashboard'), icon: BarChart3 },
+    { id: 'all', label: t('ratings.allRatings'), icon: Star },
+    { id: 'summary', label: t('ratings.summaryByItem'), icon: TrendingUp },
+  ];
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">⭐ {t('ratings.title')}</h1>
-
-      {/* Custom Tab Navigation */}
-      <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl mb-6">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+            <Star className="w-6 h-6 text-[#EC0000]" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-headline font-bold text-gray-900 dark:text-white">
+              {t('ratings.title')}
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">
+              {t('ratings.subtitle', 'Gestão e análise de avaliações da plataforma')}
+            </p>
+          </div>
+        </div>
         <button
-          onClick={() => setActiveTab('dashboard')}
-          className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-            activeTab === 'dashboard'
-              ? 'bg-indigo-600 text-white shadow-lg'
-              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
+          onClick={() => {
+            if (activeTab === 'dashboard') fetchDashboard();
+            else if (activeTab === 'all') fetchAllRatings();
+            else fetchSummary();
+          }}
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-lg transition-colors text-sm font-medium"
         >
-          {t('ratings.dashboard')}
-        </button>
-        <button
-          onClick={() => setActiveTab('all')}
-          className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-            activeTab === 'all'
-              ? 'bg-indigo-600 text-white shadow-lg'
-              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
-        >
-          {t('ratings.allRatings')}
-        </button>
-        <button
-          onClick={() => setActiveTab('summary')}
-          className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-            activeTab === 'summary'
-              ? 'bg-indigo-600 text-white shadow-lg'
-              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
-        >
-          {t('ratings.summaryByItem')}
+          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          {t('common.refresh', 'Atualizar')}
         </button>
       </div>
 
-      <div className="mt-6">
-        {error && (
-          <Card className="p-4 mb-4 bg-red-50 dark:bg-red-900/30 border-red-200">
-            <p className="text-red-600 dark:text-red-400">{error}</p>
-          </Card>
-        )}
-
-        {isLoading ? (
-          <Card className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4 text-gray-500">{t('ratings.loading')}</p>
-          </Card>
-        ) : (
-          <>
-            {activeTab === 'dashboard' && renderDashboard()}
-            {activeTab === 'all' && renderAllRatings()}
-            {activeTab === 'summary' && renderSummary()}
-          </>
-        )}
+      {/* Tab Navigation */}
+      <div className="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-800 pb-4">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === tab.id
+                ? 'bg-[#EC0000] text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            <tab.icon className="w-4 h-4" />
+            {tab.label}
+          </button>
+        ))}
       </div>
+
+      {/* Content */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4">
+          <p className="text-[#EC0000] text-sm font-medium">{error}</p>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#EC0000]"></div>
+        </div>
+      ) : (
+        <div className="animate-in fade-in duration-300">
+          {activeTab === 'dashboard' && renderDashboard()}
+          {activeTab === 'all' && renderAllRatings()}
+          {activeTab === 'summary' && renderSummary()}
+        </div>
+      )}
     </div>
   );
 };

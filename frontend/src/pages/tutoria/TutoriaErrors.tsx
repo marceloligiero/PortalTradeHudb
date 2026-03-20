@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   AlertTriangle, Plus, Search, Filter, ChevronDown,
   RefreshCw, Calendar, User, Tag, ArrowRight, Loader2,
-  Eye, XCircle,
+  Eye, XCircle, Clock,
 } from 'lucide-react';
 import axios from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -29,6 +29,8 @@ interface TutoriaError {
   is_active: boolean;
   plans_count: number;
   created_at: string;
+  is_overdue?: boolean;
+  deadline_date?: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -194,7 +196,7 @@ export default function TutoriaErrors() {
               </p>
             </div>
           </div>
-          {isManager && (
+          {!isAnalysisView && !isTutorReviewView && (
             <motion.button
               whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => navigate('/tutoria/errors/new')}
@@ -294,6 +296,14 @@ export default function TutoriaErrors() {
         </AnimatePresence>
       </motion.div>
 
+      {/* ── Overdue banner ───────────────────────────────────────────────────── */}
+      {errors.filter(e => e.is_overdue).length > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium mb-4">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          {errors.filter(e => e.is_overdue).length} incidência(s) ultrapassaram o prazo de fecho mensal (1º dia útil do mês seguinte).
+        </div>
+      )}
+
       {/* ── Content ──────────────────────────────────────────────────────────── */}
       {loading ? (
         <div className="flex items-center justify-center py-24">
@@ -369,6 +379,11 @@ export default function TutoriaErrors() {
                             : isDark ? 'bg-orange-500/20 text-orange-400 border-orange-500/30' : 'bg-orange-50 text-orange-600 border-orange-200'
                         }`}>
                           <RefreshCw className="w-2.5 h-2.5 inline mr-0.5" />{e.recurrence_count + 1}ª {t('tutoriaErrors.time')}
+                        </span>
+                      )}
+                      {e.is_overdue && (
+                        <span className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20 dark:bg-red-500/15 dark:text-red-400">
+                          <Clock className="w-3 h-3" /> Em Atraso
                         </span>
                       )}
                     </div>

@@ -1,417 +1,352 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BookOpen, Save, X, Users, Building2, Package, CheckCircle2, AlertCircle, Check, GraduationCap, TrendingUp, Shield, Star } from 'lucide-react';
+import {
+  ArrowLeft, Save, Building2, Package, Check,
+  AlertCircle, GraduationCap, TrendingUp, Shield, Star,
+  CheckCircle2, Loader2
+} from 'lucide-react';
 import api from '../../lib/axios';
 import { getTranslatedProductName } from '../../utils/productTranslation';
 
-interface Trainer {
-  id: number;
-  full_name: string;
-  email: string;
-}
+interface Bank { id: number; code: string; name: string; country: string }
+interface Product { id: number; code: string; name: string; description: string }
 
-interface Bank {
-  id: number;
-  code: string;
-  name: string;
-  country: string;
-}
-
-interface Product {
-  id: number;
-  code: string;
-  name: string;
-  description: string;
-}
+const LEVELS = [
+  { value: 'BEGINNER',     icon: TrendingUp, label: 'admin.levelBeginner',     desc: 'admin.levelBeginnerDesc',     cls: 'border-orange-500 bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400', dot: 'bg-orange-500' },
+  { value: 'INTERMEDIATE', icon: Shield,     label: 'admin.levelIntermediate', desc: 'admin.levelIntermediateDesc', cls: 'border-amber-500 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400',     dot: 'bg-amber-500' },
+  { value: 'EXPERT',       icon: Star,       label: 'admin.levelExpert',       desc: 'admin.levelExpertDesc',       cls: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400', dot: 'bg-emerald-500' },
+] as const;
 
 export default function CourseForm() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
+  const { courseId } = useParams<{ courseId: string }>();
+  const isEditing = Boolean(courseId);
+
+  const [saving, setSaving] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
+  const [success, setSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [trainers, setTrainers] = useState<Trainer[]>([]);
+
   const [banks, setBanks] = useState<Bank[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [formData, setFormData] = useState({
+
+  const [form, setForm] = useState({
     title: '',
     description: '',
-    level: 'BEGINNER' as string,
+    level: 'BEGINNER',
+    course_type: 'CURSO',
     bank_ids: [] as number[],
     product_ids: [] as number[],
   });
 
+  const set = <K extends keyof typeof form>(key: K, val: (typeof form)[K]) =>
+    setForm(prev => ({ ...prev, [key]: val }));
+
+  /* ── Load data ── */
+
   useEffect(() => {
-    fetchData();
+    (async () => {
+      try {
+        const [bRes, pRes] = await Promise.all([
+          api.get('/api/admin/banks'),
+          api.get('/api/admin/products'),
+        ]);
+        setBanks(bRes.data);
+        setProducts(pRes.data);
+
+        if (isEditing && courseId) {
+          const { data: c } = await api.get(`/api/admin/courses/${courseId}`);
+          setForm({
+            title: c.title || '',
+            description: c.description || '',
+            level: c.level || 'BEGINNER',
+            course_type: c.course_type || 'CURSO',
+            bank_ids: (c.banks || []).map((b: { id: number }) => b.id),
+            product_ids: (c.products || []).map((p: { id: number }) => p.id),
+          });
+        }
+      } catch (err) {
+        console.error('Error loading form data:', err);
+      } finally {
+        setLoadingData(false);
+      }
+    })();
   }, []);
 
-  const fetchData = async () => {
-    try {
-      const [trainersRes, banksRes, productsRes] = await Promise.all([
-        api.get('/api/admin/trainers'),
-        api.get('/api/admin/banks'),
-        api.get('/api/admin/products')
-      ]);
-      setTrainers(trainersRes.data);
-      setBanks(banksRes.data);
-      setProducts(productsRes.data);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
+  /* ── Validate ── */
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!form.title.trim()) e.title = t('admin.titleRequired');
+    if (!form.description.trim()) e.description = t('admin.descriptionRequired');
+    if (form.bank_ids.length === 0) e.bank_ids = t('admin.bankRequired');
+    if (form.product_ids.length === 0) e.product_ids = t('admin.productTypeRequired');
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  const validateStep = (step: number): boolean => {
-    const newErrors: Record<string, string> = {};
-    
-    if (step === 1) {
-      if (!formData.title.trim()) newErrors.title = t('admin.titleRequired');
-      if (!formData.description.trim()) newErrors.description = t('admin.descriptionRequired');
-    } else if (step === 2) {
-      if (formData.bank_ids.length === 0) newErrors.bank_ids = t('admin.bankRequired');
-      if (formData.product_ids.length === 0) newErrors.product_ids = t('admin.productTypeRequired');
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleNext = () => {
-    if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, 2));
-    }
-  };
-
-  const handleBack = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
-  };
-
-  const toggleBank = (bankId: number) => {
-    setFormData(prev => ({
-      ...prev,
-      bank_ids: prev.bank_ids.includes(bankId)
-        ? prev.bank_ids.filter(id => id !== bankId)
-        : [...prev.bank_ids, bankId]
-    }));
-  };
-
-  const toggleProduct = (productId: number) => {
-    setFormData(prev => ({
-      ...prev,
-      product_ids: prev.product_ids.includes(productId)
-        ? prev.product_ids.filter(id => id !== productId)
-        : [...prev.product_ids, productId]
-    }));
-  };
+  /* ── Submit ── */
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateStep(2)) return;
+    if (!validate()) return;
 
     try {
-      setLoading(true);
-      await api.post('/api/admin/courses', {
-        title: formData.title,
-        description: formData.description,
-        level: formData.level,
-        bank_ids: formData.bank_ids,
-        product_ids: formData.product_ids,
-      });
-      
-      // Success animation
-      setCurrentStep(3);
-      setTimeout(() => {
-        navigate('/courses');
-      }, 2000);
-    } catch (error) {
-      console.error('Error creating course:', error);
+      setSaving(true);
+      const payload = {
+        title: form.title,
+        description: form.description,
+        level: form.level,
+        course_type: form.course_type,
+        bank_ids: form.bank_ids,
+        product_ids: form.product_ids,
+      };
+
+      if (isEditing && courseId) {
+        await api.put(`/api/admin/courses/${courseId}`, payload);
+      } else {
+        await api.post('/api/admin/courses', payload);
+      }
+
+      setSuccess(true);
+      setTimeout(() => navigate(isEditing ? `/courses/${courseId}` : '/courses'), 1500);
+    } catch (err) {
+      console.error('Error saving course:', err);
       setErrors({ submit: t('messages.error') });
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
-  const steps = [
-    { number: 1, title: t('admin.basicInfo'), icon: BookOpen },
-    { number: 2, title: t('admin.details'), icon: Package },
-  ];
+  /* ── Toggle helpers ── */
+
+  const toggleBank = (id: number) =>
+    set('bank_ids', form.bank_ids.includes(id) ? form.bank_ids.filter(x => x !== id) : [...form.bank_ids, id]);
+
+  const toggleProduct = (id: number) =>
+    set('product_ids', form.product_ids.includes(id) ? form.product_ids.filter(x => x !== id) : [...form.product_ids, id]);
+
+  /* ── Loading ── */
+
+  if (loadingData) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-10 h-10 border-[3px] border-[#EC0000] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  /* ── Success ── */
+
+  if (success) {
+    return (
+      <div className="max-w-lg mx-auto mt-20 text-center">
+        <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-3" />
+        <p className="text-lg font-semibold text-gray-900 dark:text-white mb-1">{t('admin.courseCreatedSuccess')}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.redirecting')}</p>
+      </div>
+    );
+  }
+
+  /* ── Form ── */
+
+  const inputCls = (key: string) =>
+    `w-full px-3.5 py-2.5 bg-white dark:bg-gray-900 border rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-[#EC0000]/20 focus:border-[#EC0000]/40 transition-colors ${
+      errors[key] ? 'border-red-400 dark:border-red-500' : 'border-gray-200 dark:border-gray-700'
+    }`;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-black p-8">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-600 to-red-700 flex items-center justify-center shadow-xl shadow-red-900/50 animate-pulse">
-                <BookOpen className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-100 to-gray-300">
-                  {t('admin.newCourse')}
-                </h1>
-                <p className="text-gray-400 mt-1">{t('admin.createNewCourse')}</p>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate('/courses')}
-              className="flex items-center gap-2 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white rounded-xl transition-all border border-gray-200 dark:border-white/10 hover:scale-105"
-            >
-              <X className="w-5 h-5" />
-              {t('common.cancel')}
-            </button>
+    <div className="max-w-3xl mx-auto">
+
+      {/* ═══ Top bar ═══ */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/courses')}
+            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
+            {isEditing ? t('admin.editCourse', 'Editar Curso') : t('admin.newCourse')}
+          </h1>
+        </div>
+        <button
+          onClick={handleSubmit as any}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-4 py-2 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50"
+        >
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving ? t('messages.saving') : isEditing ? t('common.save', 'Guardar') : t('admin.createCourse')}
+        </button>
+      </div>
+
+      {/* ═══ Form card ═══ */}
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+
+        {/* ── Title + Description + Level ── */}
+        <div className="p-5 sm:p-6 space-y-4 border-b border-gray-100 dark:border-gray-700/50">
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-1.5">
+              {t('admin.courseTitle')} *
+            </label>
+            <input
+              type="text"
+              value={form.title}
+              onChange={e => set('title', e.target.value)}
+              className={inputCls('title')}
+              placeholder={t('admin.courseTitlePlaceholder')}
+            />
+            {errors.title && (
+              <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.title}</p>
+            )}
           </div>
 
-          {/* Progress Steps */}
-          {currentStep < 3 && (
-            <div className="flex items-center justify-between mb-8 relative max-w-md mx-auto">
-              <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200 dark:bg-white/10">
-                <div 
-                  className="h-full bg-gradient-to-r from-red-600 to-red-500 transition-all duration-500"
-                  style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
-                />
-              </div>
-              {steps.map((step) => {
-                const Icon = step.icon;
-                const isCompleted = currentStep > step.number;
-                const isCurrent = currentStep === step.number;
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-1.5">
+              {t('admin.courseDescription')} *
+            </label>
+            <textarea
+              value={form.description}
+              onChange={e => set('description', e.target.value)}
+              rows={4}
+              className={`${inputCls('description')} resize-none`}
+              placeholder={t('admin.courseDescriptionPlaceholder')}
+            />
+            {errors.description && (
+              <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.description}</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">
+              <GraduationCap className="w-3.5 h-3.5 inline mr-1" />
+              {t('admin.courseLevel', 'Nível')} *
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {LEVELS.map(lvl => {
+                const sel = form.level === lvl.value;
+                const Icon = lvl.icon;
                 return (
-                  <div key={step.number} className="flex flex-col items-center relative z-10">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 ${
-                      isCompleted ? 'bg-gradient-to-br from-green-500 to-green-600 scale-110' :
-                      isCurrent ? 'bg-gradient-to-br from-red-600 to-red-700 scale-110 shadow-lg shadow-red-900/50' :
-                      'bg-white border-2 border-gray-200 dark:bg-white/5 dark:border-white/20'
-                    }`}>
-                      {isCompleted ? (
-                        <CheckCircle2 className="w-6 h-6 text-white" />
-                      ) : (
-                        <Icon className={`w-6 h-6 ${isCurrent ? 'text-white' : 'text-gray-400'}`} />
-                      )}
-                    </div>
-                    <p className={`mt-2 text-sm font-medium ${isCurrent ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
-                      {step.title}
-                    </p>
-                  </div>
+                  <button
+                    key={lvl.value}
+                    type="button"
+                    onClick={() => set('level', lvl.value)}
+                    className={`relative p-3 rounded-lg border text-center transition-colors ${
+                      sel ? `border-current ${lvl.cls}` : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    {sel && <Check className="absolute top-1.5 right-1.5 w-3.5 h-3.5" />}
+                    <Icon className="w-4 h-4 mx-auto mb-1" />
+                    <p className="text-xs font-semibold">{t(lvl.label)}</p>
+                    <p className="text-[10px] opacity-70">{t(lvl.desc)}</p>
+                  </button>
                 );
               })}
             </div>
+          </div>
+          {/* Course Type */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-1.5">
+              {t('admin.courseType', 'Tipo de Curso')}
+            </label>
+            <select
+              value={form.course_type}
+              onChange={e => set('course_type', e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EC0000]/30 focus:outline-none"
+            >
+              <option value="CURSO">{t('admin.courseTypeCurso', 'Curso Completo')}</option>
+              <option value="CAPSULA_METODOLOGIA">{t('admin.courseTypeCapsulaMetodologia', 'Cápsula — Metodologia')}</option>
+              <option value="CAPSULA_FUNCIONALIDADE">{t('admin.courseTypeCapsulaFuncionalidade', 'Cápsula — Funcionalidade')}</option>
+            </select>
+          </div>
+        </div>
+
+        {/* ── Banks ── */}
+        <div className="p-5 sm:p-6 border-b border-gray-100 dark:border-gray-700/50">
+          <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">
+            <Building2 className="w-3.5 h-3.5 inline mr-1" />
+            {t('admin.banks')} *
+            <span className="font-normal normal-case text-gray-400 ml-1">({t('admin.selectMultiple')})</span>
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {banks.map(bank => {
+              const sel = form.bank_ids.includes(bank.id);
+              return (
+                <button
+                  key={bank.id}
+                  type="button"
+                  onClick={() => toggleBank(bank.id)}
+                  className={`flex items-center gap-2.5 p-3 rounded-lg border text-left transition-colors ${
+                    sel
+                      ? 'border-[#EC0000] bg-red-50 dark:bg-red-500/10'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${
+                    sel ? 'bg-[#EC0000] text-white' : 'border border-gray-300 dark:border-gray-600'
+                  }`}>
+                    {sel && <Check className="w-3 h-3" />}
+                  </div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{bank.name}</p>
+                </button>
+              );
+            })}
+          </div>
+          {errors.bank_ids && (
+            <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.bank_ids}</p>
           )}
         </div>
 
-        {/* Form */}
-        {currentStep === 3 ? (
-          <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 p-12 text-center">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-br from-green-500 to-green-600 mb-6 animate-bounce">
-              <CheckCircle2 className="w-12 h-12 text-white" />
-            </div>
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-              {t('admin.courseCreatedSuccess')}
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 text-lg">
-              {t('admin.redirecting')}
-            </p>
+        {/* ── Products ── */}
+        <div className="p-5 sm:p-6">
+          <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide mb-2">
+            <Package className="w-3.5 h-3.5 inline mr-1" />
+            {t('admin.services')} *
+            <span className="font-normal normal-case text-gray-400 ml-1">({t('admin.selectMultiple')})</span>
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {products.map(product => {
+              const sel = form.product_ids.includes(product.id);
+              return (
+                <button
+                  key={product.id}
+                  type="button"
+                  onClick={() => toggleProduct(product.id)}
+                  className={`flex items-center gap-2.5 p-3 rounded-lg border text-left transition-colors ${
+                    sel
+                      ? 'border-[#EC0000] bg-red-50 dark:bg-red-500/10'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${
+                    sel ? 'bg-[#EC0000] text-white' : 'border border-gray-300 dark:border-gray-600'
+                  }`}>
+                    {sel && <Check className="w-3 h-3" />}
+                  </div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {getTranslatedProductName(t, product.code, product.name)}
+                    </p>
+                </button>
+              );
+            })}
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 p-8 shadow-2xl">
-            <div className="min-h-[400px]">
-              {/* Step 1: Basic Info */}
-              {currentStep === 1 && (
-                <div className="space-y-6 animate-fadeIn">
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                      <BookOpen className="w-4 h-4" />
-                      {t('admin.courseTitle')} *
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className={`w-full px-5 py-4 bg-white dark:bg-white/5 border ${errors.title ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all text-lg`}
-                      placeholder={t('admin.courseTitlePlaceholder')}
-                    />
-                    {errors.title && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.title}</p>}
-                  </div>
+          {errors.product_ids && (
+            <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.product_ids}</p>
+          )}
+        </div>
+      </form>
 
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                      <BookOpen className="w-4 h-4" />
-                      {t('admin.courseDescription')} *
-                    </label>
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      rows={6}
-                      className={`w-full px-5 py-4 bg-white dark:bg-white/5 border ${errors.description ? 'border-red-500' : 'border-gray-200 dark:border-white/10'} rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all resize-none text-lg`}
-                      placeholder={t('admin.courseDescriptionPlaceholder')}
-                    />
-                    {errors.description && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.description}</p>}
-                  </div>
-
-                  {/* Course Level */}
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                      <GraduationCap className="w-4 h-4" />
-                      {t('admin.courseLevel', 'Nível do Curso')} *
-                    </label>
-                    <div className="grid grid-cols-3 gap-3">
-                      {[
-                        { value: 'BEGINNER', label: t('admin.levelBeginner', 'Iniciante'), Icon: TrendingUp, color: 'orange', desc: t('admin.levelBeginnerDesc', 'Conceitos básicos') },
-                        { value: 'INTERMEDIATE', label: t('admin.levelIntermediate', 'Intermédio'), Icon: Shield, color: 'amber', desc: t('admin.levelIntermediateDesc', 'Conhecimento prático') },
-                        { value: 'EXPERT', label: t('admin.levelExpert', 'Especialista'), Icon: Star, color: 'emerald', desc: t('admin.levelExpertDesc', 'Domínio avançado') },
-                      ].map((level) => {
-                        const isSelected = formData.level === level.value;
-                        const colorStyles = level.color === 'orange'
-                          ? { border: 'border-orange-500', bg: 'bg-orange-500/10 dark:bg-orange-500/20', iconBg: 'bg-orange-500/20', iconColor: 'text-orange-500', ring: 'ring-orange-500/30' }
-                          : level.color === 'amber'
-                          ? { border: 'border-amber-500', bg: 'bg-amber-500/10 dark:bg-amber-500/20', iconBg: 'bg-amber-500/20', iconColor: 'text-amber-500', ring: 'ring-amber-500/30' }
-                          : { border: 'border-emerald-500', bg: 'bg-emerald-500/10 dark:bg-emerald-500/20', iconBg: 'bg-emerald-500/20', iconColor: 'text-emerald-500', ring: 'ring-emerald-500/30' };
-                        return (
-                          <button
-                            key={level.value}
-                            type="button"
-                            onClick={() => setFormData({ ...formData, level: level.value })}
-                            className={`relative p-5 rounded-xl border-2 text-center transition-all duration-200 ${
-                              isSelected
-                                ? `${colorStyles.border} ${colorStyles.bg} ring-2 ${colorStyles.ring} scale-[1.02]`
-                                : 'border-gray-200 dark:border-white/10 hover:border-gray-400 dark:hover:border-white/20 hover:scale-[1.01]'
-                            }`}
-                          >
-                            {isSelected && (
-                              <div className={`absolute top-2 right-2 w-5 h-5 rounded-full ${colorStyles.iconBg} flex items-center justify-center`}>
-                                <Check className={`w-3 h-3 ${colorStyles.iconColor}`} />
-                              </div>
-                            )}
-                            <div className={`w-10 h-10 rounded-xl mx-auto mb-2 flex items-center justify-center ${
-                              isSelected ? colorStyles.iconBg : 'bg-gray-100 dark:bg-white/5'
-                            }`}>
-                              <level.Icon className={`w-5 h-5 ${isSelected ? colorStyles.iconColor : 'text-gray-400 dark:text-gray-500'}`} />
-                            </div>
-                            <p className="font-semibold text-gray-900 dark:text-white text-sm">{level.label}</p>
-                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{level.desc}</p>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Step 2: Details */}
-              {currentStep === 2 && (
-                <div className="space-y-6 animate-fadeIn">
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                      <Building2 className="w-4 h-4" />
-                      {t('admin.banks')} * <span className="text-gray-400 text-xs">({t('admin.selectMultiple')})</span>
-                    </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {banks.map((bank) => (
-                        <button
-                          key={bank.id}
-                          type="button"
-                          onClick={() => toggleBank(bank.id)}
-                          className={`p-4 rounded-xl border-2 text-left transition-all ${
-                            formData.bank_ids.includes(bank.id)
-                              ? 'border-red-500 bg-red-500/10 dark:bg-red-500/20'
-                              : 'border-gray-200 dark:border-white/10 hover:border-red-500/50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium text-gray-900 dark:text-white">{bank.code}</p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">{bank.name}</p>
-                              <p className="text-xs text-gray-500">{bank.country}</p>
-                            </div>
-                            {formData.bank_ids.includes(bank.id) && (
-                              <Check className="w-5 h-5 text-red-500" />
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                    {errors.bank_ids && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.bank_ids}</p>}
-                  </div>
-
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                      <Package className="w-4 h-4" />
-                      {t('admin.services')} * <span className="text-gray-400 text-xs">({t('admin.selectMultiple')})</span>
-                    </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {products.map((product) => (
-                        <button
-                          key={product.id}
-                          type="button"
-                          onClick={() => toggleProduct(product.id)}
-                          className={`p-4 rounded-xl border-2 text-left transition-all ${
-                            formData.product_ids.includes(product.id)
-                              ? 'border-red-500 bg-red-500/10 dark:bg-red-500/20'
-                              : 'border-gray-200 dark:border-white/10 hover:border-red-500/50'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium text-gray-900 dark:text-white">{getTranslatedProductName(t, product.code, product.name)}</p>
-                              <p className="text-xs text-gray-500">{product.code}</p>
-                            </div>
-                            {formData.product_ids.includes(product.id) && (
-                              <Check className="w-5 h-5 text-red-500" />
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                    {errors.product_ids && <p className="text-red-600 dark:text-red-400 text-sm mt-2 flex items-center gap-1"><AlertCircle className="w-4 h-4" />{errors.product_ids}</p>}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Navigation Buttons */}
-            <div className="flex gap-4 pt-8 border-t border-gray-200 dark:border-white/10">
-              {currentStep > 1 && currentStep < 3 && (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  className="px-6 py-4 bg-gray-100 hover:bg-gray-200 text-gray-800 dark:bg-white/5 dark:hover:bg-white/10 dark:text-white rounded-xl font-medium transition-all border border-gray-200 dark:border-white/10 hover:scale-105"
-                >
-                  {t('common.back')}
-                </button>
-              )}
-              
-              {currentStep < 2 ? (
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-medium hover:from-red-700 hover:to-red-800 transition-all shadow-lg shadow-red-900/50 hover:scale-105"
-                >
-                  {t('common.next')}
-                  <Save className="w-5 h-5" />
-                </button>
-              ) : currentStep === 2 ? (
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-xl font-medium hover:from-green-700 hover:to-green-800 transition-all shadow-lg shadow-green-900/50 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
-                >
-                  <CheckCircle2 className="w-5 h-5" />
-                  {loading ? t('messages.saving') : t('admin.createCourse')}
-                </button>
-              ) : null}
-            </div>
-
-            {errors.submit && (
-              <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-                <p className="text-red-400 flex items-center gap-2">
-                  <AlertCircle className="w-5 h-5" />
-                  {errors.submit}
-                </p>
-              </div>
-            )}
-          </form>
-        )}
-      </div>
+      {/* Submit error */}
+      {errors.submit && (
+        <div className="mt-3 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-lg">
+          <p className="text-sm text-red-600 dark:text-red-400 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />{errors.submit}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

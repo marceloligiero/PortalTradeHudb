@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
       // Vite accepts the special value 'all' to allow any host.
       // We'll push the string 'all' so runtime will accept any host.
       // Type system may not like it but Vite reads it at runtime.
-      // @ts-ignore
+      // @ts-expect-error Vite accepts 'all' at runtime but typing doesn't reflect it
       allowedHosts.push('all');
     } else {
       allowedHosts.push(publicIp);
@@ -31,6 +31,8 @@ export default defineConfig(({ mode }) => {
       // Pre-compress assets at build time (saves CPU at runtime)
       viteCompression({ algorithm: 'gzip', ext: '.gz', threshold: 1024 }),
     ],
+    // Allows direct `import heroVideo from '@/assets/video/hero-bg.mp4'`
+    assetsInclude: ['**/*.mp4', '**/*.webm'],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
@@ -96,7 +98,7 @@ export default defineConfig(({ mode }) => {
               const loc = proxyRes.headers && proxyRes.headers['location'];
               if (loc && typeof loc === 'string') {
                 // strip origin from location so browser stays on vite origin
-                proxyRes.headers['location'] = loc.replace(/^https?:\/\/[0-9A-Za-z:\.\-]+/, '');
+                proxyRes.headers['location'] = loc.replace(/^https?:\/\/[0-9A-Za-z:.+-]+/, '');
               }
             });
           },

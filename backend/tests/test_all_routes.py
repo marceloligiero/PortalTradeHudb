@@ -535,23 +535,25 @@ class TestFinalization:
 # =============================================================================
 
 class TestDocs:
-    """Testes de documentação"""
-    
+    """Testes de documentação — disponíveis apenas com DEBUG=True"""
+
     def test_swagger_docs(self):
-        """GET /docs - Swagger UI"""
+        """GET /docs - Swagger UI (disabled in production)"""
         response = client.get("/docs")
-        assert response.status_code == 200
-    
+        # Swagger is disabled when DEBUG=False (security hardening H02)
+        assert response.status_code in [200, 404]
+
     def test_redoc(self):
-        """GET /redoc - ReDoc"""
+        """GET /redoc - ReDoc (disabled in production)"""
         response = client.get("/redoc")
-        assert response.status_code == 200
-    
+        assert response.status_code in [200, 404]
+
     def test_openapi(self):
-        """GET /openapi.json - OpenAPI Schema"""
+        """GET /openapi.json - OpenAPI Schema (disabled in production)"""
         response = client.get("/openapi.json")
-        assert response.status_code == 200
-        assert "paths" in response.json()
+        assert response.status_code in [200, 404]
+        if response.status_code == 200:
+            assert "paths" in response.json()
 
 
 # =============================================================================
