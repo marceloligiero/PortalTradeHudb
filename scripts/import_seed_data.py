@@ -1,9 +1,13 @@
 """
 import_seed_data.py — Importa dados mestres do Docker para o MySQL local.
 
-Chamado automaticamente pelo iniciar-sem-docker.bat após as migrações.
-Usa INSERT IGNORE — não sobrescreve dados existentes.
-Só corre se a base de dados estiver vazia (banks = 0 registos).
+Comportamento:
+  1a execucao  → limpa as tabelas mestres e insere todos os dados do Docker.
+  Execucoes seguintes → salta (marcador seed_master_v1 na tabela _migrations).
+
+Uso manual:
+  python import_seed_data.py           # comportamento normal
+  python import_seed_data.py --force   # limpa e re-importa mesmo se ja foi feito
 """
 
 import os
@@ -15,10 +19,34 @@ ROOT = Path(__file__).resolve().parent.parent
 SEED_FILE = ROOT / "scripts" / "master_data_seed.sql"
 ENV_FILE  = ROOT / "backend" / ".env"
 
+FORCE = "--force" in sys.argv
+
+# Marcador gravado em _migrations para indicar que o seed ja foi aplicado
+SEED_MARKER = "seed_master_v1"
+
+# Ordem de truncate respeitando FK (filhos antes de pais)
+TRUNCATE_ORDER = [
+    "team_members",
+    "team_services",
+    "org_node_members",
+    "org_nodes",
+    "teams",
+    "activities",
+    "departments",
+    "chat_faqs",
+    "tutoria_error_categories",
+    "error_types",
+    "error_detected_by",
+    "error_origins",
+    "error_impacts",
+    "users",
+    "products",
+    "banks",
+]
+
 
 def _read_env_file(env_path: Path) -> str:
     """Lê o ficheiro .env suportando UTF-8, UTF-16 e ANSI (Windows)."""
-    # PowerShell Set-Content escreve UTF-16 LE por padrão no Windows 5.1
     for enc in ("utf-8-sig", "utf-16", "utf-8", "cp1252", "latin-1"):
         try:
             return env_path.read_text(encoding=enc)
@@ -33,9 +61,8 @@ def parse_database_url(env_path: Path) -> dict:
         return {}
     content = _read_env_file(env_path)
     for line in content.splitlines():
-        line = line.strip().strip("\x00")  # remover NUL bytes de UTF-16
+        line = line.strip().strip("\x00")
         if line.startswith("DATABASE_URL"):
-            # mysql+pymysql://user:pass@host:port/db
             m = re.match(
                 r"DATABASE_URL\s*=\s*mysql\+pymysql://([^:]+):([^@]+)@([^:/]+):?(\d+)?/(\S+)",
                 line,
@@ -56,7 +83,6 @@ def main():
         print("  [SEED] master_data_seed.sql nao encontrado — a saltar.")
         return 0
 
-    # Fallback: tentar ler DATABASE_URL da variável de ambiente
     creds = parse_database_url(ENV_FILE)
     if not creds:
         db_url = os.environ.get("DATABASE_URL", "")
@@ -96,47 +122,74 @@ def main():
         return 1
 
     with conn.cursor() as cur:
-        # Verificar se já tem dados — se sim, saltar
+        # Verificar se o seed ja foi aplicado (marcador em _migrations)
+        already_done = False
         try:
-            cur.execute("SELECT COUNT(*) FROM banks")
-            count = cur.fetchone()[0]
-            if count > 0:
-                print(f"  [SEED] Base de dados ja tem dados ({count} bancos) — a saltar import.")
-                conn.close()
-                return 0
+            cur.execute(
+                "SELECT COUNT(*) FROM _migrations WHERE filename = %s",
+                (SEED_MARKER,),
+            )
+            already_done = cur.fetchone()[0] > 0
         except Exception:
-            pass  # tabela pode não existir ainda; continuar
+            pass  # tabela _migrations pode nao existir ainda
 
-        print("  [SEED] Base de dados vazia — a importar dados mestres...")
+        if already_done and not FORCE:
+            print("  [SEED] Dados mestres ja importados — a saltar (use --force para re-importar).")
+            conn.close()
+            return 0
 
-        sql = SEED_FILE.read_text(encoding="utf-8")
+        action = "Re-importando (--force)" if (already_done and FORCE) else "1a execucao"
+        print(f"  [SEED] {action} — a limpar tabelas e importar dados do Docker...")
 
-        # Desativar FK checks durante o import
         cur.execute("SET FOREIGN_KEY_CHECKS = 0;")
+        cur.execute("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;")
 
-        # Executar statement a statement
+        # Limpar tabelas na ordem correta
+        for table in TRUNCATE_ORDER:
+            try:
+                cur.execute(f"TRUNCATE TABLE `{table}`")
+            except Exception as e:
+                # Pode nao existir ainda (ex: org_nodes antes da migration V004)
+                print(f"  [SEED] Aviso ao truncar {table}: {e}")
+
+        # Executar o seed
+        sql = SEED_FILE.read_text(encoding="utf-8")
         errors = 0
+        inserted = 0
         statements = [s.strip() for s in sql.split(";") if s.strip()]
         for stmt in statements:
-            if stmt.startswith("--") or stmt.startswith("/*"):
+            first = stmt.lstrip()
+            if first.startswith("--") or first.startswith("/*"):
                 continue
             try:
                 cur.execute(stmt)
+                if first.upper().startswith("INSERT"):
+                    inserted += cur.rowcount if cur.rowcount > 0 else 0
             except pymysql.err.ProgrammingError:
-                pass  # ignorar diretivas /*!... */ não suportadas
+                pass  # diretivas /*!... */ ignoradas
             except Exception as e:
                 errors += 1
-                if errors <= 3:
+                if errors <= 5:
                     print(f"  [SEED] Aviso: {e}")
 
         cur.execute("SET FOREIGN_KEY_CHECKS = 1;")
 
+        # Gravar marcador em _migrations
+        try:
+            cur.execute(
+                "INSERT INTO _migrations (filename, applied_at) VALUES (%s, NOW()) "
+                "ON DUPLICATE KEY UPDATE applied_at = NOW()",
+                (SEED_MARKER,),
+            )
+        except Exception:
+            pass  # nao bloquear se a tabela nao existir
+
     conn.close()
 
     if errors == 0:
-        print("  [SEED] Import concluido com sucesso.")
+        print(f"  [SEED] Import concluido — {inserted} linhas inseridas.")
     else:
-        print(f"  [SEED] Import concluido com {errors} avisos (normal para diretivas MySQL).")
+        print(f"  [SEED] Import concluido com {errors} avisos — {inserted} linhas inseridas.")
 
     return 0
 
