@@ -117,7 +117,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);fon
     <div class="logo-badge">PTH</div>
     PortalTradeHub — Fluxogramas Operacionais
   </div>
-  <div class="topbar-meta">v2026-03-21</div>
+  <div class="topbar-meta">v2026-03-23</div>
   <div class="topbar-stack">
     <span class="stack-tag">FastAPI</span>
     <span class="stack-tag">React 18</span>
@@ -174,7 +174,7 @@ const DEFS=`<defs><marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerW
 
 function node(x,y,w,h,label,fill,tfill,sub,rx=8){
   const mx=x+w/2;
-  const lines=label.split('\\n');
+  const lines=label.split('\n');
   const cy=sub?y+h*0.36:(lines.length>1?y+h*0.35:y+h/2);
   const linesHtml=lines.map((l,i)=>`<text x="${mx}" y="${cy+i*16}" text-anchor="middle" font-size="12" font-weight="500" fill="${tfill}" dominant-baseline="central" font-family="DM Sans,sans-serif">${l}</text>`).join('');
   const subHtml=sub?`<text x="${mx}" y="${y+h*0.68}" text-anchor="middle" font-size="10" fill="${tfill}" opacity=".7" font-family="DM Mono,monospace">${sub}</text>`:'';
@@ -182,14 +182,14 @@ function node(x,y,w,h,label,fill,tfill,sub,rx=8){
 }
 function oval(x,y,w,h,label,fill,tfill){
   const mx=x+w/2,my=y+h/2;
-  const lines=label.split('\\n');
+  const lines=label.split('\n');
   const base=my-(lines.length-1)*8;
   const texts=lines.map((l,i)=>`<text x="${mx}" y="${base+i*16}" text-anchor="middle" font-size="11" font-weight="500" fill="${tfill}" dominant-baseline="central" font-family="DM Sans,sans-serif">${l}</text>`).join('');
   return `<g><ellipse cx="${mx}" cy="${my}" rx="${w/2}" ry="${h/2}" fill="${fill}" stroke="${tfill}" stroke-opacity=".3" stroke-width="0.75"/>${texts}</g>`;
 }
 function diamond(cx,cy,size,label,fill,tfill){
   const s=size,pts=`${cx},${cy-s} ${cx+s*1.4},${cy} ${cx},${cy+s} ${cx-s*1.4},${cy}`;
-  const lines=label.split('\\n');
+  const lines=label.split('\n');
   const base=cy-(lines.length-1)*8;
   const texts=lines.map((l,i)=>`<text x="${cx}" y="${base+i*15}" text-anchor="middle" font-size="11" fill="${tfill}" dominant-baseline="central" font-family="DM Sans,sans-serif">${l}</text>`).join('');
   return `<g><polygon points="${pts}" fill="${fill}" stroke="${tfill}" stroke-opacity=".3" stroke-width="0.75"/>${texts}</g>`;
@@ -207,694 +207,694 @@ login:{
   num:'1.1',title:'Login',
   desc:'Autenticação com verificação de rate limit, validação de credenciais e tratamento de contas pendentes. O JWT é guardado em sessionStorage após login bem-sucedido.',
   states:[{l:'Início',c:C.gray},{l:'Rate limit OK',c:C.blue},{l:'Credenciais válidas',c:C.blue},{l:'JWT emitido',c:C.blue},{l:'Dashboard carregado',c:C.green}],
-  svg:()=>{const W=640,H=680;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(220,10,200,36,'Início: utilizador abre /login',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${node(200,76,240,44,'Introduz email + password',C.blueL,C.blueD)}
-${arr(320,120,320,150,'')}
-${node(200,150,240,38,'POST /api/auth/login',C.blueL,C.blueD)}
-${arr(320,188,320,214,'')}
-${diamond(320,242,34,'Rate limit\\n5 req/min?',C.amberL,C.amberD)}
-${arr(320,276,320,306,'Não',C.gray)}
-${diamond(320,334,34,'Credenciais\\nválidas?',C.amberL,C.amberD)}
-${arr(320,368,320,398,'Sim',C.gray)}
-${diamond(320,426,34,'is_pending\\n= true?',C.amberL,C.amberD)}
-${arr(320,460,320,490,'Não',C.gray)}
-${node(200,490,240,40,'JWT em sessionStorage',C.blueL,C.blueD)}
-${arr(320,530,320,560,'')}
-${node(200,560,240,40,'Redireciona → Dashboard',C.greenL,C.greenD)}
-${arr(320,600,320,628,'')}
-${oval(210,628,220,34,'Fim: Dashboard carregado',C.greenL,C.greenD)}
-${node(460,214,150,40,'Erro: Muitos pedidos',C.redL,C.redD)}
-${path(`M320 242 L460 242 L460 234`,C.red)}
-${path(`M460 254 L460 96 L320 96`,C.red)}
-${node(460,306,150,40,'Erro: Credenciais inválidas',C.redL,C.redD)}
-${path(`M320 334 L460 334 L460 326`,C.red)}
-${lbl(332,338,'Não',C.red)}
-${path(`M460 346 L460 96 L320 96`,C.red)}
-${node(460,400,160,50,'Banner: Conta pendente\\nAcesso limitado',C.amberL,C.amberD)}
-${path(`M320 426 L460 426 L460 420`,C.amber)}
-${lbl(332,430,'Sim',C.amber)}
-${path(`M460 450 L460 510 L320 510`,C.amber)}
-${lbl(332,246,'Sim',C.red)}
+  svg:()=>{const W=700,H=680;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(250,10,200,36,'Início: utilizador abre /login',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${node(230,76,240,44,'Introduz email + password',C.blueL,C.blueD)}
+${arr(350,120,350,150,'')}
+${node(230,150,240,38,'POST /api/auth/login',C.blueL,C.blueD)}
+${arr(350,188,350,214,'')}
+${diamond(350,242,34,'Rate limit\n5 req/min?',C.amberL,C.amberD)}
+${arr(350,276,350,306,'Não',C.gray)}
+${diamond(350,334,34,'Credenciais\nválidas?',C.amberL,C.amberD)}
+${arr(350,368,350,398,'Sim',C.gray)}
+${diamond(350,426,34,'is_pending\n= true?',C.amberL,C.amberD)}
+${arr(350,460,350,490,'Não',C.gray)}
+${node(230,490,240,40,'JWT em sessionStorage',C.blueL,C.blueD)}
+${arr(350,530,350,560,'')}
+${node(230,560,240,40,'Redireciona → Dashboard',C.greenL,C.greenD)}
+${arr(350,600,350,628,'')}
+${oval(240,628,220,34,'Fim: Dashboard carregado',C.greenL,C.greenD)}
+${node(490,214,150,40,'Erro: Muitos pedidos',C.redL,C.redD)}
+${path(`M350 242 L490 242 L490 234`,C.red)}
+${path(`M490 254 L490 96 L350 96`,C.red)}
+${node(490,306,150,40,'Erro: Credenciais inválidas',C.redL,C.redD)}
+${path(`M350 334 L490 334 L490 326`,C.red)}
+${lbl(362,338,'Não',C.red)}
+${path(`M490 346 L490 96 L350 96`,C.red)}
+${node(490,400,160,50,'Banner: Conta pendente\nAcesso limitado',C.amberL,C.amberD)}
+${path(`M350 426 L490 426 L490 420`,C.amber)}
+${lbl(362,430,'Sim',C.amber)}
+${path(`M490 450 L490 510 L350 510`,C.amber)}
+${lbl(362,246,'Sim',C.red)}
 </svg>`;}
 },
 register:{
   num:'1.2',title:'Registo de Utilizador',
   desc:'Criação de conta com diferenciação por role. TRAINEE obtém acesso imediato; TRAINER e MANAGER ficam pendentes até aprovação do ADMIN.',
   states:[{l:'Formulário',c:C.blue},{l:'Email único',c:C.blue},{l:'TRAINEE: activo',c:C.green},{l:'TRAINER/MANAGER: pendente',c:C.amber},{l:'Login disponível',c:C.green}],
-  svg:()=>{const W=640,H=620;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(200,10,240,36,'Início: utilizador abre /register',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${node(160,76,320,44,'Preenche: nome, email, password,\\nrole, equipa',C.blueL,C.blueD)}
-${arr(320,120,320,150,'')}
-${node(200,150,240,38,'POST /api/auth/register',C.blueL,C.blueD)}
-${arr(320,188,320,218,'')}
-${diamond(320,248,32,'Email já\\nexiste?',C.amberL,C.amberD)}
-${arr(320,280,320,310,'Não',C.gray)}
-${diamond(320,342,32,'Role\\nseleccionado?',C.amberL,C.amberD)}
-${node(60,362,130,40,'TRAINEE',C.greenL,C.greenD)}
-${node(230,362,130,40,'TRAINER',C.amberL,C.amberD)}
-${node(400,362,130,40,'MANAGER',C.amberL,C.amberD)}
-${path(`M320 374 L125 374`,C.green)}
-${path(`M320 374 L295 374`,C.amber)}
-${path(`M320 374 L465 374`,C.amber)}
-${node(60,430,130,40,'Acesso imediato\\nis_active=true',C.greenL,C.greenD)}
-${node(230,430,130,40,'is_pending=true\\nNotif. ADMIN',C.amberL,C.amberD)}
-${node(400,430,130,40,'is_pending=true\\nNotif. ADMIN',C.amberL,C.amberD)}
-${arr(125,402,125,430,'')}
-${arr(295,402,295,430,'')}
-${arr(465,402,465,430,'')}
-${arr(125,470,125,510,'')}
-${arr(295,470,295,510,'')}
-${arr(465,470,465,510,'')}
-${node(160,510,320,40,'Redireciona para /login',C.greenL,C.greenD)}
-${arr(320,550,320,578,'')}
-${oval(200,578,240,32,'Fim: Login disponível',C.greenL,C.greenD)}
-${node(460,220,150,40,'Erro: Email já registado',C.redL,C.redD)}
-${path(`M320 248 L460 248 L460 240`,C.red)}
-${lbl(332,252,'Sim',C.red)}
-${path(`M460 260 L460 96 L320 96`,C.red)}
+  svg:()=>{const W=700,H=620;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(230,10,240,36,'Início: utilizador abre /register',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${node(190,76,320,44,'Preenche: nome, email, password,\nrole, equipa',C.blueL,C.blueD)}
+${arr(350,120,350,150,'')}
+${node(230,150,240,38,'POST /api/auth/register',C.blueL,C.blueD)}
+${arr(350,188,350,218,'')}
+${diamond(350,248,32,'Email já\nexiste?',C.amberL,C.amberD)}
+${arr(350,280,350,310,'Não',C.gray)}
+${diamond(350,342,32,'Role\nseleccionado?',C.amberL,C.amberD)}
+${node(90,362,130,40,'TRAINEE',C.greenL,C.greenD)}
+${node(260,362,130,40,'TRAINER',C.amberL,C.amberD)}
+${node(430,362,130,40,'MANAGER',C.amberL,C.amberD)}
+${path(`M350 374 L155 374`,C.green)}
+${path(`M350 374 L325 374`,C.amber)}
+${path(`M350 374 L495 374`,C.amber)}
+${node(90,430,130,40,'Acesso imediato\nis_active=true',C.greenL,C.greenD)}
+${node(260,430,130,40,'is_pending=true\nNotif. ADMIN',C.amberL,C.amberD)}
+${node(430,430,130,40,'is_pending=true\nNotif. ADMIN',C.amberL,C.amberD)}
+${arr(155,402,155,430,'')}
+${arr(325,402,325,430,'')}
+${arr(495,402,495,430,'')}
+${arr(155,470,155,510,'')}
+${arr(325,470,325,510,'')}
+${arr(495,470,495,510,'')}
+${node(190,510,320,40,'Redireciona para /login',C.greenL,C.greenD)}
+${arr(350,550,350,578,'')}
+${oval(230,578,240,32,'Fim: Login disponível',C.greenL,C.greenD)}
+${node(490,220,150,40,'Erro: Email já registado',C.redL,C.redD)}
+${path(`M350 248 L490 248 L490 240`,C.red)}
+${lbl(362,252,'Sim',C.red)}
+${path(`M490 260 L490 96 L350 96`,C.red)}
 </svg>`;}
 },
 password:{
   num:'1.3',title:'Recuperação de Password',
   desc:'Fluxo seguro via email. O sistema retorna sempre mensagem de sucesso para não revelar se o email existe na base de dados.',
   states:[{l:'Pedido enviado',c:C.blue},{l:'Email (se existir)',c:C.blue},{l:'Token validado',c:C.blue},{l:'Password actualizada',c:C.green}],
-  svg:()=>{const W=640,H=740;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(200,10,240,36,'Início: Esqueci a password',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${node(200,76,240,38,'Introduz email',C.blueL,C.blueD)}
-${arr(320,114,320,144,'')}
-${node(140,144,360,38,'POST /api/auth/forgot-password',C.blueL,C.blueD)}
-${arr(320,182,320,210,'')}
-${diamond(320,240,32,'Rate limit\\n3 req/min?',C.amberL,C.amberD)}
-${arr(320,272,320,302,'Não',C.gray)}
-${node(100,302,440,44,'⚠ Sempre retorna msg de sucesso (segurança)',C.amberL,C.amberD)}
-${arr(320,346,320,374,'')}
-${diamond(320,406,32,'Email existe\\nna BD?',C.amberL,C.amberD)}
-${node(60,390,130,40,'Sem acção\\n(silencioso)',C.grayL,C.grayD)}
-${node(450,386,160,44,'Token gerado na BD\\nEmail enviado com link',C.blueL,C.blueD)}
-${path(`M320 406 L125 406`,C.gray)}
-${lbl(262,410,'Não',C.gray)}
-${path(`M320 406 L530 406`,C.blue)}
-${lbl(332,410,'Sim',C.blue)}
-${node(140,466,360,40,'Utilizador clica no link /reset-password?token=...',C.blueL,C.blueD)}
-${arr(320,506,320,536,'')}
-${diamond(320,568,32,'Token\\nválido?',C.amberL,C.amberD)}
-${arr(320,600,320,630,'Sim',C.gray)}
-${node(160,630,320,40,'Nova password → Token usado → /login',C.greenL,C.greenD)}
-${arr(320,670,320,700,'')}
-${oval(210,700,220,32,'Fim',C.greenL,C.greenD)}
-${node(460,540,150,40,'Erro: Link expirado\\nou inválido',C.redL,C.redD)}
-${path(`M320 568 L460 568 L460 560`,C.red)}
-${lbl(332,572,'Não',C.red)}
-${path(`M460 580 L460 96 L320 96`,C.red)}
-${node(460,212,150,40,'Erro: Muitos pedidos',C.redL,C.redD)}
-${path(`M320 240 L460 240 L460 232`,C.red)}
-${lbl(332,244,'Sim',C.red)}
-${path(`M460 252 L460 96 L320 96`,C.red)}
-${arr(125,430,250,466,'')}
-${arr(530,430,390,466,'')}
+  svg:()=>{const W=700,H=740;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(230,10,240,36,'Início: Esqueci a password',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${node(230,76,240,38,'Introduz email',C.blueL,C.blueD)}
+${arr(350,114,350,144,'')}
+${node(170,144,360,38,'POST /api/auth/forgot-password',C.blueL,C.blueD)}
+${arr(350,182,350,210,'')}
+${diamond(350,240,32,'Rate limit\n3 req/min?',C.amberL,C.amberD)}
+${arr(350,272,350,302,'Não',C.gray)}
+${node(130,302,440,44,'⚠ Sempre retorna msg de sucesso (segurança)',C.amberL,C.amberD)}
+${arr(350,346,350,374,'')}
+${diamond(350,406,32,'Email existe\nna BD?',C.amberL,C.amberD)}
+${node(90,390,130,40,'Sem acção\n(silencioso)',C.grayL,C.grayD)}
+${node(480,386,160,44,'Token gerado na BD\nEmail enviado com link',C.blueL,C.blueD)}
+${path(`M350 406 L155 406`,C.gray)}
+${lbl(292,410,'Não',C.gray)}
+${path(`M350 406 L560 406`,C.blue)}
+${lbl(362,410,'Sim',C.blue)}
+${node(170,466,360,40,'Utilizador clica no link /reset-password?token=...',C.blueL,C.blueD)}
+${arr(350,506,350,536,'')}
+${diamond(350,568,32,'Token\nválido?',C.amberL,C.amberD)}
+${arr(350,600,350,630,'Sim',C.gray)}
+${node(190,630,320,40,'Nova password → Token usado → /login',C.greenL,C.greenD)}
+${arr(350,670,350,700,'')}
+${oval(240,700,220,32,'Fim',C.greenL,C.greenD)}
+${node(490,540,150,40,'Erro: Link expirado\nou inválido',C.redL,C.redD)}
+${path(`M350 568 L490 568 L490 560`,C.red)}
+${lbl(362,572,'Não',C.red)}
+${path(`M490 580 L490 96 L350 96`,C.red)}
+${node(490,212,150,40,'Erro: Muitos pedidos',C.redL,C.redD)}
+${path(`M350 240 L490 240 L490 232`,C.red)}
+${lbl(362,244,'Sim',C.red)}
+${path(`M490 252 L490 96 L350 96`,C.red)}
+${arr(155,430,280,466,'')}
+${arr(560,430,420,466,'')}
 </svg>`;}
 },
 validation:{
   num:'1.4',title:'Validação de Formador / Tutor / Liberador (ADMIN)',
   desc:'ADMIN aprova ou rejeita contas com is_pending=true. Utilizadores aprovados recebem acesso completo; rejeitados têm conta removida.',
   states:[{l:'Lista pendentes',c:C.amber},{l:'Revê perfil',c:C.blue},{l:'Aprovar',c:C.green},{l:'Rejeitar',c:C.red},{l:'Próximo ou fim',c:C.gray}],
-  svg:()=>{const W=640,H=660;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(160,10,320,36,'Início: ADMIN → /master-data/trainer-validation',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${node(100,76,440,38,'GET lista de utilizadores com is_pending=true',C.blueL,C.blueD)}
-${arr(320,114,320,144,'')}
-${diamond(320,178,36,'Existem\\npendentes?',C.amberL,C.amberD)}
-${arr(320,214,320,244,'Sim',C.gray)}
-${node(160,244,320,38,'ADMIN selecciona utilizador',C.blueL,C.blueD)}
-${arr(320,282,320,312,'')}
-${node(100,312,440,38,'Revê: nome, email, role, equipa, histórico',C.blueL,C.blueD)}
-${arr(320,350,320,378,'')}
-${diamond(320,412,36,'Decisão\\ndo ADMIN',C.amberL,C.amberD)}
-${node(80,390,160,44,'Aprovar\\nis_pending=false',C.greenL,C.greenD)}
-${node(400,390,160,44,'Rejeitar\\nconta removida',C.redL,C.redD)}
-${path(`M320 448 L160 448`,C.green)}
-${lbl(210,452,'Aprovar',C.green)}
-${path(`M320 448 L480 448`,C.red)}
-${lbl(332,452,'Rejeitar',C.red)}
-${arr(160,434,160,490,'')}
-${arr(480,434,480,490,'')}
-${node(100,490,440,38,'Notificação ao utilizador',C.blueL,C.blueD)}
-${arr(320,528,320,556,'')}
-${diamond(320,556,28,'Mais\\npendentes?',C.amberL,C.amberD)}
-${path(`M320 584 L80 584 L80 262 L160 262`,C.blue)}
-${lbl(332,588,'Sim',C.blue)}
-${arr(320,584,320,620,'Não',C.gray)}
-${oval(180,620,280,32,'Fim: Todas as validações processadas',C.greenL,C.greenD)}
-${node(460,142,150,40,'Nenhuma conta\\npendente',C.amberL,C.amberD)}
-${path(`M320 178 L460 178 L460 162`,C.amber)}
-${lbl(332,182,'Não',C.amber)}
+  svg:()=>{const W=700,H=660;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(190,10,320,36,'Início: ADMIN → /master-data/trainer-validation',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${node(130,76,440,38,'GET lista de utilizadores com is_pending=true',C.blueL,C.blueD)}
+${arr(350,114,350,144,'')}
+${diamond(350,178,36,'Existem\npendentes?',C.amberL,C.amberD)}
+${arr(350,214,350,244,'Sim',C.gray)}
+${node(190,244,320,38,'ADMIN selecciona utilizador',C.blueL,C.blueD)}
+${arr(350,282,350,312,'')}
+${node(130,312,440,38,'Revê: nome, email, role, equipa, histórico',C.blueL,C.blueD)}
+${arr(350,350,350,378,'')}
+${diamond(350,412,36,'Decisão\ndo ADMIN',C.amberL,C.amberD)}
+${node(110,390,160,44,'Aprovar\nis_pending=false',C.greenL,C.greenD)}
+${node(430,390,160,44,'Rejeitar\nconta removida',C.redL,C.redD)}
+${path(`M350 448 L190 448`,C.green)}
+${lbl(240,452,'Aprovar',C.green)}
+${path(`M350 448 L510 448`,C.red)}
+${lbl(362,452,'Rejeitar',C.red)}
+${arr(190,434,190,490,'')}
+${arr(510,434,510,490,'')}
+${node(130,490,440,38,'Notificação ao utilizador',C.blueL,C.blueD)}
+${arr(350,528,350,556,'')}
+${diamond(350,556,28,'Mais\npendentes?',C.amberL,C.amberD)}
+${path(`M350 584 L110 584 L110 262 L190 262`,C.blue)}
+${lbl(362,588,'Sim',C.blue)}
+${arr(350,584,350,620,'Não',C.gray)}
+${oval(210,620,280,32,'Fim: Todas as validações processadas',C.greenL,C.greenD)}
+${node(490,142,150,40,'Nenhuma conta\npendente',C.amberL,C.amberD)}
+${path(`M350 178 L490 178 L490 162`,C.amber)}
+${lbl(362,182,'Não',C.amber)}
 </svg>`;}
 },
 course:{
   num:'2.1',title:'Criação de Curso',
   desc:'TRAINER ou ADMIN cria curso em modo DRAFT, adiciona aulas e desafios, e publica quando pronto para ser incluído em planos de formação.',
   states:[{l:'DRAFT',c:C.amber},{l:'Aulas adicionadas',c:C.blue},{l:'Desafios adicionados',c:C.blue},{l:'Publicado',c:C.green}],
-  svg:()=>{const W=640,H=700;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(180,10,280,36,'Início: TRAINER/ADMIN → /course/new',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${node(100,76,440,44,'Preenche: título, descrição,\\nnível, banco, produto',C.blueL,C.blueD)}
-${arr(320,120,320,150,'')}
-${diamond(320,184,36,'Nível\\nválido?',C.amberL,C.amberD)}
-${arr(320,220,320,250,'Sim',C.gray)}
-${node(140,250,360,40,'POST /api/courses → Curso criado: DRAFT',C.amberL,C.amberD)}
-${arr(320,290,320,318,'')}
-${diamond(320,352,32,'Adicionar\\naulas?',C.amberL,C.amberD)}
-${arr(320,384,320,414,'Sim',C.gray)}
-${node(100,414,440,40,'Preenche aula → POST /api/lessons → aula adicionada',C.blueL,C.blueD)}
-${path(`M100 434 L60 434 L60 352 L256 352`,C.amber)}
-${arr(320,454,320,484,'Não',C.gray)}
-${diamond(320,518,32,'Adicionar\\ndesafios?',C.amberL,C.amberD)}
-${arr(320,550,320,580,'Sim',C.gray)}
-${node(60,580,520,40,'Preenche desafio → POST /api/courses/:id/challenges',C.blueL,C.blueD)}
-${path(`M60 600 L30 600 L30 518 L256 518`,C.amber)}
-${arr(320,620,320,658,'Não',C.gray)}
-${oval(180,658,280,34,'Fim: Curso publicado e disponível',C.greenL,C.greenD)}
-${node(460,156,150,40,'Erro de validação\\ndo nível',C.redL,C.redD)}
-${path(`M320 184 L460 184 L460 176`,C.red)}
-${lbl(332,188,'Não',C.red)}
-${path(`M460 196 L460 96 L320 96`,C.red)}
+  svg:()=>{const W=700,H=700;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(210,10,280,36,'Início: TRAINER/ADMIN → /course/new',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${node(130,76,440,44,'Preenche: título, descrição,\nnível, banco, produto',C.blueL,C.blueD)}
+${arr(350,120,350,150,'')}
+${diamond(350,184,36,'Nível\nválido?',C.amberL,C.amberD)}
+${arr(350,220,350,250,'Sim',C.gray)}
+${node(170,250,360,40,'POST /api/courses → Curso criado: DRAFT',C.amberL,C.amberD)}
+${arr(350,290,350,318,'')}
+${diamond(350,352,32,'Adicionar\naulas?',C.amberL,C.amberD)}
+${arr(350,384,350,414,'Sim',C.gray)}
+${node(130,414,440,40,'Preenche aula → POST /api/lessons → aula adicionada',C.blueL,C.blueD)}
+${path(`M130 434 L90 434 L90 352 L286 352`,C.amber)}
+${arr(350,454,350,484,'Não',C.gray)}
+${diamond(350,518,32,'Adicionar\ndesafios?',C.amberL,C.amberD)}
+${arr(350,550,350,580,'Sim',C.gray)}
+${node(90,580,520,40,'Preenche desafio → POST /api/courses/:id/challenges',C.blueL,C.blueD)}
+${path(`M90 600 L60 600 L60 518 L286 518`,C.amber)}
+${arr(350,620,350,658,'Não',C.gray)}
+${oval(210,658,280,34,'Fim: Curso publicado e disponível',C.greenL,C.greenD)}
+${node(490,156,150,40,'Erro de validação\ndo nível',C.redL,C.redD)}
+${path(`M350 184 L490 184 L490 176`,C.red)}
+${lbl(362,188,'Não',C.red)}
+${path(`M490 196 L490 96 L350 96`,C.red)}
 </svg>`;}
 },
 plan:{
   num:'2.2',title:'Criação de Plano de Formação',
   desc:'TRAINER/ADMIN cria plano, associa cursos, atribui a estudantes. O plano fica ACTIVE até todos os cursos serem concluídos.',
   states:[{l:'DRAFT',c:C.amber},{l:'ACTIVE',c:C.blue},{l:'COMPLETED',c:C.green}],
-  svg:()=>{const W=640,H=640;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(160,10,320,36,'Início: TRAINER/ADMIN → /training-plan/new',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${node(80,76,480,44,'Preenche: título, descrição, prazo,\\ncursos a incluir',C.blueL,C.blueD)}
-${arr(320,120,320,150,'')}
-${node(120,150,400,40,'POST /api/training-plans → Plano: DRAFT',C.amberL,C.amberD)}
-${arr(320,190,320,220,'')}
-${node(80,220,480,40,'Associar cursos: POST /api/training-plans/:id/courses',C.blueL,C.blueD)}
-${arr(320,260,320,290,'')}
-${node(120,290,400,40,'Seleccionar estudante(s) a atribuir',C.blueL,C.blueD)}
-${arr(320,330,320,360,'')}
-${node(60,360,520,40,'POST /api/training-plans/:id/assign → TrainingPlanAssignment criado',C.blueL,C.blueD)}
-${arr(320,400,320,430,'')}
-${node(120,430,400,40,'Plano activado: ACTIVE → visível em /my-plans',C.blueL,C.blueD)}
-${arr(320,470,320,500,'')}
-${diamond(320,532,34,'Estudante completa\\ntodos os cursos?',C.amberL,C.amberD)}
-${path(`M320 566 L480 566 L480 450 L320 450`,C.amber)}
-${lbl(332,570,'Não',C.amber)}
-${arr(320,566,320,602,'Sim',C.gray)}
-${oval(160,602,320,32,'Fim: Plano → COMPLETED ✓',C.greenL,C.greenD)}
+  svg:()=>{const W=700,H=640;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(190,10,320,36,'Início: TRAINER/ADMIN → /training-plan/new',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${node(110,76,480,44,'Preenche: título, descrição, prazo,\ncursos a incluir',C.blueL,C.blueD)}
+${arr(350,120,350,150,'')}
+${node(150,150,400,40,'POST /api/training-plans → Plano: DRAFT',C.amberL,C.amberD)}
+${arr(350,190,350,220,'')}
+${node(110,220,480,40,'Associar cursos: POST /api/training-plans/:id/courses',C.blueL,C.blueD)}
+${arr(350,260,350,290,'')}
+${node(150,290,400,40,'Seleccionar estudante(s) a atribuir',C.blueL,C.blueD)}
+${arr(350,330,350,360,'')}
+${node(90,360,520,40,'POST /api/training-plans/:id/assign → TrainingPlanAssignment criado',C.blueL,C.blueD)}
+${arr(350,400,350,430,'')}
+${node(150,430,400,40,'Plano activado: ACTIVE → visível em /my-plans',C.blueL,C.blueD)}
+${arr(350,470,350,500,'')}
+${diamond(350,532,34,'Estudante completa\ntodos os cursos?',C.amberL,C.amberD)}
+${path(`M350 566 L510 566 L510 450 L350 450`,C.amber)}
+${lbl(362,570,'Não',C.amber)}
+${arr(350,566,350,602,'Sim',C.gray)}
+${oval(190,602,320,32,'Fim: Plano → COMPLETED ✓',C.greenL,C.greenD)}
 </svg>`;}
 },
 lesson:{
-  num:'2.3',title:'Execução de Lição (Estudante)',
+  num:'2.3',title:'Execução de Lição (TRAINEE)',
   desc:'Ciclo completo: início, pausa/retoma, conclusão e aprovação pelo TRAINER. O TRAINER pode pedir revisão em vez de aprovar.',
   states:[{l:'NOT_STARTED',c:C.gray},{l:'IN_PROGRESS',c:C.blue},{l:'PAUSED',c:C.amber},{l:'COMPLETED',c:C.blue},{l:'APPROVED',c:C.green}],
-  svg:()=>{const W=640,H=680;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(180,10,280,36,'Início: STUDENT → /my-lessons',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${node(160,76,320,40,'Selecciona lição — NOT_STARTED',C.grayL,C.grayD)}
-${arr(320,116,320,146,'')}
-${node(100,146,440,40,'POST /api/lessons/:id/start → timer inicia: IN_PROGRESS',C.blueL,C.blueD)}
-${arr(320,186,320,216,'')}
-${diamond(320,250,36,'Estudante\\ninterrompe?',C.amberL,C.amberD)}
-${arr(320,286,320,316,'Termina',C.gray)}
-${node(100,316,440,40,'POST /api/lessons/:id/finish → COMPLETED',C.blueL,C.blueD)}
-${arr(320,356,320,386,'')}
-${node(100,386,440,40,'POST /api/lessons/:id/confirm → TRAINER notificado',C.blueL,C.blueD)}
-${arr(320,426,320,456,'')}
-${diamond(320,490,34,'TRAINER\\naprovaa?',C.amberL,C.amberD)}
-${arr(320,524,320,554,'Sim',C.gray)}
-${node(160,554,320,40,'POST /api/lessons/:id/approve → APPROVED ✓',C.greenL,C.greenD)}
-${arr(320,594,320,622,'')}
-${oval(200,622,240,34,'Fim: Lição concluída e aprovada',C.greenL,C.greenD)}
-${node(460,224,160,52,'POST pause → PAUSED\\nPOST resume → retoma',C.amberL,C.amberD)}
-${path(`M320 250 L460 250 L460 224`,C.amber)}
-${lbl(332,254,'Pausa',C.amber)}
-${path(`M460 276 L460 166 L320 166`,C.amber)}
-${node(60,456,180,44,'Comentário adicionado\\nEstudante revê conteúdo',C.redL,C.redD)}
-${path(`M320 490 L150 490`,C.red)}
-${lbl(240,480,'Não',C.red)}
-${path(`M150 490 L150 166 L320 166`,C.red)}
+  svg:()=>{const W=700,H=680;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(210,10,280,36,'Início: TRAINEE → /my-lessons',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${node(190,76,320,40,'Selecciona lição — NOT_STARTED',C.grayL,C.grayD)}
+${arr(350,116,350,146,'')}
+${node(130,146,440,40,'POST /api/lessons/:id/start → timer inicia: IN_PROGRESS',C.blueL,C.blueD)}
+${arr(350,186,350,216,'')}
+${diamond(350,250,36,'TRAINEE\ninterrompe?',C.amberL,C.amberD)}
+${arr(350,286,350,316,'Termina',C.gray)}
+${node(130,316,440,40,'POST /api/lessons/:id/finish → COMPLETED',C.blueL,C.blueD)}
+${arr(350,356,350,386,'')}
+${node(130,386,440,40,'POST /api/lessons/:id/confirm → TRAINER notificado',C.blueL,C.blueD)}
+${arr(350,426,350,456,'')}
+${diamond(350,490,34,'TRAINER\naprova?',C.amberL,C.amberD)}
+${arr(350,524,350,554,'Sim',C.gray)}
+${node(190,554,320,40,'POST /api/lessons/:id/approve → APPROVED ✓',C.greenL,C.greenD)}
+${arr(350,594,350,622,'')}
+${oval(230,622,240,34,'Fim: Lição concluída e aprovada',C.greenL,C.greenD)}
+${node(490,224,160,52,'POST pause → PAUSED\nPOST resume → retoma',C.amberL,C.amberD)}
+${path(`M350 250 L490 250 L490 224`,C.amber)}
+${lbl(362,254,'Pausa',C.amber)}
+${path(`M490 276 L490 166 L350 166`,C.amber)}
+${node(90,456,180,44,'Comentário adicionado\nTRAINEE revê conteúdo',C.redL,C.redD)}
+${path(`M350 490 L180 490`,C.red)}
+${lbl(270,480,'Não',C.red)}
+${path(`M180 490 L180 166 L350 166`,C.red)}
 </svg>`;}
 },
 challenge:{
-  num:'2.4',title:'Execução de Desafio (Estudante)',
-  desc:'TRAINER liberta o desafio; estudante executa operação a operação. O MPU (Minutos Por Operação) é calculado automaticamente.',
+  num:'2.4',title:'Execução de Desafio (TRAINEE)',
+  desc:'TRAINER liberta o desafio; TRAINEE executa operação a operação. O MPU (Minutos Por Operação) é calculado automaticamente.',
   states:[{l:'Libertado',c:C.blue},{l:'IN_PROGRESS',c:C.blue},{l:'Operações registadas',c:C.blue},{l:'PENDING_REVIEW',c:C.amber}],
-  svg:()=>{const W=640,H=630;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(180,10,280,36,'Início: TRAINER liberta desafio',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${node(60,76,520,40,'POST /api/challenges/:id/release/:student_id',C.blueL,C.blueD)}
-${arr(320,116,320,146,'')}
-${node(140,146,360,40,'Estudante vê desafio em /my-challenges',C.blueL,C.blueD)}
-${arr(320,186,320,216,'')}
-${node(160,216,320,40,'STUDENT clica Executar',C.blueL,C.blueD)}
-${arr(320,256,320,286,'')}
-${node(40,286,560,40,'POST /api/submit/complete/start/:id/self → submissão IN_PROGRESS',C.blueL,C.blueD)}
-${arr(320,326,320,356,'')}
-${diamond(320,390,34,'Para cada\\noperação',C.amberL,C.amberD)}
-${arr(320,424,320,454,'Regista',C.gray)}
-${node(80,454,480,40,'POST /api/submit/complete/:submissionId/part → linha registada',C.blueL,C.blueD)}
-${path(`M80 474 L40 474 L40 390 L254 390`,C.amber)}
-${lbl(332,428,'Mais',C.amber)}
-${arr(320,494,320,524,'Concluído',C.gray)}
-${node(80,524,480,40,'finish → MPU calculado → submit-for-review → PENDING_REVIEW',C.amberL,C.amberD)}
-${arr(320,564,320,598,'')}
-${oval(190,598,260,28,'Fim: Aguarda revisão do TRAINER',C.amberL,C.amberD)}
+  svg:()=>{const W=700,H=630;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(210,10,280,36,'Início: TRAINER liberta desafio',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${node(90,76,520,40,'POST /api/challenges/:id/release/:student_id',C.blueL,C.blueD)}
+${arr(350,116,350,146,'')}
+${node(170,146,360,40,'TRAINEE vê desafio em /my-challenges',C.blueL,C.blueD)}
+${arr(350,186,350,216,'')}
+${node(190,216,320,40,'TRAINEE clica Executar',C.blueL,C.blueD)}
+${arr(350,256,350,286,'')}
+${node(70,286,560,40,'POST /api/submit/complete/start/:id/self → submissão IN_PROGRESS',C.blueL,C.blueD)}
+${arr(350,326,350,356,'')}
+${diamond(350,390,34,'Para cada\noperação',C.amberL,C.amberD)}
+${arr(350,424,350,454,'Regista',C.gray)}
+${node(110,454,480,40,'POST /api/submit/complete/:submissionId/part → linha registada',C.blueL,C.blueD)}
+${path(`M110 474 L70 474 L70 390 L284 390`,C.amber)}
+${lbl(362,428,'Mais',C.amber)}
+${arr(350,494,350,524,'Concluído',C.gray)}
+${node(110,524,480,40,'finish → MPU calculado → submit-for-review → PENDING_REVIEW',C.amberL,C.amberD)}
+${arr(350,564,350,598,'')}
+${oval(220,598,260,28,'Fim: Aguarda revisão do TRAINER',C.amberL,C.amberD)}
 </svg>`;}
 },
 review:{
   num:'2.5',title:'Revisão de Submissão (TRAINER/ADMIN)',
   desc:'Análise do MPU calculado vs MPU alvo. Em caso de rejeição, pode ser permitida uma retentativa.',
   states:[{l:'PENDING_REVIEW',c:C.amber},{l:'Analisado',c:C.blue},{l:'REVIEWED: Aprovado',c:C.green},{l:'REVIEWED: Rejeitado',c:C.red}],
-  svg:()=>{const W=640,H=560;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(160,10,320,36,'Início: TRAINER/ADMIN → /pending-reviews',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${node(120,76,400,40,'Selecciona submissão com status: PENDING_REVIEW',C.blueL,C.blueD)}
-${arr(320,116,320,146,'')}
-${node(80,146,480,40,'Analisa operações: MPU calculado vs MPU alvo',C.blueL,C.blueD)}
-${arr(320,186,320,216,'')}
-${diamond(320,252,38,'Decisão\\ndo TRAINER',C.amberL,C.amberD)}
-${node(60,228,170,44,'POST finalize-review\\napproved: true',C.greenL,C.greenD)}
-${node(420,228,180,44,'POST finalize-review\\napproved: false',C.redL,C.redD)}
-${path(`M320 290 L145 290`,C.green)}
-${lbl(180,294,'Aprovado',C.green)}
-${path(`M320 290 L510 290`,C.red)}
-${lbl(330,294,'Rejeitado',C.red)}
-${arr(145,272,145,330,'')}
-${arr(510,272,510,330,'')}
-${diamond(145,364,32,'Todos os cursos\\nconcluídos?',C.amberL,C.amberD)}
-${diamond(510,364,32,'Permitir\\nretentativa?',C.amberL,C.amberD)}
-${node(0,416,150,40,'Certificado gerado\\n→ ver Fluxo 2.6',C.greenL,C.greenD)}
-${node(160,416,150,40,'Progresso actualizado',C.blueL,C.blueD)}
-${path(`M145 396 L75 396 L75 416`,C.green)}
-${lbl(90,400,'Sim',C.green)}
-${path(`M145 396 L235 396 L235 416`,C.blue)}
-${lbl(160,400,'Não',C.blue)}
-${node(400,416,220,40,'Nova execução → start-retry',C.amberL,C.amberD)}
-${node(400,476,220,40,'Encerrada sem retentativa',C.redL,C.redD)}
-${path(`M510 396 L510 416`,C.amber)}
-${lbl(514,406,'Sim',C.amber)}
-${path(`M510 456 L510 476`,C.red)}
-${lbl(514,466,'Não',C.red)}
+  svg:()=>{const W=700,H=600;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(190,10,320,36,'Início: TRAINER/ADMIN → /pending-reviews',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${node(150,76,400,40,'Selecciona submissão com status: PENDING_REVIEW',C.blueL,C.blueD)}
+${arr(350,116,350,146,'')}
+${node(110,146,480,40,'Analisa operações: MPU calculado vs MPU alvo',C.blueL,C.blueD)}
+${arr(350,186,350,216,'')}
+${diamond(350,252,38,'Decisão\ndo TRAINER',C.amberL,C.amberD)}
+${node(60,228,180,44,'POST finalize-review\naproved: true',C.greenL,C.greenD)}
+${node(460,228,190,44,'POST finalize-review\naproved: false',C.redL,C.redD)}
+${path(`M350 290 L150 290`,C.green)}
+${lbl(185,294,'Aprovado',C.green)}
+${path(`M350 290 L555 290`,C.red)}
+${lbl(360,294,'Rejeitado',C.red)}
+${arr(150,272,150,330,'')}
+${arr(555,272,555,330,'')}
+${diamond(150,364,34,'Todos os cursos\nconcluídos?',C.amberL,C.amberD)}
+${diamond(560,364,34,'Permitir\nretentativa?',C.amberL,C.amberD)}
+${node(20,416,160,40,'Certificado gerado\n→ ver Fluxo 2.6',C.greenL,C.greenD)}
+${node(195,416,160,40,'Progresso actualizado',C.blueL,C.blueD)}
+${path(`M150 398 L100 398 L100 416`,C.green)}
+${lbl(108,404,'Sim',C.green)}
+${path(`M150 398 L275 398 L275 416`,C.blue)}
+${lbl(185,404,'Não',C.blue)}
+${node(420,416,240,40,'Nova execução → start-retry',C.amberL,C.amberD)}
+${node(420,476,240,40,'Encerrada sem retentativa',C.redL,C.redD)}
+${path(`M560 398 L560 416`,C.amber)}
+${lbl(564,406,'Sim',C.amber)}
+${path(`M560 456 L560 476`,C.red)}
+${lbl(564,466,'Não',C.red)}
 </svg>`;}
 },
 certificate:{
   num:'2.6',title:'Geração de Certificado',
   desc:'Após todos os cursos finalizados e aprovados, o TRAINER confirma e o sistema emite o certificado em PDF para download.',
   states:[{l:'Cursos concluídos',c:C.blue},{l:'TRAINER confirma',c:C.blue},{l:'Validação OK',c:C.green},{l:'Certificado emitido',c:C.green},{l:'PDF disponível',c:C.green}],
-  svg:()=>{const W=640,H=610;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(140,10,360,36,'Início: Todos os cursos do plano finalizados',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${diamond(320,114,40,'TRAINER confirma\\nfinalização?',C.amberL,C.amberD)}
-${arr(320,154,320,184,'Sim',C.gray)}
-${node(60,184,520,40,'POST /api/finalization/plan/:id/finalize — generate_certificate: true',C.blueL,C.blueD)}
-${arr(320,224,320,254,'')}
-${node(100,254,440,40,'Sistema valida: todas as submissões aprovadas?',C.blueL,C.blueD)}
-${arr(320,294,320,324,'')}
-${diamond(320,358,34,'Validação\\npassa?',C.amberL,C.amberD)}
-${arr(320,392,320,422,'Sim',C.gray)}
-${node(100,422,440,40,'Certificado criado → GET /api/certificates/:id disponível',C.greenL,C.greenD)}
-${arr(320,462,320,492,'')}
-${node(120,492,400,40,'Estudante vê em /certificates → Download PDF',C.greenL,C.greenD)}
-${arr(320,532,320,572,'')}
-${oval(200,572,240,32,'Fim: Certificado disponível ✓',C.greenL,C.greenD)}
-${node(460,324,160,44,'Erro: Submissões\\npendentes ou rejeitadas',C.redL,C.redD)}
-${path(`M320 358 L460 358 L460 346`,C.red)}
-${lbl(332,362,'Não',C.red)}
-${path(`M460 368 L460 134 L320 134`,C.red)}
-${node(460,78,160,40,'Plano permanece activo',C.amberL,C.amberD)}
-${path(`M320 114 L460 114 L460 98`,C.amber)}
-${lbl(332,118,'Não',C.amber)}
+  svg:()=>{const W=700,H=610;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(170,10,360,36,'Início: Todos os cursos do plano finalizados',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${diamond(350,114,40,'TRAINER confirma\nfinalização?',C.amberL,C.amberD)}
+${arr(350,154,350,184,'Sim',C.gray)}
+${node(90,184,520,40,'POST /api/finalization/plan/:id/finalize — generate_certificate: true',C.blueL,C.blueD)}
+${arr(350,224,350,254,'')}
+${node(130,254,440,40,'Sistema valida: todas as submissões aprovadas?',C.blueL,C.blueD)}
+${arr(350,294,350,324,'')}
+${diamond(350,358,34,'Validação\npassa?',C.amberL,C.amberD)}
+${arr(350,392,350,422,'Sim',C.gray)}
+${node(130,422,440,40,'Certificado criado → GET /api/certificates/:id disponível',C.greenL,C.greenD)}
+${arr(350,462,350,492,'')}
+${node(150,492,400,40,'TRAINEE vê em /certificates → Download PDF',C.greenL,C.greenD)}
+${arr(350,532,350,572,'')}
+${oval(230,572,240,32,'Fim: Certificado disponível ✓',C.greenL,C.greenD)}
+${node(490,324,160,44,'Erro: Submissões\npendentes ou rejeitadas',C.redL,C.redD)}
+${path(`M350 358 L490 358 L490 346`,C.red)}
+${lbl(362,362,'Não',C.red)}
+${path(`M490 368 L490 134 L350 134`,C.red)}
+${node(490,78,160,40,'Plano permanece activo',C.amberL,C.amberD)}
+${path(`M350 114 L490 114 L490 98`,C.amber)}
+${lbl(362,118,'Não',C.amber)}
 </svg>`;}
 },
 tuterror:{
   num:'3.1',title:'Registo de Erro de Tutoria',
   desc:'Liberador ou Tutor regista erro. A severidade determina o nível de notificação, de normal a urgente para o ADMIN.',
   states:[{l:'Formulário preenchido',c:C.blue},{l:'Severidade definida',c:C.amber},{l:'PENDENTE criado',c:C.amber},{l:'Tutor notificado',c:C.blue}],
-  svg:()=>{const W=640,H=530;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(120,10,400,36,'Início: LIBERADOR/TUTOR → /tutoria/errors/new',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${node(60,76,520,44,'Preenche: descrição, categoria, severidade,\\noperação, banco, produto',C.blueL,C.blueD)}
-${arr(320,120,320,148,'')}
-${diamond(320,188,42,'Severidade?',C.amberL,C.amberD)}
-${node(20,196,110,40,'BAIXA\\nnormal',C.grayL,C.grayD)}
-${node(150,196,110,40,'MÉDIA\\nprioridade normal',C.blueL,C.blueD)}
-${node(280,196,110,40,'ALTA\\nalerta ao tutor',C.amberL,C.amberD)}
-${node(430,196,160,40,'CRÍTICA\\nnotif. urgente ADMIN',C.redL,C.redD)}
-${path(`M320 230 L75 230`,C.gray)}
-${path(`M320 230 L205 230`,C.blue)}
-${path(`M320 230 L335 230`,C.amber)}
-${path(`M320 230 L510 230`,C.red)}
-${arr(75,236,75,286,'')}
-${arr(205,236,205,286,'')}
-${arr(335,236,335,286,'')}
-${arr(510,236,510,286,'')}
-${node(60,286,520,40,'POST /api/tutoria/errors → Erro criado: PENDENTE',C.amberL,C.amberD)}
-${arr(320,326,320,356,'')}
-${node(120,356,400,40,'Tutor atribuído recebe notificação',C.blueL,C.blueD)}
-${arr(320,396,320,426,'')}
-${node(100,426,440,40,'Tutorado vê erro em /tutoria/my-errors',C.blueL,C.blueD)}
-${arr(320,466,320,496,'')}
-${oval(190,496,260,30,'Fim: Aguarda análise do tutor',C.amberL,C.amberD)}
+  svg:()=>{const W=700,H=530;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(150,10,400,36,'Início: LIBERADOR/TUTOR → /tutoria/errors/new',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${node(90,76,520,44,'Preenche: descrição, categoria, severidade,\noperação, banco, produto',C.blueL,C.blueD)}
+${arr(350,120,350,148,'')}
+${diamond(350,188,42,'Severidade?',C.amberL,C.amberD)}
+${node(50,196,110,40,'BAIXA\nnormal',C.grayL,C.grayD)}
+${node(180,196,110,40,'MÉDIA\nprioridade normal',C.blueL,C.blueD)}
+${node(310,196,110,40,'ALTA\nalerta ao tutor',C.amberL,C.amberD)}
+${node(460,196,160,40,'CRÍTICA\nnotif. urgente ADMIN',C.redL,C.redD)}
+${path(`M350 230 L105 230`,C.gray)}
+${path(`M350 230 L235 230`,C.blue)}
+${path(`M350 230 L365 230`,C.amber)}
+${path(`M350 230 L540 230`,C.red)}
+${arr(105,236,105,286,'')}
+${arr(235,236,235,286,'')}
+${arr(365,236,365,286,'')}
+${arr(540,236,540,286,'')}
+${node(90,286,520,40,'POST /api/tutoria/errors → Erro criado: PENDENTE',C.amberL,C.amberD)}
+${arr(350,326,350,356,'')}
+${node(150,356,400,40,'Tutor atribuído recebe notificação',C.blueL,C.blueD)}
+${arr(350,396,350,426,'')}
+${node(130,426,440,40,'Tutorado vê erro em /tutoria/my-errors',C.blueL,C.blueD)}
+${arr(350,466,350,496,'')}
+${oval(220,496,260,30,'Fim: Aguarda análise do tutor',C.amberL,C.amberD)}
 </svg>`;}
 },
 tutcycle:{
   num:'3.2',title:'Ciclo Completo de Erro de Tutoria — 6 Estados',
   desc:'Da criação à resolução, passando por análise, planos e verificação. Cancelamento possível em qualquer estado (excepto RESOLVIDO).',
   states:[{l:'PENDENTE',c:C.amber},{l:'EM_ANÁLISE',c:C.blue},{l:'AGUARDA_PLANOS',c:C.amber},{l:'EM_EXECUÇÃO',c:C.blue},{l:'VERIFICAÇÃO',c:C.amber},{l:'RESOLVIDO',c:C.green}],
-  svg:()=>{const W=640,H=730;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${node(80,10,480,50,'1 — PENDENTE\\nErro registado por Liberador/Tutor',C.amberL,C.amberD,null,8)}
-${arr(320,60,320,90,'')}
-${node(80,90,480,50,'2 — EM ANÁLISE\\nTUTOR analisa, revê, submete ao chefe para aprovação',C.blueL,C.blueD,null,8)}
-${arr(320,140,320,168,'')}
-${diamond(320,202,34,'Chefe\\naprovaa?',C.amberL,C.amberD)}
-${arr(320,236,320,266,'Sim',C.gray)}
-${node(460,172,160,44,'Devolvido\\npara revisão',C.redL,C.redD)}
-${path(`M320 202 L460 202 L460 172`,C.red)}
-${lbl(332,206,'Não',C.red)}
-${path(`M460 216 L460 115 L320 115`,C.red)}
-${node(80,266,480,50,'3 — AGUARDA PLANOS\\nTutor cria plano de acção associado ao erro',C.amberL,C.amberD,null,8)}
-${arr(320,316,320,346,'')}
-${node(80,346,480,50,'4 — EM EXECUÇÃO\\nItens do plano executados um a um',C.blueL,C.blueD,null,8)}
-${arr(320,396,320,424,'')}
-${diamond(320,458,34,'TUTOR/ADMIN\\naprovaa plano?',C.amberL,C.amberD)}
-${arr(320,492,320,522,'Sim',C.gray)}
-${node(460,428,160,44,'Devolvido\\ncom comentários',C.redL,C.redD)}
-${path(`M320 458 L460 458 L460 428`,C.red)}
-${lbl(332,462,'Não',C.red)}
-${path(`M460 472 L460 371 L320 371`,C.red)}
-${node(80,522,480,50,'5 — VERIFICAÇÃO\\nTutorado confirma resolução do erro',C.amberL,C.amberD,null,8)}
-${arr(320,572,320,602,'')}
-${node(80,602,480,50,'6 — RESOLVIDO\\nTUTOR encerra o erro definitivamente',C.greenL,C.greenD,null,8)}
-${arr(320,652,320,688,'')}
-${oval(190,688,260,34,'Fim: Erro resolvido ✓',C.greenL,C.greenD)}
-${node(0,90,60,482,'CAN\\nCE\\nLA\\nDO',C.redL,C.redD,null,6)}
-${path(`M60 90 L60 572`,C.red)}
+  svg:()=>{const W=700,H=760;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${node(70,10,560,50,'1 — PENDENTE\nErro registado por Liberador/Tutor',C.amberL,C.amberD,null,8)}
+${arr(350,60,350,90,'')}
+${node(70,90,560,50,'2 — EM ANÁLISE\nTUTOR analisa, revê, submete ao MANAGER/ADMIN para aprovação',C.blueL,C.blueD,null,8)}
+${arr(350,140,350,168,'')}
+${diamond(350,202,34,'MANAGER/ADMIN\naprova?',C.amberL,C.amberD)}
+${arr(350,236,350,266,'Sim',C.gray)}
+${node(490,172,160,44,'Devolvido\npara revisão',C.redL,C.redD)}
+${path(`M350 202 L490 202 L490 172`,C.red)}
+${lbl(362,206,'Não',C.red)}
+${path(`M490 216 L490 115 L350 115`,C.red)}
+${node(70,266,560,50,'3 — AGUARDA PLANOS\nTutor cria plano de acção associado ao erro',C.amberL,C.amberD,null,8)}
+${arr(350,316,350,346,'')}
+${node(70,346,560,50,'4 — EM EXECUÇÃO\nItens do plano executados um a um',C.blueL,C.blueD,null,8)}
+${arr(350,396,350,424,'')}
+${diamond(350,458,34,'TUTOR/ADMIN\naprova plano?',C.amberL,C.amberD)}
+${arr(350,492,350,522,'Sim',C.gray)}
+${node(490,428,160,44,'Devolvido\ncom comentários',C.redL,C.redD)}
+${path(`M350 458 L490 458 L490 428`,C.red)}
+${lbl(362,462,'Não',C.red)}
+${path(`M490 472 L490 371 L350 371`,C.red)}
+${node(70,522,560,50,'5 — VERIFICAÇÃO\nTutorado confirma resolução do erro',C.amberL,C.amberD,null,8)}
+${arr(350,572,350,602,'')}
+${node(70,602,560,50,'6 — RESOLVIDO\nTUTOR encerra o erro definitivamente',C.greenL,C.greenD,null,8)}
+${arr(350,652,350,688,'')}
+${oval(220,688,260,34,'Fim: Erro resolvido ✓',C.greenL,C.greenD)}
+${node(0,100,50,480,'CAN\nCE\nLA\nDO',C.redL,C.redD,null,6)}
+${path(`M50 90 L50 572`,C.red)}
 </svg>`;}
 },
 actionplan:{
   num:'3.3',title:'Criação e Aprovação de Plano de Acção',
   desc:'TUTOR cria plano associado a um erro de tutoria, passando por RASCUNHO → EM_REVISÃO → APROVADO → EM_EXECUÇÃO → CONCLUÍDO.',
   states:[{l:'RASCUNHO',c:C.amber},{l:'EM_REVISÃO',c:C.amber},{l:'APROVADO',c:C.green},{l:'EM_EXECUÇÃO',c:C.blue},{l:'CONCLUÍDO',c:C.green}],
-  svg:()=>{const W=640,H=660;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(160,10,320,36,'Início: TUTOR → /tutoria/errors/:id',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${node(80,76,480,44,'Preenche: título, descrição, data limite,\\nresponsável, itens de acção',C.blueL,C.blueD)}
-${arr(320,120,320,150,'')}
-${node(120,150,400,40,'POST /api/errors/:id/plans → RASCUNHO',C.amberL,C.amberD)}
-${arr(320,190,320,220,'')}
-${node(100,220,440,40,'Adicionar itens: POST /api/plans/:id/items',C.blueL,C.blueD)}
-${path(`M100 240 L60 240 L60 220 L100 220`,C.amber)}
-${arr(320,260,320,290,'')}
-${node(100,290,440,40,'POST /api/plans/:id/submit → EM_REVISÃO',C.amberL,C.amberD)}
-${arr(320,330,320,360,'')}
-${diamond(320,396,36,'TUTOR/ADMIN\\nrevê o plano',C.amberL,C.amberD)}
-${arr(320,432,320,462,'Aprovado',C.gray)}
-${node(100,462,440,40,'POST /api/plans/:id/approve → APROVADO',C.greenL,C.greenD)}
-${arr(320,502,320,532,'')}
-${node(100,532,440,40,'PATCH plans/:id/start → EM_EXECUÇÃO',C.blueL,C.blueD)}
-${arr(320,572,320,612,'')}
-${node(80,612,480,40,'PATCH complete → CONCLUÍDO → TUTOR valida',C.greenL,C.greenD)}
-${node(480,360,150,44,'Devolvido\\ncom comentários',C.redL,C.redD)}
-${path(`M320 396 L480 396 L480 360`,C.red)}
-${lbl(332,400,'Devolvido',C.red)}
-${path(`M480 404 L480 170 L320 170`,C.red)}
+  svg:()=>{const W=700,H=660;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(190,10,320,36,'Início: TUTOR → /tutoria/errors/:id',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${node(110,76,480,44,'Preenche: título, descrição, data limite,\nresponsável, itens de acção',C.blueL,C.blueD)}
+${arr(350,120,350,150,'')}
+${node(150,150,400,40,'POST /api/errors/:id/plans → RASCUNHO',C.amberL,C.amberD)}
+${arr(350,190,350,220,'')}
+${node(130,220,440,40,'Adicionar itens: POST /api/plans/:id/items',C.blueL,C.blueD)}
+${path(`M130 240 L90 240 L90 220 L130 220`,C.amber)}
+${arr(350,260,350,290,'')}
+${node(130,290,440,40,'POST /api/plans/:id/submit → EM_REVISÃO',C.amberL,C.amberD)}
+${arr(350,330,350,360,'')}
+${diamond(350,396,36,'TUTOR/ADMIN\nrevê o plano',C.amberL,C.amberD)}
+${arr(350,432,350,462,'Aprovado',C.gray)}
+${node(130,462,440,40,'POST /api/plans/:id/approve → APROVADO',C.greenL,C.greenD)}
+${arr(350,502,350,532,'')}
+${node(130,532,440,40,'PATCH plans/:id/start → EM_EXECUÇÃO',C.blueL,C.blueD)}
+${arr(350,572,350,612,'')}
+${node(110,612,480,40,'PATCH complete → CONCLUÍDO → TUTOR valida',C.greenL,C.greenD)}
+${node(510,360,150,44,'Devolvido\ncom comentários',C.redL,C.redD)}
+${path(`M350 396 L510 396 L510 360`,C.red)}
+${lbl(362,400,'Devolvido',C.red)}
+${path(`M510 404 L510 170 L350 170`,C.red)}
 </svg>`;}
 },
 sidebyside:{
   num:'3.4',title:'Side-by-Side (Treino ao Lado)',
-  desc:'TUTOR observa estudante ao vivo, regista MPU por operação. Se necessário, cria erro de tutoria associado à sessão.',
+  desc:'TUTOR observa TRAINEE ao vivo, regista MPU por operação. Se necessário, cria erro de tutoria associado à sessão.',
   states:[{l:'Sessão criada',c:C.blue},{l:'Observação em curso',c:C.blue},{l:'MPU calculado',c:C.blue},{l:'Acção se necessário',c:C.amber}],
-  svg:()=>{const W=640,H=560;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(140,10,360,36,'Início: TUTOR identifica estudante para supervisão',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${node(160,76,320,40,'Acede a /tutoria/side-by-side',C.blueL,C.blueD)}
-${arr(320,116,320,146,'')}
-${node(80,146,480,40,'Selecciona: estudante + operação + data',C.blueL,C.blueD)}
-${arr(320,186,320,216,'')}
-${node(60,216,520,40,'POST /api/tutoria/plans/side-by-side → plano especial criado',C.blueL,C.blueD)}
-${arr(320,256,320,286,'')}
-${node(120,286,400,40,'TUTOR observa e regista observações em tempo real',C.blueL,C.blueD)}
-${arr(320,326,320,356,'')}
-${node(100,356,440,40,'MPU calculado: Minutos Por Operação por tarefa',C.blueL,C.blueD)}
-${arr(320,396,320,424,'')}
-${diamond(320,458,34,'Acção\\nnecessária?',C.amberL,C.amberD)}
-${node(80,444,160,44,'Criar erro de tutoria\\nassociado (→ 3.1)',C.amberL,C.amberD)}
-${node(420,444,180,44,'Sessão arquivada\\ncomo referência',C.greenL,C.greenD)}
-${path(`M320 492 L160 492`,C.amber)}
-${lbl(220,486,'Sim',C.amber)}
-${path(`M320 492 L510 492`,C.green)}
-${lbl(332,486,'Não',C.green)}
-${arr(160,466,160,508,'')}
-${arr(510,466,510,508,'')}
-${oval(210,518,220,34,'Fim',C.greenL,C.greenD)}
+  svg:()=>{const W=700,H=560;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(170,10,360,36,'Início: TUTOR identifica TRAINEE para supervisão',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${node(190,76,320,40,'Acede a /tutoria/side-by-side',C.blueL,C.blueD)}
+${arr(350,116,350,146,'')}
+${node(110,146,480,40,'Selecciona: TRAINEE + operação + data',C.blueL,C.blueD)}
+${arr(350,186,350,216,'')}
+${node(90,216,520,40,'POST /api/tutoria/plans/side-by-side → plano especial criado',C.blueL,C.blueD)}
+${arr(350,256,350,286,'')}
+${node(150,286,400,40,'TUTOR observa e regista observações em tempo real',C.blueL,C.blueD)}
+${arr(350,326,350,356,'')}
+${node(130,356,440,40,'MPU calculado: Minutos Por Operação por tarefa',C.blueL,C.blueD)}
+${arr(350,396,350,424,'')}
+${diamond(350,458,34,'Acção\nnecessária?',C.amberL,C.amberD)}
+${node(110,444,160,44,'Criar erro de tutoria\nassociado (→ 3.1)',C.amberL,C.amberD)}
+${node(450,444,180,44,'Sessão arquivada\ncomo referência',C.greenL,C.greenD)}
+${path(`M350 492 L190 492`,C.amber)}
+${lbl(250,486,'Sim',C.amber)}
+${path(`M350 492 L540 492`,C.green)}
+${lbl(362,486,'Não',C.green)}
+${arr(190,466,190,508,'')}
+${arr(540,466,540,508,'')}
+${oval(240,518,220,34,'Fim',C.greenL,C.greenD)}
 </svg>`;}
 },
 feedback:{
   num:'3.5',title:'Ciclo de Feedback de Liberador',
   desc:'Survey semanal criada pelo TUTOR. Liberadores avaliam grabadores. TUTOR analisa resultados e cria acções quando há respostas críticas.',
   states:[{l:'Survey criada',c:C.blue},{l:'Liberadores notificados',c:C.blue},{l:'Respostas submetidas',c:C.blue},{l:'Análise',c:C.blue},{l:'Acções (se crítico)',c:C.red}],
-  svg:()=>{const W=640,H=660;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(160,10,320,36,'Início: TUTOR cria survey semanal',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${node(80,76,480,40,'POST /api/feedback/surveys com lista de perguntas',C.blueL,C.blueD)}
-${arr(320,116,320,146,'')}
-${node(120,146,400,40,'Survey activa → liberadores notificados',C.blueL,C.blueD)}
-${arr(320,186,320,216,'')}
-${node(60,216,520,40,'LIBERADOR acede → GET /api/feedback/my-pending',C.blueL,C.blueD)}
-${arr(320,256,320,284,'')}
-${diamond(320,318,34,'Survey\\npendente?',C.amberL,C.amberD)}
-${arr(320,352,320,382,'Sim',C.gray)}
-${node(60,382,520,40,'Submete rating + comentários por grabador',C.blueL,C.blueD)}
-${arr(320,422,320,452,'')}
-${node(60,452,520,40,'TUTOR vê dashboard + análise de sentimento + alertas',C.blueL,C.blueD)}
-${arr(320,492,320,520,'')}
-${diamond(320,554,34,'Respostas\\ncríticas?',C.amberL,C.amberD)}
-${node(460,524,160,44,'POST /api/feedback/actions\\nacções criadas e atribuídas',C.redL,C.redD)}
-${path(`M320 554 L460 554 L460 546`,C.red)}
-${lbl(332,558,'Sim',C.red)}
-${node(460,318,150,40,'Sem surveys pendentes',C.grayL,C.grayD)}
-${path(`M320 318 L460 318`,C.gray)}
-${lbl(332,322,'Não',C.gray)}
-${arr(320,588,320,622,'Não',C.gray)}
-${oval(190,622,260,32,'Fim: Ciclo de feedback concluído',C.greenL,C.greenD)}
+  svg:()=>{const W=700,H=660;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(190,10,320,36,'Início: TUTOR cria survey semanal',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${node(110,76,480,40,'POST /api/feedback/surveys com lista de perguntas',C.blueL,C.blueD)}
+${arr(350,116,350,146,'')}
+${node(150,146,400,40,'Survey activa → liberadores notificados',C.blueL,C.blueD)}
+${arr(350,186,350,216,'')}
+${node(90,216,520,40,'LIBERADOR acede → GET /api/feedback/my-pending',C.blueL,C.blueD)}
+${arr(350,256,350,284,'')}
+${diamond(350,318,34,'Survey\npendente?',C.amberL,C.amberD)}
+${arr(350,352,350,382,'Sim',C.gray)}
+${node(90,382,520,40,'Submete rating + comentários por grabador',C.blueL,C.blueD)}
+${arr(350,422,350,452,'')}
+${node(90,452,520,40,'TUTOR vê dashboard + análise de sentimento + alertas',C.blueL,C.blueD)}
+${arr(350,492,350,520,'')}
+${diamond(350,554,34,'Respostas\ncríticas?',C.amberL,C.amberD)}
+${node(490,524,160,44,'POST /api/feedback/actions\nacções criadas e atribuídas',C.redL,C.redD)}
+${path(`M350 554 L490 554 L490 546`,C.red)}
+${lbl(362,558,'Sim',C.red)}
+${node(490,318,150,40,'Sem surveys pendentes',C.grayL,C.grayD)}
+${path(`M350 318 L490 318`,C.gray)}
+${lbl(362,322,'Não',C.gray)}
+${arr(350,588,350,622,'Não',C.gray)}
+${oval(220,622,260,32,'Fim: Ciclo de feedback concluído',C.greenL,C.greenD)}
 </svg>`;}
 },
 internerror:{
   num:'3.6',title:'Registo de Erro Interno (Liberador)',
   desc:'LIBERADOR regista erro interno com nível de impacto. TUTOR pode criar plano de acção e ficha de aprendizagem associada.',
   states:[{l:'Formulário',c:C.blue},{l:'Impacto definido',c:C.amber},{l:'Erro registado',c:C.amber},{l:'Plano criado',c:C.blue},{l:'Ficha lida',c:C.green}],
-  svg:()=>{const W=640,H=630;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(100,10,440,36,'Início: LIBERADOR → /tutoria/internal-errors/new',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${node(40,76,560,44,'Preenche: descrição, impacto, banco, departamento,\\nactividade, tipo de erro, grabador',C.blueL,C.blueD)}
-${arr(320,120,320,148,'')}
-${diamond(320,188,42,'Impacto?',C.amberL,C.amberD)}
-${node(20,196,130,40,'BAIXO\\nregisto normal',C.grayL,C.grayD)}
-${node(170,196,140,40,'MÉDIO\\nnotif. tutor',C.blueL,C.blueD)}
-${node(330,196,260,40,'ALTO — alerta urgente ADMIN + TUTOR',C.redL,C.redD)}
-${path(`M320 230 L85 230`,C.gray)}
-${path(`M320 230 L240 230`,C.blue)}
-${path(`M320 230 L460 230`,C.red)}
-${arr(85,236,85,286,'')}
-${arr(240,236,240,286,'')}
-${arr(460,236,460,286,'')}
-${node(40,286,560,40,'POST /api/internal-errors/errors → visível a TUTOR/ADMIN/MANAGER',C.amberL,C.amberD)}
-${arr(320,326,320,354,'')}
-${diamond(320,388,34,'TUTOR cria\\nplano?',C.amberL,C.amberD)}
-${arr(320,422,320,452,'Sim',C.gray)}
-${node(80,452,480,40,'Plano de acção + ficha de aprendizagem criada',C.blueL,C.blueD)}
-${arr(320,492,320,522,'')}
-${node(80,522,480,40,'LIBERADOR lê ficha → POST mark-read → marcada como lida',C.greenL,C.greenD)}
-${arr(320,562,320,598,'')}
-${oval(190,598,260,28,'Fim: Erro registado e tratado ✓',C.greenL,C.greenD)}
-${node(460,362,160,44,'Fica pendente\\nà espera de acção',C.amberL,C.amberD)}
-${path(`M320 388 L460 388 L460 362`,C.amber)}
-${lbl(332,392,'Não',C.amber)}
+  svg:()=>{const W=700,H=630;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(130,10,440,36,'Início: LIBERADOR → /tutoria/internal-errors/new',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${node(70,76,560,44,'Preenche: descrição, impacto, banco, departamento,\nactividade, tipo de erro, grabador',C.blueL,C.blueD)}
+${arr(350,120,350,148,'')}
+${diamond(350,188,42,'Impacto?',C.amberL,C.amberD)}
+${node(50,196,130,40,'BAIXO\nregisto normal',C.grayL,C.grayD)}
+${node(200,196,140,40,'MÉDIO\nnotif. tutor',C.blueL,C.blueD)}
+${node(360,196,260,40,'ALTO — alerta urgente ADMIN + TUTOR',C.redL,C.redD)}
+${path(`M350 230 L115 230`,C.gray)}
+${path(`M350 230 L270 230`,C.blue)}
+${path(`M350 230 L490 230`,C.red)}
+${arr(115,236,115,286,'')}
+${arr(270,236,270,286,'')}
+${arr(490,236,490,286,'')}
+${node(70,286,560,40,'POST /api/internal-errors/errors → visível a TUTOR/ADMIN/MANAGER',C.amberL,C.amberD)}
+${arr(350,326,350,354,'')}
+${diamond(350,388,34,'TUTOR cria\nplano?',C.amberL,C.amberD)}
+${arr(350,422,350,452,'Sim',C.gray)}
+${node(110,452,480,40,'Plano de acção + ficha de aprendizagem criada',C.blueL,C.blueD)}
+${arr(350,492,350,522,'')}
+${node(110,522,480,40,'LIBERADOR lê ficha → POST mark-read → marcada como lida',C.greenL,C.greenD)}
+${arr(350,562,350,598,'')}
+${oval(220,598,260,28,'Fim: Erro registado e tratado ✓',C.greenL,C.greenD)}
+${node(490,362,160,44,'Fica pendente\nà espera de acção',C.amberL,C.amberD)}
+${path(`M350 388 L490 388 L490 362`,C.amber)}
+${lbl(362,392,'Não',C.amber)}
 </svg>`;}
 },
 kanban:{
   num:'4.1',title:'Ciclo de Vida de um Chamado (Kanban)',
   desc:'Do registo ao fecho. Suporte a tipos BUG e MELHORIA, prioridades, comentários, revisão e reabertura.',
   states:[{l:'ABERTO',c:C.amber},{l:'EM_ANDAMENTO',c:C.blue},{l:'EM_REVISÃO',c:C.blue},{l:'CONCLUÍDO',c:C.green}],
-  svg:()=>{const W=640,H=730;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(160,10,320,36,'Início: Utilizador autenticado → /chamados',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${node(100,76,440,44,'Preenche: título, descrição,\\ntipo (BUG/MELHORIA), prioridade, portal',C.blueL,C.blueD)}
-${arr(320,120,320,150,'')}
-${node(100,150,440,40,'POST /api/chamados → Ticket criado: ABERTO',C.amberL,C.amberD)}
-${arr(320,190,320,218,'')}
-${diamond(320,252,34,'ADMIN\\natribui?',C.amberL,C.amberD)}
-${arr(320,286,320,316,'Sim',C.gray)}
-${node(80,316,480,40,'PUT chamados/:id → assigned_to_id → EM_ANDAMENTO',C.blueL,C.blueD)}
-${arr(320,356,320,384,'')}
-${node(80,384,480,44,'Trabalho em curso\\nComentários: POST chamados/:id/comments',C.blueL,C.blueD)}
-${arr(320,428,320,458,'')}
-${node(80,458,480,40,'ADMIN move para EM_REVISÃO',C.blueL,C.blueD)}
-${arr(320,498,320,526,'')}
-${diamond(320,560,34,'Revisão\\npassa?',C.amberL,C.amberD)}
-${arr(320,594,320,624,'Sim',C.gray)}
-${node(100,624,440,40,'PUT status: CONCLUIDO → completed_at=now',C.greenL,C.greenD)}
-${arr(320,664,320,692,'')}
-${oval(200,692,240,32,'Fim: Chamado concluído ✓',C.greenL,C.greenD)}
-${node(460,224,160,44,'Sem atribuição\\npor agora',C.grayL,C.grayD)}
-${path(`M320 252 L460 252 L460 244`,C.gray)}
-${lbl(332,256,'Não',C.gray)}
-${path(`M460 268 L460 336 L320 336`,C.gray)}
-${node(460,530,160,44,'Reabrir\\nstatus: ABERTO',C.redL,C.redD)}
-${path(`M320 560 L460 560 L460 552`,C.red)}
-${lbl(332,564,'Não',C.red)}
-${path(`M460 574 L460 170 L320 170`,C.red)}
+  svg:()=>{const W=700,H=730;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(190,10,320,36,'Início: Utilizador autenticado → /chamados',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${node(130,76,440,44,'Preenche: título, descrição,\ntipo (BUG/MELHORIA), prioridade, portal',C.blueL,C.blueD)}
+${arr(350,120,350,150,'')}
+${node(130,150,440,40,'POST /api/chamados → Ticket criado: ABERTO',C.amberL,C.amberD)}
+${arr(350,190,350,218,'')}
+${diamond(350,252,34,'ADMIN\natribui?',C.amberL,C.amberD)}
+${arr(350,286,350,316,'Sim',C.gray)}
+${node(110,316,480,40,'PUT chamados/:id → assigned_to_id → EM_ANDAMENTO',C.blueL,C.blueD)}
+${arr(350,356,350,384,'')}
+${node(110,384,480,44,'Trabalho em curso\nComentários: POST chamados/:id/comments',C.blueL,C.blueD)}
+${arr(350,428,350,458,'')}
+${node(110,458,480,40,'ADMIN move para EM_REVISÃO',C.blueL,C.blueD)}
+${arr(350,498,350,526,'')}
+${diamond(350,560,34,'Revisão\npassa?',C.amberL,C.amberD)}
+${arr(350,594,350,624,'Sim',C.gray)}
+${node(130,624,440,40,'PUT status: CONCLUIDO → completed_at=now',C.greenL,C.greenD)}
+${arr(350,664,350,692,'')}
+${oval(230,692,240,32,'Fim: Chamado concluído ✓',C.greenL,C.greenD)}
+${node(490,224,160,44,'Sem atribuição\npor agora',C.grayL,C.grayD)}
+${path(`M350 252 L490 252 L490 244`,C.gray)}
+${lbl(362,256,'Não',C.gray)}
+${path(`M490 268 L490 336 L350 336`,C.gray)}
+${node(490,530,160,44,'Reabrir\nstatus: ABERTO',C.redL,C.redD)}
+${path(`M350 560 L490 560 L490 552`,C.red)}
+${lbl(362,564,'Não',C.red)}
+${path(`M490 574 L490 170 L350 170`,C.red)}
 </svg>`;}
 },
 users:{
   num:'5.1',title:'Gestão de Utilizadores (ADMIN)',
   desc:'ADMIN pode criar utilizadores com flags especiais (is_tutor, is_liberador, is_team_lead, is_referente), editar ou remover.',
   states:[{l:'Criar',c:C.green},{l:'Editar',c:C.blue},{l:'Apagar',c:C.red}],
-  svg:()=>{const W=640,H=520;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(160,10,320,36,'Início: ADMIN → /master-data/users',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${diamond(320,116,42,'Operação\\ndesejada?',C.amberL,C.amberD)}
-${node(20,90,160,44,'Criar\\nutilizador',C.greenL,C.greenD)}
-${node(220,90,200,44,'Editar\\nutilizador',C.blueL,C.blueD)}
-${node(460,90,160,44,'Apagar\\nutilizador',C.redL,C.redD)}
-${path(`M320 158 L100 158`,C.green)}
-${path(`M320 158 L320 134`,C.blue)}
-${path(`M320 158 L540 158`,C.red)}
-${arr(100,158,100,180,'')}
-${arr(320,134,320,180,'')}
-${arr(540,158,540,180,'')}
-${node(20,180,160,50,'Flags:\\nis_tutor, is_liberador,\\nis_team_lead, is_referente',C.blueL,C.blueD)}
-${node(220,180,200,50,'Altera: role, flags,\\nequipa, estado activo',C.blueL,C.blueD)}
-${node(440,180,200,50,'Confirma remoção?\\nDELETE /api/users/:id',C.redL,C.redD)}
-${arr(100,230,100,280,'')}
-${arr(320,230,320,280,'')}
-${arr(540,230,540,280,'')}
-${node(20,280,160,40,'POST /api/users\\n→ utilizador criado',C.greenL,C.greenD)}
-${node(220,280,200,40,'PUT /api/users/:id\\n→ actualizado',C.blueL,C.blueD)}
-${node(440,280,200,40,'DELETE /api/users/:id\\n→ removido',C.redL,C.redD)}
-${arr(100,320,100,370,'')}
-${arr(320,320,320,370,'')}
-${arr(540,320,540,370,'')}
-${node(80,370,480,40,'Utilizador criado / actualizado / removido com sucesso',C.greenL,C.greenD)}
-${arr(320,410,320,448,'')}
-${oval(160,448,320,34,'Fim: Operação realizada ✓',C.greenL,C.greenD)}
+  svg:()=>{const W=700,H=520;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(190,10,320,36,'Início: ADMIN → /master-data/users',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${diamond(350,116,42,'Operação\ndesejada?',C.amberL,C.amberD)}
+${node(50,90,160,44,'Criar\nutilizador',C.greenL,C.greenD)}
+${node(250,90,200,44,'Editar\nutilizador',C.blueL,C.blueD)}
+${node(490,90,160,44,'Apagar\nutilizador',C.redL,C.redD)}
+${path(`M350 158 L130 158`,C.green)}
+${path(`M350 158 L350 134`,C.blue)}
+${path(`M350 158 L570 158`,C.red)}
+${arr(130,158,130,180,'')}
+${arr(350,134,350,180,'')}
+${arr(570,158,570,180,'')}
+${node(50,180,160,50,'Flags:\nis_tutor, is_liberador,\nis_team_lead, is_referente',C.blueL,C.blueD)}
+${node(250,180,200,50,'Altera: role, flags,\nequipa, estado activo',C.blueL,C.blueD)}
+${node(470,180,200,50,'Confirma remoção?\nDELETE /api/users/:id',C.redL,C.redD)}
+${arr(130,230,130,280,'')}
+${arr(350,230,350,280,'')}
+${arr(570,230,570,280,'')}
+${node(50,280,160,40,'POST /api/users\n→ utilizador criado',C.greenL,C.greenD)}
+${node(250,280,200,40,'PUT /api/users/:id\n→ actualizado',C.blueL,C.blueD)}
+${node(470,280,200,40,'DELETE /api/users/:id\n→ removido',C.redL,C.redD)}
+${arr(130,320,130,370,'')}
+${arr(350,320,350,370,'')}
+${arr(570,320,570,370,'')}
+${node(110,370,480,40,'Utilizador criado / actualizado / removido com sucesso',C.greenL,C.greenD)}
+${arr(350,410,350,448,'')}
+${oval(190,448,320,34,'Fim: Operação realizada ✓',C.greenL,C.greenD)}
 </svg>`;}
 },
 teams:{
   num:'5.2',title:'Gestão de Equipas (ADMIN)',
   desc:'Criar equipa, atribuir gestor, associar serviços/produtos e adicionar ou remover membros.',
   states:[{l:'Equipa criada',c:C.blue},{l:'Gestor atribuído',c:C.blue},{l:'Serviços associados',c:C.blue},{l:'Membros adicionados',c:C.green}],
-  svg:()=>{const W=640,H=560;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(160,10,320,36,'Início: ADMIN → /master-data/teams',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${diamond(320,116,40,'Operação\\ndesejada?',C.amberL,C.amberD)}
-${node(60,90,170,44,'Criar\\nequipa',C.greenL,C.greenD)}
-${node(450,90,170,44,'Remover\\nmembro',C.redL,C.redD)}
-${path(`M320 156 L145 156`,C.green)}
-${path(`M320 156 L535 156`,C.red)}
-${arr(145,156,145,200,'')}
-${arr(535,156,535,200,'')}
-${node(40,200,200,40,'POST /api/teams → equipa criada',C.blueL,C.blueD)}
-${arr(140,240,140,270,'')}
-${diamond(140,304,30,'Atribuir\\ngestor?',C.amberL,C.amberD)}
-${arr(140,334,140,364,'Sim',C.gray)}
-${node(30,364,220,40,'PATCH teams/:id → manager_id',C.blueL,C.blueD)}
-${arr(140,404,140,434,'')}
-${diamond(140,468,30,'Adicionar\\nserviços?',C.amberL,C.amberD)}
-${node(30,500,220,40,'POST teams/:id/services',C.blueL,C.blueD)}
-${path(`M140 498 L140 500`,C.blue)}
-${arr(140,498,140,500,'Sim',C.gray)}
-${path(`M30 520 L10 520 L10 468 L110 468`,C.amber)}
-${node(430,200,180,40,'Selecciona equipa + membro',C.blueL,C.blueD)}
-${arr(520,240,520,280,'')}
-${diamond(520,316,30,'Confirma\\nremoção?',C.amberL,C.amberD)}
-${arr(520,346,520,380,'Sim',C.gray)}
-${node(400,380,240,40,'DELETE teams/:id/members/:user_id',C.redL,C.redD)}
-${arr(520,420,520,460,'')}
-${node(400,460,240,40,'Membro removido ✓',C.redL,C.redD)}
-${node(440,316,120,40,'Cancelado',C.grayL,C.grayD)}
-${path(`M520 316 L560 316 L560 136 L535 136`,C.gray)}
-${lbl(524,320,'Não',C.gray)}
+  svg:()=>{const W=700,H=560;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(190,10,320,36,'Início: ADMIN → /master-data/teams',C.grayL,C.grayD)}
+${arr(350,46,350,76,'')}
+${diamond(350,116,40,'Operação\ndesejada?',C.amberL,C.amberD)}
+${node(90,90,170,44,'Criar\nequipa',C.greenL,C.greenD)}
+${node(480,90,170,44,'Remover\nmembro',C.redL,C.redD)}
+${path(`M350 156 L175 156`,C.green)}
+${path(`M350 156 L565 156`,C.red)}
+${arr(175,156,175,200,'')}
+${arr(565,156,565,200,'')}
+${node(70,200,200,40,'POST /api/teams → equipa criada',C.blueL,C.blueD)}
+${arr(170,240,170,270,'')}
+${diamond(170,304,30,'Atribuir\ngestor?',C.amberL,C.amberD)}
+${arr(170,334,170,364,'Sim',C.gray)}
+${node(60,364,220,40,'PATCH teams/:id → manager_id',C.blueL,C.blueD)}
+${arr(170,404,170,434,'')}
+${diamond(170,468,30,'Adicionar\nserviços?',C.amberL,C.amberD)}
+${node(60,500,220,40,'POST teams/:id/services',C.blueL,C.blueD)}
+${path(`M170 498,170,500`,C.blue)}
+${arr(170,498,170,500,'Sim',C.gray)}
+${path(`M60 520 L40 520 L40 468 L140 468`,C.amber)}
+${node(460,200,180,40,'Selecciona equipa + membro',C.blueL,C.blueD)}
+${arr(550,240,550,280,'')}
+${diamond(550,316,30,'Confirma\nremoção?',C.amberL,C.amberD)}
+${arr(550,346,550,380,'Sim',C.gray)}
+${node(430,380,240,40,'DELETE teams/:id/members/:user_id',C.redL,C.redD)}
+${arr(550,420,550,460,'')}
+${node(430,460,240,40,'Membro removido ✓',C.redL,C.redD)}
+${node(470,316,120,40,'Cancelado',C.grayL,C.grayD)}
+${path(`M550 316 L590 316 L590 136 L565 136`,C.gray)}
+${lbl(554,320,'Não',C.gray)}
 </svg>`;}
 },
 hierarchy:{
   num:'5.3',title:'Gestão da Hierarquia Organizacional (ADMIN)',
   desc:'Criar nós raiz ou filhos, mover na hierarquia, adicionar/remover membros por nó e consultar log de auditoria com timestamps.',
   states:[{l:'Visualiza árvore',c:C.blue},{l:'Cria/Move nó',c:C.blue},{l:'Gere membros',c:C.blue},{l:'Auditoria',c:C.gray}],
-  svg:()=>{const W=640,H=460;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(160,10,320,36,'Início: ADMIN → /master-data/org-hierarchy',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${node(120,76,400,40,'Visualiza árvore / organograma',C.blueL,C.blueD)}
-${arr(320,116,320,144,'')}
-${diamond(320,188,46,'Operação\\ndesejada?',C.amberL,C.amberD)}
-${node(0,170,120,40,'Criar\\nnó raiz',C.greenL,C.greenD)}
-${node(130,170,120,40,'Criar\\nnó filho',C.greenL,C.greenD)}
-${node(260,170,120,40,'Mover\\nnó',C.blueL,C.blueD)}
-${node(390,170,120,40,'Add/Rem\\nmembro',C.blueL,C.blueD)}
-${node(520,170,110,40,'Ver\\nauditoria',C.grayL,C.grayD)}
-${path(`M320 234 L60 234`,C.green)}
-${path(`M320 234 L190 234`,C.green)}
-${path(`M320 234 L320 210`,C.blue)}
-${path(`M320 234 L450 234`,C.blue)}
-${path(`M320 234 L575 234`,C.gray)}
-${arr(60,210,60,280,'')}
-${arr(190,210,190,280,'')}
-${arr(320,210,320,280,'')}
-${arr(450,210,450,280,'')}
-${arr(575,210,575,280,'')}
-${node(0,280,120,44,'POST org/nodes\\nparent_id: null',C.greenL,C.greenD)}
-${node(130,280,120,44,'POST org/nodes\\nparent_id: X',C.greenL,C.greenD)}
-${node(255,280,130,44,'POST nodes/:id/move\\nnew_parent_id',C.blueL,C.blueD)}
-${node(390,280,120,44,'POST/DELETE\\nnodes/:id/members',C.blueL,C.blueD)}
-${node(515,280,120,44,'GET org/audit\\ntimestamps',C.grayL,C.grayD)}
-${arr(60,324,60,370,'')}
-${arr(190,324,190,370,'')}
-${arr(320,324,320,370,'')}
-${arr(450,324,450,370,'')}
-${arr(575,324,575,370,'')}
-${node(0,370,635,40,'Hierarquia actualizada / auditoria consultada ✓',C.greenL,C.greenD)}
+  svg:()=>{const W=780,H=500;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(190,10,400,36,'Início: ADMIN → /master-data/org-hierarchy',C.grayL,C.grayD)}
+${arr(390,46,390,76,'')}
+${node(150,76,480,40,'Visualiza árvore / organograma',C.blueL,C.blueD)}
+${arr(390,116,390,144,'')}
+${diamond(390,188,46,'Operação\ndesejada?',C.amberL,C.amberD)}
+${node(15,170,130,40,'Criar\nnó raiz',C.greenL,C.greenD)}
+${node(160,170,130,40,'Criar\nnó filho',C.greenL,C.greenD)}
+${node(305,170,130,40,'Mover\nnó',C.blueL,C.blueD)}
+${node(450,170,130,40,'Add/Rem\nmembro',C.blueL,C.blueD)}
+${node(595,170,130,40,'Ver\nauditoria',C.grayL,C.grayD)}
+${path(`M390 234 L80 234`,C.green)}
+${path(`M390 234 L225 234`,C.green)}
+${path(`M390 234 L370 210`,C.blue)}
+${path(`M390 234 L515 234`,C.blue)}
+${path(`M390 234 L660 234`,C.gray)}
+${arr(80,210,80,280,'')}
+${arr(225,210,225,280,'')}
+${arr(370,210,370,280,'')}
+${arr(515,210,515,280,'')}
+${arr(660,210,660,280,'')}
+${node(15,280,130,44,'POST org/nodes\nparent_id: null',C.greenL,C.greenD)}
+${node(160,280,130,44,'POST org/nodes\nparent_id: X',C.greenL,C.greenD)}
+${node(300,280,140,44,'POST nodes/:id/move\nnew_parent_id',C.blueL,C.blueD)}
+${node(445,280,130,44,'POST/DELETE\nnodes/:id/members',C.blueL,C.blueD)}
+${node(590,280,130,44,'GET org/audit\ntimestamps',C.grayL,C.grayD)}
+${arr(80,324,80,370,'')}
+${arr(225,324,225,370,'')}
+${arr(370,324,370,370,'')}
+${arr(515,324,515,370,'')}
+${arr(660,324,660,370,'')}
+${node(15,370,750,40,'Hierarquia actualizada / auditoria consultada ✓',C.greenL,C.greenD)}
 </svg>`;}
 },
 scoping:{
   num:'6.1',title:'Árvore de Decisão de Visibilidade de Dados',
   desc:'Lógica da função get_visible_user_ids() do backend. Determina quais os dados visíveis para cada utilizador em todos os portais.',
   states:[{l:'ADMIN/GESTOR: tudo',c:C.green},{l:'MANAGER/Team Lead: equipa',c:C.blue},{l:'TRAINER/TRAINEE: só próprios',c:C.amber}],
-  svg:()=>{const W=640,H=500;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
-${oval(140,10,360,36,'Início: Pedido de dados com utilizador autenticado',C.grayL,C.grayD)}
-${arr(320,46,320,76,'')}
-${diamond(320,122,48,'Role do\\nutilizador',C.amberL,C.amberD)}
-${node(0,94,150,44,'ADMIN\\nou GESTOR',C.greenL,C.greenD)}
-${node(185,94,270,44,'MANAGER\\nou is_team_lead=true',C.blueL,C.blueD)}
-${node(490,94,150,44,'TRAINER / TRAINEE\\n/ STUDENT',C.amberL,C.amberD)}
-${path(`M320 170 L75 170`,C.green)}
-${path(`M320 170 L320 138`,C.blue)}
-${path(`M320 170 L565 170`,C.amber)}
-${arr(75,138,75,200,'')}
-${arr(320,138,320,200,'')}
-${arr(565,138,565,200,'')}
-${node(0,200,150,40,'Retorna NULL\\nsem filtro',C.greenL,C.greenD)}
-${node(170,200,300,40,'Encontra equipas onde\\nmanager_id=user.id',C.blueL,C.blueD)}
-${node(490,200,150,40,'Retorna lista:\\n[user.id]',C.amberL,C.amberD)}
-${arr(75,240,75,280,'')}
-${arr(320,240,320,280,'')}
-${arr(565,240,565,280,'')}
-${node(0,280,150,40,'Vê TODOS os dados\\ndo sistema',C.greenL,C.greenD)}
-${node(155,280,330,40,'Inclui membros das equipas\\n+ próprio ID na lista',C.blueL,C.blueD)}
-${node(490,280,150,40,'Vê apenas os\\nseus próprios dados',C.amberL,C.amberD)}
-${arr(75,320,75,360,'')}
-${arr(320,320,320,360,'')}
-${arr(565,320,565,360,'')}
-${node(0,360,635,40,'Query filtrada aplicada → dados retornados ao cliente',C.greenL,C.greenD)}
-${arr(320,400,320,426,'')}
-${oval(180,426,280,30,'Fim: Resposta com scoping correcto',C.greenL,C.greenD)}
-${node(0,470,635,24,'Resumo: ADMIN/GESTOR → Tudo   ·   MANAGER/Team Lead → Equipa+Sub   ·   TRAINER/TRAINEE/STUDENT → Só próprios dados',C.grayL,C.grayD,null,4)}
+  svg:()=>{const W=780,H=520;return `<svg viewBox="0 0 ${W} ${H}">${DEFS}
+${oval(190,10,400,36,'Início: Pedido de dados com utilizador autenticado',C.grayL,C.grayD)}
+${arr(390,46,390,76,'')}
+${diamond(390,122,48,'Role do\nutilizador',C.amberL,C.amberD)}
+${node(20,94,200,44,'ADMIN\nou GESTOR',C.greenL,C.greenD)}
+${node(250,94,280,44,'MANAGER\nou is_team_lead=true',C.blueL,C.blueD)}
+${node(560,94,200,44,'TRAINER\nou TRAINEE',C.amberL,C.amberD)}
+${path(`M390 170 L120 170`,C.green)}
+${path(`M390 170 L390 138`,C.blue)}
+${path(`M390 170 L660 170`,C.amber)}
+${arr(120,138,120,200,'')}
+${arr(390,138,390,200,'')}
+${arr(660,138,660,200,'')}
+${node(20,200,200,40,'Retorna NULL\nsem filtro',C.greenL,C.greenD)}
+${node(240,200,300,40,'Encontra equipas onde\nmanager_id=user.id',C.blueL,C.blueD)}
+${node(560,200,200,40,'Retorna lista:\n[user.id]',C.amberL,C.amberD)}
+${arr(120,240,120,280,'')}
+${arr(390,240,390,280,'')}
+${arr(660,240,660,280,'')}
+${node(20,280,200,40,'Vê TODOS os dados\ndo sistema',C.greenL,C.greenD)}
+${node(235,280,310,40,'Inclui membros das equipas\n+ próprio ID na lista',C.blueL,C.blueD)}
+${node(560,280,200,40,'Vê apenas os\nseus próprios dados',C.amberL,C.amberD)}
+${arr(120,320,120,360,'')}
+${arr(390,320,390,360,'')}
+${arr(660,320,660,360,'')}
+${node(20,360,740,40,'Query filtrada aplicada → dados retornados ao cliente',C.greenL,C.greenD)}
+${arr(390,400,390,426,'')}
+${oval(250,426,280,30,'Fim: Resposta com scoping correcto',C.greenL,C.greenD)}
+${node(20,470,740,24,'Resumo: ADMIN/GESTOR → Tudo   ·   MANAGER/Team Lead → Equipa+Sub   ·   TRAINER/TRAINEE → Só próprios dados',C.grayL,C.grayD,null,4)}
 </svg>`;}
 },
 };

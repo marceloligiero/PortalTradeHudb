@@ -1167,12 +1167,14 @@ WHERE status IS NULL OR status = '';
 
 SELECT '=== SECÇÃO 13: Dados iniciais ===' AS progress;
 
--- 13.1 Bancos
-INSERT IGNORE INTO banks (code, name, country) VALUES
-    ('PT', 'Portugal', 'Portugal'),
-    ('ES', 'España', 'España'),
-    ('UN', 'Universal', 'Global'),
-    ('BSAN', 'BANCO SANTANDER', 'ES');
+-- 13.1 Bancos (dados mestres Santander — sincronizados com master_data_seed.sql)
+INSERT IGNORE INTO banks (id, code, name, country) VALUES
+    (1, 'BSA', 'BANCO SANTANDER, S.A.', 'ES'),
+    (2, 'BST', 'BANCO SANTANDER TOTTA', 'PT'),
+    (3, 'SUK', 'SANTANDER UK', 'UK'),
+    (4, 'SCB', 'SANTANDER CONSUMER BANK AG', 'DE');
+-- Remover bancos placeholder de versoes anteriores deste script
+DELETE FROM banks WHERE code IN ('PT','ES','UN','BSAN') AND id > 4;
 
 -- 13.2 Produtos
 INSERT IGNORE INTO products (code, name) VALUES
