@@ -63,6 +63,7 @@ export default function TutorCapsules() {
     description: '',
     level: 'BEGINNER',
     course_type: 'CAPSULA_METODOLOGIA',
+    started_by: 'TRAINEE',
   });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -92,8 +93,9 @@ export default function TutorCapsules() {
         description: form.description.trim() || null,
         level: form.level,
         course_type: form.course_type,
+        started_by: form.started_by,
       });
-      setForm({ title: '', description: '', level: 'BEGINNER', course_type: 'CAPSULA_METODOLOGIA' });
+      setForm({ title: '', description: '', level: 'BEGINNER', course_type: 'CAPSULA_METODOLOGIA', started_by: 'TRAINEE' });
       setShowCreate(false);
       load();
     } catch (err: any) {
@@ -121,7 +123,7 @@ export default function TutorCapsules() {
   const handleCloseCreate = () => {
     setShowCreate(false);
     setFormError(null);
-    setForm({ title: '', description: '', level: 'BEGINNER', course_type: 'CAPSULA_METODOLOGIA' });
+    setForm({ title: '', description: '', level: 'BEGINNER', course_type: 'CAPSULA_METODOLOGIA', started_by: 'TRAINEE' });
   };
 
   // ── Card component ─────────────────────────────────────────────────────────
@@ -327,6 +329,32 @@ export default function TutorCapsules() {
           </div>
         </div>
 
+        {/* Tipo de Início */}
+        <div className="flex flex-col gap-1.5">
+          <label className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+            {t('tutorCapsules.fieldStartedBy', 'Tipo de Início')}
+          </label>
+          <div className="flex gap-3">
+            {[
+              { value: 'TRAINEE', label: t('tutorCapsules.startedByTrainee', 'Vídeo (iniciado pelo utilizador)') },
+              { value: 'TRAINER', label: t('tutorCapsules.startedByTrainer', 'Cápsula (iniciada pelo Tutor)') },
+            ].map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setForm(f => ({ ...f, started_by: opt.value }))}
+                className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium border transition-all ${
+                  form.started_by === opt.value
+                    ? 'border-[#EC0000] bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/50'
+                    : 'border-gray-200 text-gray-600 dark:border-white/10 dark:text-gray-400'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 pt-1">
           <button
@@ -362,7 +390,7 @@ export default function TutorCapsules() {
 
   // ── Main render ────────────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6">
+    <div className="space-y-6">
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

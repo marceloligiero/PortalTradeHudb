@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, distinct
+from sqlalchemy import func, distinct, or_
 from typing import List, Dict, Any
 from app.database import get_db
 from app import models, schemas, auth
+from app.auth import is_trainer_user
 from app.pagination import paginate, PaginatedResponse
 from app.routers.challenges import reopen_completed_training_plans
 from datetime import datetime, timedelta
@@ -438,7 +439,7 @@ async def list_courses(
     current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
     db: Session = Depends(get_db)
 ):
-    if current_user.role == "TRAINER":
+    if is_trainer_user(current_user):
         query = db.query(models.Course).filter(
             models.Course.created_by == current_user.id
         )
@@ -494,7 +495,7 @@ async def get_course(
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     
-    if current_user.role == "TRAINER" and course.created_by != current_user.id:
+    if is_trainer_user(current_user) and course.created_by != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to access this course")
     
     return course
@@ -510,7 +511,7 @@ async def update_course(
     if not db_course:
         raise HTTPException(status_code=404, detail="Course not found")
     
-    if current_user.role == "TRAINER" and db_course.created_by != current_user.id:
+    if is_trainer_user(current_user) and db_course.created_by != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to update this course")
     
     for key, value in course_update.dict().items():
@@ -531,7 +532,7 @@ async def delete_course(
     if not db_course:
         raise HTTPException(status_code=404, detail="Course not found")
     
-    if current_user.role == "TRAINER" and db_course.created_by != current_user.id:
+    if is_trainer_user(current_user) and db_course.created_by != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to delete this course")
     
     db.delete(db_course)
@@ -551,7 +552,7 @@ async def create_lesson(
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
     
-    if current_user.role == "TRAINER" and course.created_by != current_user.id:
+    if is_trainer_user(current_user) and course.created_by != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to create lessons for this course")
     
     db_lesson = models.Lesson(**lesson.dict())
@@ -576,8 +577,8 @@ async def list_training_plans(
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """List all training plans for trainer"""
-    
-    if current_user.role == "TRAINER":
+
+    if is_trainer_user(current_user):
         plans = db.query(models.TrainingPlan).filter(
             models.TrainingPlan.created_by == current_user.id
         ).all()
@@ -680,10 +681,10 @@ async def create_training_plan(
     # Verify trainer exists and is active
     trainer = db.query(models.User).filter(
         models.User.id == trainer_id,
-        models.User.role == "TRAINER",
+        or_(models.User.role == "TRAINER", models.User.is_trainer == True),
         models.User.is_active == True
     ).first()
-    
+
     if not trainer:
         raise HTTPException(status_code=404, detail="Trainer not found or inactive")
 
@@ -745,8 +746,8 @@ async def list_trainer_students(
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """List all students assigned to trainer's training plans"""
-    
-    if current_user.role == "TRAINER":
+
+    if is_trainer_user(current_user):
         # Get plans where trainer is responsible (created_by, trainer_id, or assigned via TrainingPlanTrainer)
         created_plan_ids = {p.id for p in db.query(models.TrainingPlan.id).filter(
             models.TrainingPlan.created_by == current_user.id
@@ -907,7 +908,7 @@ async def get_trainer_overview(
     """Get trainer overview statistics"""
     
     # Total courses (created + from assigned plans)
-    if current_user.role == "TRAINER":
+    if is_trainer_user(current_user):
         created_course_ids = [c.id for c in db.query(models.Course.id).filter(
             models.Course.created_by == current_user.id
         ).all()]
@@ -936,7 +937,7 @@ async def get_trainer_overview(
     ).distinct().count() if course_ids else 0
     
     # Total training plans (created or assigned)
-    if current_user.role == "TRAINER":
+    if is_trainer_user(current_user):
         created_count = db.query(models.TrainingPlan).filter(
             models.TrainingPlan.created_by == current_user.id
         ).count()
@@ -973,8 +974,8 @@ async def get_trainer_plans_report(
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """Get detailed report of training plans"""
-    
-    if current_user.role == "TRAINER":
+
+    if is_trainer_user(current_user):
         # Plans created by trainer OR where trainer is assigned
         created_plans = db.query(models.TrainingPlan).filter(
             models.TrainingPlan.created_by == current_user.id
@@ -1047,7 +1048,7 @@ async def get_trainer_students_report(
     """Get detailed report of students"""
     
     # Get training plans for this trainer
-    if current_user.role == "TRAINER":
+    if is_trainer_user(current_user):
         # Plans created by or assigned to trainer
         plan_ids_created = [p.id for p in db.query(models.TrainingPlan.id).filter(
             models.TrainingPlan.created_by == current_user.id
@@ -1129,7 +1130,7 @@ async def get_trainer_lessons_report(
     """Get report of lessons from trainer's plans"""
     
     # Get courses from trainer's plans (not just created_by)
-    if current_user.role == "TRAINER":
+    if is_trainer_user(current_user):
         plan_ids_created = [p.id for p in db.query(models.TrainingPlan.id).filter(
             models.TrainingPlan.created_by == current_user.id
         ).all()]
@@ -1180,7 +1181,7 @@ async def get_trainer_challenges_report(
     """Relatório completo de desafios com análise de erros das operações"""
     
     # Get plans for this trainer
-    if current_user.role == "TRAINER":
+    if is_trainer_user(current_user):
         plan_ids_created = [p.id for p in db.query(models.TrainingPlan.id).filter(
             models.TrainingPlan.created_by == current_user.id
         ).all()]

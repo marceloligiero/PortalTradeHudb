@@ -6,7 +6,9 @@ import path from 'path';
 export default defineConfig(({ mode }) => {
   // Load env so VITE_API_BASE_URL is available here
   const env = loadEnv(mode, process.cwd(), '');
-  const apiBase = env.VITE_API_BASE_URL || 'http://localhost:8000';
+  // BACKEND_PROXY_URL (Docker, no VITE_ prefix → not embedded in browser bundle)
+  // takes priority over file-based VITE_API_BASE_URL
+  const apiBase = process.env.BACKEND_PROXY_URL || env.VITE_API_BASE_URL || 'http://localhost:8000';
 
   // Support adding the machine's public IP at runtime via the
   // DEV_PUBLIC_IP environment variable (start script will set this).
@@ -78,8 +80,14 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       host: '0.0.0.0',
+      watch: {
+        // Required for Docker on Windows — inotify events don't propagate
+        usePolling: true,
+        interval: 1000,
+      },
       // Allow requests addressed to the machine public IP and trycloudflare
-      allowedHosts,
+      // DEV_PUBLIC_IP=all allows any hostname (e.g. portaltradedatahub via hosts file)
+      allowedHosts: publicIp === 'all' ? true : allowedHosts,
       port: 5173,
       strictPort: true,
       // Proxy `/api` to backend during dev to avoid CORS and allow opening

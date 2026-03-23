@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 
 from app.database import get_db
-from app.auth import get_current_user
+from app.auth import get_current_user, get_visible_user_ids
 from app.models import (
     User, Senso, InternalError, InternalErrorActionPlan,
     InternalErrorActionItem, LearningSheet, InternalErrorClassification,
@@ -281,9 +281,24 @@ def list_internal_errors(
     if status:
         q = q.filter(InternalError.status == status)
 
-    # Non-admin/tutor users can only see their own errors (as gravador)
-    if not _is_tutor_or_admin(current_user) and not _is_liberador(current_user):
+    # ── Data scoping ──────────────────────────────────────────────────────────
+    if current_user.role in ("ADMIN", "GESTOR") or _is_tutor_or_admin(current_user):
+        pass  # vê tudo
+    elif current_user.role == "MANAGER" or getattr(current_user, "is_team_lead", False):
+        # Chefe de equipa → erros dos gravadores da sua equipa
+        visible_ids = get_visible_user_ids(db, current_user)
+        if visible_ids:
+            q = q.filter(InternalError.gravador_id.in_(visible_ids))
+    elif _is_liberador(current_user):
+        # Liberador → erros que registou ou que lhe estão atribuídos
+        q = q.filter(
+            (InternalError.liberador_id == current_user.id) |
+            (InternalError.gravador_id == current_user.id)
+        )
+    else:
+        # Utilizador simples → só os seus erros como gravador
         q = q.filter(InternalError.gravador_id == current_user.id)
+    # ─────────────────────────────────────────────────────────────────────────
 
     errors = q.order_by(InternalError.created_at.desc()).all()
     return [_internal_error_out(e) for e in errors]

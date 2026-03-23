@@ -1,6 +1,6 @@
 import {
   Building2, Package, Users, FolderTree, MessageCircle,
-  Zap, Globe, Eye, Building, Activity, AlertTriangle, UserCog,
+  Zap, Globe, Eye, Building, Activity, AlertTriangle, UserCog, Network, UserCheck,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
@@ -11,22 +11,31 @@ function MasterDataSidebar() {
   const { t } = useTranslation();
   return (
     <>
+      {/* ── Dados Institucionais ─────────────────────────────── */}
+      <SidebarSection label={t('masterData.institutionalData', 'Institucional')} />
       <SidebarLink to="/master-data" icon={Building2} label={t('masterData.banks')} end />
       <SidebarLink to="/master-data/products" icon={Package} label={t('masterData.products')} />
       <SidebarLink to="/master-data/teams" icon={Users} label={t('masterData.teams')} />
-      <SidebarLink to="/master-data/categories" icon={FolderTree} label={t('masterData.categories')} />
 
-      <SidebarSection label={t('masterData.errorMasterData')} />
+      {/* ── Classificação de Erros ───────────────────────────── */}
+      <SidebarSection label={t('masterData.errorClassification', 'Classificação de Erros')} />
+      <SidebarLink to="/master-data/categories" icon={FolderTree} label={t('masterData.categories')} />
       <SidebarLink to="/master-data/impacts" icon={Zap} label={t('masterData.impacts')} />
       <SidebarLink to="/master-data/origins" icon={Globe} label={t('masterData.origins')} />
       <SidebarLink to="/master-data/detected-by" icon={Eye} label={t('masterData.detectedBy')} />
+      <SidebarLink to="/master-data/error-types" icon={AlertTriangle} label={t('masterData.errorTypes')} />
+
+      {/* ── Estrutura Operacional ────────────────────────────── */}
+      <SidebarSection label={t('masterData.operationalStructure', 'Estrutura Operacional')} />
       <SidebarLink to="/master-data/departments" icon={Building} label={t('masterData.departments')} />
       <SidebarLink to="/master-data/activities" icon={Activity} label={t('masterData.events')} />
-      <SidebarLink to="/master-data/error-types" icon={AlertTriangle} label={t('masterData.errorTypes')} />
       <SidebarLink to="/master-data/faqs" icon={MessageCircle} label={t('masterData.faqs')} />
 
+      {/* ── Gestão de Pessoas ────────────────────────────────── */}
       <SidebarSection label={t('masterData.management')} />
       <SidebarLink to="/master-data/users" icon={UserCog} label={t('masterData.users')} />
+      <SidebarLink to="/master-data/trainer-validation" icon={UserCheck} label={t('masterData.trainerValidation')} />
+      <SidebarLink to="/master-data/org-hierarchy" icon={Network} label={t('masterData.orgHierarchy')} />
     </>
   );
 }

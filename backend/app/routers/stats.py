@@ -3,7 +3,7 @@ Rotas para Dashboard e Estatísticas
 """
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from app.database import get_db
 from app.models import User, TrainingPlan, TrainingPlanAssignment, Course, Challenge, ChallengeSubmission
 
@@ -18,7 +18,7 @@ async def get_kpis(
     
     # Total de usuários por role
     total_students = db.query(func.count(User.id)).filter(User.role == 'TRAINEE').scalar() or 0
-    total_trainers = db.query(func.count(User.id)).filter(User.role == 'TRAINER').scalar() or 0
+    total_trainers = db.query(func.count(User.id)).filter(or_(User.role == 'TRAINER', User.is_trainer == True)).scalar() or 0
     total_admins = db.query(func.count(User.id)).filter(User.role == 'ADMIN').scalar() or 0
     
     # Total de conteúdo

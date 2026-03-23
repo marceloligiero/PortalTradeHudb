@@ -11,7 +11,7 @@ import uuid
 
 from .. import models, schemas
 from ..database import get_db
-from ..auth import get_current_user, require_role
+from ..auth import get_current_user, require_role, is_trainer_user
 
 router = APIRouter(prefix="/api/finalization", tags=["finalization"])
 
@@ -214,7 +214,7 @@ async def finalize_course(
         raise HTTPException(status_code=404, detail="Plano não encontrado")
     
     # Verificar se é o formador do plano (se não for ADMIN)
-    if current_user.role == "TRAINER" and plan.trainer_id != current_user.id:
+    if is_trainer_user(current_user) and plan.trainer_id != current_user.id:
         raise HTTPException(status_code=403, detail="Apenas o formador responsável pode finalizar")
     
     target_user_id = user_id if user_id else plan.student_id
@@ -346,7 +346,7 @@ async def finalize_plan(
         raise HTTPException(status_code=404, detail="Plano não encontrado")
     
     # Verificar permissões
-    if current_user.role == "TRAINER" and plan.trainer_id != current_user.id:
+    if is_trainer_user(current_user) and plan.trainer_id != current_user.id:
         raise HTTPException(status_code=403, detail="Apenas o formador responsável pode finalizar")
     
     target_user_id = user_id if user_id else plan.student_id

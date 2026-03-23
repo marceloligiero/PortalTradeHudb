@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
@@ -298,7 +298,7 @@ async def get_ratings_summary(
                     summaries.append(summary)
                     
         elif rtype == "TRAINER":
-            trainers = db.query(models.User).filter(models.User.role == "TRAINER").all()
+            trainers = db.query(models.User).filter(or_(models.User.role == "TRAINER", models.User.is_trainer == True)).all()
             for trainer in trainers:
                 summary = _build_summary(db, rtype, trainer.id, trainer.full_name)
                 if summary.total_ratings > 0:

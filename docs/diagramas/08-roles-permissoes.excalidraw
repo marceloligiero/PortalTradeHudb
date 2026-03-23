@@ -1,0 +1,46 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "id": "rp_t", "type": "text", "x": 250, "y": 20, "width": 600, "height": 36,
+      "angle": 0, "strokeColor": "#1e1e1e", "backgroundColor": "transparent", "fillStyle": "solid",
+      "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "groupIds": [], "frameId": null, "index": "a0", "roundness": null,
+      "seed": 8001, "version": 1, "versionNonce": 2001, "isDeleted": false,
+      "boundElements": null, "updated": 1706659200000, "link": null, "locked": false,
+      "text": "Roles e Permissões — Portal TradeHub", "fontSize": 24, "fontFamily": 5,
+      "textAlign": "center", "verticalAlign": "top"
+    },
+    {
+      "id": "rp_center", "type": "ellipse", "x": 450, "y": 330, "width": 200, "height": 100,
+      "angle": 0, "strokeColor": "#c92a2a", "backgroundColor": "#ffc9c9", "fillStyle": "solid",
+      "strokeWidth": 3, "strokeStyle": "solid", "roughness": 1, "opacity": 100,
+      "groupIds": [], "frameId": null, "index": "a1", "roundness": {"type": 2},
+      "seed": 8002, "version": 1, "versionNonce": 2002, "isDeleted": false,
+      "boundElements": null, "updated": 1706659200000, "link": null, "locked": false,
+      "text": "Portal\nTradeHub", "fontSize": 18, "fontFamily": 5, "textAlign": "center", "verticalAlign": "middle"
+    },
+    { "id": "rp_admin", "type": "rectangle", "x": 550, "y": 80, "width": 200, "height": 80, "angle": 0, "strokeColor": "#c92a2a", "backgroundColor": "#ffc9c9", "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "groupIds": [], "frameId": null, "index": "a2", "roundness": {"type": 3}, "seed": 8003, "version": 1, "versionNonce": 2003, "isDeleted": false, "boundElements": null, "updated": 1706659200000, "link": null, "locked": false, "text": "ADMIN / GESTOR\n(acesso total)", "fontSize": 15, "fontFamily": 5, "textAlign": "center", "verticalAlign": "middle" },
+    { "id": "rp_trainer", "type": "rectangle", "x": 820, "y": 220, "width": 200, "height": 80, "angle": 0, "strokeColor": "#e67700", "backgroundColor": "#ffd43b", "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "groupIds": [], "frameId": null, "index": "a3", "roundness": {"type": 3}, "seed": 8004, "version": 1, "versionNonce": 2004, "isDeleted": false, "boundElements": null, "updated": 1706659200000, "link": null, "locked": false, "text": "TRAINER\n(formador)", "fontSize": 15, "fontFamily": 5, "textAlign": "center", "verticalAlign": "middle" },
+    { "id": "rp_trainee", "type": "rectangle", "x": 820, "y": 460, "width": 200, "height": 80, "angle": 0, "strokeColor": "#1971c2", "backgroundColor": "#a5d8ff", "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "groupIds": [], "frameId": null, "index": "a4", "roundness": {"type": 3}, "seed": 8005, "version": 1, "versionNonce": 2005, "isDeleted": false, "boundElements": null, "updated": 1706659200000, "link": null, "locked": false, "text": "TRAINEE / STUDENT\n(estudante)", "fontSize": 15, "fontFamily": 5, "textAlign": "center", "verticalAlign": "middle" },
+    { "id": "rp_manager", "type": "rectangle", "x": 550, "y": 620, "width": 200, "height": 80, "angle": 0, "strokeColor": "#2f9e44", "backgroundColor": "#b2f2bb", "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "groupIds": [], "frameId": null, "index": "a5", "roundness": {"type": 3}, "seed": 8006, "version": 1, "versionNonce": 2006, "isDeleted": false, "boundElements": null, "updated": 1706659200000, "link": null, "locked": false, "text": "MANAGER\n(chefe de equipa)", "fontSize": 15, "fontFamily": 5, "textAlign": "center", "verticalAlign": "middle" },
+    { "id": "rp_la1", "type": "arrow", "x": 650, "y": 160, "width": -100, "height": 170, "angle": 0, "strokeColor": "#868e96", "backgroundColor": "transparent", "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "groupIds": [], "frameId": null, "index": "a6", "roundness": {"type": 2}, "seed": 8008, "version": 1, "versionNonce": 2008, "isDeleted": false, "boundElements": null, "updated": 1706659200000, "link": null, "locked": false, "points": [[0,0],[0,170]], "startBinding": null, "endBinding": null, "startArrowhead": null, "endArrowhead": "arrow" },
+    { "id": "rp_la2", "type": "arrow", "x": 820, "y": 260, "width": -170, "height": 120, "angle": 0, "strokeColor": "#868e96", "backgroundColor": "transparent", "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "groupIds": [], "frameId": null, "index": "a7", "roundness": {"type": 2}, "seed": 8009, "version": 1, "versionNonce": 2009, "isDeleted": false, "boundElements": null, "updated": 1706659200000, "link": null, "locked": false, "points": [[0,0],[-170,120]], "startBinding": null, "endBinding": null, "startArrowhead": null, "endArrowhead": "arrow" },
+    { "id": "rp_la3", "type": "arrow", "x": 820, "y": 500, "width": -170, "height": -120, "angle": 0, "strokeColor": "#868e96", "backgroundColor": "transparent", "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "groupIds": [], "frameId": null, "index": "a8", "roundness": {"type": 2}, "seed": 8010, "version": 1, "versionNonce": 2010, "isDeleted": false, "boundElements": null, "updated": 1706659200000, "link": null, "locked": false, "points": [[0,0],[-170,-120]], "startBinding": null, "endBinding": null, "startArrowhead": null, "endArrowhead": "arrow" },
+    { "id": "rp_la4", "type": "arrow", "x": 650, "y": 620, "width": -100, "height": -190, "angle": 0, "strokeColor": "#868e96", "backgroundColor": "transparent", "fillStyle": "solid", "strokeWidth": 1, "strokeStyle": "solid", "roughness": 1, "opacity": 100, "groupIds": [], "frameId": null, "index": "a9", "roundness": {"type": 2}, "seed": 8011, "version": 1, "versionNonce": 2011, "isDeleted": false, "boundElements": null, "updated": 1706659200000, "link": null, "locked": false, "points": [[0,0],[0,-190]], "startBinding": null, "endBinding": null, "startArrowhead": null, "endArrowhead": "arrow" },
+    {
+      "id": "rp_tbl", "type": "rectangle", "x": 60, "y": 740, "width": 1060, "height": 260,
+      "angle": 0, "strokeColor": "#868e96", "backgroundColor": "#f8f9fa", "fillStyle": "solid",
+      "strokeWidth": 1, "strokeStyle": "dashed", "roughness": 1, "opacity": 100,
+      "groupIds": [], "frameId": null, "index": "ac", "roundness": {"type": 3},
+      "seed": 8013, "version": 1, "versionNonce": 2013, "isDeleted": false,
+      "boundElements": null, "updated": 1706659200000, "link": null, "locked": false,
+      "text": "MATRIX DE PERMISSÕES\n\nRole              | Formações | Tutoria | Relatórios | Dados Mestres | Chamados | Admin\nADMIN / GESTOR    |   ✅ R/W  |  ✅ R/W |   ✅ R/W   |    ✅ R/W     |  ✅ R/W  |  ✅ Sim\nTRAINER           |   ✅ R/W  |  ✅ R/W |   ✅ R     |    ❌         |  ✅ R/W  |  ❌ Não\nMANAGER           |   ✅ R    |  ✅ R   |   ✅ R     |    ❌         |  ✅ R/W  |  ❌ Não\nTRAINEE/STUDENT   |   ✅ R    |  ❌     |   ❌       |    ❌         |  ✅ R/W  |  ❌ Não\n\nFLAGS GRANULARES (overrides de role):\nis_trainer → Privilégios TRAINER (requer aprovação admin) | is_pending=True → força TRAINEE\nis_tutor → Criar planos de acção em tutoria | is_liberador → Aprovar operações tutoria/erros internos\nis_team_lead → Gerir membros de equipa | is_referente → Representante do team lead",
+      "fontSize": 13, "fontFamily": 5, "textAlign": "left", "verticalAlign": "middle"
+    }
+  ],
+  "appState": { "viewBackgroundColor": "#ffffff", "gridSize": 20 },
+  "files": {}
+}

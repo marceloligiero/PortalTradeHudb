@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc, text
+from sqlalchemy import func, desc, text, or_
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 from pydantic import BaseModel
@@ -106,11 +106,11 @@ async def get_dashboard_summary(
         # Basic counts
         total_students = db.query(models.User).filter(models.User.role == "TRAINEE").count()
         total_trainers = db.query(models.User).filter(
-            models.User.role == "TRAINER", 
+            or_(models.User.role == "TRAINER", models.User.is_trainer == True),
             models.User.is_pending == False
         ).count()
         pending_trainers = db.query(models.User).filter(
-            models.User.role == "TRAINER",
+            or_(models.User.role == "TRAINER", models.User.is_trainer == True),
             models.User.is_pending == True
         ).count()
         

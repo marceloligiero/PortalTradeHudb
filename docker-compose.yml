@@ -1,95 +1,36 @@
-# ══════════════════════════════════════════════════════
-# Portal TradeHub — Docker Compose
-# ══════════════════════════════════════════════════════
-# Deploy: Windows Server (isolado de outras aplicações)
+# ══════════════════════════════════════════════════════════════
+# Portal TradeHub — Docker Compose (ficheiro único)
 #
-# ISOLAMENTO GARANTIDO:
-#   - Rede Docker própria (tradehub-network), isolada da rede default
-#   - Container names prefixados (tradehub-*), sem colisão com outras apps
-#   - Volumes nomeados prefixados (tradehub_*), sem colisão
-#   - Portas altas por defeito (8100, 8080, 3307)
-#   - Memory + CPU limits em todos os containers
-#   - Sem host networking, sem privileged mode
+# DEV (padrão — hot reload):
+#   docker compose up
+#   (COMPOSE_PROFILES=dev já está no .env raiz)
 #
-# Arranque:  docker compose up -d
-# Paragem:   docker compose down
-# Estado:    docker compose ps
-# ══════════════════════════════════════════════════════
+# PROD (imagem final — nginx + uvicorn):
+#   docker compose --profile prod up -d --build
+#   (requer backend/.env.prod com MYSQL_ROOT_PASSWORD, MYSQL_PASSWORD, SECRET_KEY)
+#
+# Portas DEV:   Frontend :80/:5173 | Backend :8100 | DB 127.0.0.1:3307
+# Portas PROD:  Frontend :80       | Backend :8100 | DB interno
+# ══════════════════════════════════════════════════════════════
 
 services:
 
-  # ──────────────────────────────────────────────────────
-  # Backend — FastAPI (Python 3.13)
-  # ──────────────────────────────────────────────────────
-  tradehub-backend:
-    container_name: tradehub-backend
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-      target: production
-    ports:
-      - "${BACKEND_PORT:-8100}:8000"
-    env_file: ./backend/.env
-    depends_on:
-      tradehub-db:
-        condition: service_healthy
-    networks:
-      - tradehub-network
-    restart: unless-stopped
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-          cpus: '1.0'
-
-  # ──────────────────────────────────────────────────────
-  # Frontend — React servido por nginx
-  # nginx.conf: SPA routing + proxy /api → tradehub-backend:8000
-  # ──────────────────────────────────────────────────────
-  tradehub-frontend:
-    container_name: tradehub-frontend
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: production
-    ports:
-      - "80:80"
-    depends_on:
-      - tradehub-backend
-    networks:
-      - tradehub-network
-    restart: unless-stopped
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: '0.5'
-
-  # ──────────────────────────────────────────────────────
-  # Base de dados — MySQL 8.0
-  # ──────────────────────────────────────────────────────
+  # ──────────────────────────────────────────────────────────
+  # Base de dados — MySQL 8.0  (sempre activa, DEV e PROD)
+  # ──────────────────────────────────────────────────────────
   tradehub-db:
     container_name: tradehub-db
     image: mysql:8.0.39
     volumes:
       - tradehub_mysql_data:/var/lib/mysql
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-tradehub_db}
-      MYSQL_USER: ${MYSQL_USER:-tradehub_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-dev_root_pass}
+      MYSQL_DATABASE:      ${MYSQL_DATABASE:-tradehub_db}
+      MYSQL_USER:          ${MYSQL_USER:-tradehub_user}
+      MYSQL_PASSWORD:      ${MYSQL_PASSWORD:-dev_pass}
     ports:
-      - "127.0.0.1:${DB_PORT:-3307}:3306"
+      # DEV: expõe porta para acesso directo; em PROD comentar esta secção
+      - "127.0.0.1:3307:3306"
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD 2>/dev/null"]
       interval: 10s
@@ -99,23 +40,121 @@ services:
     networks:
       - tradehub-network
     restart: unless-stopped
-    logging:
-      driver: json-file
-      options:
-        max-size: "50m"
-        max-file: "5"
     deploy:
       resources:
         limits:
           memory: 512M
-          cpus: '1.0'
 
-# ── Volumes nomeados (prefixo tradehub_) ────────────────
+  # ──────────────────────────────────────────────────────────
+  # Backend — FastAPI  [DEV: hot reload]
+  # ──────────────────────────────────────────────────────────
+  tradehub-backend:
+    container_name: tradehub-backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: deps                          # só packages; código vem do volume
+    volumes:
+      - ./backend:/app/backend              # hot reload Python
+      - ./database/migrations:/app/database/migrations:ro
+    working_dir: /app/backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8100:8000"
+    env_file: ./backend/.env
+    environment:
+      DEBUG: "true"
+      DATABASE_URL: >-
+        mysql+pymysql://${MYSQL_USER:-tradehub_user}:${MYSQL_PASSWORD:-dev_pass}@tradehub-db:3306/${MYSQL_DATABASE:-tradehub_db}
+    depends_on:
+      tradehub-db:
+        condition: service_healthy
+    networks:
+      - tradehub-network
+    restart: unless-stopped
+    profiles: ["dev"]
+
+  # ──────────────────────────────────────────────────────────
+  # Frontend — React/Vite  [DEV: hot reload]
+  # ──────────────────────────────────────────────────────────
+  tradehub-frontend:
+    container_name: tradehub-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: builder                       # stage Node.js com node_modules
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.ts:/app/vite.config.ts:ro
+    entrypoint: []
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+    ports:
+      - "80:5173"
+      - "5173:5173"
+    environment:
+      BACKEND_PROXY_URL: http://tradehub-backend:8000
+      DEV_PUBLIC_IP: all
+    depends_on:
+      - tradehub-backend
+    networks:
+      - tradehub-network
+    restart: unless-stopped
+    profiles: ["dev"]
+
+  # ──────────────────────────────────────────────────────────
+  # Backend — FastAPI  [PROD: imagem final]
+  # ──────────────────────────────────────────────────────────
+  tradehub-backend-prod:
+    container_name: tradehub-backend-prod
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      target: production                    # imagem final sem dev tools
+    ports:
+      - "8100:8000"
+    env_file: ./backend/.env.prod
+    environment:
+      DEBUG: "false"
+    depends_on:
+      tradehub-db:
+        condition: service_healthy
+    networks:
+      tradehub-network:
+        aliases:
+          - tradehub-backend                # nginx.conf resolve sempre "tradehub-backend"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    profiles: ["prod"]
+
+  # ──────────────────────────────────────────────────────────
+  # Frontend — nginx  [PROD: SPA buildada]
+  # ──────────────────────────────────────────────────────────
+  tradehub-frontend-prod:
+    container_name: tradehub-frontend-prod
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production                    # nginx servindo o dist/ buildado
+    ports:
+      - "80:80"
+    depends_on:
+      - tradehub-backend-prod
+    networks:
+      - tradehub-network
+    restart: unless-stopped
+    profiles: ["prod"]
+
+# ── Volumes ──────────────────────────────────────────────────
 volumes:
   tradehub_mysql_data:
     name: tradehub_mysql_data
 
-# ── Rede isolada (não usa a rede default do Docker) ─────
+# ── Rede isolada ─────────────────────────────────────────────
 networks:
   tradehub-network:
     name: tradehub-network

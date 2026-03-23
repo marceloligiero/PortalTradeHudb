@@ -4,11 +4,11 @@ ADMIN=todos | MANAGER=equipa | TRAINER=tutorados | STUDENT/TRAINEE=próprios
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, case
+from sqlalchemy import func, case, text
 from typing import Optional, List
 from datetime import date
 from app.database import get_db
-from app.auth import get_current_user
+from app.auth import get_current_user, is_trainer_user
 from app.models import (
     User, Team,
     TutoriaError, TutoriaActionPlan,
@@ -42,7 +42,7 @@ def _team_user_ids(user: User, db: Session) -> Optional[list]:
         ids = [m.id for m in db.query(User).filter(User.team_id == team.id).all()]
         ids.append(team.manager_id or user.id)
         return ids
-    if user.role == "TRAINER":
+    if is_trainer_user(user):
         # trainer's students (via tutor_id)
         students = db.query(User).filter(User.tutor_id == user.id).all()
         return [s.id for s in students] + [user.id]
@@ -466,4 +466,193 @@ def incidents_filters(
         "detected_by": [{"id": d.id, "name": d.name} for d in db.query(ErrorDetectedBy).filter(ErrorDetectedBy.is_active == True).all()],
         "categories": [{"id": c.id, "name": c.name} for c in db.query(ErrorCategory).all()],
         "products": [{"id": p.id, "name": p.name} for p in db.query(Product).filter(Product.is_active == True).all()],
+    }
+
+
+# ── Tutoria Analytics ─────────────────────────────────────────────────────────
+
+@router.get("/relatorios/tutoria/analytics")
+def tutoria_analytics(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Deep analytics for the Tutoria dashboard — 10 dimensions."""
+    scope = _team_user_ids(current_user, db)
+    if scope is not None and len(scope) == 0:
+        return {
+            "financial": {"total_amount": 0, "with_amount": 0, "total": 0, "max_amount": 0, "by_severity": []},
+            "pending_solution": 0,
+            "escalated": 0,
+            "by_origin": [],
+            "by_impact": [],
+            "resolution_time_by_severity": [],
+            "monthly": [],
+            "action_items": {"total": 0, "completed": 0, "overdue": 0},
+            "avg_weights": {"liberador": 0, "gravador": 0, "tutor": 0},
+            "recurrence": {"recurrent": 0, "non_recurrent": 0, "by_type": []},
+        }
+
+    scope_filter = (
+        f"AND te.tutorado_id IN ({','.join(str(i) for i in scope)})"
+        if scope is not None else ""
+    )
+
+    # 1 — Financial impact
+    fin_rows = db.execute(text(f"""
+        SELECT
+            te.severity,
+            COUNT(*) AS cnt,
+            COALESCE(SUM(te.amount), 0) AS total_amount,
+            COUNT(te.amount) AS with_amount,
+            COALESCE(MAX(te.amount), 0) AS max_amount
+        FROM tutoria_errors te
+        WHERE te.is_active = 1 {scope_filter}
+        GROUP BY te.severity
+    """)).fetchall()
+    total_amount = sum(r.total_amount for r in fin_rows)
+    total_with_amount = sum(r.with_amount for r in fin_rows)
+    total_count = sum(r.cnt for r in fin_rows)
+    max_amount = max((r.max_amount for r in fin_rows), default=0)
+    financial = {
+        "total_amount": float(total_amount),
+        "with_amount": int(total_with_amount),
+        "total": int(total_count),
+        "max_amount": float(max_amount),
+        "by_severity": [
+            {"severity": r.severity, "count": r.cnt, "amount": float(r.total_amount)}
+            for r in fin_rows
+        ],
+    }
+
+    # 2 — Pending solution
+    pending_solution = db.execute(text(f"""
+        SELECT COUNT(*) FROM tutoria_errors te
+        WHERE te.is_active = 1 AND te.pending_solution = 1 {scope_filter}
+    """)).scalar() or 0
+
+    # 3 — Escalated
+    escalated = db.execute(text(f"""
+        SELECT COUNT(*) FROM tutoria_errors te
+        WHERE te.is_active = 1
+          AND te.escalado IS NOT NULL AND te.escalado != '' {scope_filter}
+    """)).scalar() or 0
+
+    # 4 — By origin
+    origin_rows = db.execute(text(f"""
+        SELECT eo.name, COUNT(*) AS cnt
+        FROM tutoria_errors te
+        LEFT JOIN error_origins eo ON eo.id = te.origin_id
+        WHERE te.is_active = 1 {scope_filter}
+        GROUP BY eo.name
+        ORDER BY cnt DESC
+    """)).fetchall()
+    by_origin = [{"name": r.name or "N/A", "count": r.cnt} for r in origin_rows]
+
+    # 5 — By impact
+    impact_rows = db.execute(text(f"""
+        SELECT ei.name, COUNT(*) AS cnt
+        FROM tutoria_errors te
+        LEFT JOIN error_impacts ei ON ei.id = te.impact_id
+        WHERE te.is_active = 1 {scope_filter}
+        GROUP BY ei.name
+        ORDER BY cnt DESC
+    """)).fetchall()
+    by_impact = [{"name": r.name or "N/A", "count": r.cnt} for r in impact_rows]
+
+    # 6 — Resolution time by severity
+    res_rows = db.execute(text(f"""
+        SELECT te.severity,
+               AVG(DATEDIFF(te.date_solution, te.date_occurrence)) AS avg_days,
+               MIN(DATEDIFF(te.date_solution, te.date_occurrence)) AS min_days,
+               MAX(DATEDIFF(te.date_solution, te.date_occurrence)) AS max_days
+        FROM tutoria_errors te
+        WHERE te.is_active = 1
+          AND te.date_solution IS NOT NULL
+          AND te.date_occurrence IS NOT NULL {scope_filter}
+        GROUP BY te.severity
+    """)).fetchall()
+    resolution_time_by_severity = [
+        {
+            "severity": r.severity,
+            "avg_days": round(float(r.avg_days), 1) if r.avg_days else 0,
+            "min_days": int(r.min_days) if r.min_days else 0,
+            "max_days": int(r.max_days) if r.max_days else 0,
+        }
+        for r in res_rows
+    ]
+
+    # 7 — Monthly distribution (last 12 months)
+    monthly_rows = db.execute(text(f"""
+        SELECT YEAR(te.date_occurrence) AS yr, MONTH(te.date_occurrence) AS mo, COUNT(*) AS cnt,
+               SUM(CASE WHEN te.status IN ('RESOLVED','CLOSED') THEN 1 ELSE 0 END) AS resolved,
+               COALESCE(SUM(te.amount), 0) AS amount
+        FROM tutoria_errors te
+        WHERE te.is_active = 1
+          AND te.date_occurrence >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH) {scope_filter}
+        GROUP BY yr, mo
+        ORDER BY yr, mo
+    """)).fetchall()
+    monthly = [
+        {"year": r.yr, "month": r.mo, "count": r.cnt, "resolved": r.resolved, "amount": float(r.amount)}
+        for r in monthly_rows
+    ]
+
+    # 8 — Action items summary
+    ai_rows = db.execute(text(f"""
+        SELECT
+            COUNT(*) AS total,
+            SUM(CASE WHEN tai.status = 'CONCLUIDO' THEN 1 ELSE 0 END) AS completed,
+            SUM(CASE WHEN tai.due_date < CURDATE() AND tai.status != 'CONCLUIDO' THEN 1 ELSE 0 END) AS overdue
+        FROM tutoria_action_items tai
+        JOIN tutoria_action_plans tap ON tap.id = tai.plan_id
+        JOIN tutoria_errors te ON te.id = tap.error_id
+        WHERE te.is_active = 1 {scope_filter}
+    """)).fetchone()
+    action_items = {
+        "total": int(ai_rows.total or 0),
+        "completed": int(ai_rows.completed or 0),
+        "overdue": int(ai_rows.overdue or 0),
+    }
+
+    # 9 — Average weights
+    wt_row = db.execute(text(f"""
+        SELECT
+            AVG(te.peso_liberador) AS wl,
+            AVG(te.peso_gravador) AS wg,
+            AVG(te.peso_tutor) AS wt
+        FROM tutoria_errors te
+        WHERE te.is_active = 1 {scope_filter}
+    """)).fetchone()
+    avg_weights = {
+        "liberador": round(float(wt_row.wl), 2) if wt_row.wl else 0,
+        "gravador": round(float(wt_row.wg), 2) if wt_row.wg else 0,
+        "tutor": round(float(wt_row.wt), 2) if wt_row.wt else 0,
+    }
+
+    # 10 — Recurrence
+    rec_rows = db.execute(text(f"""
+        SELECT te.is_recurrent, te.recurrence_type, COUNT(*) AS cnt
+        FROM tutoria_errors te
+        WHERE te.is_active = 1 {scope_filter}
+        GROUP BY te.is_recurrent, te.recurrence_type
+    """)).fetchall()
+    recurrent = sum(r.cnt for r in rec_rows if r.is_recurrent)
+    non_recurrent = sum(r.cnt for r in rec_rows if not r.is_recurrent)
+    by_type = [
+        {"type": r.recurrence_type or "N/A", "count": r.cnt}
+        for r in rec_rows if r.is_recurrent and r.recurrence_type
+    ]
+    recurrence = {"recurrent": recurrent, "non_recurrent": non_recurrent, "by_type": by_type}
+
+    return {
+        "financial": financial,
+        "pending_solution": int(pending_solution),
+        "escalated": int(escalated),
+        "by_origin": by_origin,
+        "by_impact": by_impact,
+        "resolution_time_by_severity": resolution_time_by_severity,
+        "monthly": monthly,
+        "action_items": action_items,
+        "avg_weights": avg_weights,
+        "recurrence": recurrence,
     }

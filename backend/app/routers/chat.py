@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, or_
 from app.database import get_db
-from app.auth import get_current_user
+from app.auth import get_current_user, is_trainer_user
 from app.models import (
     User, TutoriaError, TutoriaActionPlan, TutoriaActionItem,
     ErrorCategory, ChatFAQ,
@@ -511,7 +511,7 @@ def h_greeting(user: User, lang: str, **_) -> str:
 
 def h_help(user: User, lang: str, **_) -> str:
     is_admin  = user.role == "ADMIN"
-    is_mgr    = user.role in ("ADMIN", "TRAINER")
+    is_mgr    = user.role == "ADMIN" or is_trainer_user(user)
     is_student = user.role in ("STUDENT", "TRAINEE")
 
     lines_pt = [
@@ -595,11 +595,11 @@ def h_help(user: User, lang: str, **_) -> str:
 
 
 def h_my_errors(user: User, lang: str, db: Session, **_) -> str:
-    is_mgr = user.role in ("ADMIN", "TRAINER")
+    is_mgr = user.role == "ADMIN" or is_trainer_user(user)
     q = db.query(TutoriaError).filter(TutoriaError.is_active == True)
     if not is_mgr:
         q = q.filter(TutoriaError.tutorado_id == user.id)
-    elif user.role == "TRAINER":
+    elif is_trainer_user(user):
         q = q.join(User, TutoriaError.tutorado_id == User.id).filter(User.tutor_id == user.id)
     errors = q.order_by(TutoriaError.created_at.desc()).limit(8).all()
 
@@ -621,11 +621,11 @@ def h_my_errors(user: User, lang: str, db: Session, **_) -> str:
 
 
 def h_my_plans(user: User, lang: str, db: Session, **_) -> str:
-    is_mgr = user.role in ("ADMIN", "TRAINER")
+    is_mgr = user.role == "ADMIN" or is_trainer_user(user)
     q = db.query(TutoriaActionPlan)
     if not is_mgr:
         q = q.filter(TutoriaActionPlan.tutorado_id == user.id)
-    elif user.role == "TRAINER":
+    elif is_trainer_user(user):
         q = q.join(User, TutoriaActionPlan.tutorado_id == User.id).filter(User.tutor_id == user.id)
     plans = q.order_by(TutoriaActionPlan.created_at.desc()).limit(8).all()
 
@@ -650,7 +650,7 @@ def h_critical_errors(user: User, lang: str, db: Session, **_) -> str:
         TutoriaError.severity == "CRITICA",
         TutoriaError.is_active == True,
     )
-    if user.role == "TRAINER":
+    if is_trainer_user(user):
         q = q.join(User, TutoriaError.tutorado_id == User.id).filter(User.tutor_id == user.id)
     elif user.role in ("STUDENT", "TRAINEE"):
         q = q.filter(TutoriaError.tutorado_id == user.id)
@@ -672,7 +672,7 @@ def h_recurrent_errors(user: User, lang: str, db: Session, **_) -> str:
         TutoriaError.is_recurrent == True,
         TutoriaError.is_active == True,
     )
-    if user.role == "TRAINER":
+    if is_trainer_user(user):
         q = q.join(User, TutoriaError.tutorado_id == User.id).filter(User.tutor_id == user.id)
     elif user.role in ("STUDENT", "TRAINEE"):
         q = q.filter(TutoriaError.tutorado_id == user.id)
@@ -691,7 +691,7 @@ def h_recurrent_errors(user: User, lang: str, db: Session, **_) -> str:
 
 def _plans_by_status(user: User, lang: str, db: Session, statuses: list[str]) -> str:
     q = db.query(TutoriaActionPlan).filter(TutoriaActionPlan.status.in_(statuses))
-    if user.role == "TRAINER":
+    if is_trainer_user(user):
         q = q.join(User, TutoriaActionPlan.tutorado_id == User.id).filter(User.tutor_id == user.id)
     elif user.role in ("STUDENT", "TRAINEE"):
         q = q.filter(TutoriaActionPlan.tutorado_id == user.id)
@@ -738,12 +738,12 @@ def h_completed_plans(user: User, lang: str, db: Session, **_) -> str:
 
 
 def h_my_students(user: User, lang: str, db: Session, **_) -> str:
-    if user.role not in ("ADMIN", "TRAINER"):
+    if user.role != "ADMIN" and not is_trainer_user(user):
         return _t(lang, "Não tens acesso a esta informação.",
                         "No tienes acceso a esta información.",
                         "You don't have access to this information.")
     q = db.query(User).filter(User.role.in_(["STUDENT", "TRAINEE"]), User.is_active == True)
-    if user.role == "TRAINER":
+    if is_trainer_user(user):
         q = q.filter(User.tutor_id == user.id)
     students = q.order_by(User.full_name).all()
 
@@ -763,11 +763,11 @@ def h_my_students(user: User, lang: str, db: Session, **_) -> str:
 
 
 def h_stats(user: User, lang: str, db: Session, **_) -> str:
-    is_mgr = user.role in ("ADMIN", "TRAINER")
+    is_mgr = user.role == "ADMIN" or is_trainer_user(user)
 
     # errors
     eq = db.query(TutoriaError).filter(TutoriaError.is_active == True)
-    if user.role == "TRAINER":
+    if is_trainer_user(user):
         eq = eq.join(User, TutoriaError.tutorado_id == User.id).filter(User.tutor_id == user.id)
     elif user.role in ("STUDENT", "TRAINEE"):
         eq = eq.filter(TutoriaError.tutorado_id == user.id)
@@ -779,7 +779,7 @@ def h_stats(user: User, lang: str, db: Session, **_) -> str:
 
     # plans
     pq = db.query(TutoriaActionPlan)
-    if user.role == "TRAINER":
+    if is_trainer_user(user):
         pq = pq.join(User, TutoriaActionPlan.tutorado_id == User.id).filter(User.tutor_id == user.id)
     elif user.role in ("STUDENT", "TRAINEE"):
         pq = pq.filter(TutoriaActionPlan.tutorado_id == user.id)
@@ -809,7 +809,7 @@ def h_stats(user: User, lang: str, db: Session, **_) -> str:
 
     if is_mgr:
         sq = db.query(User).filter(User.role.in_(["STUDENT", "TRAINEE"]), User.is_active == True)
-        if user.role == "TRAINER":
+        if is_trainer_user(user):
             sq = sq.filter(User.tutor_id == user.id)
         nstudents = sq.count()
         lines_pt.append(f"• Tutorados: **{nstudents}**")
@@ -839,7 +839,7 @@ def h_users(user: User, lang: str, db: Session, **_) -> str:
                         "Only administrators can view users.")
     total  = db.query(User).filter(User.is_active == True).count()
     admins = db.query(User).filter(User.role == "ADMIN", User.is_active == True).count()
-    trainers = db.query(User).filter(User.role == "TRAINER", User.is_active == True).count()
+    trainers = db.query(User).filter(or_(User.role == "TRAINER", User.is_trainer == True), User.is_active == True).count()
     students = db.query(User).filter(User.role.in_(["STUDENT","TRAINEE"]), User.is_active == True).count()
     return _t(lang,
         f"👤 **Utilizadores ({total} total):**\n• Admins: {admins}\n• Tutores: {trainers}\n• Tutorados: {students}",
@@ -850,7 +850,7 @@ def h_users(user: User, lang: str, db: Session, **_) -> str:
 
 def h_open_errors(user: User, lang: str, db: Session, **_) -> str:
     q = db.query(TutoriaError).filter(TutoriaError.status == "ABERTO", TutoriaError.is_active == True)
-    if user.role == "TRAINER":
+    if is_trainer_user(user):
         q = q.join(User, TutoriaError.tutorado_id == User.id).filter(User.tutor_id == user.id)
     elif user.role in ("STUDENT", "TRAINEE"):
         q = q.filter(TutoriaError.tutorado_id == user.id)
@@ -1067,21 +1067,21 @@ def _get_quick_suggestions(user: User, lang: str) -> list[str]:
     """Return contextual quick-action suggestions based on user role."""
     if lang == "es":
         base = ["mis errores", "estadísticas", "mis planes"]
-        if user.role in ("ADMIN", "TRAINER"):
+        if user.role == "ADMIN" or is_trainer_user(user):
             base += ["tutorados", "errores críticos"]
         if user.role == "ADMIN":
             base += ["usuarios"]
         return base
     elif lang == "en":
         base = ["my errors", "stats", "my plans"]
-        if user.role in ("ADMIN", "TRAINER"):
+        if user.role == "ADMIN" or is_trainer_user(user):
             base += ["students", "critical errors"]
         if user.role == "ADMIN":
             base += ["users"]
         return base
     else:  # pt
         base = ["meus erros", "estatísticas", "meus planos"]
-        if user.role in ("ADMIN", "TRAINER"):
+        if user.role == "ADMIN" or is_trainer_user(user):
             base += ["tutorados", "erros críticos"]
         if user.role == "ADMIN":
             base += ["utilizadores"]

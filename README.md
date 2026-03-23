@@ -1,582 +1,894 @@
-# Portal TradeHub
+# PortalTradeHub
 
-Sistema integrado de gestão de formações, tutoria, relatórios e suporte para equipas de trading.
+> Sistema integrado de gestão de formações, tutoria, relatórios e suporte para equipas de Trade Finance — Santander.
+
+**Stack:** FastAPI (Python 3.13) · React 18 · Tailwind CSS · MySQL 8.0 · Docker Compose
+**Testes:** 341 testes pytest · Design System Santander (`#EC0000`)
+**i18n:** Português · Espanhol · Inglês
 
 ---
 
-## Arranque Rápido (Docker)
+## Índice
 
-```bash
-# 1. Clonar o repositório
-git clone https://github.com/marceloligiero/PortalTradeHudb.git
-cd PortalTradeHudb
+- [O que o sistema faz](#o-que-o-sistema-faz)
+- [Portais e funcionalidades](#portais-e-funcionalidades)
+- [Roles e permissões](#roles-e-permissões)
+- [Arquitectura técnica](#arquitectura-técnica)
+- [Arranque rápido — Docker](#arranque-rápido--docker)
+- [Instalação local (sem Docker)](#instalação-local-sem-docker)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
+- [Base de dados](#base-de-dados)
+- [API — referência rápida](#api--referência-rápida)
+- [Testes](#testes)
+- [Deploy e CI/CD](#deploy-e-cicd)
+- [Estrutura do projecto](#estrutura-do-projecto)
+- [Documentação adicional](#documentação-adicional)
 
-# 2. Configurar variáveis de ambiente
-cp .env.example .env                       # variáveis Docker (MySQL, portas)
-cp backend/.env.example backend/.env       # variáveis do backend (DATABASE_URL, SECRET_KEY)
-# Editar os dois ficheiros com os valores reais
+---
 
-# 3. Iniciar tudo
-docker compose up -d
+## O que o sistema faz
 
-# 4. Verificar que está tudo a correr
-docker compose ps
-curl http://localhost:8000/health
+O **PortalTradeHub** é uma plataforma interna para a equipa de Trade Finance do Santander. Centraliza cinco áreas críticas num único sistema:
+
+| # | Área | O que resolve |
+|---|------|--------------|
+| 1 | **Formações** | Gestão completa de cursos, lições, desafios práticos e planos de formação individuais com cronometragem de operações (MPU) e emissão de certificados |
+| 2 | **Tutoria** | Registo, análise e resolução de erros operacionais com ciclo completo de 6 estados, planos de acção, fichas de aprendizagem e treino side-by-side |
+| 3 | **Relatórios** | Dashboards analíticos em tempo real por equipa, formador, estudante e portal — com exportação de incidentes |
+| 4 | **Dados Mestres** | CRUD centralizado de bancos, produtos, equipas, utilizadores, hierarquia organizacional e todos os dados de referência do sistema |
+| 5 | **Chamados** | Kanban de suporte interno (bugs e melhorias) com comentários, anexos, atribuição de responsável e notas de andamento |
+
+---
+
+## Portais e funcionalidades
+
+### 1. Portal de Formações (`/`)
+
+**Quem acede:** ADMIN · MANAGER · TRAINER · TRAINEE/STUDENT
+
+#### Criação de conteúdo (TRAINER / ADMIN)
+- Criar e gerir **cursos** com título, descrição, nível (Iniciante/Intermédio/Avançado), bancos e produtos associados
+- Criar **lições** dentro de cursos com conteúdo escrito e controlo de tempo por operação (MPU)
+- Criar **desafios** com lista de operações a executar linha a linha pelo estudante
+- Criar **planos de formação** individuais atribuindo cursos e estudantes com prazos
+- Rever e aprovar/rejeitar **submissões** dos estudantes
+- Permitir **re-tentativas** de desafios reprovados
+- Finalizar cursos e planos → gerar **certificados PDF**
+
+#### Execução (TRAINEE / STUDENT)
+- Ver planos de formação atribuídos (`/my-plans`)
+- Ver e inscrever-se em cursos disponíveis (`/my-courses`)
+- Executar lições com cronómetro: Iniciar → Pausar → Retomar → Terminar → Confirmar
+- Executar desafios linha a linha (operação a operação) com registo de tempo
+- Submeter desafio para revisão do formador
+- Fazer re-tentativa após rejeição
+- Ver e descarregar certificados PDF
+
+#### Dashboards por role
+- **ADMIN/MANAGER:** KPIs globais — utilizadores, cursos, formadores, estudantes, planos, desafios
+- **TRAINER:** cursos próprios, alunos, submissões pendentes, horas de formação, MPU médio
+- **STUDENT:** inscrições, planos activos, lições completas, certificados, submissões, MPU pessoal
+
+---
+
+### 2. Portal de Tutoria (`/tutoria`)
+
+**Quem acede:** Todos os utilizadores autenticados (visibilidade filtrada por role)
+
+#### Erros de tutoria — ciclo de 6 estados
+
+```
+PENDENTE → EM_ANALISE → AGUARDA_PLANOS → EM_EXECUCAO → VERIFICACAO → RESOLVIDO
 ```
 
-Acesso: http://localhost (frontend) · http://localhost:8000/docs (API Swagger)
+- **Registo** (Liberador/Tutor): descrição, categoria, severidade, banco, produto, operação
+- **Análise** (Tutor): análise técnica, revisão tutor, envio ao chefe para aprovação
+- **Planos de acção** (Tutor): título, responsável, prazo, itens de acção individuais
+- **Execução** (Tutorado): conclusão de itens → submissão para aprovação
+- **Verificação** (Tutorado): confirmação da solução implementada
+- **Resolução** (Tutor): validação e fecho do erro
 
-> Não é necessário instalar Python, Node.js ou MySQL localmente — tudo corre em containers.
+#### Funcionalidades adicionais
+- **Comentários** em erros e planos (todos os envolvidos)
+- **Notificações** em tempo real com polling a 30s e badge de não lidos
+- **Fichas de aprendizagem**: criadas por tutor, lidas e assinadas pelo tutorado
+- **Treino Side-by-Side**: supervisão directa com registo de MPU
+- **Cápsulas de aprendizagem**: biblioteca de recursos criada pelo tutor (título, nível, tipo)
+- **Erros internos de qualidade** (Liberador): registo de erros do grabador com plano de acção e ficha de aprendizagem
+- **Surveys de feedback** (Liberador → Tutor): avaliação semanal dos grabadores com dashboard de sentimento e alertas
+- **Censos operacionais**: gestão de levantamentos de dados por equipa
 
-## Pré-requisitos
-
-| Modo | Ferramentas necessárias |
-|---|---|
-| **Docker** (recomendado) | Docker Engine 24+ · Docker Compose v2+ · (opcional) Make |
-| **Local** (sem Docker) | Python 3.13+ · Node.js 18+ · MySQL 8.0+ |
-
----
-
-## Comandos Úteis
-
-| Comando | O que faz |
-|---|---|
-| `make up` | Inicia todos os serviços em foreground |
-| `make up-d` | Inicia em background |
-| `make up-prod` | Produção (sem hot reload) |
-| `make down` | Para tudo (preserva dados) |
-| `make down-volumes` | Para e apaga a DB — CUIDADO |
-| `make logs` | Logs em tempo real |
-| `make logs-backend` | Logs só do backend |
-| `make shell` | Terminal no container do backend |
-| `make shell-db` | MySQL shell |
-| `make status` | Estado dos serviços |
-| `make health` | Verifica `/health` |
-| `make clean` | Remove tudo (containers + imagens + volumes) |
-| `make help` | Lista todos os comandos |
+#### Visibilidade por role
+| Role | Vê |
+|------|----|
+| ADMIN/GESTOR | Todos os erros e planos |
+| MANAGER / is_team_lead | Erros e planos da sua equipa |
+| is_tutor | Erros dos seus tutorandos |
+| is_referente | Erros das operações em que participa |
+| is_liberador | Os seus erros internos + surveys pendentes |
+| TRAINEE (simples) | Apenas os seus próprios erros e planos |
 
 ---
 
-## Instalação Local (sem Docker)
+### 3. Portal de Relatórios (`/relatorios`)
+
+**Quem acede:** Todos os utilizadores autenticados
+
+| Relatório | Rota | Acesso |
+|-----------|------|--------|
+| Overview de KPIs (utilizadores, equipas, planos, erros, certificados, MPU) | `/relatorios` | Todos |
+| Formações (inscrições, estado de planos, submissões, MPU, horas, erros) | `/relatorios/formacoes` | Todos |
+| Tutoria (erros por severidade/estado, planos de acção, evolução temporal) | `/relatorios/tutoria` | Todos |
+| Equipas (taxa de conclusão, MPU médio por equipa) | `/relatorios/teams` | ADMIN/GESTOR |
+| Membros (relatório detalhado por membro de equipa) | `/relatorios/members` | MANAGER |
+| Incidentes (exportação com filtros: data, impacto, banco, departamento...) | export | ADMIN/MANAGER |
+
+**Data Warehouse integrado:**
+- Snapshots diários de KPIs com tendência (30+ dias)
+- Analytics por mês, por curso, por formador, por equipa
+- ETL manual via `POST /etl/run` (ADMIN)
+- Gráficos: certificados/mês, erros/categoria, chamados/tipo, erros internos/equipa
+
+---
+
+### 4. Portal de Dados Mestres (`/master-data`)
+
+**Quem acede:** ADMIN · MANAGER · GESTOR
+
+#### Dados de referência (CRUD completo — ADMIN)
+| Entidade | Rota | Descrição |
+|----------|------|-----------|
+| Bancos | `/master-data` | Bancos parceiros (nome, código, estado activo/inactivo) |
+| Produtos | `/master-data/products` | Produtos financeiros (LC, Garantias, Remessas, etc.) |
+| Equipas | `/master-data/teams` | Equipas com gestor, membros e serviços atribuídos |
+| Categorias de erro | `/master-data/categories` | Hierarquia de categorias de erro (pai/filho) |
+| Impactos | `/master-data/impacts` | Níveis de impacto (BAIXA/MEDIA/ALTA/CRITICA) |
+| Origens | `/master-data/origins` | Origens dos erros operacionais |
+| Detectado por | `/master-data/detected-by` | Métodos de detecção de erros |
+| Departamentos | `/master-data/departments` | Departamentos internos |
+| Actividades | `/master-data/activities` | Tipos de actividades operacionais |
+| Tipos de erro | `/master-data/error-types` | Classificação de erros |
+| FAQs | `/master-data/faqs` | Perguntas frequentes multilingue (PT/ES/EN) com prioridade e filtro por role |
+
+#### Gestão de utilizadores (`/master-data/users`)
+- Criar, editar, desactivar utilizadores
+- Atribuir roles (ADMIN/MANAGER/TRAINER/TRAINEE)
+- Definir flags: `is_tutor`, `is_liberador`, `is_team_lead`, `is_referente`
+- Atribuir a equipas
+
+#### Validações pendentes (`/master-data/trainer-validation`)
+- Lista de utilizadores com registo pendente de aprovação (TRAINER/MANAGER/tutor/liberador)
+- Aprovar → activa conta completa
+- Rejeitar → remove acesso
+
+#### Hierarquia organizacional (`/master-data/org-hierarchy`)
+- Visualização em **árvore interactiva** (expansível, drag-and-drop para mover nós)
+- Visualização em **organograma visual** (CSS-based, color-coded por nível)
+- CRUD completo de nós hierárquicos com prevenção de ciclos
+- Atribuição de membros a cada nó
+- Log de auditoria de todas as alterações
+
+---
+
+### 5. Portal de Chamados (`/chamados`)
+
+**Quem acede:** Todos os utilizadores autenticados
+
+**Kanban com 4 colunas:**
+
+```
+ABERTO → EM_ANDAMENTO → EM_REVISAO → CONCLUIDO
+```
+
+| Funcionalidade | Quem pode |
+|----------------|-----------|
+| Criar chamado (tipo, prioridade, portal afectado) | Todos |
+| Comentar chamado | Todos |
+| Mover entre colunas (drag-and-drop) | ADMIN |
+| Atribuir responsável | ADMIN |
+| Adicionar notas de andamento | ADMIN |
+| Alterar prioridade (BAIXA/MEDIA/ALTA/CRITICA) | ADMIN |
+| Eliminar chamado | ADMIN |
+
+**Tipos:** BUG · MELHORIA
+**Portais afectados:** FORMACOES · TUTORIA · RELATORIOS · DADOS_MESTRES · CHAMADOS · GERAL
+**Anexos:** suporte a imagens com compressão automática (máx 1200px, qualidade 72%)
+
+---
+
+### Chatbot IA (widget global)
+
+Disponível em todos os portais autenticados (widget flutuante).
+
+- Responde a perguntas sobre o sistema usando as FAQs configuradas
+- Powered by **Anthropic Claude API**
+- FAQs geridas em `/master-data/faqs` (multilingue PT/ES/EN)
+- Contexto preservado durante a sessão
+
+---
+
+## Roles e permissões
+
+### Roles base
+
+| Role | Descrição | Acesso padrão |
+|------|-----------|---------------|
+| **ADMIN** | Administrador do sistema | Total — todos os portais, CRUD completo |
+| **GESTOR** | Alias de ADMIN | Idêntico ao ADMIN |
+| **MANAGER** | Chefe de equipa | Formações + Relatórios (equipa) + Dados Mestres (leitura) |
+| **TRAINER** | Formador | Cursos próprios + Alunos atribuídos |
+| **TRAINEE** | Utilizador simples (= STUDENT = LIBERADOR base) | Dados próprios em todos os portais |
+
+### Flags especiais (aplicam-se a utilizadores TRAINEE)
+
+| Flag | Activa |
+|------|--------|
+| `is_tutor` | Acesso completo de tutoria: gerir erros, planos, cápsulas, feedback, side-by-side, fichas |
+| `is_team_lead` | Ver dados de todos os membros da equipa (análise, planos, learning sheets) |
+| `is_referente` | Ver erros e planos das operações em que participa |
+| `is_liberador` | Registar erros internos, responder a surveys de feedback |
+| `is_pending` | Conta criada mas aguarda aprovação de ADMIN; acesso limitado com banner de aviso |
+
+### Matriz de acesso resumida
+
+| Portal | ADMIN | MANAGER | TRAINER | TRAINEE | is_tutor |
+|--------|:-----:|:-------:|:-------:|:-------:|:--------:|
+| Formações | ✅ Full | ✅ Full | ✅ Próprios | 📖 Read | 📖 Read |
+| Tutoria | ✅ Full | 🏢 Equipa | ❌ | 🔒 Próprios | ✅ Tutorandos |
+| Relatórios | ✅ Full | 🏢 Equipa | 🔒 Próprios | 🔒 Próprios | 🔒 Próprios |
+| Dados Mestres | ✅ Full | 📖 Read | ❌ | ❌ | ❌ |
+| Chamados | ✅ Gestão | 🏢 Equipa | 🔒 Próprios | 🔒 Próprios | 🔒 Próprios |
+
+> Documentação completa: [`docs/ROLES_AND_PERMISSIONS.md`](docs/ROLES_AND_PERMISSIONS.md)
+
+---
+
+## Arquitectura técnica
+
+```
+┌─────────────────────────────────────────────────────┐
+│                   Browser / Cliente                   │
+│          React 18 · Tailwind CSS · Zustand            │
+│       React Router v6 · react-i18next (PT/ES/EN)      │
+└────────────────────────┬────────────────────────────┘
+                         │ HTTPS / fetch (JWT Bearer)
+                         │ /api/* (proxy nginx)
+┌────────────────────────▼────────────────────────────┐
+│              nginx (porta 80 / 443)                   │
+│   SPA React → /usr/share/nginx/html/                  │
+│   Proxy /api → http://tradehub-backend:8000           │
+└────────────────────────┬────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────┐
+│           FastAPI (Python 3.13) — porta 8000          │
+│                                                       │
+│  Routers:                                             │
+│  ├── /api/auth           Autenticação JWT (PyJWT)     │
+│  ├── /api/admin          Utilizadores, Master Data    │
+│  ├── /api/teams          Equipas e membros            │
+│  ├── /api/org            Hierarquia organizacional    │
+│  ├── /api/trainer        Cursos, lições, desafios     │
+│  ├── /api/lessons        Progresso de lições          │
+│  ├── /api/challenges     Submissões, revisões         │
+│  ├── /api/training-plans Planos de formação           │
+│  ├── /api/finalization   Finalização e certificados   │
+│  ├── /api/student        Rotas específicas do aluno   │
+│  ├── /api/tutoria        Erros, planos, notificações  │
+│  ├── /api/internal-errors Erros internos, censos      │
+│  ├── /api/feedback       Surveys liberador → tutor    │
+│  ├── /api/chamados       Kanban de suporte            │
+│  ├── /api/relatorios     Relatórios por portal        │
+│  ├── /api/dw             Data Warehouse + ETL         │
+│  ├── /api/ratings        Avaliações de conteúdo       │
+│  ├── /api/certificates   Certificados PDF (ReportLab) │
+│  ├── /api/chat           Chatbot (Anthropic Claude)   │
+│  └── /api/stats          KPIs públicos                │
+│                                                       │
+│  Middleware: CORS · Rate Limiting (slowapi)           │
+│  Auth: JWT Bearer → get_current_user()                │
+│  Migrations: Flyway-style (app/migrate.py)            │
+│  Schedulers: ETL diário · Snapshot DW                 │
+└────────────────────────┬────────────────────────────┘
+                         │ SQLAlchemy 2.0 + PyMySQL
+┌────────────────────────▼────────────────────────────┐
+│               MySQL 8.0 — porta 3307 (DEV)            │
+│               ~40 tabelas, migrações V001–V005         │
+└─────────────────────────────────────────────────────┘
+```
+
+### Dependências principais
+
+**Backend (Python)**
+
+| Pacote | Versão | Função |
+|--------|--------|--------|
+| fastapi | 0.109.0 | Framework API |
+| sqlalchemy | 2.0.40 | ORM |
+| pymysql | 1.1.0 | Driver MySQL |
+| pydantic | 2.12.5 | Validação de dados |
+| PyJWT | 2.8.0 | Tokens JWT |
+| passlib[bcrypt] | 1.7.4 | Hash de passwords |
+| reportlab | 4.0.9 | Geração de PDFs |
+| anthropic | 0.84.0 | Chatbot Claude AI |
+| slowapi | 0.1.9 | Rate limiting |
+| pandas | 2.3.3 | Analytics / ETL |
+| pytest | 7.4.3 | Testes (341 testes) |
+
+**Frontend (Node.js)**
+
+| Pacote | Função |
+|--------|--------|
+| react 18 + react-dom | UI framework |
+| react-router-dom v6 | Routing SPA |
+| tailwindcss | Utility-first CSS |
+| zustand | Estado global (auth) |
+| react-i18next | i18n PT/ES/EN |
+| lucide-react | Ícones |
+| recharts | Gráficos |
+| vite | Build tool + HMR |
+
+---
+
+## Arranque rápido — Docker
+
+> Recomendado. Não é necessário instalar Python, Node.js ou MySQL localmente.
 
 ### Pré-requisitos
 
-| Ferramenta | Versão mínima | Notas |
-|---|---|---|
-| Python | 3.13+ | Obrigatório para SQLAlchemy 2.0.40 |
-| Node.js | 18+ | Inclui npm |
-| MySQL | 8.0+ | Produção; desenvolvimento pode usar SQLite |
+- Docker Engine 24+
+- Docker Compose v2+
 
----
-
-## Instalação Local
+### 1. Clonar e configurar
 
 ```bash
-# 1. Clonar o repositório
 git clone https://github.com/marceloligiero/PortalTradeHudb.git
 cd PortalTradeHudb
 
-# 2. Backend — criar ambiente virtual e instalar dependências
+# Variáveis Docker (MySQL, portas)
+cp .env.example .env
+
+# Variáveis do backend (DATABASE_URL, SECRET_KEY, SMTP)
+cp backend/.env.example backend/.env
+# Editar backend/.env com os valores reais (ver secção Variáveis de ambiente)
+```
+
+### 2. Iniciar em modo desenvolvimento (hot reload)
+
+```bash
+docker compose --profile dev up -d --build
+
+# Verificar estado
+docker compose ps
+
+# Logs em tempo real
+docker compose logs -f
+```
+
+**Acessos:**
+| Serviço | URL |
+|---------|-----|
+| Frontend (React) | http://localhost |
+| Backend API | http://localhost:8100 |
+| Swagger UI (só DEV) | http://localhost:8100/docs |
+| MySQL | 127.0.0.1:3307 |
+
+### 3. Iniciar em modo produção
+
+```bash
+# Requer backend/.env.prod com valores de produção
+docker compose --profile prod up -d --build
+```
+
+### 4. Comandos úteis
+
+```bash
+# Parar tudo (preserva dados)
+docker compose down
+
+# Parar e apagar base de dados (CUIDADO — dados perdidos)
+docker compose down -v
+
+# Shell no container do backend
+docker exec -it tradehub-backend bash
+
+# Shell MySQL
+docker exec -it tradehub-db mysql -u tradehub_user -p tradehub_db
+
+# Rebuild forçado (após alterações ao Dockerfile ou requirements.txt)
+docker compose --profile dev up -d --build --force-recreate
+
+# Ver logs por serviço
+docker compose logs -f tradehub-backend
+docker compose logs -f tradehub-frontend
+
+# Copiar build de produção para nginx
+npm run build  # na pasta frontend/
+docker cp dist/. tradehub-frontend:/usr/share/nginx/html/
+docker exec tradehub-frontend nginx -s reload
+```
+
+---
+
+## Instalação local (sem Docker)
+
+### Pré-requisitos
+
+| Ferramenta | Versão mínima |
+|------------|--------------|
+| Python | 3.13+ |
+| Node.js | 18+ |
+| MySQL | 8.0+ |
+
+### Backend
+
+```bash
 cd backend
+
+# Criar e activar ambiente virtual
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+source .venv/bin/activate        # Linux/Mac
+.venv\Scripts\activate           # Windows
+
+# Instalar dependências
 pip install -r requirements.txt
-
-# 3. Configurar variáveis de ambiente do backend
-cp .env.example .env             # editar o ficheiro .env criado
-
-# 4. Frontend — instalar dependências
-cd ../frontend
-npm install
-```
-
----
-
-## Configuração
-
-O backend lê as variáveis de ambiente do ficheiro `backend/.env`.
-
-| Variável | Obrigatória | Descrição | Exemplo |
-|---|:---:|---|---|
-| `DATABASE_URL` | ✅ | Connection string da base de dados | `mysql+pymysql://tradehub_user:SENHA@localhost/tradehub_db` |
-| `SECRET_KEY` | ✅ | Chave para assinar tokens JWT | gerar com `python -c "import secrets; print(secrets.token_urlsafe(32))"` |
-| `ALLOWED_ORIGINS` | ❌ | Origens CORS permitidas (separadas por vírgula) | `http://localhost:5173` |
-| `ALGORITHM` | ❌ | Algoritmo JWT (padrão: `HS256`) | `HS256` |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | ❌ | Validade do token em minutos (padrão: `30`) | `30` |
-| `DEBUG` | ❌ | Modo debug, desativa CORS restrito (padrão: `false`) | `true` |
-| `FRONTEND_URL` | ❌ | URL base do frontend, para links de e-mail | `https://portaltradedatahub.example.com` |
-| `SMTP_HOST` | ❌ | Servidor SMTP para recuperação de senha | `smtp.gmail.com` |
-| `SMTP_PORT` | ❌ | Porta SMTP (padrão: `587`) | `587` |
-| `SMTP_USER` | ❌ | Utilizador SMTP | `no-reply@tradehub.com` |
-| `SMTP_PASSWORD` | ❌ | Senha SMTP | — |
-| `SMTP_FROM_EMAIL` | ❌ | Endereço remetente | `no-reply@tradehub.com` |
-| `SMTP_TLS` | ❌ | Usar TLS (padrão: `true`) | `true` |
-
-> Gerador de `SECRET_KEY` segura:
-> ```bash
-> python -c "import secrets; print(secrets.token_urlsafe(32))"
-> ```
-
----
-
-## Uso
-
-### Desenvolvimento
-
-```bash
-# Backend (a partir da pasta backend/, com .venv activo)
-uvicorn main:app --reload
-
-# Frontend (a partir da pasta frontend/)
-npm run dev
-```
-
-Acessos locais:
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8000
-- Documentação interactiva da API: http://localhost:8000/docs
-
-### Windows (scripts de arranque rápido)
-
-```bat
-start-all.bat        # Abre dois terminais: backend + frontend
-start-backend.bat    # Apenas backend
-start-frontend.bat   # Apenas frontend
-```
-
-### Produção (VPS)
-
-O projecto corre num VPS Ubuntu com Docker Compose + Nginx.
-
-```bash
-# No VPS: /opt/tradehub
-./start-vps.sh update    # Pull + deps + build frontend + restart
-./start-vps.sh quick     # Pull + deps Python + restart backend (sem rebuild)
-./start-vps.sh frontend  # Pull + build frontend apenas
-./start-vps.sh restart   # Reiniciar todos os serviços
-./start-vps.sh stop      # Parar todos os serviços
-./start-vps.sh status    # Status + últimos 20 logs
-```
-
-O deploy automático é feito via GitHub Actions a cada push para `main` (ver `.github/workflows/deploy.yml`).
-
-#### Primeiro deploy manual
-
-```bash
-# Ligar ao servidor via SSH (configurar SERVER_HOST, SERVER_USER nos secrets)
-ssh <user>@<servidor>
-cd /opt
-git clone https://github.com/marceloligiero/PortalTradeHudb.git tradehub
-cd tradehub
 
 # Configurar variáveis de ambiente
 cp .env.example .env
-cp backend/.env.example backend/.env
-# Editar ambos os ficheiros com valores de produção
+# Editar .env (ver secção Variáveis de ambiente)
 
-# Iniciar
-docker compose up -d
+# Iniciar (hot reload)
+uvicorn main:app --reload --port 8000
+```
+
+### Frontend
+
+```bash
+cd frontend
+
+# Instalar dependências
+npm install
+
+# Iniciar (hot reload — porta 5173)
+npm run dev
+```
+
+### Windows — arranque rápido
+
+```bat
+iniciar-sem-docker.bat    # Inicia backend + frontend numa janela
 ```
 
 ---
 
-## Estrutura do Projecto
+## Variáveis de ambiente
+
+### `backend/.env` (obrigatórias)
+
+| Variável | Exemplo | Descrição |
+|----------|---------|-----------|
+| `DATABASE_URL` | `mysql+pymysql://user:pass@localhost/tradehub_db` | Connection string MySQL |
+| `SECRET_KEY` | *(gerar abaixo)* | Chave de assinatura JWT |
+
+```bash
+# Gerar SECRET_KEY segura
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+### `backend/.env` (opcionais)
+
+| Variável | Padrão | Descrição |
+|----------|--------|-----------|
+| `ALLOWED_ORIGINS` | `http://localhost:5173` | Origens CORS (separadas por vírgula) |
+| `ALGORITHM` | `HS256` | Algoritmo JWT |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | Validade do token JWT |
+| `DEBUG` | `false` | Modo debug (activa Swagger, CORS permissivo) |
+| `FRONTEND_URL` | — | URL base do frontend (para links de email) |
+| `SMTP_HOST` | — | Servidor SMTP (recuperação de senha) |
+| `SMTP_PORT` | `587` | Porta SMTP |
+| `SMTP_USER` | — | Utilizador SMTP |
+| `SMTP_PASSWORD` | — | Senha SMTP |
+| `SMTP_FROM_EMAIL` | — | Endereço remetente |
+| `SMTP_TLS` | `true` | Usar TLS |
+| `ANTHROPIC_API_KEY` | — | API key Claude (chatbot) |
+
+### `.env` (raiz — Docker)
+
+| Variável | Padrão DEV |
+|----------|-----------|
+| `MYSQL_ROOT_PASSWORD` | `dev_root_pass` |
+| `MYSQL_DATABASE` | `tradehub_db` |
+| `MYSQL_USER` | `tradehub_user` |
+| `MYSQL_PASSWORD` | `dev_pass` |
+| `COMPOSE_PROFILES` | `dev` |
+
+---
+
+## Base de dados
+
+MySQL 8.0 com **migrações automáticas** aplicadas no arranque do backend (`app/migrate.py`). Ficheiros em `database/migrations/V00N__descricao.sql`.
+
+### Migrações
+
+| Migração | Descrição |
+|----------|-----------|
+| `V001__initial_schema.sql` | Schema inicial: users, teams, courses, lessons, challenges, training_plans, certificates |
+| `V002__tutoria_and_chamados.sql` | Tutoria (erros, planos, comentários, notificações), Chamados, FAQs |
+| `V003__capsulas_side_by_side_feedback.sql` | Cápsulas de aprendizagem, side-by-side, surveys de feedback, erros internos, censos |
+| `V004__org_hierarchy.sql` | Hierarquia organizacional (org_nodes, org_node_members, org_node_audit) |
+| `V005__org_hierarchy_and_team_managers.sql` | Dados reais da estrutura Santander + ligação teams→org_nodes |
+
+### Entidades principais (ERD simplificado)
 
 ```
-PortalTradeHudb/
-├── backend/
-│   ├── main.py                  # Ponto de entrada FastAPI
-│   ├── requirements.txt         # Dependências Python
-│   ├── app/
-│   │   ├── config.py            # Configuração (Pydantic Settings)
-│   │   ├── database.py          # Engine + sessão SQLAlchemy
-│   │   ├── models.py            # Todos os modelos ORM
-│   │   ├── auth.py              # JWT + bcrypt
-│   │   ├── migrate.py           # Sistema de migrações SQL automáticas
-│   │   ├── routes/              # Módulos de rotas (formações, admin, etc.)
-│   │   └── routers/             # Módulos de rotas (tutoria, chamados, etc.)
-│   └── tests/                   # Testes pytest (341 testes)
-├── frontend/
-│   ├── src/
-│   │   ├── App.tsx              # Routing React Router v6
-│   │   ├── pages/               # Páginas por portal
-│   │   ├── components/          # Componentes reutilizáveis + Chatbot
-│   │   ├── stores/              # Estado Zustand (authStore)
-│   │   ├── contexts/            # ThemeContext (dark/light)
-│   │   └── i18n/locales/        # Traduções PT / ES / EN
-│   ├── vite.config.ts
-│   └── package.json
-├── database/                    # Scripts SQL de migração
-├── scripts/                     # Scripts de migração e utilitários
-├── deploy/                      # Configs Nginx, systemd, webhook
-├── docs/                        # Documentação técnica e relatórios de testes
-├── .github/workflows/deploy.yml # CI/CD GitHub Actions
-└── start-vps.sh                 # Script unificado de deploy no VPS
+User ──< TeamMember >── Team ──── node_id ──> OrgNode
+ │                                                │
+ ├──< Course >──< Lesson                 org_node_members
+ │           └──< Challenge
+ │
+ ├──< TrainingPlan >──< Course (N:M)
+ │          └──> Certificate
+ │
+ ├──< TutoriaError >──< TutoriaActionPlan >──< ActionItem
+ │         └──< TutoriaComment             └──< Comment
+ │
+ ├──< InternalError >──< ActionPlan >──< ActionItem
+ │         └──< LearningSheet
+ │
+ ├──< FeedbackSurvey >──< FeedbackResponse
+ │
+ └──< Chamado >──< ChamadoComment
 ```
 
 ---
 
-## API
+## API — referência rápida
 
-A API segue o padrão REST. Autenticação via `Bearer <token>` em todos os endpoints protegidos. Documentação interactiva em `/docs` (Swagger UI).
+Todos os endpoints protegidos requerem header `Authorization: Bearer <token>`.
 
-Roles disponíveis: `ADMIN`, `TRAINER`, `STUDENT`, `TRAINEE`, `MANAGER`
+> **Swagger UI** disponível em `http://localhost:8100/docs` (apenas em modo DEBUG/DEV).
 
 ### Autenticação
 
-| Método | Rota | Descrição | Auth |
-|---|---|---|---|
-| POST | `/api/auth/login` | Obter token JWT | — |
-| POST | `/api/auth/register` | Registar utilizador | — |
-| GET | `/api/auth/me` | Perfil do utilizador autenticado | Bearer |
-| POST | `/api/auth/forgot-password` | Solicitar reset de senha | — |
-| POST | `/api/auth/reset-password` | Confirmar reset de senha | — |
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| `POST` | `/api/auth/login` | — | Login; retorna JWT + perfil |
+| `POST` | `/api/auth/register` | — | Registo; roles TRAINEE/MANAGER/TRAINER |
+| `GET` | `/api/auth/me` | Bearer | Perfil do utilizador autenticado |
+| `POST` | `/api/auth/forgot-password` | — | Solicitar reset de senha (rate: 3/min) |
+| `POST` | `/api/auth/reset-password` | — | Confirmar reset com token |
+| `GET` | `/api/auth/validate-reset-token/{token}` | — | Validar token de reset |
 
-### Administração
+### Utilizadores e validação
 
-| Método | Rota | Descrição | Auth |
-|---|---|---|---|
-| GET | `/api/admin/users` | Listar utilizadores | ADMIN |
-| POST | `/api/admin/users` | Criar utilizador | ADMIN |
-| PATCH | `/api/admin/users/{id}` | Actualizar utilizador | ADMIN |
-| DELETE | `/api/admin/users/{id}` | Desactivar utilizador | ADMIN |
-| GET | `/api/admin/stats` | Estatísticas globais | ADMIN |
-| GET | `/api/admin/reports` | Relatórios administrativos | ADMIN |
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| `GET` | `/api/admin/users` | ADMIN\|MANAGER | Listar utilizadores |
+| `POST` | `/api/admin/users` | ADMIN | Criar utilizador |
+| `PUT` | `/api/admin/users/{id}` | ADMIN | Actualizar utilizador (role, flags, equipa) |
+| `DELETE` | `/api/admin/users/{id}` | ADMIN | Desactivar utilizador |
+| `GET` | `/api/admin/pending-trainers` | ADMIN\|MANAGER | Utilizadores pendentes de validação |
+| `POST` | `/api/admin/validate-trainer/{id}` | ADMIN | Aprovar utilizador pendente |
+| `POST` | `/api/admin/reject-trainer/{id}` | ADMIN | Rejeitar utilizador pendente |
 
-### Formações (Cursos, Módulos, Lições, Desafios)
+### Cursos, lições e desafios
 
-| Método | Rota | Descrição | Auth |
-|---|---|---|---|
-| GET | `/api/admin/courses` | Listar cursos | Bearer |
-| POST | `/api/admin/courses` | Criar curso | ADMIN/TRAINER |
-| GET | `/api/admin/courses/{id}` | Detalhe do curso | Bearer |
-| GET | `/api/lessons` | Listar lições | Bearer |
-| POST | `/api/lessons` | Criar lição | ADMIN/TRAINER |
-| GET | `/api/challenges` | Listar desafios | Bearer |
-| POST | `/api/challenges` | Criar desafio | ADMIN/TRAINER |
-| GET | `/api/training-plans` | Listar planos de treino | Bearer |
-| POST | `/api/training-plans` | Criar plano de treino | ADMIN/TRAINER |
-| GET | `/api/finalization` | Estado de conclusões | Bearer |
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| `GET/POST` | `/api/trainer/courses` | TRAINER\|ADMIN | Listar / criar cursos |
+| `GET/PUT/DELETE` | `/api/admin/courses/{id}` | ADMIN\|TRAINER | Ver / editar / apagar curso |
+| `POST` | `/api/trainer/lessons` | TRAINER\|ADMIN | Criar lição |
+| `POST` | `/api/challenges/` | TRAINER\|ADMIN | Criar desafio |
+| `POST` | `/api/challenges/{id}/release/{student_id}` | TRAINER\|ADMIN | Liberar desafio a estudante |
+| `GET` | `/api/challenges/student/released` | Bearer | Ver desafios liberados (estudante) |
+| `POST` | `/api/challenges/submit/complete/start/{id}/self` | Bearer | Estudante inicia execução |
+| `POST` | `/api/challenges/submit/complete/{sub_id}/part` | Bearer | Submeter operação |
+| `POST` | `/api/challenges/submit/complete/{sub_id}/finish` | Bearer | Finalizar execução |
+| `POST` | `/api/challenges/submissions/{id}/finalize-review` | TRAINER\|ADMIN | Aprovar/rejeitar submissão |
+| `POST` | `/api/challenges/submissions/{id}/allow-retry` | TRAINER\|ADMIN | Permitir re-tentativa |
 
-### Tutoria (Gestão de Erros)
+### Planos de formação e certificados
 
-| Método | Rota | Descrição | Auth |
-|---|---|---|---|
-| GET | `/api/tutoria/categories` | Listar categorias de erro | Bearer |
-| POST | `/api/tutoria/categories` | Criar categoria | ADMIN |
-| PATCH | `/api/tutoria/categories/{id}` | Actualizar categoria | ADMIN |
-| GET | `/api/tutoria/errors` | Listar erros | Bearer |
-| POST | `/api/tutoria/errors` | Registar erro | Bearer |
-| GET | `/api/tutoria/errors/{id}` | Detalhe do erro | Bearer |
-| PATCH | `/api/tutoria/errors/{id}` | Actualizar erro | Bearer |
-| POST | `/api/tutoria/errors/{id}/verify` | Verificar erro | ADMIN/TRAINER |
-| GET | `/api/tutoria/plans` | Listar planos de acção | Bearer |
-| POST | `/api/tutoria/plans` | Criar plano de acção | Bearer |
-| GET | `/api/tutoria/plans/{id}` | Detalhe do plano | Bearer |
-| POST | `/api/tutoria/plans/{id}/submit` | Submeter plano | Bearer |
-| POST | `/api/tutoria/plans/{id}/approve` | Aprovar plano | ADMIN/TRAINER |
-| POST | `/api/tutoria/plans/{id}/return` | Devolver plano | ADMIN/TRAINER |
-| GET | `/api/tutoria/plans/{id}/items` | Itens do plano | Bearer |
-| POST | `/api/tutoria/plans/{id}/items` | Adicionar item | Bearer |
-| PATCH | `/api/tutoria/items/{id}` | Actualizar item | Bearer |
-| GET | `/api/tutoria/errors/{id}/comments` | Comentários do erro | Bearer |
-| POST | `/api/tutoria/errors/{id}/comments` | Adicionar comentário | Bearer |
-| GET | `/api/tutoria/students` | Listar tutorandos | ADMIN/TRAINER |
-| GET | `/api/tutoria/dashboard` | Dashboard de tutoria | Bearer |
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| `GET/POST` | `/api/trainer/training-plans` | TRAINER\|ADMIN | Listar / criar planos |
+| `POST` | `/api/finalization/plan/{id}/finalize` | TRAINER\|ADMIN | Finalizar plano (gera certificado) |
+| `GET` | `/api/certificates/` | Bearer | Listar certificados do utilizador |
+| `GET` | `/api/certificates/{id}/pdf` | Bearer | Download certificado PDF |
 
-### Erros Internos e Fichas de Aprendizagem
+### Lições (progresso)
 
-| Método | Rota | Descrição | Auth |
-|---|---|---|---|
-| GET | `/api/internal-errors` | Listar erros internos | Bearer |
-| POST | `/api/internal-errors` | Registar erro interno | Bearer |
-| GET | `/api/internal-errors/{id}` | Detalhe | Bearer |
-| GET | `/api/internal-errors/learning-sheets` | Fichas de aprendizagem | Bearer |
-| POST | `/api/internal-errors/learning-sheets` | Criar ficha | Bearer |
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| `POST` | `/api/lessons/{id}/start` | Bearer | Iniciar lição (começa timer) |
+| `POST` | `/api/lessons/{id}/pause` | Bearer | Pausar lição |
+| `POST` | `/api/lessons/{id}/resume` | Bearer | Retomar lição |
+| `POST` | `/api/lessons/{id}/finish` | Bearer | Terminar lição |
+| `POST` | `/api/lessons/{id}/approve` | TRAINER\|ADMIN | Aprovar lição do estudante |
 
-### Chamados (Suporte / Kanban)
+### Tutoria
 
-| Método | Rota | Descrição | Auth |
-|---|---|---|---|
-| GET | `/api/chamados` | Listar chamados | Bearer |
-| POST | `/api/chamados` | Criar chamado | Bearer |
-| GET | `/api/chamados/{id}` | Detalhe | Bearer |
-| PATCH | `/api/chamados/{id}` | Actualizar estado/campos | Bearer |
-| DELETE | `/api/chamados/{id}` | Eliminar chamado | ADMIN |
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| `GET/POST` | `/api/tutoria/errors` | Bearer | Listar / criar erros (scoped por role) |
+| `PATCH` | `/api/tutoria/errors/{id}/analysis` | Bearer | Actualizar análise do erro |
+| `POST` | `/api/tutoria/errors/{id}/approve-chief` | MANAGER\|ADMIN | Aprovar como chefe de equipa |
+| `POST` | `/api/tutoria/errors/{id}/resolve` | TUTOR\|ADMIN | Resolver erro |
+| `GET/POST` | `/api/tutoria/plans` | Bearer | Listar / criar planos de acção |
+| `POST` | `/api/tutoria/plans/{id}/approve` | TUTOR\|ADMIN | Aprovar plano |
+| `POST` | `/api/tutoria/plans/{id}/return` | TUTOR\|ADMIN | Devolver plano para revisão |
+| `GET/POST` | `/api/tutoria/capsulas` | Bearer\|TUTOR | Listar / criar cápsulas |
+| `GET` | `/api/tutoria/notifications` | Bearer | Ver notificações |
+| `PATCH` | `/api/tutoria/notifications/read-all` | Bearer | Marcar todas como lidas |
 
-### Relatórios
+### Erros internos e feedback
 
-| Método | Rota | Descrição | Auth |
-|---|---|---|---|
-| GET | `/api/relatorios/overview` | Visão geral | Bearer |
-| GET | `/api/relatorios/formacoes` | Relatório de formações | Bearer |
-| GET | `/api/relatorios/tutoria` | Relatório de tutoria | Bearer |
-| GET | `/api/relatorios/teams` | Relatório de equipas | Bearer |
-| GET | `/api/advanced-reports` | Relatórios avançados | ADMIN/TRAINER |
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| `GET/POST` | `/api/internal-errors/errors` | LIBERADOR | Listar / registar erros internos |
+| `GET/POST` | `/api/feedback/surveys` | TUTOR\|ADMIN | Gerir surveys de feedback |
+| `GET` | `/api/feedback/my-pending` | LIBERADOR | Ver surveys pendentes |
+| `POST` | `/api/feedback/responses` | LIBERADOR | Submeter avaliação de grabador |
+| `GET` | `/api/feedback/dashboard` | TUTOR\|ADMIN | Dashboard de sentimento |
 
-### Equipas
+### Chamados
 
-| Método | Rota | Descrição | Auth |
-|---|---|---|---|
-| GET | `/api/teams` | Listar equipas | Bearer |
-| POST | `/api/teams` | Criar equipa | ADMIN |
-| GET | `/api/teams/{id}` | Detalhe | Bearer |
-| POST | `/api/teams/{id}/members` | Adicionar membro | ADMIN |
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| `GET` | `/api/chamados` | Bearer | Listar chamados (scoped por role) |
+| `POST` | `/api/chamados` | Bearer | Criar chamado |
+| `PUT` | `/api/chamados/{id}` | ADMIN | Gerir chamado (estado, prioridade, notas, responsável) |
+| `DELETE` | `/api/chamados/{id}` | ADMIN | Apagar chamado |
+| `POST` | `/api/chamados/{id}/comments` | Bearer | Adicionar comentário |
 
-### Chatbot e FAQs
+### Relatórios e analytics
 
-| Método | Rota | Descrição | Auth |
-|---|---|---|---|
-| POST | `/api/chat` | Enviar mensagem ao chatbot | Bearer |
-| GET | `/api/chat/faqs` | Listar FAQs personalizadas | Bearer |
-| POST | `/api/chat/faqs` | Criar FAQ | ADMIN |
-| PATCH | `/api/chat/faqs/{id}` | Actualizar FAQ | ADMIN |
-| DELETE | `/api/chat/faqs/{id}` | Eliminar FAQ | ADMIN |
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| `GET` | `/api/relatorios/overview` | Bearer | KPIs gerais |
+| `GET` | `/api/relatorios/formacoes` | Bearer | Analytics de formações |
+| `GET` | `/api/relatorios/tutoria` | Bearer | Analytics de tutoria |
+| `GET` | `/api/relatorios/teams` | ADMIN\|MANAGER | Relatório de equipas |
+| `GET` | `/api/relatorios/incidents` | ADMIN\|MANAGER | Exportação de incidentes |
+| `GET` | `/api/dw/snapshot/latest` | ADMIN\|MANAGER | Snapshot DW mais recente |
+| `POST` | `/api/etl/run` | ADMIN | Forçar ETL manual |
 
-### Certificados e Avaliações
+### Dados Mestres
 
-| Método | Rota | Descrição | Auth |
-|---|---|---|---|
-| GET | `/api/certificates` | Listar certificados | Bearer |
-| GET | `/api/certificates/{id}` | Download PDF | Bearer |
-| GET | `/api/ratings` | Listar avaliações | Bearer |
-| POST | `/api/ratings` | Submeter avaliação | Bearer |
-| GET | `/api/knowledge_matrix` | Matriz de conhecimento | Bearer |
-| GET | `/api/stats` | KPIs e estatísticas | Bearer |
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| `GET/POST/PUT/DELETE` | `/api/admin/banks` | ADMIN | Bancos |
+| `GET/POST/PUT/DELETE` | `/api/admin/products` | ADMIN | Produtos |
+| `GET/POST/PATCH/DELETE` | `/api/teams` | ADMIN | Equipas e membros |
+| `GET/POST/PUT/DELETE` | `/api/admin/master/*` | ADMIN | Impactos, origens, departamentos, etc. |
+| `GET/POST/PUT/DELETE` | `/api/org/nodes` | ADMIN | Hierarquia organizacional |
+| `GET` | `/api/org/tree` | Bearer | Árvore hierárquica completa |
+| `GET` | `/api/org/audit` | ADMIN | Log de auditoria |
 
----
+### Chatbot e público
 
-## Base de Dados
-
-MySQL 8.0+ em produção. Em desenvolvimento local pode usar SQLite definindo `DATABASE_URL=sqlite:///./dev_tradehub.db`.
-
-As migrações SQL são aplicadas automaticamente no arranque do backend (via `app/migrate.py`). Os ficheiros SQL estão em `database/`.
-
-### Entidades principais
-
-```mermaid
-erDiagram
-    User {
-        int id PK
-        string email
-        string hashed_password
-        string role
-        bool is_active
-    }
-    Course {
-        int id PK
-        string title
-        string level
-        int trainer_id FK
-    }
-    TrainingPlan {
-        int id PK
-        string title
-        int trainer_id FK
-        int student_id FK
-    }
-    Lesson {
-        int id PK
-        string title
-        int course_id FK
-    }
-    Challenge {
-        int id PK
-        string title
-        string difficulty
-        int course_id FK
-    }
-    Certificate {
-        int id PK
-        int user_id FK
-        int course_id FK
-        date issued_at
-    }
-    Team {
-        int id PK
-        string name
-    }
-    TeamMember {
-        int team_id FK
-        int user_id FK
-        string role
-    }
-    TutoriaError {
-        int id PK
-        string title
-        string status
-        int student_id FK
-        int trainer_id FK
-        int category_id FK
-    }
-    ErrorCategory {
-        int id PK
-        string name
-    }
-    TutoriaActionPlan {
-        int id PK
-        string status
-        int error_id FK
-        int student_id FK
-    }
-    TutoriaActionItem {
-        int id PK
-        string description
-        bool completed
-        int plan_id FK
-    }
-    TutoriaComment {
-        int id PK
-        string content
-        int error_id FK
-        int user_id FK
-    }
-    InternalError {
-        int id PK
-        string title
-        string status
-        int reported_by FK
-    }
-    Chamado {
-        int id PK
-        string title
-        string status
-        int created_by FK
-    }
-    ChatFAQ {
-        int id PK
-        string question
-        string answer
-        int priority
-    }
-
-    User ||--o{ Course : "ensina"
-    User ||--o{ TrainingPlan : "atribuído"
-    User ||--o{ Certificate : "recebe"
-    User ||--o{ TeamMember : "pertence"
-    Team ||--o{ TeamMember : "tem"
-    Course ||--o{ Lesson : "contém"
-    Course ||--o{ Challenge : "contém"
-    User ||--o{ TutoriaError : "regista"
-    ErrorCategory ||--o{ TutoriaError : "classifica"
-    TutoriaError ||--o{ TutoriaActionPlan : "gera"
-    TutoriaActionPlan ||--o{ TutoriaActionItem : "contém"
-    TutoriaError ||--o{ TutoriaComment : "tem"
-    User ||--o{ InternalError : "reporta"
-    User ||--o{ Chamado : "abre"
-```
-
----
-
-## Portais (Frontend)
-
-| Portal | Rota base | Roles com acesso |
-|---|---|---|
-| Landing page | `/` (não autenticado) | — |
-| Portal de Formações | `/` (autenticado) | ADMIN, TRAINER, STUDENT, TRAINEE |
-| Portal de Tutoria | `/tutoria` | Todos |
-| Portal de Relatórios | `/relatorios` | Todos |
-| Portal de Chamados | `/chamados` | Todos |
-| Portal de Dados Mestres | `/master-data` | ADMIN |
-
-O chatbot (widget flutuante) está disponível em todos os portais autenticados.
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| `POST` | `/api/chat` | Bearer | Enviar mensagem ao chatbot Claude |
+| `GET` | `/api/stats/kpis` | — | KPIs públicos (landing page) |
+| `GET` | `/api/public/landing` | — | Dados da landing page |
 
 ---
 
 ## Testes
 
+### Executar testes
+
 ```bash
-# A partir da pasta backend/, com .venv activo
+# Na pasta backend/, com .venv activo
 
-# Todos os testes (341 testes, todos os portais)
-pytest tests/test_all_portals.py -v
-
-# Testes de tutoria
-pytest tests/test_tutoria_v4.py -v
-
-# Todos os testes com output detalhado
+# Todos os testes (341 testes)
 pytest tests/ -v
 
-# Relatório de cobertura (requer pytest-cov)
+# Suite principal (todos os portais)
+pytest tests/test_all_portals.py -v
+
+# Suite de tutoria
+pytest tests/test_tutoria_v4.py -v
+
+# Com relatório de cobertura
 pytest tests/ --cov=app --cov-report=html
+# Abre htmlcov/index.html no browser
+
+# Filtrar por keyword
+pytest tests/ -k "admin" -v
+pytest tests/ -k "tutoria" -v
 ```
 
-Os relatórios de testes encontram-se em `docs/TEST_EVIDENCE_REPORT.md`.
+### Testes E2E (Playwright)
+
+```bash
+# Na raiz do projecto
+
+# Instalar browsers
+npx playwright install
+
+# Correr todos (3 browsers, 4 workers paralelos)
+npx playwright test
+
+# Modo UI (interface visual)
+npx playwright test --ui
+
+# Apenas Chromium
+npx playwright test --project=chromium
+
+# Ver relatório HTML
+npx playwright show-report
+```
+
+> Configuração em `playwright.config.ts`. Fixtures em `tests/e2e/fixtures.ts`.
+
+### Credenciais de teste
+
+| Role | Email | Password |
+|------|-------|----------|
+| ADMIN | admin@tradehub.com | test123 |
+| MANAGER | manager@tradehub.com | test123 |
+| TRAINER | trainer@tradehub.com | test123 |
+| TRAINEE | student@tradehub.com | test123 |
 
 ---
 
-## Scripts Disponíveis
+## Deploy e CI/CD
 
-### Backend
-
-| Comando | O que faz |
-|---|---|
-| `uvicorn main:app --reload` | Inicia backend em modo desenvolvimento |
-| `python reset_admin_password.py` | Repõe a senha do utilizador admin |
-| `python reset_user_password.py` | Repõe a senha de qualquer utilizador |
-| `pytest tests/` | Corre todos os testes |
-
-### Frontend
-
-| Comando | O que faz |
-|---|---|
-| `npm run dev` | Inicia frontend em modo desenvolvimento (porta 5173) |
-| `npm run build` | Compila para produção (output em `dist/`) |
-| `npm run preview` | Pré-visualiza o build de produção |
-| `npm run lint` | Executa ESLint |
-
-### Deploy (Docker)
-
-| Comando | O que faz |
-|---|---|
-| `.\scripts\deploy.ps1` | Deploy completo: backup + pull + build + restart |
-| `.\scripts\rollback.ps1` | Rollback para o commit anterior |
-| `.\scripts\setup-server.ps1` | Verificação de pré-requisitos do servidor |
-| `docker compose ps` | Status dos containers |
-| `docker compose logs -f` | Logs em tempo real |
-
----
-
-## Deploy
-
-O deploy de produção usa **Docker Compose** com 3 containers:
-- **tradehub-frontend** — React SPA servida por nginx (porta 80) + proxy `/api` → backend
-- **tradehub-backend** — FastAPI (Python 3.13)
-- **tradehub-db** — MySQL 8.0
-
-### CI/CD Pipeline
+### Pipeline automático
 
 ```
-push → CI (lint + tests) → Build & Push (GHCR) → Deploy (SSH)
+git push main
+   │
+   ├─► CI (ci.yml) ─────────────► lint + type-check + 341 testes pytest
+   │
+   ├─► Build (build-and-push.yml) ► Docker build → GHCR (ghcr.io/...)
+   │
+   └─► Deploy (deploy.yml) ──────► SSH → servidor → docker pull + restart
 ```
 
 | Workflow | Trigger | Função |
 |----------|---------|--------|
-| `ci.yml` | Push/PR para main, develop | Lint, type check, testes |
-| `build-and-push.yml` | Após CI passar em main | Build Docker → GHCR |
-| `deploy.yml` | Após Build ou manual | Deploy via SSH |
-| `dependabot.yml` | Semanal (segundas) | PRs de atualização de deps |
+| `ci.yml` | Push/PR → main, develop | Lint, type check, pytest |
+| `build-and-push.yml` | CI ✅ em main | Build imagens Docker → GitHub Container Registry |
+| `deploy.yml` | Build ✅ ou manual | Deploy via SSH ao servidor |
+| `dependabot.yml` | Semanal (segunda) | PRs automáticos de actualização de deps |
 
-### Deploy Manual
+### Deploy manual (Docker em VPS)
 
-```powershell
-.\scripts\deploy.ps1           # Deploy com backup automático
-.\scripts\rollback.ps1         # Rollback rápido
+```bash
+# No servidor
+cd /opt/tradehub
+
+# Actualização completa (pull + deps + build frontend + restart)
+./start-vps.sh update
+
+# Actualização rápida (pull + restart backend sem rebuild)
+./start-vps.sh quick
+
+# Só frontend (pull + build + copiar para nginx)
+./start-vps.sh frontend
+
+# Restart de serviços
+./start-vps.sh restart
+
+# Parar tudo
+./start-vps.sh stop
+
+# Status + logs
+./start-vps.sh status
 ```
 
-### Logs
+### Primeiro deploy (servidor novo)
 
-```powershell
-docker compose logs -f tradehub-backend    # logs em tempo real
-docker compose logs --tail 50 tradehub-backend  # últimas 50 linhas
-docker compose ps                          # estado dos containers
-docker stats --no-stream                   # uso de recursos
+```bash
+ssh <user>@<servidor>
+cd /opt
+git clone https://github.com/marceloligiero/PortalTradeHudb.git tradehub
+cd tradehub
+cp .env.example .env
+cp backend/.env.example backend/.env
+# Editar ambos os ficheiros com valores de produção
+docker compose --profile prod up -d --build
 ```
 
-> Para documentação detalhada de deploy, consultar [DEPLOY.md](DEPLOY.md).
+### Portas em produção
+
+| Serviço | Porta |
+|---------|-------|
+| nginx (HTTP) | 80 |
+| nginx (HTTPS) | 443 |
+| Backend (interno) | 8000 |
+| Backend (externo via nginx) | 8100 |
+| MySQL (apenas interno) | 3306 |
+
+---
+
+## Estrutura do projecto
+
+```
+PortalTradeHub/
+│
+├── backend/
+│   ├── main.py                    # Ponto de entrada FastAPI, registo de routers
+│   ├── requirements.txt           # Dependências Python
+│   ├── Dockerfile                 # Multi-stage: deps / runtime
+│   ├── .env.example               # Template de variáveis de ambiente
+│   └── app/
+│       ├── config.py              # Configuração (Pydantic Settings)
+│       ├── database.py            # Engine + sessão SQLAlchemy
+│       ├── models.py              # Todos os modelos ORM (~40 tabelas)
+│       ├── auth.py                # JWT, bcrypt, get_current_user, get_visible_user_ids
+│       ├── migrate.py             # Sistema de migrações automáticas (Flyway-style)
+│       ├── schemas/               # Pydantic schemas por módulo
+│       ├── routes/                # Routers: admin, trainer, student, certificates, ratings...
+│       └── routers/               # Routers: tutoria, chamados, teams, org, feedback, dw...
+│
+├── backend/tests/
+│   ├── test_all_portals.py        # Suite principal (todos os portais)
+│   └── test_tutoria_v4.py         # Suite de tutoria
+│
+├── frontend/
+│   ├── src/
+│   │   ├── App.tsx                # Routing React Router v6 (role-based routes)
+│   │   ├── pages/
+│   │   │   ├── admin/             # ADMIN/GESTOR: Dashboard, Cursos, MasterData, OrgHierarchy...
+│   │   │   ├── student/           # STUDENT/TRAINEE: Dashboard, Cursos, Desafios, Planos...
+│   │   │   ├── trainer/           # TRAINER: Dashboard, Cursos, Alunos, Submissões...
+│   │   │   ├── tutoria/           # Portal Tutoria: Erros, Planos, SideBySide, Capsulas...
+│   │   │   ├── relatorios/        # Portal Relatórios: Overview, Formações, Tutoria, Teams...
+│   │   │   └── chamados/          # Portal Chamados: Kanban
+│   │   ├── components/
+│   │   │   ├── layout/            # PortalLayout, Header, Sidebar, SidebarLink...
+│   │   │   ├── landing/           # Landing page (animações, secções)
+│   │   │   └── ChatWidget.tsx     # Chatbot Claude (widget global)
+│   │   ├── stores/
+│   │   │   └── authStore.ts       # Zustand: token JWT, user, role, setAuth, clear
+│   │   ├── contexts/
+│   │   │   └── ThemeContext.tsx   # Dark/light mode
+│   │   └── i18n/
+│   │       └── locales/           # en.json · es.json · pt-PT.json
+│   ├── vite.config.ts             # Vite + proxy /api + polling HMR (Docker)
+│   ├── Dockerfile                 # Multi-stage: builder (Node) / nginx (prod)
+│   └── package.json
+│
+├── database/
+│   └── migrations/                # V001 → V005 SQL migrations
+│
+├── docs/
+│   ├── ROLES_AND_PERMISSIONS.md   # Permissões detalhadas por role e flag
+│   ├── FLUXOGRAMAS_OPERACOES.md   # 21 fluxogramas Mermaid (todos os fluxos)
+│   ├── TECHNICAL_AUDIT.md         # Auditoria técnica completa
+│   ├── SECURITY_AUDIT.md          # OWASP Top 10, GDPR, ISO 27001
+│   └── qa/                        # Checklists QA por role (ADMIN, MANAGER, TRAINER...)
+│
+├── docker-compose.yml             # Dev + Prod (profiles)
+├── Makefile                       # Atalhos: make up / make logs / make shell
+├── playwright.config.ts           # E2E Playwright (3 browsers, 4 workers)
+├── CLAUDE.md                      # Instruções para Claude Code
+└── README.md                      # Este ficheiro
+```
+
+---
+
+## Documentação adicional
+
+| Documento | Descrição |
+|-----------|-----------|
+| [`docs/ROLES_AND_PERMISSIONS.md`](docs/ROLES_AND_PERMISSIONS.md) | Todas as permissões por role, flag e portal com endpoints |
+| [`docs/FLUXOGRAMAS_OPERACOES.md`](docs/FLUXOGRAMAS_OPERACOES.md) | 21 fluxogramas Mermaid — passo a passo de cada operação |
+| [`docs/TECHNICAL_AUDIT.md`](docs/TECHNICAL_AUDIT.md) | Auditoria técnica: componentes, integrações, estado do código |
+| [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md) | Auditoria OWASP Top 10:2025 + GDPR + ISO 27001 |
+| [`docs/qa/README.md`](docs/qa/README.md) | Índice dos checklists de QA por role |
+| [`docs/qa/QA_ADMIN.md`](docs/qa/QA_ADMIN.md) | Checklist de testes para ADMIN |
+| [`docs/qa/QA_MANAGER.md`](docs/qa/QA_MANAGER.md) | Checklist de testes para MANAGER |
+| [`docs/qa/QA_TRAINER.md`](docs/qa/QA_TRAINER.md) | Checklist de testes para TRAINER |
+| [`docs/qa/QA_STUDENT.md`](docs/qa/QA_STUDENT.md) | Checklist de testes para STUDENT/TRAINEE |
+| [`docs/qa/QA_TUTOR.md`](docs/qa/QA_TUTOR.md) | Checklist de testes para is_tutor |
+| [`docs/qa/QA_REFERENTE.md`](docs/qa/QA_REFERENTE.md) | Checklist de testes para is_referente/is_liberador |
 
 ---
 
 ## Licença
 
-Propriedade privada. Todos os direitos reservados.
+Propriedade privada — Santander Trade Finance. Todos os direitos reservados.

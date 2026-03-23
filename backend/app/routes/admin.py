@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from typing import List, Dict, Any
 from datetime import datetime, timedelta
 from app.database import get_db
@@ -1019,7 +1019,7 @@ async def list_trainers(
 ) -> List[Dict[str, Any]]:
     """List all active trainers"""
     trainers = db.query(models.User).filter(
-        models.User.role == "TRAINER",
+        or_(models.User.role == "TRAINER", models.User.is_trainer == True),
         models.User.is_active == True,
         models.User.is_pending == False
     ).all()
@@ -1045,19 +1045,19 @@ async def get_admin_stats(
     # Count users by role
     total_students = db.query(models.User).filter(models.User.role == "TRAINEE").count()
     total_trainers = db.query(models.User).filter(
-        models.User.role == "TRAINER",
+        or_(models.User.role == "TRAINER", models.User.is_trainer == True),
         models.User.is_pending == False
     ).count()
     pending_trainers = db.query(models.User).filter(
         models.User.role.in_(["TRAINER", "MANAGER"]),
         models.User.is_pending == True
     ).count()
-    
+
     # Trainers approved this month
     now = datetime.utcnow()
     first_day_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     approved_this_month = db.query(models.User).filter(
-        models.User.role == "TRAINER",
+        or_(models.User.role == "TRAINER", models.User.is_trainer == True),
         models.User.is_pending == False,
         models.User.validated_at >= first_day_of_month
     ).count()
@@ -1217,7 +1217,7 @@ async def get_admin_trainers_report(
 ) -> List[Dict[str, Any]]:
     """Get detailed report of all trainers"""
     trainers = db.query(models.User).filter(
-        models.User.role == "TRAINER",
+        or_(models.User.role == "TRAINER", models.User.is_trainer == True),
         models.User.is_pending == False
     ).all()
     
@@ -1295,7 +1295,7 @@ async def get_admin_insights(
     
     # ═══════════════ 1. OVERVIEW KPIs ═══════════════
     total_students = db.query(models.User).filter(models.User.role == "TRAINEE", models.User.is_active == True).count()
-    total_trainers = db.query(models.User).filter(models.User.role == "TRAINER", models.User.is_pending == False, models.User.is_active == True).count()
+    total_trainers = db.query(models.User).filter(or_(models.User.role == "TRAINER", models.User.is_trainer == True), models.User.is_pending == False, models.User.is_active == True).count()
     pending_trainers = db.query(models.User).filter(models.User.role.in_(["TRAINER", "MANAGER"]), models.User.is_pending == True).count()
     total_courses = db.query(models.Course).filter(models.Course.is_active == True).count()
     total_lessons = db.query(models.Lesson).count()

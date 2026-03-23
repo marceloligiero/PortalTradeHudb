@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 # ═══════════════════════════════════════════════════════════════════════
-# reset-seed-test.sh — Pipeline completo: Limpa BD → Seed Users → Testes E2E
+# reset-seed-test.sh — Pipeline: Limpa BD → Seed Users+MasterData → Testes
 #
 # Uso:
-#   bash scripts/reset-seed-test.sh              # pipeline completo
-#   bash scripts/reset-seed-test.sh --no-backup  # sem backup
-#   bash scripts/reset-seed-test.sh --test-only  # só testes (sem reset)
+#   bash scripts/reset-seed-test.sh                       # pipeline completo
+#   bash scripts/reset-seed-test.sh --no-backup           # sem backup
+#   bash scripts/reset-seed-test.sh --test-only           # só testes
+#   bash scripts/reset-seed-test.sh --http-test           # inclui testes HTTP ao vivo
+#   bash scripts/reset-seed-test.sh --seed-ops            # inclui seed de dados operacionais
+#   bash scripts/reset-seed-test.sh --no-backup --http-test --seed-ops
 #
-# Requisitos: docker CLI com acesso aos containers tradehub-db e tradehub-backend
+# Requisitos: docker CLI; python + pymysql + openpyxl (para seed master data)
 # ═══════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
@@ -18,10 +21,15 @@ BACKUP_DIR="database"
 NO_BACKUP=false
 TEST_ONLY=false
 
+HTTP_TEST=false
+SEED_OPS=false
+
 for arg in "$@"; do
   case $arg in
     --no-backup)  NO_BACKUP=true ;;
     --test-only)  TEST_ONLY=true ;;
+    --http-test)  HTTP_TEST=true ;;
+    --seed-ops)   SEED_OPS=true ;;
   esac
 done
 
@@ -203,6 +211,24 @@ print(f\"[OK] Seed: {created} criados, {len(USERS)-created} atualizados\")
   echo "[OK] Total users no banco: $TOTAL_USERS (esperado: 10)"
   echo ""
 
+# ══════════════════════════════════════════════════════════════════════
+# ETAPA 2.5: SEED DE DADOS MESTRE (Excel + PNGs)
+# ══════════════════════════════════════════════════════════════════════
+  echo "━━━ ETAPA 2.5: Seed de Dados Mestre ━━━"
+
+  if command -v python3 &>/dev/null || command -v python &>/dev/null; then
+    PY_CMD=$(command -v python3 || command -v python)
+    if "$PY_CMD" scripts/seed_master_data.py; then
+      echo "[OK] Master data seed concluído"
+    else
+      echo "[WARN] Master data seed falhou — continuando sem dados mestre"
+    fi
+  else
+    echo "[SKIP] Python não encontrado — ignorar seed de dados mestre"
+    echo "       Instalar com: pip install pymysql openpyxl"
+  fi
+  echo ""
+
   # Reiniciar backend
   echo "[..] Reiniciando backend ..."
   docker restart "$CONTAINER_BACKEND" > /dev/null
@@ -210,6 +236,27 @@ print(f\"[OK] Seed: {created} criados, {len(USERS)-created} atualizados\")
   HEALTH=$(docker exec "$CONTAINER_BACKEND" sh -c 'curl -sf http://localhost:8000/api/health' 2>&1 || echo "FAIL")
   echo "[OK] Backend health: $HEALTH"
   echo ""
+
+# ══════════════════════════════════════════════════════════════════════
+# ETAPA 2.7: SEED DE DADOS OPERACIONAIS (via API)
+# ══════════════════════════════════════════════════════════════════════
+  if [[ "$SEED_OPS" == "true" ]]; then
+    echo "━━━ ETAPA 2.7: Seed de Dados Operacionais (via API) ━━━"
+
+    if command -v python3 &>/dev/null || command -v python &>/dev/null; then
+      PY_CMD=$(command -v python3 || command -v python)
+      if "$PY_CMD" scripts/seed_operational_data.py --verbose; then
+        echo "[OK] Operational data seed concluído"
+      else
+        echo "[WARN] Operational data seed falhou — continuando"
+      fi
+    else
+      echo "[SKIP] Python não encontrado — ignorar seed operacional"
+      echo "       Instalar com: pip install requests"
+    fi
+    echo ""
+  fi
+
 else
   echo "[--] Reset/Seed ignorado (--test-only)"
   echo ""
@@ -239,8 +286,44 @@ echo ""
 # Verificar se houve falhas
 if echo "$RESULT" | grep -q "failed"; then
   echo "⚠  Existem testes falhados! Verificar logs acima."
-  exit 1
+  PYTEST_OK=false
 else
-  echo "Todos os testes passaram com sucesso!"
-  exit 0
+  echo "Todos os testes pytest passaram com sucesso!"
+  PYTEST_OK=true
 fi
+
+# ══════════════════════════════════════════════════════════════════════
+# ETAPA 4: TESTES HTTP AO VIVO (opcional — --http-test)
+# ══════════════════════════════════════════════════════════════════════
+if [[ "$HTTP_TEST" == "true" ]]; then
+  echo ""
+  echo "━━━ ETAPA 4: Testes HTTP ao Vivo ━━━"
+
+  if command -v python3 &>/dev/null || command -v python &>/dev/null; then
+    PY_CMD=$(command -v python3 || command -v python)
+    if "$PY_CMD" scripts/test_endpoints.py; then
+      HTTP_OK=true
+    else
+      HTTP_OK=false
+    fi
+  else
+    echo "[SKIP] Python não encontrado"
+    HTTP_OK=true
+  fi
+else
+  echo "[--] Testes HTTP ignorados (usar --http-test para ativar)"
+  HTTP_OK=true
+fi
+
+echo ""
+echo "╔══════════════════════════════════════════════════════════════╗"
+echo "║  RESULTADO FINAL                                            ║"
+echo "║  Pytest : $([ "$PYTEST_OK" = true ] && echo "PASSED" || echo "FAILED")                                         ║"
+echo "║  HTTP   : $([ "$HTTP_TEST" = true ] && ([ "$HTTP_OK" = true ] && echo "PASSED" || echo "FAILED") || echo "N/A (--http-test para ativar)")               ║"
+echo "║  SeedOps: $([ "$SEED_OPS" = true ] && echo "DONE" || echo "N/A (--seed-ops para ativar)")                  ║"
+echo "╚══════════════════════════════════════════════════════════════╝"
+
+if [[ "$PYTEST_OK" == "false" ]] || [[ "$HTTP_OK" == "false" ]]; then
+  exit 1
+fi
+exit 0

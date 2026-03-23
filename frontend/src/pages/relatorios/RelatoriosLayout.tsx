@@ -1,5 +1,6 @@
 import {
   LayoutDashboard, GraduationCap, Shield, Users, UserCircle, AlertTriangle,
+  BarChart3, Brain, Star, Award, BookMarked,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
@@ -12,6 +13,8 @@ function RelatoriosSidebar() {
 
   const isAdmin   = user?.role === 'ADMIN' || user?.role === 'GESTOR';
   const isManager = user?.role === 'MANAGER';
+  const isTutor   = (user as any)?.is_tutor;
+  const isChefe   = (user as any)?.is_team_lead;
 
   return (
     <>
@@ -29,8 +32,24 @@ function RelatoriosSidebar() {
 
       {(isAdmin || isManager) && (
         <>
+          <SidebarSection label={t('navigation.analyticsSection', 'Análise')} />
+          <SidebarLink to="/relatorios/reports" icon={Award} label={t('navigation.reports')} />
+          <SidebarLink to="/relatorios/advanced-reports" icon={BarChart3} label={t('navigation.advancedReports')} />
+          <SidebarLink to="/relatorios/knowledge-matrix" icon={Brain} label={t('navigation.knowledgeMatrix')} />
+          <SidebarLink to="/relatorios/ratings" icon={Star} label={t('navigation.ratings')} />
+
           <SidebarSection label={t('relatoriosSidebar.exports')} />
           <SidebarLink to="/relatorios/incidents" icon={AlertTriangle} label={t('relatoriosSidebar.incidents')} />
+        </>
+      )}
+
+      {(isAdmin || isManager || isTutor || isChefe) && (
+        <>
+          <SidebarSection label={t('tutoriaLayout.pageTitle', 'Tutoria')} />
+          <SidebarLink to="/tutoria/report" icon={BarChart3} label={t('tutoriaSidebar.report')} />
+          {(isAdmin || isTutor) && (
+            <SidebarLink to="/tutoria/feedback/dashboard" icon={BookMarked} label={t('tutoriaSidebar.feedbackDashboard', 'Dashboard Feedback')} />
+          )}
         </>
       )}
     </>

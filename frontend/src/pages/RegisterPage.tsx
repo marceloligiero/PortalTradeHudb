@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import api from '../lib/axios';
 import {
   UserPlus, Mail, Lock, User, Eye, EyeOff, CheckCircle, LogIn,
-  Sparkles, Crown, BookOpen, Shield, KeyRound, UserCheck, Eye,
+  Sparkles, Crown, BookOpen, Shield, KeyRound, UserCheck,
   ArrowRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

@@ -77,7 +77,7 @@ export default function FeedbackRespond() {
   );
 
   return (
-    <div className="space-y-4 max-w-2xl">
+    <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
           {t('feedback.respondTitle', 'Responder Feedback')}
