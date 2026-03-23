@@ -11,21 +11,34 @@ import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).parent.parent
+ROOT = Path(__file__).resolve().parent.parent
 SEED_FILE = ROOT / "scripts" / "master_data_seed.sql"
 ENV_FILE  = ROOT / "backend" / ".env"
+
+
+def _read_env_file(env_path: Path) -> str:
+    """Lê o ficheiro .env suportando UTF-8, UTF-16 e ANSI (Windows)."""
+    # PowerShell Set-Content escreve UTF-16 LE por padrão no Windows 5.1
+    for enc in ("utf-8-sig", "utf-16", "utf-8", "cp1252", "latin-1"):
+        try:
+            return env_path.read_text(encoding=enc)
+        except (UnicodeDecodeError, UnicodeError):
+            continue
+    return ""
 
 
 def parse_database_url(env_path: Path) -> dict:
     """Extrai host, port, user, password, db de DATABASE_URL no .env."""
     if not env_path.exists():
         return {}
-    for line in env_path.read_text(encoding="utf-8").splitlines():
-        if line.strip().startswith("DATABASE_URL"):
+    content = _read_env_file(env_path)
+    for line in content.splitlines():
+        line = line.strip().strip("\x00")  # remover NUL bytes de UTF-16
+        if line.startswith("DATABASE_URL"):
             # mysql+pymysql://user:pass@host:port/db
             m = re.match(
                 r"DATABASE_URL\s*=\s*mysql\+pymysql://([^:]+):([^@]+)@([^:/]+):?(\d+)?/(\S+)",
-                line.strip(),
+                line,
             )
             if m:
                 return {
@@ -33,7 +46,7 @@ def parse_database_url(env_path: Path) -> dict:
                     "password": m.group(2),
                     "host": m.group(3),
                     "port": int(m.group(4) or 3306),
-                    "database": m.group(5),
+                    "database": m.group(5).rstrip("'\""),
                 }
     return {}
 
@@ -43,9 +56,23 @@ def main():
         print("  [SEED] master_data_seed.sql nao encontrado — a saltar.")
         return 0
 
+    # Fallback: tentar ler DATABASE_URL da variável de ambiente
     creds = parse_database_url(ENV_FILE)
     if not creds:
-        print("  [SEED] Nao foi possivel ler DATABASE_URL — a saltar.")
+        db_url = os.environ.get("DATABASE_URL", "")
+        m = re.match(
+            r"mysql\+pymysql://([^:]+):([^@]+)@([^:/]+):?(\d+)?/(\S+)",
+            db_url,
+        )
+        if m:
+            creds = {
+                "user": m.group(1), "password": m.group(2),
+                "host": m.group(3), "port": int(m.group(4) or 3306),
+                "database": m.group(5),
+            }
+
+    if not creds:
+        print(f"  [SEED] Nao foi possivel ler DATABASE_URL (procurado em: {ENV_FILE})")
         return 0
 
     try:
@@ -91,7 +118,6 @@ def main():
         errors = 0
         statements = [s.strip() for s in sql.split(";") if s.strip()]
         for stmt in statements:
-            # Ignorar comentários e diretivas SET de sistema
             if stmt.startswith("--") or stmt.startswith("/*"):
                 continue
             try:
