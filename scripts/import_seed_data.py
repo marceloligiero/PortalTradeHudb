@@ -51,32 +51,48 @@ def _read_env_file(env_path: Path) -> str:
     """Lê o ficheiro .env suportando UTF-8, UTF-16 e ANSI (Windows)."""
     for enc in ("utf-8-sig", "utf-16", "utf-8", "cp1252", "latin-1"):
         try:
-            return env_path.read_text(encoding=enc)
+            text = env_path.read_text(encoding=enc)
+            # UTF-16 produz NUL bytes intercalados — descarta se maioria for NUL
+            if text.count("\x00") > len(text) // 4:
+                continue
+            return text
         except (UnicodeDecodeError, UnicodeError):
             continue
     return ""
 
 
+def _parse_url(url: str) -> dict:
+    """Faz parse de mysql+pymysql://user:pass@host:port/db."""
+    url = url.strip().strip("'\"")  # remove aspas opcionais
+    m = re.match(
+        r"mysql\+pymysql://([^:]+):([^@]*)@([^:/]+):?(\d+)?/([^\s?#]+)",
+        url,
+    )
+    if not m:
+        return {}
+    return {
+        "user":     m.group(1),
+        "password": m.group(2),
+        "host":     m.group(3),
+        "port":     int(m.group(4) or 3306),
+        "database": m.group(5).rstrip("'\""),
+    }
+
+
 def parse_database_url(env_path: Path) -> dict:
-    """Extrai host, port, user, password, db de DATABASE_URL no .env."""
+    """Extrai credenciais de DATABASE_URL no .env (mesmo método do run_migrations.py)."""
     if not env_path.exists():
         return {}
     content = _read_env_file(env_path)
     for line in content.splitlines():
         line = line.strip().strip("\x00")
-        if line.startswith("DATABASE_URL"):
-            m = re.match(
-                r"DATABASE_URL\s*=\s*mysql\+pymysql://([^:]+):([^@]+)@([^:/]+):?(\d+)?/(\S+)",
-                line,
-            )
-            if m:
-                return {
-                    "user": m.group(1),
-                    "password": m.group(2),
-                    "host": m.group(3),
-                    "port": int(m.group(4) or 3306),
-                    "database": m.group(5).rstrip("'\""),
-                }
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        k, _, v = line.partition("=")
+        if k.strip() == "DATABASE_URL":
+            return _parse_url(v.strip())
     return {}
 
 
@@ -87,17 +103,7 @@ def main():
 
     creds = parse_database_url(ENV_FILE)
     if not creds:
-        db_url = os.environ.get("DATABASE_URL", "")
-        m = re.match(
-            r"mysql\+pymysql://([^:]+):([^@]+)@([^:/]+):?(\d+)?/(\S+)",
-            db_url,
-        )
-        if m:
-            creds = {
-                "user": m.group(1), "password": m.group(2),
-                "host": m.group(3), "port": int(m.group(4) or 3306),
-                "database": m.group(5),
-            }
+        creds = _parse_url(os.environ.get("DATABASE_URL", ""))
 
     if not creds:
         print(f"  [SEED] Nao foi possivel ler DATABASE_URL (procurado em: {ENV_FILE})")
