@@ -83,7 +83,7 @@ if errorlevel 1 (
 :: ────────────────────────────────────────────
 :: 3. Migrações de base de dados
 :: ────────────────────────────────────────────
-echo [2/4] Base de dados...
+echo [2/5] Base de dados — migracoes...
 "%VENV%\Scripts\python.exe" "%ROOT%scripts\run_migrations.py" 2>nul
 if errorlevel 1 (
     echo  [AVISO] Migracao falhou ou script nao encontrado.
@@ -92,9 +92,19 @@ if errorlevel 1 (
 echo       Migracoes OK.
 
 :: ────────────────────────────────────────────
-:: 4. Frontend — node_modules + build/dev
+:: 4. Import de dados mestres (se BD vazia)
 :: ────────────────────────────────────────────
-echo [3/4] Frontend...
+echo [3/5] Dados mestres...
+if exist "%ROOT%scripts\import_seed_data.py" (
+    "%VENV%\Scripts\python.exe" "%ROOT%scripts\import_seed_data.py"
+) else (
+    echo  [AVISO] import_seed_data.py nao encontrado — a saltar.
+)
+
+:: ────────────────────────────────────────────
+:: 5. Frontend — node_modules + build/dev
+:: ────────────────────────────────────────────
+echo [4/5] Frontend...
 
 cd /d "%ROOT%frontend"
 
@@ -114,7 +124,7 @@ cd /d "%ROOT%"
 :: ────────────────────────────────────────────
 :: 5. Iniciar backend (janela separada)
 :: ────────────────────────────────────────────
-echo [4/4] Iniciando servicos...
+echo [5/5] Iniciando servicos...
 
 :: Parar instância anterior se existir
 for /f "tokens=5" %%p in ('netstat -aon ^| findstr ":%BACKEND_PORT%.*LISTENING" 2^>nul') do (
