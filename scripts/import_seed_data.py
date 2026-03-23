@@ -178,6 +178,9 @@ def main():
 
         # Executar o seed
         sql = SEED_FILE.read_text(encoding="utf-8")
+        # Garantir INSERT IGNORE em todos os statements (mesmo que o ficheiro
+        # tenha sido exportado sem --insert-ignore por engano)
+        sql = re.sub(r"\bINSERT\s+INTO\b", "INSERT IGNORE INTO", sql)
         errors = 0
         inserted = 0
         statements = [s.strip() for s in sql.split(";") if s.strip()]
