@@ -2,8 +2,10 @@
 import_seed_data.py — Importa dados mestres do Docker para o MySQL local.
 
 Comportamento:
-  1a execucao  → limpa as tabelas mestres e insere todos os dados do Docker.
-  Execucoes seguintes → salta (marcador seed_master_v1 na tabela _migrations).
+  1a execucao  → limpa TODAS as tabelas mestres (preserva o utilizador ADMIN),
+                 depois insere todos os dados do Docker.
+  Execucoes seguintes → salta (marcador seed_master_v1 em _migrations),
+                        apenas as migrations pendentes sao executadas.
 
 Uso manual:
   python import_seed_data.py           # comportamento normal
@@ -24,7 +26,8 @@ FORCE = "--force" in sys.argv
 # Marcador gravado em _migrations para indicar que o seed ja foi aplicado
 SEED_MARKER = "seed_master_v1"
 
-# Ordem de truncate respeitando FK (filhos antes de pais)
+# Tabelas a truncar (FK filhos antes de pais).
+# A tabela users NAO esta aqui — tratada separadamente para preservar ADMIN.
 TRUNCATE_ORDER = [
     "team_members",
     "team_services",
@@ -39,7 +42,6 @@ TRUNCATE_ORDER = [
     "error_detected_by",
     "error_origins",
     "error_impacts",
-    "users",
     "products",
     "banks",
 ]
@@ -144,13 +146,29 @@ def main():
         cur.execute("SET FOREIGN_KEY_CHECKS = 0;")
         cur.execute("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;")
 
-        # Limpar tabelas na ordem correta
+        # Guardar IDs dos admins antes de limpar
+        admin_ids = []
+        try:
+            cur.execute("SELECT id FROM users WHERE role = 'ADMIN'")
+            admin_ids = [r[0] for r in cur.fetchall()]
+        except Exception:
+            pass
+
+        # Limpar tabelas mestres (sem users)
         for table in TRUNCATE_ORDER:
             try:
                 cur.execute(f"TRUNCATE TABLE `{table}`")
             except Exception as e:
-                # Pode nao existir ainda (ex: org_nodes antes da migration V004)
                 print(f"  [SEED] Aviso ao truncar {table}: {e}")
+
+        # Limpar users NAO-admin (preserva login do admin)
+        try:
+            cur.execute("DELETE FROM users WHERE role != 'ADMIN'")
+        except Exception as e:
+            print(f"  [SEED] Aviso ao limpar users: {e}")
+
+        if admin_ids:
+            print(f"  [SEED] Admin preservado (id={admin_ids}). Restantes users serao importados do Docker.")
 
         # Executar o seed
         sql = SEED_FILE.read_text(encoding="utf-8")
