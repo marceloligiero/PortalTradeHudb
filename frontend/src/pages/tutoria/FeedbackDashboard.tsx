@@ -91,7 +91,7 @@ export default function FeedbackDashboard() {
   const { total_responses, sentiment_counts, intervention_alerts, grabador_scores } = data;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+    <div className="space-y-6">
 
       {/* ── Header ── */}
       <div className="flex items-center gap-4">

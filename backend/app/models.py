@@ -47,6 +47,7 @@ class Team(Base):
     description = Column(Text, nullable=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)  # legacy
     manager_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    node_id = Column(Integer, ForeignKey("org_nodes.id"), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -198,10 +199,11 @@ class Course(Base):
     bank_id = Column(Integer, ForeignKey("banks.id"), nullable=True)  # Legacy - nullable for new multi-bank courses
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)  # Legacy - nullable for new multi-product courses
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    started_by = Column(String(50), default="TRAINER")
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
     # Relationships
     bank = relationship("Bank", back_populates="courses")  # Legacy single bank
     product = relationship("Product", back_populates="courses")  # Legacy single product
@@ -734,7 +736,7 @@ class TutoriaActionPlan(Base):
     __tablename__ = "tutoria_action_plans"
 
     id = Column(Integer, primary_key=True, index=True)
-    error_id = Column(Integer, ForeignKey("tutoria_errors.id", ondelete="CASCADE"), nullable=False)
+    error_id = Column(Integer, ForeignKey("tutoria_errors.id", ondelete="CASCADE"), nullable=True)  # nullable for side-by-side plans without an associated error
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     tutorado_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
@@ -1297,4 +1299,61 @@ class ReleaserSurveyAction(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     response = relationship("ReleaserSurveyResponse", back_populates="actions")
-    creator = relationship("User", foreign_keys=[created_by_id])
+
+
+# ══════════════════════════════════════════════════════════════════
+# HIERARQUIA ORGANIZACIONAL — árvore dinâmica e ilimitada em níveis
+# ══════════════════════════════════════════════════════════════════
+
+class OrgNode(Base):
+    """Nó da hierarquia organizacional (lista de adjacência, self-referencial)."""
+    __tablename__ = "org_nodes"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    name        = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    parent_id   = Column(Integer, ForeignKey("org_nodes.id", ondelete="SET NULL"), nullable=True)
+    position    = Column(Integer, nullable=False, default=0)
+    is_active   = Column(Boolean, nullable=False, default=True)
+    created_by  = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at  = Column(DateTime(timezone=True), onupdate=func.now())
+
+    parent   = relationship("OrgNode", remote_side="OrgNode.id", back_populates="children")
+    children = relationship("OrgNode", back_populates="parent",
+                            order_by="OrgNode.position", cascade="all, delete-orphan")
+    members  = relationship("OrgNodeMember", back_populates="node",
+                            cascade="all, delete-orphan")
+    creator  = relationship("User", foreign_keys=[created_by])
+
+
+class OrgNodeMember(Base):
+    """Associação M2M utilizador ↔ nó hierárquico."""
+    __tablename__ = "org_node_members"
+
+    id          = Column(Integer, primary_key=True, index=True)
+    node_id     = Column(Integer, ForeignKey("org_nodes.id", ondelete="CASCADE"), nullable=False)
+    user_id     = Column(Integer, ForeignKey("users.id",     ondelete="CASCADE"), nullable=False)
+    assigned_by = Column(Integer, ForeignKey("users.id",     ondelete="SET NULL"), nullable=True)
+    assigned_at = Column(DateTime(timezone=True), server_default=func.now())
+    member_role = Column(String(50), nullable=True)  # DIRECTOR | MANAGER (root node only)
+
+    node          = relationship("OrgNode", back_populates="members")
+    user          = relationship("User", foreign_keys=[user_id])
+    assigned_user = relationship("User", foreign_keys=[assigned_by])
+
+
+class OrgNodeAudit(Base):
+    """Registo de auditoria de alterações na hierarquia organizacional."""
+    __tablename__ = "org_node_audit"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    node_id      = Column(Integer, ForeignKey("org_nodes.id", ondelete="SET NULL"), nullable=True)
+    node_name    = Column(String(200), nullable=True)
+    action       = Column(String(50),  nullable=False)  # CREATE UPDATE DELETE MOVE ADD_MEMBER REMOVE_MEMBER
+    old_value    = Column(JSON, nullable=True)
+    new_value    = Column(JSON, nullable=True)
+    performed_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    performed_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    performer = relationship("User", foreign_keys=[performed_by])

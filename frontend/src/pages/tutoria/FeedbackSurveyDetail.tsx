@@ -90,7 +90,7 @@ export default function FeedbackSurveyDetail() {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center gap-3">
         <button onClick={() => navigate('/tutoria/feedback')}
           className={`p-2 rounded-xl ${isDark ? 'hover:bg-white/[0.05]' : 'hover:bg-gray-100'}`}>

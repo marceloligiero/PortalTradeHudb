@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func as sa_func
+from sqlalchemy import func as sa_func, or_
 from typing import List
 from datetime import datetime
 from app.database import get_db
 from app import models, schemas, auth
+from app.auth import is_trainer_user
 
 router = APIRouter()
 
@@ -185,7 +186,7 @@ async def list_training_plans(
         # Load plans according to role
         if current_user.role == "ADMIN":
             plans = db.query(models.TrainingPlan).all()
-        elif current_user.role == "TRAINER":
+        elif is_trainer_user(current_user):
             # Buscar planos onde é formador primário OU secundário
             trainer_assignments = db.query(models.TrainingPlanTrainer).filter(
                 models.TrainingPlanTrainer.trainer_id == current_user.id
@@ -418,7 +419,7 @@ async def create_training_plan(
     logger.info(f"Creating training plan - User: {current_user.email}, Role: {current_user.role}")
     
     # Verificar role manualmente
-    if current_user.role not in ["ADMIN", "TRAINER"]:
+    if current_user.role != "ADMIN" and not is_trainer_user(current_user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
@@ -440,7 +441,7 @@ async def create_training_plan(
     for tid in trainer_ids:
         trainer = db.query(models.User).filter(
             models.User.id == tid,
-            models.User.role == "TRAINER",
+            or_(models.User.role == "TRAINER", models.User.is_trainer == True),
             models.User.is_pending == False
         ).first()
         
@@ -684,7 +685,7 @@ async def get_training_plan(
         is_student = plan.student_id == current_user.id
         if not assignment and not is_student:
             raise HTTPException(status_code=403, detail="Not authorized to access this training plan")
-    elif current_user.role == "TRAINER":
+    elif is_trainer_user(current_user):
         # Verificar se é formador (primário ou secundário) deste plano
         is_primary_trainer = plan.trainer_id == current_user.id
         trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
@@ -909,7 +910,7 @@ async def update_training_plan(
         raise HTTPException(status_code=404, detail="Training plan not found")
     
     # Verificar permissões - TRAINER só pode atualizar se for formador do plano
-    if current_user.role == "TRAINER":
+    if is_trainer_user(current_user):
         is_primary_trainer = db_plan.trainer_id == current_user.id
         trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
             models.TrainingPlanTrainer.training_plan_id == plan_id,
@@ -954,7 +955,7 @@ async def update_training_plan(
         for idx, trainer_id in enumerate(plan_update.trainer_ids):
             trainer = db.query(models.User).filter(
                 models.User.id == trainer_id,
-                models.User.role == "TRAINER"
+                or_(models.User.role == "TRAINER", models.User.is_trainer == True)
             ).first()
             if trainer:
                 plan_trainer = models.TrainingPlanTrainer(
@@ -1086,9 +1087,9 @@ async def delete_training_plan(
         raise HTTPException(status_code=404, detail="Training plan not found")
     
     # Verificar permissões
-    if current_user.role == "TRAINER" and db_plan.trainer_id != current_user.id:
+    if is_trainer_user(current_user) and db_plan.trainer_id != current_user.id:
         raise HTTPException(
-            status_code=403, 
+            status_code=403,
             detail="Not authorized to delete this training plan"
         )
     
@@ -1119,7 +1120,7 @@ async def assign_student_to_plan(
         raise HTTPException(status_code=400, detail="Não é possível inscrever formandos num plano finalizado")
     
     # Verificar permissões do TRAINER
-    if current_user.role == "TRAINER":
+    if is_trainer_user(current_user):
         is_trainer = plan.trainer_id == current_user.id
         trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
             models.TrainingPlanTrainer.training_plan_id == plan_id,
@@ -1127,7 +1128,7 @@ async def assign_student_to_plan(
         ).first()
         if not is_trainer and not trainer_assignment:
             raise HTTPException(
-                status_code=403, 
+                status_code=403,
                 detail="Not authorized to assign students to this training plan"
             )
     
@@ -1243,9 +1244,9 @@ async def unassign_student_from_plan(
     if not plan:
         raise HTTPException(status_code=404, detail="Training plan not found")
     
-    if current_user.role == "TRAINER" and plan.trainer_id != current_user.id:
+    if is_trainer_user(current_user) and plan.trainer_id != current_user.id:
         raise HTTPException(
-            status_code=403, 
+            status_code=403,
             detail="Not authorized to unassign students from this training plan"
         )
     
@@ -1315,7 +1316,7 @@ async def add_trainer_to_plan(
         raise HTTPException(status_code=400, detail="Não é possível adicionar formadores a um plano finalizado")
     
     # Verificar permissões
-    if current_user.role == "TRAINER":
+    if is_trainer_user(current_user):
         is_plan_trainer = plan.trainer_id == current_user.id
         trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
             models.TrainingPlanTrainer.training_plan_id == plan_id,
@@ -1391,7 +1392,7 @@ async def remove_trainer_from_plan(
         raise HTTPException(status_code=404, detail="Plano não encontrado")
     
     # Verificar permissões
-    if current_user.role == "TRAINER":
+    if is_trainer_user(current_user):
         if plan.trainer_id != current_user.id:
             raise HTTPException(status_code=403, detail="Apenas o formador principal ou admin pode remover formadores")
     
@@ -1432,7 +1433,7 @@ async def list_plan_students(
         raise HTTPException(status_code=404, detail="Training plan not found")
     
     # Verificar permissões do TRAINER
-    if current_user.role == "TRAINER":
+    if is_trainer_user(current_user):
         is_trainer = plan.trainer_id == current_user.id
         trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
             models.TrainingPlanTrainer.training_plan_id == plan_id,
@@ -1440,7 +1441,7 @@ async def list_plan_students(
         ).first()
         if not is_trainer and not trainer_assignment:
             raise HTTPException(
-                status_code=403, 
+                status_code=403,
                 detail="Not authorized to view students of this training plan"
             )
     
@@ -1499,7 +1500,7 @@ async def assign_multiple_students_to_plan(
         raise HTTPException(status_code=404, detail="Training plan not found")
     
     # Verificar permissões
-    if current_user.role == "TRAINER":
+    if is_trainer_user(current_user):
         is_trainer = plan.trainer_id == current_user.id
         trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
             models.TrainingPlanTrainer.training_plan_id == plan_id,
@@ -1665,11 +1666,11 @@ async def list_trainers(
     Listar formadores validados disponíveis para atribuição
     """
     trainers = db.query(models.User).filter(
-        models.User.role == "TRAINER",
+        or_(models.User.role == "TRAINER", models.User.is_trainer == True),
         models.User.is_pending == False,
         models.User.is_active == True
     ).all()
-    
+
     return trainers
 
 
@@ -1814,7 +1815,7 @@ async def get_plan_completion_status(
             target_student = plan.student_id
     
     # Verificar permissões
-    if current_user.role not in ["ADMIN", "TRAINER"] and current_user.id != target_student:
+    if current_user.role != "ADMIN" and not is_trainer_user(current_user) and current_user.id != target_student:
         raise HTTPException(status_code=403, detail="Sem permissão")
     
     completion_status = check_plan_completion(db, plan, student_id=target_student)
@@ -1883,7 +1884,7 @@ async def finalize_training_plan(
         raise HTTPException(status_code=404, detail="Plano não encontrado")
     
     # Verificar se formador é responsável pelo plano
-    if current_user.role == "TRAINER":
+    if is_trainer_user(current_user):
         is_trainer = plan.trainer_id == current_user.id
         trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
             models.TrainingPlanTrainer.training_plan_id == plan_id,

@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from .. import models, schemas
 from fastapi import Body
 from ..database import get_db
-from ..auth import get_current_user, require_role
+from ..auth import get_current_user, require_role, is_trainer_user
 
 router = APIRouter(prefix="/api/challenges", tags=["challenges"])
 
@@ -233,7 +233,7 @@ async def get_eligible_students(
     student_ids = set()
     for plan in plans:
         # If trainer, skip plans not owned by trainer
-        if current_user.role == 'TRAINER' and plan.trainer_id != current_user.id:
+        if is_trainer_user(current_user) and plan.trainer_id != current_user.id:
             continue
 
         # Usar student_id diretamente do plano (1 aluno por plano)
@@ -533,7 +533,7 @@ async def submit_challenge_summary(
         
         if assignment:
             # Se o aplicador for TRAINER, garantir que o plan pertence ao trainer atual
-            if current_user.role == 'TRAINER':
+            if is_trainer_user(current_user):
                 # Check legacy trainer_id OR training_plan_trainers N:N
                 is_plan_trainer = (plan.trainer_id == current_user.id)
                 if not is_plan_trainer:
@@ -549,7 +549,7 @@ async def submit_challenge_summary(
         # Fallback: verificar student_id legacy no plano
         if plan.student_id == submission.user_id:
             # Se o aplicador for TRAINER, garantir que o plan pertence ao trainer atual
-            if current_user.role == 'TRAINER':
+            if is_trainer_user(current_user):
                 is_plan_trainer = (plan.trainer_id == current_user.id)
                 if not is_plan_trainer:
                     is_plan_trainer = db.query(models.TrainingPlanTrainer).filter(
@@ -792,7 +792,7 @@ async def start_challenge_complete(
         ).first()
         
         if assignment:
-            if current_user.role == 'TRAINER':
+            if is_trainer_user(current_user):
                 is_plan_trainer = (plan.trainer_id == current_user.id)
                 if not is_plan_trainer:
                     is_plan_trainer = db.query(models.TrainingPlanTrainer).filter(
@@ -803,10 +803,10 @@ async def start_challenge_complete(
                     continue
             assignment_found = True
             break
-        
+
         # Fallback: student_id legacy
         if plan.student_id == user_id:
-            if current_user.role == 'TRAINER':
+            if is_trainer_user(current_user):
                 is_plan_trainer = (plan.trainer_id == current_user.id)
                 if not is_plan_trainer:
                     is_plan_trainer = db.query(models.TrainingPlanTrainer).filter(

@@ -1,10 +1,10 @@
 import {
   Home, BookOpen, Award, Users, GraduationCap, Target,
-  Presentation, ClipboardCheck, BarChart3, Star, Brain, ShieldCheck,
+  Presentation, ClipboardCheck, BarChart3,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore, getEffectiveRole } from '../../stores/authStore';
-import { SidebarLink, SidebarSection } from './sidebar/index';
+import { SidebarLink } from './sidebar/index';
 
 export default function Sidebar() {
   const { user } = useAuthStore();
@@ -46,19 +46,9 @@ export default function Sidebar() {
       {/* Admin / Manager — core */}
       {(isAdmin || effectiveRole === 'MANAGER') && (
         <>
-          {isAdmin && (
-            <SidebarLink to="/trainer-validation" icon={ShieldCheck} label={t('navigation.trainers')} />
-          )}
           <SidebarLink to="/courses" icon={BookOpen} label={t('navigation.courses')} />
           <SidebarLink to="/training-plans" icon={GraduationCap} label={t('navigation.trainingPlans')} />
           <SidebarLink to="/pending-reviews" icon={ClipboardCheck} label={t('navigation.pendingReviews')} />
-
-          {/* Analytics section */}
-          <SidebarSection label={t('navigation.analyticsSection', 'Análise')} />
-          <SidebarLink to="/reports" icon={Award} label={t('navigation.reports')} />
-          <SidebarLink to="/advanced-reports" icon={BarChart3} label={t('navigation.advancedReports')} />
-          <SidebarLink to="/knowledge-matrix" icon={Brain} label={t('navigation.knowledgeMatrix')} />
-          <SidebarLink to="/ratings" icon={Star} label={t('navigation.ratings')} />
         </>
       )}
     </>

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, Sun, Moon, Menu, X, ChevronDown } from 'lucide-react';
+import { LogOut, Sun, Moon, Menu, X, ChevronDown, Bell } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore, getEffectiveRole } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSidebarStore } from '../../stores/sidebarStore';
+import axios from '../../lib/axios';
 
 const LANGUAGES = [
   { code: 'pt-PT', label: 'PT' },
@@ -32,6 +33,21 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
+
+  // Poll unread notifications
+  useEffect(() => {
+    if (!user) return;
+    const fetchUnread = async () => {
+      try {
+        const { data } = await axios.get('/tutoria/notifications');
+        setUnreadNotifs(Array.isArray(data) ? data.filter((n: any) => !n.is_read).length : 0);
+      } catch { /* ignore */ }
+    };
+    fetchUnread();
+    const iv = setInterval(fetchUnread, 30000);
+    return () => clearInterval(iv);
+  }, [user]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -154,6 +170,25 @@ export default function Header() {
                 }}
               />
             </button>
+
+            {/* Notification bell */}
+            {user && (
+              <button
+                onClick={() => navigate('/tutoria/notifications')}
+                className="relative w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200 hover:bg-gray-100 dark:hover:bg-white/[0.06]"
+                style={{
+                  background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                }}
+                aria-label={t('navigation.notifications', 'Notificações')}
+              >
+                <Bell className="w-[15px] h-[15px] text-gray-500 dark:text-gray-400" />
+                {unreadNotifs > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 flex items-center justify-center bg-[#EC0000] rounded-full text-[9px] font-bold text-white leading-none animate-pulse">
+                    {unreadNotifs > 9 ? '9+' : unreadNotifs}
+                  </span>
+                )}
+              </button>
+            )}
 
             {/* Avatar + dropdown trigger */}
             <button

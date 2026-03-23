@@ -15,7 +15,7 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
-from app.auth import get_current_user
+from app.auth import get_current_user, get_visible_user_ids
 from app.models import User, Chamado, ChamadoComment
 
 router = APIRouter()
@@ -121,12 +121,23 @@ def list_chamados(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Lista todos os chamados (todos os users veem todos)."""
+    """Lista chamados com scoping por role:
+    ADMIN/GESTOR → todos | MANAGER → equipa | utilizador simples → os seus.
+    """
     q = db.query(Chamado).options(
         joinedload(Chamado.creator),
         joinedload(Chamado.assignee),
         joinedload(Chamado.comments).joinedload(ChamadoComment.author),
     )
+    # ── Data scoping ──────────────────────────────────────────────
+    visible_ids = get_visible_user_ids(db, current_user)
+    if visible_ids is not None:
+        # Vê os chamados que criou OU que lhe foram atribuídos
+        q = q.filter(
+            (Chamado.created_by_id.in_(visible_ids)) |
+            (Chamado.assigned_to_id.in_(visible_ids))
+        )
+    # ─────────────────────────────────────────────────────────────
     if status:
         q = q.filter(Chamado.status == status)
     if type:

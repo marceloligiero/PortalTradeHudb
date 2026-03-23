@@ -101,24 +101,24 @@ export default function RegisterInternalError() {
     }
   };
 
-  const inputCls = `w-full px-4 py-2.5 rounded-xl border text-sm transition-all ${isDark ? 'bg-white/5 border-white/10 text-white placeholder-gray-500 focus:border-red-500/50' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-red-500'}`;
-  const selectCls = `w-full px-4 py-2.5 rounded-xl border text-sm transition-all ${isDark ? 'bg-[#1a1a2e] border-white/10 text-white focus:border-red-500/50' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-red-500'}`;
-  const labelCls = `block text-xs font-semibold uppercase tracking-wider mb-1.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`;
+  const inputCls = `w-full px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-neutral-900 dark:text-white placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:border-[#EC0000] focus:ring-2 focus:ring-[#EC0000]/20 transition-colors`;
+  const selectCls = `w-full px-3 py-2.5 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm text-neutral-900 dark:text-white focus:outline-none focus:border-[#EC0000] focus:ring-2 focus:ring-[#EC0000]/20 transition-colors`;
+  const labelCls = `block text-xs font-semibold text-neutral-600 dark:text-neutral-400 uppercase tracking-wide mb-1.5`;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
+    <div className="space-y-6 max-w-3xl">
       {/* Header */}
       <div className="flex items-center gap-4">
         <button onClick={() => navigate('/tutoria/internal-errors')}
-          className={`p-2 rounded-xl border transition-all ${isDark ? 'border-white/10 hover:bg-white/5 text-gray-400' : 'border-gray-200 hover:bg-gray-100 text-gray-500'}`}>
+          className="p-2 rounded-xl border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-500 dark:text-neutral-400 transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <h1 className="font-headline text-xl font-bold text-neutral-900 dark:text-white">
             <ShieldAlert className="w-6 h-6 inline mr-2 text-red-500" />
             {t('registerInternalError.title')}
           </h1>
-          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('registerInternalError.subtitle')}</p>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">{t('registerInternalError.subtitle')}</p>
         </div>
       </div>
 
@@ -131,7 +131,7 @@ export default function RegisterInternalError() {
 
       {/* Form */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-        className={`p-6 rounded-2xl border space-y-6 ${isDark ? 'bg-white/[0.02] border-white/5' : 'bg-white border-gray-200'}`}>
+        className="bg-white dark:bg-neutral-900 rounded-xl border border-neutral-200 dark:border-neutral-800 shadow-sm p-6 space-y-6">
 
         {/* Gravador */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -221,18 +221,18 @@ export default function RegisterInternalError() {
         </div> */}
 
         {/* Classificação do Erro (múltiplas) */}
-        <div className={`p-4 rounded-xl border ${isDark ? 'bg-white/[0.01] border-white/5' : 'bg-gray-50 border-gray-200'}`}>
-          <h3 className={`text-sm font-semibold mb-3 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+        <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800">
+          <h3 className="text-sm font-semibold mb-3 text-neutral-900 dark:text-white">
             <AlertTriangle className="w-4 h-4 inline mr-1.5 text-amber-500" />
             {t('registerInternalError.classificationsTitle')}
           </h3>
-          <p className={`text-xs mb-3 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('registerInternalError.classificationsHint')}</p>
+          <p className="text-xs mb-3 text-neutral-400 dark:text-neutral-500">{t('registerInternalError.classificationsHint')}</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             {[
-              { value: 'METHODOLOGY', label: t('registerInternalError.methodology'), active: 'border-blue-500 bg-blue-500/20 text-blue-400 ring-1 ring-blue-500/30', activeLight: 'border-blue-500 bg-blue-50 text-blue-600 ring-1 ring-blue-500/30' },
-              { value: 'KNOWLEDGE', label: t('registerInternalError.knowledge'), active: 'border-purple-500 bg-purple-500/20 text-purple-400 ring-1 ring-purple-500/30', activeLight: 'border-purple-500 bg-purple-50 text-purple-600 ring-1 ring-purple-500/30' },
-              { value: 'DETAIL', label: t('registerInternalError.detail'), active: 'border-amber-500 bg-amber-500/20 text-amber-400 ring-1 ring-amber-500/30', activeLight: 'border-amber-500 bg-amber-50 text-amber-600 ring-1 ring-amber-500/30' },
-              { value: 'PROCEDURE', label: t('registerInternalError.procedure'), active: 'border-emerald-500 bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30', activeLight: 'border-emerald-500 bg-emerald-50 text-emerald-600 ring-1 ring-emerald-500/30' },
+              { value: 'METHODOLOGY', label: t('registerInternalError.methodology'), active: 'border-blue-500 bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/30' },
+              { value: 'KNOWLEDGE', label: t('registerInternalError.knowledge'), active: 'border-purple-500 bg-purple-50 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 ring-1 ring-purple-500/30' },
+              { value: 'DETAIL', label: t('registerInternalError.detail'), active: 'border-amber-500 bg-amber-50 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30' },
+              { value: 'PROCEDURE', label: t('registerInternalError.procedure'), active: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30' },
             ].map(opt => {
               const isSelected = classifications.some(c => c.type === opt.value);
               return (
@@ -246,8 +246,8 @@ export default function RegisterInternalError() {
                   }}
                   className={`px-4 py-3 rounded-xl border text-sm font-medium transition-all ${
                     isSelected
-                      ? (isDark ? opt.active : opt.activeLight)
-                      : isDark ? 'border-white/10 text-gray-400 hover:bg-white/5' : 'border-gray-200 text-gray-600 hover:bg-gray-100'
+                      ? opt.active
+                      : 'border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
                   }`}>
                   {isSelected && <Plus className="w-3 h-3 inline mr-1 rotate-45" />}
                   {opt.label}
@@ -260,11 +260,11 @@ export default function RegisterInternalError() {
               {classifications.map((c, idx) => {
                 const labelMap: Record<string,string> = { METHODOLOGY: t('registerInternalError.methodology'), KNOWLEDGE: t('registerInternalError.knowledge'), DETAIL: t('registerInternalError.detail'), PROCEDURE: t('registerInternalError.procedure') };
                 return (
-                  <div key={c.type} className={`p-3 rounded-lg border ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-gray-200 bg-white'}`}>
+                  <div key={c.type} className="p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900">
                     <div className="flex items-center justify-between mb-2">
-                      <span className={`text-xs font-semibold uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{labelMap[c.type] || c.type}</span>
+                      <span className="text-xs font-semibold uppercase tracking-wider text-neutral-700 dark:text-neutral-300">{labelMap[c.type] || c.type}</span>
                       <button type="button" onClick={() => setClassifications(prev => prev.filter(x => x.type !== c.type))}
-                        className={`p-1 rounded-lg ${isDark ? 'text-gray-500 hover:text-red-400 hover:bg-white/5' : 'text-gray-400 hover:text-red-500 hover:bg-gray-100'}`}>
+                        className="p-1 rounded-lg text-neutral-400 dark:text-neutral-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-neutral-100 dark:hover:bg-neutral-800">
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -290,11 +290,11 @@ export default function RegisterInternalError() {
       {/* Actions */}
       <div className="flex justify-end gap-3">
         <button onClick={() => navigate('/tutoria/internal-errors')}
-          className={`px-6 py-2.5 rounded-xl border text-sm font-medium transition-all ${isDark ? 'border-white/10 text-gray-400 hover:bg-white/5' : 'border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
+          className="inline-flex items-center gap-2 px-4 py-2.5 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-800 font-semibold text-sm rounded-xl transition-colors">
           {t('registerInternalError.cancel')}
         </button>
         <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold text-sm hover:shadow-lg hover:shadow-red-600/20 transition-all disabled:opacity-50">
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#EC0000] hover:bg-[#CC0000] text-white font-semibold text-sm rounded-xl transition-colors disabled:opacity-50">
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
           {t('registerInternalError.submit')}
         </button>

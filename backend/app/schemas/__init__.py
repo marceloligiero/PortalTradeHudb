@@ -11,6 +11,18 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
 
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    full_name: Optional[str] = None
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+    is_pending: Optional[bool] = None
+    is_trainer: Optional[bool] = None
+    is_tutor: Optional[bool] = None
+    is_liberador: Optional[bool] = None
+    is_team_lead: Optional[bool] = None
+    is_referente: Optional[bool] = None
+
 class UserRegister(BaseModel):
     """Schema for user registration (email, password, role selection)"""
     email: EmailStr
@@ -22,15 +34,6 @@ class UserRegister(BaseModel):
     is_liberador: bool = False
     is_team_lead: bool = False
     is_referente: bool = False
-    full_name: Optional[str] = None
-    role: Optional[str] = None
-    is_active: Optional[bool] = None
-    is_pending: Optional[bool] = None
-    is_trainer: Optional[bool] = None
-    is_tutor: Optional[bool] = None
-    is_liberador: Optional[bool] = None
-    is_team_lead: Optional[bool] = None
-    is_referente: Optional[bool] = None
 
 class User(UserBase):
     id: int

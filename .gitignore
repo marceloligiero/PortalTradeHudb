@@ -22,6 +22,7 @@ build/
 wheels/
 
 # ── Node.js / Frontend ─────────────────────────────────
+node_modules/
 frontend/node_modules/
 frontend/.vite/
 frontend/.cache/
@@ -60,6 +61,11 @@ backend/.pytest_cache/
 backend/htmlcov/
 .coverage
 coverage.xml
+
+# ── Playwright E2E ─────────────────────────────────────
+tests/.auth/
+test-results/
+playwright-report/
 
 # ── IDE ────────────────────────────────────────────────
 .vscode/

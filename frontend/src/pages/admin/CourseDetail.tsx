@@ -18,10 +18,13 @@ import {
   CheckCircle2,
   AlertCircle,
   ChevronRight,
-  Play,
   Star,
   Shield,
-  TrendingUp
+  TrendingUp,
+  Play,
+  Layers,
+  Video,
+  Loader2
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -100,7 +103,7 @@ export default function CourseDetail() {
       setCourse(response.data);
     } catch (err: any) {
       console.error('Error fetching course:', err);
-      setError(err.response?.data?.detail || 'Erro ao carregar curso');
+      setError(err.response?.data?.detail || t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -140,21 +143,68 @@ export default function CourseDetail() {
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' });
 
+  const contentTypeLabel = (ct: string) => {
+    switch (ct?.toUpperCase()) {
+      case 'THEORETICAL': return t('admin.theoretical');
+      case 'PRACTICAL':   return t('admin.practical');
+      default:            return ct || '-';
+    }
+  };
+
+  const contentTypeStyle = (ct: string) => {
+    switch (ct?.toUpperCase()) {
+      case 'THEORETICAL': return 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400';
+      case 'PRACTICAL':   return 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400';
+      default:            return 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400';
+    }
+  };
+
+  const contentTypeIcon = (ct: string) => {
+    switch (ct?.toUpperCase()) {
+      case 'THEORETICAL': return <FileText className="w-3 h-3" />;
+      case 'PRACTICAL':   return <Play className="w-3 h-3" />;
+      default:            return <Layers className="w-3 h-3" />;
+    }
+  };
+
   const difficultyStyle = (d: string) => {
     switch (d?.toLowerCase()) {
-      case 'easy': return 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
-      case 'medium': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
-      case 'hard': return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400';
-      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
+      case 'easy':   return 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400';
+      case 'medium': return 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
+      case 'hard':   return 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400';
+      default:       return 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300';
     }
   };
 
   const difficultyLabel = (d: string) => {
     switch (d?.toLowerCase()) {
-      case 'easy': return t('challenges.difficultyEasy');
+      case 'easy':   return t('challenges.difficultyEasy');
       case 'medium': return t('challenges.difficultyMedium');
-      case 'hard': return t('challenges.difficultyHard');
-      default: return d || t('challenges.difficultyMedium');
+      case 'hard':   return t('challenges.difficultyHard');
+      default:       return d || t('challenges.difficultyMedium');
+    }
+  };
+
+  const levelConfig = (level?: string) => {
+    switch (level) {
+      case 'EXPERT':
+        return {
+          label: t('admin.levelExpert'),
+          icon: <Star className="w-3 h-3" />,
+          cls: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+        };
+      case 'INTERMEDIATE':
+        return {
+          label: t('admin.levelIntermediate'),
+          icon: <Shield className="w-3 h-3" />,
+          cls: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400',
+        };
+      default:
+        return {
+          label: t('admin.levelBeginner'),
+          icon: <TrendingUp className="w-3 h-3" />,
+          cls: 'bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400',
+        };
     }
   };
 
@@ -162,7 +212,7 @@ export default function CourseDetail() {
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-10 h-10 border-3 border-[#EC0000] border-t-transparent rounded-full animate-spin" />
+        <Loader2 className="w-8 h-8 text-[#EC0000] animate-spin" />
       </div>
     );
   }
@@ -174,7 +224,7 @@ export default function CourseDetail() {
         <div className="text-center">
           <AlertCircle className="w-10 h-10 text-[#EC0000] mx-auto mb-3" />
           <p className="text-gray-900 dark:text-white font-medium mb-1">{t('common.error')}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{error || 'Curso não encontrado'}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{error || t('common.notFound', 'Não encontrado')}</p>
           <button onClick={() => navigate('/courses')} className="text-sm text-[#EC0000] hover:underline">
             {t('common.goBack')}
           </button>
@@ -185,27 +235,30 @@ export default function CourseDetail() {
 
   const lessonCount = course.lessons?.length || 0;
   const challengeCount = course.challenges?.length || 0;
+  const banks = course.banks?.length ? course.banks : (course.bank_name ? [{ id: 0, name: course.bank_name }] : []);
+  const products = course.products?.length ? course.products : [{ id: 0, code: course.product_code, name: course.product_name }];
+  const lvl = levelConfig(course.level);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
 
-      {/* ════════════════════════════════════════════════════════
-          SECTION 1 — COURSE IDENTITY
-          Compact header: title, tags, metadata, actions
-         ════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════
+          COURSE HEADER
+         ══════════════════════════════════════════════════ */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
         <div className="p-5 sm:p-6">
-          {/* Navigation + Actions */}
+
+          {/* Top bar: back + actions */}
           <div className="flex items-center justify-between mb-5">
             <button
               onClick={() => navigate('/courses')}
-              className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors text-sm"
+              className="inline-flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               {t('common.back')}
             </button>
             {isAdmin && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => navigate(`/courses/${course.id}/edit`)}
                   className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
@@ -224,36 +277,31 @@ export default function CourseDetail() {
             )}
           </div>
 
-          {/* Title block */}
+          {/* Identity block */}
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 bg-[#EC0000] rounded-xl flex items-center justify-center flex-shrink-0">
               <BookOpen className="w-6 h-6 text-white" />
             </div>
+
             <div className="min-w-0 flex-1">
-              {/* Tags */}
-              <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-                {(course.banks?.length ? course.banks : course.bank_name ? [{ id: 0, name: course.bank_name }] : []).map(b => (
-                  <span key={b.id} className="px-2 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded text-[11px] font-medium">
+              {/* Tag row */}
+              <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                {banks.map(b => (
+                  <span key={b.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded text-[11px] font-medium">
+                    <Building2 className="w-3 h-3" />
                     {b.name}
                   </span>
                 ))}
-                {(course.products?.length ? course.products : [{ id: 0, code: course.product_code, name: course.product_name }]).map(p => (
-                  <span key={p.id} className="px-2 py-0.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded text-[11px] font-medium">
+                {products.map(p => (
+                  <span key={p.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded text-[11px] font-medium">
+                    <Package className="w-3 h-3" />
                     {getTranslatedProductName(t, p.code, p.name)}
                   </span>
                 ))}
                 {course.level && (
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold ${
-                    course.level === 'EXPERT' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' :
-                    course.level === 'INTERMEDIATE' ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400' :
-                    'bg-orange-50 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400'
-                  }`}>
-                    {course.level === 'EXPERT' ? <Star className="w-3 h-3" /> :
-                     course.level === 'INTERMEDIATE' ? <Shield className="w-3 h-3" /> :
-                     <TrendingUp className="w-3 h-3" />}
-                    {course.level === 'EXPERT' ? t('admin.levelExpert', 'Especialista') :
-                     course.level === 'INTERMEDIATE' ? t('admin.levelIntermediate', 'Intermédio') :
-                     t('admin.levelBeginner', 'Iniciante')}
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold ${lvl.cls}`}>
+                    {lvl.icon}
+                    {lvl.label}
                   </span>
                 )}
               </div>
@@ -263,17 +311,19 @@ export default function CourseDetail() {
                 {course.title}
               </h1>
               {course.description && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-2xl line-clamp-2">
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-2xl line-clamp-2">
                   {course.description}
                 </p>
               )}
 
-              {/* Inline metadata */}
+              {/* Metadata row */}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-gray-400 dark:text-gray-500">
-                <span className="flex items-center gap-1">
-                  <GraduationCap className="w-3.5 h-3.5" />
-                  {course.trainer_name || '-'}
-                </span>
+                {course.trainer_name && (
+                  <span className="flex items-center gap-1">
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    {course.trainer_name}
+                  </span>
+                )}
                 <span className="flex items-center gap-1">
                   <Calendar className="w-3.5 h-3.5" />
                   {formatDate(course.created_at)}
@@ -296,13 +346,12 @@ export default function CourseDetail() {
         </div>
       </div>
 
-      {/* ════════════════════════════════════════════════════════
-          SECTION 2 — STUDENT CONTEXT (students only)
-          Enrollment, training plan, rating — between header & content
-         ════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════
+          STUDENT CONTEXT BAR (students only)
+         ══════════════════════════════════════════════════ */}
       {isStudent && (
         <div className="flex flex-col sm:flex-row gap-3">
-          {/* Enrollment */}
+          {/* Enrolled */}
           <div className="flex items-center gap-3 flex-1 p-3.5 bg-green-50 dark:bg-green-500/10 rounded-xl border border-green-100 dark:border-green-500/20">
             <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
             <div className="min-w-0">
@@ -332,7 +381,7 @@ export default function CourseDetail() {
               <Star className={`w-5 h-5 flex-shrink-0 ${hasCourseRating ? 'text-amber-500 fill-amber-500' : 'text-amber-600 dark:text-amber-400'}`} />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                  {hasCourseRating ? t('courses.courseRated', 'Classificado') : t('courses.rateCourse', 'Classificar')}
+                  {hasCourseRating ? t('courses.courseRated', 'Classificado') : t('courses.rateCourse', 'Classificar Curso')}
                 </p>
               </div>
               {hasCourseRating ? (
@@ -350,149 +399,165 @@ export default function CourseDetail() {
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════
-          SECTION 3 — LESSONS
-          The primary content: ordered lesson list
-         ════════════════════════════════════════════════════════ */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
-            <FileText className="w-4 h-4 text-green-500" />
-            {t('admin.lessons')}
-            <span className="text-gray-400 dark:text-gray-500 font-normal normal-case">({lessonCount})</span>
-          </h2>
-          {!isStudent && (
-            <button
-              onClick={() => navigate(`/courses/${course.id}/lessons/new`)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#EC0000] hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              {t('admin.addLesson')}
-            </button>
-          )}
-        </div>
+      {/* ══════════════════════════════════════════════════
+          CONTENT: LESSONS + CHALLENGES (side-by-side on lg+)
+         ══════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
-        {lessonCount === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-8 text-center">
-            <FileText className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.noLessonsYet')}</p>
+        {/* ── LESSONS (left, 3/5) ─────────────────────── */}
+        <section className="lg:col-span-3">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
+              <FileText className="w-4 h-4 text-[#EC0000]" />
+              {t('admin.lessons')}
+              <span className="text-gray-400 dark:text-gray-500 font-normal normal-case">({lessonCount})</span>
+            </h2>
             {!isStudent && (
               <button
                 onClick={() => navigate(`/courses/${course.id}/lessons/new`)}
-                className="mt-3 text-xs text-[#EC0000] hover:underline inline-flex items-center gap-1"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#EC0000] hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
               >
-                <Plus className="w-3 h-3" />
-                {t('admin.createFirstLesson')}
+                <Plus className="w-3.5 h-3.5" />
+                {t('admin.addLesson')}
               </button>
             )}
           </div>
-        ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700/50">
-            {course.lessons.map((lesson, i) => (
-              <div
-                key={lesson.id}
-                onClick={() => !isStudent && navigate(`/courses/${course.id}/lessons/${lesson.id}`)}
-                className={`flex items-center gap-3 px-4 py-3 ${!isStudent ? 'hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer' : ''} transition-colors`}
-              >
-                <span className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs font-semibold text-gray-500 dark:text-gray-400 flex-shrink-0">
-                  {i + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{lesson.title}</p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{lesson.description}</p>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {lesson.duration_minutes > 0 && (
-                    <span className="hidden sm:flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500">
-                      <Clock className="w-3 h-3" />
-                      {lesson.duration_minutes}m
-                    </span>
-                  )}
-                  <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase">
-                    {lesson.content_type}
+
+          {lessonCount === 0 ? (
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-10 text-center">
+              <FileText className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.noLessonsYet')}</p>
+              {!isStudent && (
+                <button
+                  onClick={() => navigate(`/courses/${course.id}/lessons/new`)}
+                  className="mt-3 text-xs text-[#EC0000] hover:underline inline-flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  {t('admin.createFirstLesson')}
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700/50">
+              {course.lessons.map((lesson, i) => (
+                <div
+                  key={lesson.id}
+                  onClick={() => !isStudent && navigate(`/courses/${course.id}/lessons/${lesson.id}`)}
+                  className={`flex items-center gap-3 px-4 py-3.5 ${!isStudent ? 'hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer' : ''} transition-colors`}
+                >
+                  {/* Index bubble */}
+                  <span className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xs font-semibold text-gray-500 dark:text-gray-400 flex-shrink-0">
+                    {i + 1}
                   </span>
-                  {!isStudent && <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600" />}
+
+                  {/* Text */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{lesson.title}</p>
+                    {lesson.description && (
+                      <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{lesson.description}</p>
+                    )}
+                  </div>
+
+                  {/* Meta */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {lesson.duration_minutes > 0 && (
+                      <span className="hidden sm:flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500">
+                        <Clock className="w-3 h-3" />
+                        {lesson.duration_minutes}m
+                      </span>
+                    )}
+                    {lesson.content_type && (
+                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${contentTypeStyle(lesson.content_type)}`}>
+                        {contentTypeIcon(lesson.content_type)}
+                        {contentTypeLabel(lesson.content_type)}
+                      </span>
+                    )}
+                    {!isStudent && <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600" />}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* ════════════════════════════════════════════════════════
-          SECTION 4 — CHALLENGES
-          Scored challenge cards in a grid
-         ════════════════════════════════════════════════════════ */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
-            <Target className="w-4 h-4 text-purple-500" />
-            {t('admin.challenges')}
-            <span className="text-gray-400 dark:text-gray-500 font-normal normal-case">({challengeCount})</span>
-          </h2>
-          {!isStudent && (
-            <button
-              onClick={() => navigate(`/courses/${course.id}/challenges/new`)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#EC0000] hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              {t('admin.addChallenge')}
-            </button>
+              ))}
+            </div>
           )}
-        </div>
+        </section>
 
-        {challengeCount === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-8 text-center">
-            <Target className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.noChallengesYet')}</p>
+        {/* ── CHALLENGES (right, 2/5) ──────────────────── */}
+        <section className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
+              <Target className="w-4 h-4 text-purple-500" />
+              {t('admin.challenges')}
+              <span className="text-gray-400 dark:text-gray-500 font-normal normal-case">({challengeCount})</span>
+            </h2>
             {!isStudent && (
               <button
                 onClick={() => navigate(`/courses/${course.id}/challenges/new`)}
-                className="mt-3 text-xs text-[#EC0000] hover:underline inline-flex items-center gap-1"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#EC0000] hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
               >
-                <Plus className="w-3 h-3" />
-                {t('admin.createFirstChallenge')}
+                <Plus className="w-3.5 h-3.5" />
+                {t('admin.addChallenge')}
               </button>
             )}
           </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {course.challenges.map(ch => (
-              <div
-                key={ch.id}
-                onClick={() => !isStudent && navigate(`/courses/${course.id}/challenges/${ch.id}`)}
-                className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 transition-all ${!isStudent ? 'hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm cursor-pointer' : ''}`}
-              >
-                <div className="flex items-center justify-between mb-2.5">
-                  <Target className="w-4 h-4 text-purple-500 dark:text-purple-400" />
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${difficultyStyle(ch.difficulty)}`}>
-                    {difficultyLabel(ch.difficulty)}
-                  </span>
-                </div>
-                <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-1 line-clamp-1">{ch.title}</h4>
-                <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-2 mb-3">{ch.description}</p>
-                <div className="flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-500">
-                  <div className="flex items-center gap-3">
-                    {ch.time_limit_minutes > 0 && (
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {ch.time_limit_minutes}m
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1">
-                      <Target className="w-3 h-3" />
-                      {ch.max_score} pts
+
+          {challengeCount === 0 ? (
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-10 text-center">
+              <Target className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.noChallengesYet')}</p>
+              {!isStudent && (
+                <button
+                  onClick={() => navigate(`/courses/${course.id}/challenges/new`)}
+                  className="mt-3 text-xs text-[#EC0000] hover:underline inline-flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  {t('admin.createFirstChallenge')}
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {course.challenges.map(ch => (
+                <div
+                  key={ch.id}
+                  onClick={() => !isStudent && navigate(`/courses/${course.id}/challenges/${ch.id}`)}
+                  className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 transition-all ${!isStudent ? 'hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-sm cursor-pointer' : ''}`}
+                >
+                  {/* Header row */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Target className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">{ch.title}</h4>
+                    </div>
+                    <span className={`ml-2 px-2 py-0.5 rounded text-[10px] font-semibold uppercase flex-shrink-0 ${difficultyStyle(ch.difficulty)}`}>
+                      {difficultyLabel(ch.difficulty)}
                     </span>
                   </div>
-                  {!isStudent && (
-                    <Play className="w-3.5 h-3.5 text-[#EC0000]" />
+
+                  {ch.description && (
+                    <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-2 mb-3">{ch.description}</p>
                   )}
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-between text-[11px] text-gray-400 dark:text-gray-500">
+                    <div className="flex items-center gap-3">
+                      {ch.time_limit_minutes > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {ch.time_limit_minutes}m
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1">
+                        <Star className="w-3 h-3" />
+                        {ch.max_score} pts
+                      </span>
+                    </div>
+                    {!isStudent && <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-gray-600" />}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
 
       {/* Rating Modal */}
       {course.training_plan && isPlanFinalized && (

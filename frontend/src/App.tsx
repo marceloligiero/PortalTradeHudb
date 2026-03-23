@@ -54,6 +54,7 @@ import FeedbackSurveyDetail from './pages/tutoria/FeedbackSurveyDetail';
 import FeedbackRespond from './pages/tutoria/FeedbackRespond';
 import FeedbackDashboard from './pages/tutoria/FeedbackDashboard';
 import TutorCapsules from './pages/tutoria/TutorCapsules';
+import SideBySide from './pages/tutoria/SideBySide';
 // AdminTeams standalone removed — MasterData.tsx is the single source
 import RelatoriosLayout from './pages/relatorios/RelatoriosLayout';
 import RelatoriosOverview from './pages/relatorios/Overview';
@@ -68,6 +69,7 @@ import AdminSettingsPage from './pages/admin/Settings';
 // Banks.tsx and Products.tsx standalone pages removed — MasterData.tsx is the single source
 import MasterDataPage from './pages/admin/MasterData';
 import MasterDataLayout from './pages/admin/MasterDataLayout';
+import OrgHierarchy from './pages/admin/OrgHierarchy';
 import ChamadosLayout from './pages/chamados/ChamadosLayout';
 import ChamadosKanban from './pages/chamados/ChamadosKanban';
 import AdminTrainerValidation from './pages/admin/TrainerValidation';
@@ -147,6 +149,7 @@ function App() {
         <Route path="feedback/respond" element={<FeedbackRespond />} />
         <Route path="feedback/:id" element={<FeedbackSurveyDetail />} />
         <Route path="capsulas" element={<TutorCapsules />} />
+        <Route path="side-by-side" element={<SideBySide />} />
       </Route>
 
       {/* ── Portal de Relatórios (todos os roles autenticados) ── */}
@@ -157,6 +160,11 @@ function App() {
         <Route path="teams" element={<RelatoriosTeams />} />
         <Route path="members" element={<RelatoriosMembers />} />
         <Route path="incidents" element={<RelatoriosIncidents />} />
+        {/* Analytics — movidos do portal de formações */}
+        <Route path="reports" element={<AdminReportsPage />} />
+        <Route path="advanced-reports" element={<AdminAdvancedReportsPage />} />
+        <Route path="knowledge-matrix" element={<KnowledgeMatrixPage />} />
+        <Route path="ratings" element={<AdminRatingsPage />} />
       </Route>
 
       {/* ── Portal de Dados Mestres (ADMIN only, layout próprio) ── */}
@@ -173,6 +181,8 @@ function App() {
         <Route path="error-types" element={<MasterDataPage tab="error_types" />} />
         <Route path="faqs" element={<MasterDataPage tab="faqs" />} />
         <Route path="users" element={<AdminUsersPage />} />
+        <Route path="trainer-validation" element={<AdminTrainerValidation />} />
+        <Route path="org-hierarchy" element={<OrgHierarchy />} />
       </Route>
 
       {/* ── Portal de Chamados (todos os roles autenticados) ── */}
@@ -253,7 +263,7 @@ function App() {
         {(effectiveRole === 'ADMIN' || effectiveRole === 'GESTOR') && (
           <>
             <Route index element={<AdminDashboard />} />
-            <Route path="trainer-validation" element={<AdminTrainerValidation />} />
+            <Route path="trainer-validation" element={<Navigate to="/master-data/trainer-validation" replace />} />
             <Route path="courses" element={<AdminCoursesPage />} />
             <Route path="courses/:courseId" element={<AdminCourseDetail />} />
             <Route path="course/new" element={<AdminCourseForm />} />

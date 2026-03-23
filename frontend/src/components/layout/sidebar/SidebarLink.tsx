@@ -49,7 +49,7 @@ export default function SidebarLink({
           {badge != null && badge > 0 && (
             <span
               aria-label={`${badge} notificações`}
-              className="absolute -top-0.5 -right-0.5 w-[7px] h-[7px] rounded-full bg-[#EC0000] ring-1 ring-white dark:ring-[#0D0D0F]"
+              className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#EC0000] ring-2 ring-white dark:ring-[#0D0D0F] animate-pulse"
             />
           )}
         </NavLink>

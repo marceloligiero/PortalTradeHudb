@@ -183,6 +183,31 @@ function statusCls(s: string, isDark: boolean) {
   return isDark ? (d[s] || 'bg-gray-500/15 text-gray-400') : (l[s] || 'bg-gray-100 text-gray-600');
 }
 
+// ─── GAP 2 & 3 Constants ──────────────────────────────────────────────────────
+
+const IMPACT_DETAIL_OPTIONS_MAP: Record<string, string[]> = {
+  BAIXO: ['Imagen', 'Retraso Operativo'],
+  ALTO:  ['Económico', 'Regulatorio', 'Reputacional (Imagen)', 'GDPR (Protección de Datos)'],
+};
+
+const ORIGIN_DETAIL_OPTIONS_MAP: Record<string, string[]> = {
+  'Trade_Personas':   ['Formación Insuficiente', 'Dependencia de Personal Clave', 'Error Puntual', 'Sobrecarga Operativa', 'Segregación Funcional'],
+  'Trade_Procesos':   ['Diseño Ineficaz del Proceso', 'Desempeño Ineficaz de un Proceso', 'Calidad de los Datos'],
+  'Trade_Tecnología': ['Gestión del Cambio Tecnológico Inadecuado', 'Diseño Inadecuado de los Sistemas', 'Funcionamiento Inadecuado de un Sistema'],
+  'Terceros':         ['Proveedores', 'Oficina/Uni/Middle', 'Corresponsal'],
+};
+
+function normalizeForMatch(s: string): string {
+  return s.toLowerCase().replace(/[_áóéíú]/g, c => ({'á':'a','ó':'o','é':'e','í':'i','ú':'u','_':' '}[c] || c));
+}
+
+function getOriginDetailOpts(originName: string): string[] {
+  for (const [k, v] of Object.entries(ORIGIN_DETAIL_OPTIONS_MAP)) {
+    if (normalizeForMatch(originName).includes(normalizeForMatch(k))) return v;
+  }
+  return [];
+}
+
 // ─── Status progress bar ──────────────────────────────────────────────────────
 
 const STATUS_STEPS = ['REGISTERED', 'ANALYSIS', 'PENDING_TUTOR_REVIEW', 'APPROVED', 'RESOLVED'];
@@ -384,13 +409,25 @@ export default function ErrorDetail() {
     }
   };
 
-  const handleSubmitAnalysis = async () => {
+  const handleSubmitAnalysis = async (sendDirect = false) => {
     setActionLoading(true);
     try {
-      const res = await axios.post(`/api/tutoria/errors/${id}/submit-analysis`);
+      const res = await axios.post(`/api/tutoria/errors/${id}/submit-analysis`, { send_direct: sendDirect });
       setError(res.data);
     } catch (e: any) {
       alert(e?.response?.data?.detail || 'Erro ao submeter análise');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleApproveChief = async () => {
+    setActionLoading(true);
+    try {
+      const res = await axios.post(`/api/tutoria/errors/${id}/approve-chief`);
+      setError(res.data);
+    } catch (e: any) {
+      alert(e?.response?.data?.detail || 'Erro ao aprovar');
     } finally {
       setActionLoading(false);
     }
@@ -601,15 +638,47 @@ export default function ErrorDetail() {
                 {t('tutoriaDetail.cancelIncident', 'Eliminar')}
               </button>
             )}
-            {/* Chefe/Ref: submit analysis */}
-            {canAnalyze && (error.status === 'REGISTERED' || error.status === 'ANALYSIS') && (
+            {/* GAP 7 — Referente: two submit buttons */}
+            {isReferente && !isChefe && (error.status === 'REGISTERED' || error.status === 'ANALYSIS') && (
+              <>
+                <button
+                  onClick={() => handleSubmitAnalysis(false)}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shadow-md disabled:opacity-50"
+                >
+                  {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  {t('tutoriaDetail.submitToChief', 'Enviar para Chefe de Equipa')}
+                </button>
+                <button
+                  onClick={() => handleSubmitAnalysis(true)}
+                  disabled={actionLoading}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold shadow-md disabled:opacity-50"
+                >
+                  {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  {t('tutoriaDetail.submitDirect', 'Enviar diretamente para Tutor')}
+                </button>
+              </>
+            )}
+            {/* Chefe/Manager: submit analysis (single button) */}
+            {isChefe && (error.status === 'REGISTERED' || error.status === 'ANALYSIS') && (
               <button
-                onClick={handleSubmitAnalysis}
+                onClick={() => handleSubmitAnalysis(false)}
                 disabled={actionLoading}
                 className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold shadow-md disabled:opacity-50"
               >
                 {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
                 {t('tutoriaDetail.submitAnalysis', 'Submeter para Tutor')}
+              </button>
+            )}
+            {/* GAP 7 — Chefe: approve referente's analysis */}
+            {isChefe && error.status === 'PENDING_CHIEF_APPROVAL' && (
+              <button
+                onClick={handleApproveChief}
+                disabled={actionLoading}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold shadow-md disabled:opacity-50"
+              >
+                {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                {t('tutoriaDetail.approveChief', 'Aprovar Análise do Referente')}
               </button>
             )}
             {/* Tutor: approve plans */}
@@ -897,7 +966,7 @@ export default function ErrorDetail() {
                 {/* Impact Level */}
                 <div>
                   <label className={`text-xs font-bold uppercase tracking-wider mb-1 block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('tutoriaDetail.impactLevel', 'Nível Impacto')}</label>
-                  <select value={analysisForm.impact_level} onChange={e => setAnalysisForm(p => ({ ...p, impact_level: e.target.value }))}
+                  <select value={analysisForm.impact_level} onChange={e => setAnalysisForm(p => ({ ...p, impact_level: e.target.value, impact_detail: '' }))}
                     className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none transition-all ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
                     <option value="">— {t('common.select', 'Selecionar')} —</option>
                     {['BAIXO','MEDIO','ALTO','CRITICO'].map(v => <option key={v} value={v}>{v}</option>)}
@@ -915,18 +984,35 @@ export default function ErrorDetail() {
                 {/* Origin */}
                 <div>
                   <label className={`text-xs font-bold uppercase tracking-wider mb-1 block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('tutoriaDetail.origin', 'Origem')}</label>
-                  <select value={analysisForm.origin_id} onChange={e => setAnalysisForm(p => ({ ...p, origin_id: e.target.value }))}
+                  <select value={analysisForm.origin_id} onChange={e => setAnalysisForm(p => ({ ...p, origin_id: e.target.value, origin_detail: '' }))}
                     className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none transition-all ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
                     <option value="">— {t('common.select', 'Selecionar')} —</option>
                     {analysisOrigins.map(o => <option key={o.id} value={String(o.id)}>{o.name}</option>)}
                   </select>
                 </div>
-                {/* Origin detail */}
-                <div>
-                  <label className={`text-xs font-bold uppercase tracking-wider mb-1 block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('tutoriaDetail.originDetail', 'Detalhe Origem')}</label>
-                  <input type="text" value={analysisForm.origin_detail} onChange={e => setAnalysisForm(p => ({ ...p, origin_detail: e.target.value }))}
-                    className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none transition-all ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`} />
-                </div>
+                {/* Origin detail — conditional dropdown (GAP 3) */}
+                {(() => {
+                  const selOrigin = analysisOrigins.find(o => String(o.id) === analysisForm.origin_id);
+                  const originDetailOpts = selOrigin ? getOriginDetailOpts(selOrigin.name) : [];
+                  return (
+                    <div>
+                      <label className={`text-xs font-bold uppercase tracking-wider mb-1 block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('tutoriaDetail.originDetail', 'Detalhe Origem')}</label>
+                      {analysisForm.origin_id && originDetailOpts.length > 0 ? (
+                        <select
+                          value={analysisForm.origin_detail}
+                          onChange={e => setAnalysisForm(p => ({ ...p, origin_detail: e.target.value }))}
+                          className={`w-full appearance-none px-3 py-2.5 rounded-xl border text-sm outline-none transition-all cursor-pointer ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
+                        >
+                          <option value="">— {t('common.select', 'Selecionar')} —</option>
+                          {originDetailOpts.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        </select>
+                      ) : (
+                        <input type="text" value={analysisForm.origin_detail} onChange={e => setAnalysisForm(p => ({ ...p, origin_detail: e.target.value }))}
+                          className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none transition-all ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`} />
+                      )}
+                    </div>
+                  );
+                })()}
                 {/* Grabador */}
                 <div>
                   <label className={`text-xs font-bold uppercase tracking-wider mb-1 block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('tutoriaDetail.grabador', 'Grabador')}</label>
@@ -964,12 +1050,28 @@ export default function ErrorDetail() {
                   <label htmlFor="excel-sent" className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{t('tutoriaDetail.excelSent', 'Excel Enviado')}</label>
                 </div>
               </div>
-              {/* Impact detail */}
-              <div>
-                <label className={`text-xs font-bold uppercase tracking-wider mb-1 block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('tutoriaDetail.impactDetail', 'Detalhe Impacto')}</label>
-                <textarea rows={2} value={analysisForm.impact_detail} onChange={e => setAnalysisForm(p => ({ ...p, impact_detail: e.target.value }))}
-                  className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none resize-none transition-all ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`} />
-              </div>
+              {/* Impact detail — conditional dropdown (GAP 2) */}
+              {(() => {
+                const impactDetailOpts = IMPACT_DETAIL_OPTIONS_MAP[analysisForm.impact_level] || [];
+                return (
+                  <div>
+                    <label className={`text-xs font-bold uppercase tracking-wider mb-1 block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('tutoriaDetail.impactDetail', 'Detalhe Impacto')}</label>
+                    {analysisForm.impact_level && impactDetailOpts.length > 0 ? (
+                      <select
+                        value={analysisForm.impact_detail}
+                        onChange={e => setAnalysisForm(p => ({ ...p, impact_detail: e.target.value }))}
+                        className={`w-full appearance-none px-3 py-2.5 rounded-xl border text-sm outline-none transition-all cursor-pointer ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
+                      >
+                        <option value="">— {t('common.select', 'Selecionar')} —</option>
+                        {impactDetailOpts.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    ) : (
+                      <textarea rows={2} value={analysisForm.impact_detail} onChange={e => setAnalysisForm(p => ({ ...p, impact_detail: e.target.value }))}
+                        className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none resize-none transition-all ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`} />
+                    )}
+                  </div>
+                );
+              })()}
               {/* 5 Whys */}
               <div>
                 <label className={`text-xs font-bold uppercase tracking-wider mb-1 block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('tutoriaDetail.rootCauseAnalysis', 'Análise 5-Porquês')}</label>

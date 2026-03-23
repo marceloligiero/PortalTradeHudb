@@ -58,6 +58,7 @@ class TeamOut(BaseModel):
     product_name: Optional[str]
     manager_id: Optional[int]
     manager_name: Optional[str]
+    node_id: Optional[int] = None
     members_count: int
     is_active: bool
     services: List[ServiceBrief] = []
@@ -100,6 +101,7 @@ def _team_out(team: Team, db: Session) -> dict:
         "product_name": team.product.name if team.product else None,
         "manager_id": team.manager_id,
         "manager_name": team.manager.full_name if team.manager else None,
+        "node_id": team.node_id,
         "members_count": members_count,
         "is_active": team.is_active,
         "services": services,
@@ -121,9 +123,7 @@ def list_teams(
         joinedload(Team.manager),
         joinedload(Team.product),
     )
-    if current_user.role == "MANAGER":
-        # MANAGER vê apenas a equipa que gere
-        q = q.filter(Team.manager_id == current_user.id)
+    # MANAGER can view all teams (read-only), only ADMIN can modify
     teams = q.order_by(Team.name).all()
     return [_team_out(t, db) for t in teams]
 

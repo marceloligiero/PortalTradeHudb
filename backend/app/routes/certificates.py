@@ -9,6 +9,7 @@ import logging
 
 from app.database import get_db
 from app import models, auth
+from app.auth import is_trainer_user
 
 logger = logging.getLogger(__name__)
 
@@ -1215,7 +1216,7 @@ async def list_my_certificates(
     
     if current_user.role == "ADMIN":
         certificates = query.all()
-    elif current_user.role == "TRAINER":
+    elif is_trainer_user(current_user):
         # Certificados dos planos do formador
         plan_ids = db.query(models.TrainingPlan.id).filter(
             models.TrainingPlan.trainer_id == current_user.id

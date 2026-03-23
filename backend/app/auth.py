@@ -119,3 +119,44 @@ ADMIN_ROLES = ["ADMIN", "GESTOR"]
 ADMIN_MANAGER_ROLES = ["ADMIN", "MANAGER", "GESTOR"]
 ADMIN_TRAINER_ROLES = ["ADMIN", "TRAINER", "GESTOR"]
 ADMIN_TRAINER_MANAGER_ROLES = ["ADMIN", "TRAINER", "MANAGER", "GESTOR"]
+
+
+def get_visible_user_ids(db: Session, user: User):
+    """Retorna a lista de IDs de utilizadores cujos dados o user pode ver.
+
+    None  → vê todos (ADMIN / GESTOR).
+    [ids] → lista restrita (MANAGER vê a equipa; qualquer outro vê só si próprio).
+    """
+    from app.models import Team
+
+    if user.role in ("ADMIN", "GESTOR"):
+        return None
+
+    if user.role == "MANAGER" or getattr(user, "is_team_lead", False):
+        # Equipas geridas directamente (manager_id) + equipa própria (team_lead)
+        managed = db.query(Team).filter(Team.manager_id == user.id).all()
+        team_ids = {t.id for t in managed}
+        if getattr(user, "is_team_lead", False) and user.team_id:
+            team_ids.add(user.team_id)
+        if team_ids:
+            rows = db.query(User.id).filter(
+                User.team_id.in_(team_ids), User.is_active == True
+            ).all()
+            return list({r.id for r in rows} | {user.id})
+        return [user.id]
+
+    # Utilizador simples (TRAINEE / STUDENT / qualquer flag) → só os próprios dados
+    return [user.id]
+
+
+def is_trainer_user(user) -> bool:
+    """True para role='TRAINER' OU TRAINEE com is_trainer=True (não pendente).
+
+    No portal, o registo cria utilizadores como TRAINEE. A flag is_trainer=True
+    confere os mesmos privilégios de formador que role='TRAINER'.
+    """
+    if user is None:
+        return False
+    if user.role == "TRAINER":
+        return True
+    return bool(getattr(user, "is_trainer", False)) and not bool(user.is_pending)

@@ -1,21 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Users as UsersIcon, 
-  UserCheck, 
-  UserX, 
-  Clock, 
-  Search, 
+import {
+  Users as UsersIcon,
+  UserCheck,
+  UserX,
+  Clock,
+  Search,
   Filter,
   MoreVertical,
   Mail,
   Shield,
-  GraduationCap,
   Briefcase,
   Crown,
   ChevronDown,
-  Sparkles,
+  ChevronLeft,
+  ChevronRight,
   AlertCircle,
   CheckCircle2,
   XCircle,
@@ -28,8 +27,11 @@ import {
   BookOpen,
   Timer,
   Target,
-  KeyRound
+  KeyRound,
+  Loader2
 } from 'lucide-react';
+
+const USERS_PAGE_SIZE = 20;
 import api from '../../lib/axios';
 import { useAuthStore, canWrite } from '../../stores/authStore';
 
@@ -59,99 +61,49 @@ interface UserDetails extends User {
   };
 }
 
-// Animated Counter Component
-const AnimatedCounter = ({ value, className = '' }: { value: number; className?: string }) => {
-  const [displayValue, setDisplayValue] = useState(0);
-  
-  useEffect(() => {
-    const duration = 1000;
-    const steps = 30;
-    const stepValue = value / steps;
-    let current = 0;
-    
-    const timer = setInterval(() => {
-      current += stepValue;
-      if (current >= value) {
-        setDisplayValue(value);
-        clearInterval(timer);
-      } else {
-        setDisplayValue(Math.floor(current));
-      }
-    }, duration / steps);
-    
-    return () => clearInterval(timer);
-  }, [value]);
-  
-  return <span className={className}>{displayValue}</span>;
-};
-
 // Stat Card Component
-const StatCard = ({ icon: Icon, label, value, color, delay = 0 }: any) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20, scale: 0.95 }}
-    animate={{ opacity: 1, y: 0, scale: 1 }}
-    transition={{ duration: 0.5, delay }}
-    whileHover={{ y: -4, scale: 1.02 }}
-    className="relative group"
-  >
-    <div className={`absolute inset-0 bg-gradient-to-br ${color} rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity duration-500`} />
-    <div className="relative bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6 hover:border-gray-300 dark:hover:border-white/20 transition-all duration-300 shadow-lg dark:shadow-none">
-      <div className="flex items-center justify-between mb-4">
-        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-lg`}>
-          <Icon className="w-6 h-6 text-white" />
-        </div>
-        <motion.div
-          animate={{ rotate: [0, 360] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="w-8 h-8 rounded-full border border-gray-200 dark:border-white/10 flex items-center justify-center"
-        >
-          <Sparkles className="w-4 h-4 text-gray-400 dark:text-white/30" />
-        </motion.div>
+const StatCard = ({ icon: Icon, label, value, color }: any) => (
+  <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 hover:border-gray-300 dark:hover:border-gray-700 transition-colors">
+    <div className="flex items-center gap-4">
+      <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center flex-shrink-0`}>
+        <Icon className="w-5 h-5 text-white" />
       </div>
-      <div className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-        <AnimatedCounter value={value} />
+      <div>
+        <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{label}</p>
       </div>
-      <div className="text-sm text-gray-500 dark:text-gray-400">{label}</div>
     </div>
-  </motion.div>
+  </div>
 );
 
 // Modal Base Component
-const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }) => (
-  <AnimatePresence>
-    {isOpen && (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
+const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose: () => void; title: string; children: React.ReactNode }) => {
+  if (!isOpen) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
       >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="bg-white dark:bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-white/10">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h2>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 flex items-center justify-center transition-colors"
-            >
-              <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-            </button>
-          </div>
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
-            {children}
-          </div>
-        </motion.div>
-      </motion.div>
-    )}
-  </AnimatePresence>
-);
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+          <h2 className="text-lg font-headline font-bold text-gray-900 dark:text-white">{title}</h2>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center transition-colors"
+          >
+            <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+          </button>
+        </div>
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-73px)]">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // User Details Modal Content
 const UserDetailsContent = ({ user, onClose, t }: { user: UserDetails | null; onClose: () => void; t: any }) => {
@@ -191,14 +143,15 @@ const UserDetailsContent = ({ user, onClose, t }: { user: UserDetails | null; on
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{user.full_name}</h3>
           <p className="text-gray-500 dark:text-gray-400">{user.email}</p>
           <div className="flex items-center gap-2 mt-1">
-            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-              user.role === 'ADMIN' ? 'bg-purple-500/20 text-purple-300' :
-              user.role === 'TRAINER' ? 'bg-blue-500/20 text-blue-300' :
-              user.role === 'MANAGER' ? 'bg-orange-500/20 text-orange-300' :
-              'bg-green-500/20 text-green-300'
-            }`}>
-              {getRoleLabel(user.role)}
-            </span>
+            {user.role !== 'TRAINEE' && (
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                user.role === 'ADMIN' ? 'bg-purple-500/20 text-purple-300' :
+                user.role === 'TRAINER' ? 'bg-blue-500/20 text-blue-300' :
+                'bg-orange-500/20 text-orange-300'
+              }`}>
+                {getRoleLabel(user.role)}
+              </span>
+            )}
             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
               user.is_pending ? 'bg-yellow-500/20 text-yellow-300' :
               user.is_active ? 'bg-emerald-500/20 text-emerald-300' :
@@ -327,6 +280,26 @@ const EditUserContent = ({ user, onSave, onClose, saving, t }: { user: User | nu
           placeholder="email@exemplo.com"
           required
         />
+      </div>
+
+      {/* Role */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('usersPage.role', 'Perfil')}</label>
+        {(formData.role === 'ADMIN' || formData.role === 'MANAGER') ? (
+          <div className="w-full px-4 py-3 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-500 dark:text-gray-400 text-sm cursor-not-allowed">
+            {formData.role === 'ADMIN' ? t('usersPage.admin') : t('usersPage.teamLeader')}
+            <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">({t('usersPage.roleReadOnly', 'não editável')})</span>
+          </div>
+        ) : (
+          <select
+            value={formData.role}
+            onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
+            className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all outline-none appearance-none cursor-pointer text-sm"
+          >
+            <option value="TRAINEE">{t('usersPage.trainee', 'Formando')}</option>
+            <option value="TRAINER">{t('usersPage.trainerRole', 'Formador (perfil)')}</option>
+          </select>
+        )}
       </div>
 
       {/* Competências adicionais */}
@@ -551,7 +524,7 @@ const ReactivateConfirmContent = ({ user, onConfirm, onClose, processing, t }: {
 };
 
 // User Row Component
-const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivate, onReactivate, writable, t }: any) => {
+const UserRow = ({ user, onApprove, onReject, onView, onEdit, onDeactivate, onReactivate, writable, t }: any) => {
   const [showActions, setShowActions] = useState(false);
   const actionsRef = useRef<HTMLDivElement>(null);
 
@@ -565,183 +538,159 @@ const UserRow = ({ user, index, onApprove, onReject, onView, onEdit, onDeactivat
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case 'ADMIN': return Shield;
-      case 'TRAINER': return Briefcase;
-      case 'MANAGER': return Crown;
-      default: return GraduationCap;
-    }
-  };
-
-  const getRoleConfig = (role: string) => {
-    switch (role) {
-      case 'ADMIN': return { 
-        bg: 'from-purple-500/20 to-purple-600/20', 
-        border: 'border-purple-500/30',
-        text: 'text-purple-300'
-      };
-      case 'TRAINER': return { 
-        bg: 'from-blue-500/20 to-blue-600/20', 
-        border: 'border-blue-500/30',
-        text: 'text-blue-300'
-      };
-      case 'MANAGER': return { 
-        bg: 'from-orange-500/20 to-orange-600/20', 
-        border: 'border-orange-500/30',
-        text: 'text-orange-300'
-      };
-      default: return { 
-        bg: 'from-green-500/20 to-green-600/20', 
-        border: 'border-green-500/30',
-        text: 'text-green-300'
-      };
-    }
-  };
-
-  const RoleIcon = getRoleIcon(user.role);
-  const roleConfig = getRoleConfig(user.role);
+  const statusDot =
+    user.is_pending ? 'bg-yellow-400' : user.is_active ? 'bg-emerald-500' : 'bg-gray-400';
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.05 }}
-      whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
-      className="px-6 py-4 border-b border-white/5 last:border-b-0"
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <motion.div whileHover={{ scale: 1.05 }} className="relative">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+    <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+      <div className="flex items-center justify-between gap-4">
+        {/* Avatar + info */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="relative flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[#EC0000] flex items-center justify-center text-white font-bold text-sm">
               {user.full_name.charAt(0).toUpperCase()}
             </div>
-            <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-gray-900 ${
-              user.is_pending ? 'bg-yellow-500' : user.is_active ? 'bg-green-500' : 'bg-red-500'
-            }`} />
-          </motion.div>
-          
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-gray-900 dark:text-white font-medium">{user.full_name}</h3>
-              <span className={`px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r ${roleConfig.bg} ${roleConfig.border} border ${roleConfig.text}`}>
-                <RoleIcon className="w-3 h-3 inline mr-1" />
-                {user.role === 'ADMIN' ? t('usersPage.admin') : user.role === 'MANAGER' ? t('usersPage.teamLeader') : t('usersPage.student')}
-              </span>
-              {user.is_trainer && (
-                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-blue-500/20 to-blue-600/20 border-blue-500/30 border text-blue-300">
-                  <Briefcase className="w-3 h-3 inline mr-1" />
-                  {t('usersPage.trainer', 'Formador')}
+            <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-gray-900 ${statusDot}`} />
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user.full_name}</span>
+
+              {/* Role badges — only for non-TRAINEE roles */}
+              {user.role === 'ADMIN' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800">
+                  <Shield className="w-2.5 h-2.5" />{t('usersPage.admin')}
+                </span>
+              )}
+              {user.role === 'MANAGER' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800">
+                  <Crown className="w-2.5 h-2.5" />{t('usersPage.teamLeader')}
+                </span>
+              )}
+              {user.role === 'TRAINER' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                  <Briefcase className="w-2.5 h-2.5" />{t('usersPage.trainer', 'Formador')}
+                </span>
+              )}
+
+              {/* Capability badges */}
+              {user.is_trainer && user.role !== 'TRAINER' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+                  <Briefcase className="w-2.5 h-2.5" />{t('usersPage.trainer', 'Formador')}
                 </span>
               )}
               {user.is_tutor && (
-                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 border-emerald-500/30 border text-emerald-300">
-                  <Award className="w-3 h-3 inline mr-1" />
-                  {t('usersPage.tutor', 'Tutor')}
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
+                  <Award className="w-2.5 h-2.5" />{t('usersPage.tutor', 'Tutor')}
                 </span>
               )}
               {user.is_liberador && (
-                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 border-cyan-500/30 border text-cyan-300">
-                  <KeyRound className="w-3 h-3 inline mr-1" />
-                  {t('usersPage.liberador', 'Liberador')}
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800">
+                  <KeyRound className="w-2.5 h-2.5" />{t('usersPage.liberador', 'Liberador')}
+                </span>
+              )}
+              {user.is_team_lead && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                  <Crown className="w-2.5 h-2.5" />{t('usersPage.teamLeader', 'Chefe de Equipa')}
+                </span>
+              )}
+              {user.is_referente && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 border border-violet-200 dark:border-violet-800">
+                  <Shield className="w-2.5 h-2.5" />{t('usersPage.referente', 'Referente')}
+                </span>
+              )}
+
+              {/* Pending badge */}
+              {user.is_pending && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">
+                  <Clock className="w-2.5 h-2.5" />{t('usersPage.pending')}
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2 mt-1">
-              <Mail className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-              <span className="text-sm text-gray-500 dark:text-gray-400">{user.email}</span>
+
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <Mail className="w-3 h-3 text-gray-400" />
+              <span className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</span>
             </div>
           </div>
         </div>
-        
-        <div className="flex items-center gap-2">
+
+        {/* Actions */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           {user.is_pending && (user.is_trainer || user.is_tutor || user.is_liberador || user.role === 'MANAGER') ? (
-            <div className="flex items-center gap-2">
-              {writable && (
-                <>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => onApprove(user.id)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-medium shadow-lg shadow-green-500/20"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    {t('usersPage.approve')}
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => onReject(user.id)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-sm font-medium hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-all"
-                  >
-                    <XCircle className="w-4 h-4" />
-                    {t('usersPage.reject')}
-                  </motion.button>
-                </>
-              )}
-            </div>
+            writable && (
+              <>
+                <button
+                  onClick={() => onApprove(user.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-semibold transition-colors"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  {t('usersPage.approve')}
+                </button>
+                <button
+                  onClick={() => onReject(user.id)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-xs font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800 transition-colors"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  {t('usersPage.reject')}
+                </button>
+              </>
+            )
           ) : (
             <div className="relative" ref={actionsRef}>
-              <motion.button
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+              <button
                 onClick={() => setShowActions(!showActions)}
-                className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 flex items-center justify-center transition-all"
+                className="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center transition-colors"
               >
                 <MoreVertical className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-              </motion.button>
-              
-              <AnimatePresence>
-                {showActions && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                    className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-900/95 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 shadow-2xl overflow-hidden z-50"
+              </button>
+
+              {showActions && (
+                <div className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden z-50">
+                  <button
+                    onClick={() => { onView(user.id); setShowActions(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors"
                   >
-                    <button
-                      onClick={() => { onView(user.id); setShowActions(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all"
-                    >
-                      <Eye className="w-4 h-4" />
-                      {t('usersPage.viewDetails')}
-                    </button>
-                    {writable && (
-                      <>
+                    <Eye className="w-4 h-4" />
+                    {t('usersPage.viewDetails')}
+                  </button>
+                  {writable && (
+                    <>
+                      <button
+                        onClick={() => { onEdit(user); setShowActions(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-colors"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                        {t('usersPage.edit')}
+                      </button>
+                      <div className="border-t border-gray-100 dark:border-gray-800" />
+                      {user.is_active ? (
                         <button
-                          onClick={() => { onEdit(user); setShowActions(false); }}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white transition-all"
+                          onClick={() => { onDeactivate(user); setShowActions(false); }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors"
                         >
-                          <Edit3 className="w-4 h-4" />
-                          {t('usersPage.edit')}
+                          <UserX className="w-4 h-4" />
+                          {t('usersPage.deactivate')}
                         </button>
-                        {user.is_active ? (
-                          <button
-                            onClick={() => { onDeactivate(user); setShowActions(false); }}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300 transition-all"
-                          >
-                            <UserX className="w-4 h-4" />
-                            {t('usersPage.deactivate')}
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => { onReactivate(user); setShowActions(false); }}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm text-green-400 hover:bg-green-500/10 hover:text-green-300 transition-all"
-                          >
-                            <UserCheck className="w-4 h-4" />
-                            {t('usersPage.reactivate')}
-                          </button>
-                        )}
-                      </>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                      ) : (
+                        <button
+                          onClick={() => { onReactivate(user); setShowActions(false); }}
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+                        >
+                          <UserCheck className="w-4 h-4" />
+                          {t('usersPage.reactivate')}
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
@@ -754,6 +703,7 @@ export default function UsersPage() {
   const [filter, setFilter] = useState<'all' | 'pending' | 'active' | 'inactive'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [page, setPage] = useState(1);
 
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -867,18 +817,21 @@ export default function UsersPage() {
   };
 
   const filteredUsers = users.filter(user => {
-    const matchesFilter = 
+    const matchesFilter =
       filter === 'all' ? true :
       filter === 'pending' ? user.is_pending :
       filter === 'active' ? user.is_active && !user.is_pending :
       filter === 'inactive' ? !user.is_active : true;
-    
-    const matchesSearch = 
+
+    const matchesSearch =
       user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     return matchesFilter && matchesSearch;
   });
+
+  const totalPages = Math.ceil(filteredUsers.length / USERS_PAGE_SIZE);
+  const paginatedUsers = filteredUsers.slice((page - 1) * USERS_PAGE_SIZE, page * USERS_PAGE_SIZE);
 
   const stats = {
     total: users.length,
@@ -888,149 +841,167 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none dark:block hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-500/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl animate-pulse" />
+    <div className="p-6 md:p-8 space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+          <UsersIcon className="w-5 h-5 text-[#EC0000]" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-headline font-bold text-gray-900 dark:text-white">{t('admin.users')}</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.usersDescription')}</p>
+        </div>
       </div>
 
-      <div className="relative z-10 p-8">
-        <div className="max-w-7xl mx-auto">
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center">
-                <UsersIcon className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{t('admin.users')}</h1>
-                <p className="text-gray-500 dark:text-gray-400">{t('admin.usersDescription')}</p>
-              </div>
-            </div>
-          </motion.div>
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={UsersIcon} label={t('usersPage.totalUsers')} value={stats.total} color="from-[#EC0000] to-red-700" />
+        <StatCard icon={UserCheck} label={t('usersPage.activeUsers')} value={stats.active} color="from-emerald-500 to-emerald-700" />
+        <StatCard icon={Clock} label={t('usersPage.pendingUsers')} value={stats.pending} color="from-yellow-500 to-amber-600" />
+        <StatCard icon={Briefcase} label={t('usersPage.trainers')} value={stats.trainers} color="from-blue-500 to-blue-700" />
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <StatCard icon={UsersIcon} label={t('usersPage.totalUsers')} value={stats.total} color="from-blue-500 to-cyan-500" delay={0} />
-            <StatCard icon={UserCheck} label={t('usersPage.activeUsers')} value={stats.active} color="from-green-500 to-emerald-500" delay={0.1} />
-            <StatCard icon={Clock} label={t('usersPage.pendingUsers')} value={stats.pending} color="from-yellow-500 to-orange-500" delay={0.2} />
-            <StatCard icon={Briefcase} label={t('usersPage.trainers')} value={stats.trainers} color="from-purple-500 to-pink-500" delay={0.3} />
+      {/* Table card */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden">
+        {/* Toolbar */}
+        <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+              placeholder={t('usersPage.searchUsers')}
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:border-[#EC0000]/40 focus:ring-2 focus:ring-[#EC0000]/10 outline-none transition-all"
+            />
           </div>
 
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-            <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden shadow-lg dark:shadow-none">
-              <div className="p-6 border-b border-gray-200 dark:border-white/10">
-                <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                  <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder={t('usersPage.searchUsers')}
-                      className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all outline-none"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowFilters(!showFilters)}
-                        className="flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
-                      >
-                        <Filter className="w-4 h-4" />
-                        <span>{t('usersPage.filters')}</span>
-                        <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-                      </button>
-                      
-                      <AnimatePresence>
-                        {showFilters && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-900/95 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 shadow-2xl overflow-hidden z-50"
-                          >
-                            {[
-                              { value: 'all', label: t('usersPage.all'), icon: UsersIcon },
-                              { value: 'active', label: t('usersPage.actives'), icon: UserCheck },
-                              { value: 'pending', label: t('usersPage.pendingUsers'), icon: Clock },
-                              { value: 'inactive', label: t('usersPage.inactives'), icon: UserX }
-                            ].map((option) => (
-                              <button
-                                key={option.value}
-                                onClick={() => { setFilter(option.value as any); setShowFilters(false); }}
-                                className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-all ${
-                                  filter === option.value ? 'bg-red-500/20 text-red-500 dark:text-red-400' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
-                                }`}
-                              >
-                                <option.icon className="w-4 h-4" />
-                                {option.label}
-                              </button>
-                            ))}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                    
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={fetchUsers}
-                      className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl text-white font-medium shadow-lg shadow-red-500/20 hover:shadow-red-500/40 transition-shadow"
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2 px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <Filter className="w-4 h-4" />
+                {t('usersPage.filters')}
+                <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+              </button>
+
+              {showFilters && (
+                <div className="absolute right-0 top-full mt-1.5 w-44 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden z-50">
+                  {[
+                    { value: 'all', label: t('usersPage.all'), icon: UsersIcon },
+                    { value: 'active', label: t('usersPage.actives'), icon: UserCheck },
+                    { value: 'pending', label: t('usersPage.pendingUsers'), icon: Clock },
+                    { value: 'inactive', label: t('usersPage.inactives'), icon: UserX },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => { setFilter(option.value as any); setShowFilters(false); setPage(1); }}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                        filter === option.value
+                          ? 'bg-red-50 dark:bg-red-900/20 text-[#EC0000]'
+                          : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                      }`}
                     >
-                      <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                      {t('usersPage.refresh')}
-                    </motion.button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="divide-y divide-gray-100 dark:divide-white/5">
-                {loading ? (
-                  <div className="flex flex-col items-center justify-center py-20">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="w-12 h-12 border-2 border-red-500/30 border-t-red-500 rounded-full mb-4"
-                    />
-                    <p className="text-gray-500 dark:text-gray-400">{t('messages.loading')}</p>
-                  </div>
-                ) : filteredUsers.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20">
-                    <div className="w-20 h-20 rounded-full bg-gray-100 dark:bg-white/5 flex items-center justify-center mb-4">
-                      <AlertCircle className="w-10 h-10 text-gray-400 dark:text-gray-500" />
-                    </div>
-                    <p className="text-gray-600 dark:text-gray-400 text-lg">{t('admin.noUsers')}</p>
-                    <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">{t('usersPage.tryAdjustFilters')}</p>
-                  </div>
-                ) : (
-                  filteredUsers.map((user, index) => (
-                    <UserRow
-                      key={user.id}
-                      user={user}
-                      index={index}
-                      onApprove={handleApproveTrainer}
-                      onReject={handleRejectTrainer}
-                      onView={handleViewUser}
-                      onEdit={handleEditUser}
-                      onDeactivate={handleDeactivateUser}
-                      onReactivate={handleReactivateUser}
-                      writable={writable}
-                      t={t}
-                    />
-                  ))
-                )}
-              </div>
-
-              {!loading && filteredUsers.length > 0 && (
-                <div className="px-6 py-4 bg-gray-50 dark:bg-white/5 border-t border-gray-200 dark:border-white/10 flex items-center justify-center">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {t('usersPage.showingOf', { showing: filteredUsers.length, total: users.length })}
-                  </p>
+                      <option.icon className="w-4 h-4" />
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
-          </motion.div>
+
+            <button
+              onClick={fetchUsers}
+              className="flex items-center gap-2 px-3.5 py-2.5 bg-[#EC0000] hover:bg-[#CC0000] rounded-xl text-sm text-white font-semibold transition-colors"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              {t('usersPage.refresh')}
+            </button>
+          </div>
         </div>
+
+        {/* List */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="w-8 h-8 animate-spin text-[#EC0000] mb-3" />
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('messages.loading')}</p>
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-3">
+              <AlertCircle className="w-7 h-7 text-gray-400 dark:text-gray-500" />
+            </div>
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{t('admin.noUsers')}</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t('usersPage.tryAdjustFilters')}</p>
+          </div>
+        ) : (
+          paginatedUsers.map((user) => (
+            <UserRow
+              key={user.id}
+              user={user}
+              onApprove={handleApproveTrainer}
+              onReject={handleRejectTrainer}
+              onView={handleViewUser}
+              onEdit={handleEditUser}
+              onDeactivate={handleDeactivateUser}
+              onReactivate={handleReactivateUser}
+              writable={writable}
+              t={t}
+            />
+          ))
+        )}
+
+        {!loading && filteredUsers.length > 0 && (
+          <div className="px-5 py-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {(page - 1) * USERS_PAGE_SIZE + 1}–{Math.min(page * USERS_PAGE_SIZE, filteredUsers.length)} / {filteredUsers.length}
+            </p>
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
+                  .reduce<(number | '...')[]>((acc, p, i, arr) => {
+                    if (i > 0 && (p as number) - (arr[i - 1] as number) > 1) acc.push('...');
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) =>
+                    p === '...' ? (
+                      <span key={`e-${i}`} className="px-1 text-xs text-gray-400">…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p as number)}
+                        className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${
+                          p === page
+                            ? 'bg-[#EC0000] text-white'
+                            : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <Modal isOpen={viewModalOpen} onClose={() => setViewModalOpen(false)} title={t('usersPage.userDetails')}>

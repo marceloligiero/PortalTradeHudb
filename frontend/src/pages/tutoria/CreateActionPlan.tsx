@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2, X, ClipboardList, AlertTriangle, CheckCircle2,
-  ChevronRight, ChevronLeft, Save, User, Calendar, FileText,
-  Lightbulb, Target, Wrench, Shield,
+  ChevronRight, ChevronLeft, Save, Calendar, FileText,
+  Lightbulb, Wrench, Eye, TrendingUp, Shield, ChevronDown,
 } from 'lucide-react';
 import axios from '../../lib/axios';
-import { useAuthStore } from '../../stores/authStore';
-import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -20,22 +17,30 @@ interface ErrorInfo {
   tutorado_name?: string;
   category_name?: string;
   severity: string;
+  origin_name?: string;
 }
 
-interface UserItem { id: number; full_name: string }
+interface UserItem {
+  id: number;
+  full_name: string;
+  role?: string;
+  is_tutor?: boolean;
+  is_team_lead?: boolean;
+  is_referente?: boolean;
+}
 
 // ─── Field helpers ────────────────────────────────────────────────────────────
 
-function Label({ children, isDark, required }: { children: React.ReactNode; isDark: boolean; required?: boolean }) {
+function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
   return (
-    <label className={`block text-xs font-semibold uppercase tracking-wider mb-2 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+    <label className="block text-xs font-semibold uppercase tracking-wider mb-2 text-gray-500 dark:text-gray-400">
       {children}{required && <span className="text-red-400 ml-1">*</span>}
     </label>
   );
 }
 
-function Textarea({ value, onChange, placeholder, rows = 4, isDark }: {
-  value: string; onChange: (v: string) => void; placeholder?: string; rows?: number; isDark: boolean;
+function Textarea({ value, onChange, placeholder, rows = 4 }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; rows?: number;
 }) {
   return (
     <textarea
@@ -43,17 +48,13 @@ function Textarea({ value, onChange, placeholder, rows = 4, isDark }: {
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       rows={rows}
-      className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none resize-none transition-all ${
-        isDark
-          ? 'bg-white/[0.04] border-white/10 text-white placeholder-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10'
-          : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/10'
-      }`}
+      className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none resize-none transition-all bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/10 dark:bg-white/[0.04] dark:border-white/10 dark:text-white dark:placeholder-gray-600 dark:focus:border-blue-500 dark:focus:ring-blue-500/10"
     />
   );
 }
 
-function Input({ value, onChange, placeholder, type = 'text', isDark }: {
-  value: string; onChange: (v: string) => void; placeholder?: string; type?: string; isDark: boolean;
+function Input({ value, onChange, placeholder, type = 'text' }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
 }) {
   return (
     <input
@@ -61,89 +62,181 @@ function Input({ value, onChange, placeholder, type = 'text', isDark }: {
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
-      className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none transition-all ${
-        isDark
-          ? 'bg-white/[0.04] border-white/10 text-white placeholder-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10'
-          : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/10'
-      }`}
+      className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none transition-all bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/10 dark:bg-white/[0.04] dark:border-white/10 dark:text-white dark:placeholder-gray-600 dark:focus:border-blue-500 dark:focus:ring-blue-500/10"
     />
   );
 }
+
+function SelectField({ value, onChange, children }: {
+  value: string; onChange: (v: string) => void; children: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="w-full appearance-none px-3 py-2.5 pr-9 rounded-xl border text-sm outline-none transition-all bg-white border-gray-200 text-gray-900 focus:border-[#EC0000] focus:ring-2 focus:ring-[#EC0000]/10 dark:bg-white/[0.04] dark:border-white/10 dark:text-white dark:focus:border-[#EC0000] dark:[color-scheme:dark]"
+      >
+        {children}
+      </select>
+      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
+    </div>
+  );
+}
+
+// ─── PlanSection ──────────────────────────────────────────────────────────────
+
+const colorMap = {
+  amber: {
+    card: 'border-amber-300 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/5',
+    toggleOn: 'bg-amber-500',
+    iconBg: 'from-amber-500 to-orange-500',
+    divider: 'border-amber-200/60 dark:border-amber-500/10',
+  },
+  blue: {
+    card: 'border-blue-300 bg-blue-50 dark:border-blue-500/30 dark:bg-blue-500/5',
+    toggleOn: 'bg-blue-500',
+    iconBg: 'from-blue-500 to-indigo-500',
+    divider: 'border-blue-200/60 dark:border-blue-500/10',
+  },
+  green: {
+    card: 'border-green-300 bg-green-50 dark:border-green-500/30 dark:bg-green-500/5',
+    toggleOn: 'bg-green-500',
+    iconBg: 'from-green-500 to-emerald-500',
+    divider: 'border-green-200/60 dark:border-green-500/10',
+  },
+};
+
+interface PlanSectionProps {
+  title: string;
+  subtitle?: string;
+  enabled: boolean;
+  onToggle: () => void;
+  colorScheme: 'amber' | 'blue' | 'green';
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}
+
+function PlanSection({ title, subtitle, enabled, onToggle, colorScheme, icon, children }: PlanSectionProps) {
+  const c = colorMap[colorScheme];
+  return (
+    <div className={`rounded-2xl border overflow-hidden transition-all duration-200 ${
+      enabled ? c.card : 'border-gray-200 bg-gray-50 dark:border-white/8 dark:bg-white/[0.02]'
+    }`}>
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center gap-4 px-5 py-4 text-left"
+      >
+        <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${c.iconBg} flex items-center justify-center flex-shrink-0 shadow-sm`}>
+          {icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-gray-900 dark:text-white">{title}</p>
+          {subtitle && <p className="text-xs mt-0.5 text-gray-400 dark:text-gray-500">{subtitle}</p>}
+        </div>
+        <div className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+          enabled ? c.toggleOn : 'bg-gray-200 dark:bg-white/10'
+        }`}>
+          <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${
+            enabled ? 'translate-x-5' : 'translate-x-0'
+          }`} />
+        </div>
+      </button>
+      {enabled && (
+        <div className={`px-5 pb-5 border-t ${c.divider}`}>
+          <div className="pt-4 space-y-4">
+            {children}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Review plan styles (static, no isDark) ────────────────────────────────
+
+const reviewStyles = {
+  amber: {
+    wrap: 'bg-amber-50 border-amber-200 dark:bg-amber-500/5 dark:border-amber-500/20',
+    label: 'text-amber-700/70 dark:text-amber-400/70',
+    text: 'text-amber-900/80 dark:text-amber-200/80',
+  },
+  blue: {
+    wrap: 'bg-blue-50 border-blue-200 dark:bg-blue-500/5 dark:border-blue-500/20',
+    label: 'text-blue-700/70 dark:text-blue-400/70',
+    text: 'text-blue-900/80 dark:text-blue-200/80',
+  },
+  green: {
+    wrap: 'bg-green-50 border-green-200 dark:bg-green-500/5 dark:border-green-500/20',
+    label: 'text-green-700/70 dark:text-green-400/70',
+    text: 'text-green-900/80 dark:text-green-200/80',
+  },
+};
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function CreateActionPlan() {
   const { errorId } = useParams<{ errorId: string }>();
-  const { user } = useAuthStore();
-  const { isDark } = useTheme();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
   const STEPS = [
     { label: t('createPlan.stepAnalysis'), icon: Lightbulb },
     { label: t('createPlan.stepActions'), icon: Wrench },
-    { label: t('createPlan.step5W2H'), icon: Target },
+    { label: t('createPlan.stepReview'), icon: Eye },
   ];
 
   const [step, setStep] = useState(0);
 
-  // Error info
   const [errorInfo, setErrorInfo] = useState<ErrorInfo | null>(null);
-  const [students, setStudents] = useState<UserItem[]>([]);
   const [team, setTeam] = useState<UserItem[]>([]);
+  const [tutoradoId, setTutorado] = useState('');
 
   // Step 0 — Análise de causa raiz
   const [analysis5Why, setAnalysis5Why] = useState('');
 
-  // Step 1 — Ações
-  const [immediateCorrection, setImmediate] = useState('');
-  const [correctiveAction, setCorrective]   = useState('');
-  const [preventiveAction, setPreventive]   = useState('');
+  // Step 1 — Resumo para Excel
+  const [actionPlanSummary, setActionPlanSummary] = useState('');
 
-  // Plan metadata
-  const [planType, setPlanType]         = useState('CORRECTIVO');
-  const [responsibleId, setResponsibleId] = useState('');
-  const [deadline, setDeadline]         = useState('');
+  // Plano Corretivo
+  const [correctivoEnabled, setCorrectivoEnabled] = useState(false);
+  const [correctivoDesc, setCorrectivoDesc] = useState('');
+  const [correctivoResult, setCorrectivoResult] = useState('');
+  const [correctivoResponsible, setCorrectivoResponsible] = useState('');
+  const [correctivoPrazo, setCorrectivoPrazo] = useState('');
 
-  // Side by Side (Seguimento)
-  const [sideByS, setSideByS]     = useState(false);
-  const [obsDate, setObsDate]     = useState('');
-  const [obsNotes, setObsNotes]   = useState('');
+  // Plano Preventivo
+  const [preventivoEnabled, setPreventivoEnabled] = useState(false);
+  const [preventivoDesc, setPreventivoDesc] = useState('');
+  const [preventivoResult, setPreventivoResult] = useState('');
+  const [preventivoResponsible, setPreventivoResponsible] = useState('');
+  const [preventivoPrazo, setPreventivoPrazo] = useState('');
 
-  // Step 2 — 5W2H
-  const [what, setWhat]           = useState('');
-  const [why, setWhy]             = useState('');
-  const [whereField, setWhere]    = useState('');
-  const [whenDeadline, setWhen]   = useState('');
-  const [who, setWho]             = useState('');
-  const [how, setHow]             = useState('');
-  const [howMuch, setHowMuch]     = useState('');
-  const [tutoradoId, setTutorado] = useState('');
+  // Plano Melhoria/Desenvolvimento (só Trade_Personas)
+  const [melhoriaEnabled, setMelhoriaEnabled] = useState(false);
+  const [melhoriaDesc, setMelhoriaDesc] = useState('');
+  const [melhoriaResult, setMelhoriaResult] = useState('');
+  const [melhoriaResponsible, setMelhoriaResponsible] = useState('');
+  const [melhoriaPrazo, setMelhoriaPrazo] = useState('');
 
-  // UI
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved]   = useState(false);
-  const [error, setError]   = useState('');
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!errorId) return;
     (async () => {
       try {
-        const [eRes, sRes, tRes] = await Promise.all([
+        const [eRes, tRes] = await Promise.all([
           axios.get(`/api/tutoria/errors/${errorId}`),
-          axios.get('/api/tutoria/students'),
           axios.get('/api/tutoria/team'),
         ]);
         const e = eRes.data;
         setErrorInfo(e);
-        // Pre-fill tutorado from error
         setTutorado(String(e.tutorado_id));
-        // Pre-fill who from tutorado name
-        setWho(e.tutorado_name ?? '');
-        // Pre-populate 5W2H from error context
         setAnalysis5Why(e.analysis_5_why ?? '');
-        setStudents(Array.isArray(sRes.data) ? sRes.data : []);
         setTeam(Array.isArray(tRes.data) ? tRes.data : []);
       } catch {
         setError(t('createPlan.loadError'));
@@ -153,52 +246,76 @@ export default function CreateActionPlan() {
     })();
   }, [errorId]);
 
+  const isTradePessonas = errorInfo?.origin_name?.toLowerCase().includes('personas') || false;
+
+  const teamForCorretivoPrev = team.filter(u =>
+    u.is_tutor || u.is_team_lead || u.is_referente ||
+    u.role === 'ADMIN' || u.role === 'MANAGER'
+  );
+  const teamForMelhoria = team.filter(u => u.is_tutor);
+
   const canNextStep0 = analysis5Why.trim().length > 0;
-  const canNextStep1 = planType === 'SEGUIMENTO' || !!(immediateCorrection.trim() || correctiveAction.trim() || preventiveAction.trim());
-  const canSave = what.trim() && tutoradoId;
+  const canNextStep1 = correctivoEnabled || preventivoEnabled || melhoriaEnabled;
+  const hasAnyPlanActive = correctivoEnabled || preventivoEnabled || (melhoriaEnabled && isTradePessonas);
 
   const handleNext = () => {
-    if (step === 0 && !canNextStep0) {
-      setError(t('createPlan.validationAnalysis'));
-      return;
-    }
-    if (step === 1 && !canNextStep1) {
-      setError(t('createPlan.validationActions'));
-      return;
-    }
+    if (step === 0 && !canNextStep0) { setError(t('createPlan.validationAnalysis')); return; }
+    if (step === 1 && !canNextStep1) { setError(t('createPlan.validationPlans')); return; }
     setError('');
     setStep(s => s + 1);
   };
 
   const handleSave = async () => {
-    if (!canSave) {
-      setError(t('createPlan.validationWhat'));
-      return;
-    }
     if (!errorId) return;
+    const planos: object[] = [];
+
+    if (correctivoEnabled && correctivoDesc.trim()) {
+      planos.push({
+        plan_type: 'CORRECTIVO',
+        tutorado_id: Number(tutoradoId),
+        corrective_action: correctivoDesc.trim(),
+        expected_result: correctivoResult.trim() || null,
+        responsible_id: correctivoResponsible ? Number(correctivoResponsible) : null,
+        deadline: correctivoPrazo || null,
+        action_plan_summary: actionPlanSummary.trim() || null,
+        analysis_5_why: analysis5Why.trim() || null,
+      });
+    }
+
+    if (preventivoEnabled && preventivoDesc.trim()) {
+      planos.push({
+        plan_type: 'PREVENTIVO',
+        tutorado_id: Number(tutoradoId),
+        preventive_action: preventivoDesc.trim(),
+        expected_result: preventivoResult.trim() || null,
+        responsible_id: preventivoResponsible ? Number(preventivoResponsible) : null,
+        deadline: preventivoPrazo || null,
+        action_plan_summary: actionPlanSummary.trim() || null,
+        analysis_5_why: analysis5Why.trim() || null,
+      });
+    }
+
+    if (melhoriaEnabled && melhoriaDesc.trim()) {
+      planos.push({
+        plan_type: 'MELHORIA',
+        tutorado_id: Number(tutoradoId),
+        immediate_correction: melhoriaDesc.trim(),
+        expected_result: melhoriaResult.trim() || null,
+        responsible_id: melhoriaResponsible ? Number(melhoriaResponsible) : null,
+        deadline: melhoriaPrazo || null,
+        action_plan_summary: actionPlanSummary.trim() || null,
+        analysis_5_why: analysis5Why.trim() || null,
+      });
+    }
+
+    if (planos.length === 0) { setError(t('createPlan.validationPlansEmpty')); return; }
+
     setSaving(true);
     setError('');
     try {
-      await axios.post(`/api/tutoria/errors/${errorId}/plans`, {
-        tutorado_id: Number(tutoradoId),
-        plan_type: planType || null,
-        responsible_id: responsibleId ? Number(responsibleId) : null,
-        deadline: deadline || null,
-        analysis_5_why: analysis5Why.trim() || null,
-        immediate_correction: immediateCorrection.trim() || null,
-        corrective_action: correctiveAction.trim() || null,
-        preventive_action: preventiveAction.trim() || null,
-        what: what.trim() || null,
-        why: why.trim() || null,
-        where_field: whereField.trim() || null,
-        when_deadline: whenDeadline || null,
-        who: who.trim() || null,
-        how: how.trim() || null,
-        how_much: howMuch.trim() || null,
-        side_by_side: planType === 'SEGUIMENTO' ? sideByS : undefined,
-        observation_date: planType === 'SEGUIMENTO' && obsDate ? obsDate : undefined,
-        observation_notes: planType === 'SEGUIMENTO' && obsNotes.trim() ? obsNotes.trim() : undefined,
-      });
+      for (const plano of planos) {
+        await axios.post(`/api/tutoria/errors/${errorId}/plans`, plano);
+      }
       setSaved(true);
       setTimeout(() => navigate(`/tutoria/errors/${errorId}`), 1200);
     } catch (e: any) {
@@ -212,20 +329,20 @@ export default function CreateActionPlan() {
   if (saved) {
     return (
       <div className="flex items-center justify-center py-32">
-        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center">
+        <div className="text-center animate-in zoom-in-95 fade-in duration-200">
           <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-blue-500/30">
             <CheckCircle2 className="w-10 h-10 text-white" />
           </div>
-          <h2 className={`text-2xl font-black mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('createPlan.successTitle')}</h2>
-          <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('createPlan.redirecting')}</p>
-        </motion.div>
+          <h2 className="text-2xl font-black mb-2 text-gray-900 dark:text-white">{t('createPlan.successTitle')}</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{t('createPlan.redirecting')}</p>
+        </div>
       </div>
     );
   }
 
   if (loading) return (
     <div className="flex items-center justify-center py-32">
-      <Loader2 className={`w-8 h-8 animate-spin ${isDark ? 'text-blue-400' : 'text-blue-500'}`} />
+      <Loader2 className="w-8 h-8 animate-spin text-blue-500 dark:text-blue-400" />
     </div>
   );
 
@@ -233,360 +350,374 @@ export default function CreateActionPlan() {
     <div className="space-y-8 max-w-3xl">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-        className={`border-b pb-8 ${isDark ? 'border-white/10' : 'border-gray-200'}`}
-      >
+      <div className="border-b pb-8 border-gray-200 dark:border-white/10">
         <div className="flex items-center gap-5">
           <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/30">
             <ClipboardList className="w-8 h-8 text-white" />
           </div>
           <div>
-            <span className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-blue-400' : 'text-blue-500'}`}>{t('createPlan.portalLabel')}</span>
-            <h1 className={`text-4xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('createPlan.pageTitle')}</h1>
+            <span className="text-sm font-bold uppercase tracking-widest text-blue-500 dark:text-blue-400">{t('createPlan.portalLabel')}</span>
+            <h1 className="text-4xl font-black text-gray-900 dark:text-white">{t('createPlan.pageTitle')}</h1>
             {errorInfo && (
-              <p className={`mt-1 text-sm ${isDark ? 'text-white/50' : 'text-gray-500'}`}>
+              <p className="mt-1 text-sm text-gray-500 dark:text-white/50">
                 {`${t('createPlan.errorLabel')} #${errorInfo.id} · ${errorInfo.tutorado_name}`}
               </p>
             )}
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* ── Error context ────────────────────────────────────────────────────── */}
+      {/* ── Error context ──────────────────────────────────────────────────── */}
       {errorInfo && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05 }}
-          className={`rounded-2xl border p-4 flex items-start gap-3 ${isDark ? 'bg-red-500/5 border-red-500/10' : 'bg-red-50 border-red-200'}`}
-        >
-          <AlertTriangle className={`w-5 h-5 flex-shrink-0 mt-0.5 ${isDark ? 'text-red-400' : 'text-red-500'}`} />
+        <div className="rounded-2xl border p-4 flex items-start gap-3 bg-red-50 border-red-200 dark:bg-red-500/5 dark:border-red-500/10">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-500 dark:text-red-400" />
           <div>
-            <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${isDark ? 'text-red-400/70' : 'text-red-600/70'}`}>{t('createPlan.errorUnderAnalysis')}</p>
-            <p className={`text-sm font-semibold ${isDark ? 'text-red-300' : 'text-red-800'}`}>{errorInfo.description}</p>
-            {errorInfo.category_name && <p className={`text-xs mt-0.5 ${isDark ? 'text-red-400/50' : 'text-red-600/60'}`}>{errorInfo.category_name} · {errorInfo.severity}</p>}
+            <p className="text-xs font-bold uppercase tracking-wider mb-1 text-red-600/70 dark:text-red-400/70">{t('createPlan.errorUnderAnalysis')}</p>
+            <p className="text-sm font-semibold text-red-800 dark:text-red-300">{errorInfo.description}</p>
+            {errorInfo.category_name && (
+              <p className="text-xs mt-0.5 text-red-600/60 dark:text-red-400/50">
+                {errorInfo.category_name} · {errorInfo.severity}
+                {errorInfo.origin_name && ` · ${errorInfo.origin_name}`}
+              </p>
+            )}
           </div>
-        </motion.div>
+        </div>
       )}
 
-      {/* ── Step indicators ──────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
-        className="flex items-center gap-2"
-      >
+      {/* ── Step indicators ────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2">
         {STEPS.map((s, i) => {
           const Icon = s.icon;
           return (
             <div key={i} className="flex items-center gap-2">
               <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
                 i === step
-                  ? isDark ? 'bg-blue-500/15 border-blue-500/30 text-blue-300' : 'bg-blue-100 border-blue-300 text-blue-700'
+                  ? 'bg-blue-100 border-blue-300 text-blue-700 dark:bg-blue-500/15 dark:border-blue-500/30 dark:text-blue-300'
                   : i < step
-                    ? isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                    : isDark ? 'bg-white/[0.02] border-white/5 text-gray-700' : 'bg-gray-50 border-gray-200 text-gray-300'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400'
+                    : 'bg-gray-50 border-gray-200 text-gray-300 dark:bg-white/[0.02] dark:border-white/5 dark:text-gray-700'
               }`}>
                 {i < step ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Icon className="w-3.5 h-3.5" />}
                 {s.label}
               </div>
-              {i < STEPS.length - 1 && <div className={`w-8 h-px ${isDark ? 'bg-white/10' : 'bg-gray-200'}`} />}
+              {i < STEPS.length - 1 && <div className="w-8 h-px bg-gray-200 dark:bg-white/10" />}
             </div>
           );
         })}
-      </motion.div>
+      </div>
 
-      {/* ── Step content ─────────────────────────────────────────────────────── */}
-      <AnimatePresence mode="wait">
-        {step === 0 && (
-          <motion.div
-            key="step0"
-            initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }}
-            transition={{ duration: 0.3 }}
-            className={`rounded-2xl border overflow-hidden ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
-          >
-            <div className={`px-6 py-4 border-b flex items-center gap-3 ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
-              <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-amber-500 rounded-lg flex items-center justify-center"><Lightbulb className="w-4 h-4 text-white" /></div>
+      {/* ── Step 0: Análise 5 Porquês ──────────────────────────────────────── */}
+      {step === 0 && (
+        <div className="rounded-2xl border overflow-hidden bg-white border-gray-200 shadow-sm dark:bg-white/[0.03] dark:border-white/8 dark:shadow-none">
+          <div className="px-6 py-4 border-b flex items-center gap-3 border-gray-100 bg-gray-50 dark:border-white/8 dark:bg-white/[0.02]">
+            <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-amber-500 rounded-lg flex items-center justify-center">
+              <Lightbulb className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900 dark:text-white">{t('createPlan.rootCauseTitle')}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{t('createPlan.rootCauseSubtitle')}</p>
+            </div>
+          </div>
+          <div className="p-6">
+            <Label required>{t('createPlan.analysis5Why')}</Label>
+            <Textarea
+              value={analysis5Why}
+              onChange={setAnalysis5Why}
+              placeholder={t('createPlan.analysis5WhyPlaceholder')}
+              rows={9}
+            />
+            <p className="text-xs mt-2 text-gray-400 dark:text-gray-600">{t('createPlan.analysisHint')}</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 1: Planos de Ação ──────────────────────────────────────────── */}
+      {step === 1 && (
+        <div className="space-y-5">
+          {/* Campo de resumo para Excel */}
+          <div className="rounded-2xl border overflow-hidden bg-white border-gray-200 shadow-sm dark:bg-white/[0.03] dark:border-white/8 dark:shadow-none">
+            <div className="px-6 py-4 border-b flex items-center gap-3 border-gray-100 bg-gray-50 dark:border-white/8 dark:bg-white/[0.02]">
+              <div className="w-8 h-8 bg-gradient-to-br from-violet-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <FileText className="w-4 h-4 text-white" />
+              </div>
               <div>
-                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('createPlan.rootCauseTitle')}</p>
-                <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('createPlan.rootCauseSubtitle')}</p>
+                <p className="text-sm font-bold text-gray-900 dark:text-white">{t('createPlan.planActionsTitle')}</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500">{t('createPlan.planActionsSubtitle')}</p>
               </div>
             </div>
             <div className="p-6">
-              <Label isDark={isDark} required>{t('createPlan.analysis5Why')}</Label>
+              <Label>{t('createPlan.actionPlanSummaryLabel')}</Label>
               <Textarea
-                value={analysis5Why}
-                onChange={setAnalysis5Why}
-                placeholder={t('createPlan.analysis5WhyPlaceholder')}
-                rows={9}
-                isDark={isDark}
+                value={actionPlanSummary}
+                onChange={setActionPlanSummary}
+                placeholder={t('createPlan.actionPlanSummaryHint')}
+                rows={3}
               />
-              <p className={`text-xs mt-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-                {t('createPlan.analysisHint')}
-              </p>
+              <p className="text-xs mt-2 text-gray-400 dark:text-gray-600">{t('createPlan.actionPlanSummaryNote')}</p>
             </div>
-          </motion.div>
-        )}
+          </div>
 
-        {step === 1 && (
-          <motion.div
-            key="step1"
-            initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }}
-            transition={{ duration: 0.3 }}
-            className={`rounded-2xl border overflow-hidden ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
+          {/* Plano Corretivo */}
+          <PlanSection
+            title={t('createPlan.correctivoPlanTitle')}
+            subtitle={t('createPlan.correctivoPlanSubtitle')}
+            enabled={correctivoEnabled}
+            onToggle={() => setCorrectivoEnabled(v => !v)}
+            colorScheme="amber"
+            icon={<Wrench className="w-4 h-4 text-white" />}
           >
-            <div className={`px-6 py-4 border-b flex items-center gap-3 ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
-              <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-lg flex items-center justify-center"><Wrench className="w-4 h-4 text-white" /></div>
-              <div>
-                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('createPlan.planActionsTitle')}</p>
-                <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('createPlan.planActionsSubtitle')}</p>
-              </div>
+            <div>
+              <Label required>{t('createPlan.planDesc')}</Label>
+              <Textarea value={correctivoDesc} onChange={setCorrectivoDesc}
+                placeholder={t('createPlan.correctivoDescHint')} rows={3} />
             </div>
-            <div className="p-6 space-y-5">
-              <div className={`rounded-xl border p-4 space-y-3 ${isDark ? 'border-yellow-500/20 bg-yellow-500/5' : 'border-yellow-200 bg-yellow-50'}`}>
-                <Label isDark={isDark}>{t('createPlan.immediateCorrection')}</Label>
-                <Textarea value={immediateCorrection} onChange={setImmediate}
-                  placeholder={t('createPlan.immediateHint')}
-                  rows={3} isDark={isDark} />
-                <p className={`text-xs ${isDark ? 'text-yellow-400/60' : 'text-yellow-700/60'}`}>{t('createPlan.immediateNote')}</p>
-              </div>
-              <div className={`rounded-xl border p-4 space-y-3 ${isDark ? 'border-blue-500/20 bg-blue-500/5' : 'border-blue-200 bg-blue-50'}`}>
-                <Label isDark={isDark}>{t('createPlan.correctiveAction')}</Label>
-                <Textarea value={correctiveAction} onChange={setCorrective}
-                  placeholder={t('createPlan.correctiveHint')}
-                  rows={3} isDark={isDark} />
-                <p className={`text-xs ${isDark ? 'text-blue-400/60' : 'text-blue-700/60'}`}>{t('createPlan.correctiveNote')}</p>
-              </div>
-              <div className={`rounded-xl border p-4 space-y-3 ${isDark ? 'border-green-500/20 bg-green-500/5' : 'border-green-200 bg-green-50'}`}>
-                <Label isDark={isDark}>{t('createPlan.preventiveAction')}</Label>
-                <Textarea value={preventiveAction} onChange={setPreventive}
-                  placeholder={t('createPlan.preventiveHint')}
-                  rows={3} isDark={isDark} />
-                <p className={`text-xs ${isDark ? 'text-green-400/60' : 'text-green-700/60'}`}>{t('createPlan.preventiveNote')}</p>
-              </div>
-
-              {/* ── Plan metadata: type, responsible, deadline ──────── */}
-              <div className={`rounded-xl border p-4 space-y-4 ${isDark ? 'border-white/10 bg-white/[0.02]' : 'border-gray-200 bg-gray-50'}`}>
-                <p className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-                  <Shield className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />
-                  {t('createPlan.planMetadata')}
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Plan Type */}
-                  <div>
-                    <Label isDark={isDark}>{t('createPlan.planType')}</Label>
-                    <div className="relative">
-                      <select
-                        value={planType}
-                        onChange={e => setPlanType(e.target.value)}
-                        className={`w-full appearance-none px-3 py-2.5 pr-9 rounded-xl border text-sm outline-none transition-all ${
-                          isDark
-                            ? 'bg-white/[0.04] border-white/10 text-white focus:border-[#EC0000] focus:ring-2 focus:ring-[#EC0000]/10'
-                            : 'bg-white border-gray-200 text-gray-900 focus:border-[#EC0000] focus:ring-2 focus:ring-[#EC0000]/10'
-                        }`}
-                        style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : undefined }}
-                      >
-                        <option value="CORRECTIVO" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.planTypeCorrectivo')}</option>
-                        <option value="PREVENTIVO" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.planTypePreventivo')}</option>
-                        <option value="MELHORIA" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.planTypeMelhoria')}</option>
-                        <option value="SEGUIMENTO" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.planTypeSeguimento')}</option>
-                      </select>
-                      <FileText className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
-                    </div>
-                  </div>
-
-                  {/* Responsible */}
-                  <div>
-                    <Label isDark={isDark}>{t('createPlan.responsible')}</Label>
-                    <div className="relative">
-                      <select
-                        value={responsibleId}
-                        onChange={e => setResponsibleId(e.target.value)}
-                        className={`w-full appearance-none px-3 py-2.5 pr-9 rounded-xl border text-sm outline-none transition-all ${
-                          isDark
-                            ? 'bg-white/[0.04] border-white/10 text-white focus:border-[#EC0000] focus:ring-2 focus:ring-[#EC0000]/10'
-                            : 'bg-white border-gray-200 text-gray-900 focus:border-[#EC0000] focus:ring-2 focus:ring-[#EC0000]/10'
-                        }`}
-                        style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : undefined }}
-                      >
-                        <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.selectPlanResponsible')}</option>
-                        {team.map(u => (
-                          <option key={u.id} value={String(u.id)} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{u.full_name}</option>
-                        ))}
-                      </select>
-                      <User className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
-                    </div>
-                  </div>
-
-                  {/* Deadline */}
-                  <div>
-                    <Label isDark={isDark}>{t('createPlan.deadline')}</Label>
-                    <div className="relative">
-                      <Input type="date" value={deadline} onChange={setDeadline} isDark={isDark} />
-                      <Calendar className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Side by Side (Seguimento) */}
-                {planType === 'SEGUIMENTO' && (
-                  <div className={`border-t pt-4 space-y-3 ${isDark ? 'border-white/5' : 'border-gray-200'}`}>
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={sideByS}
-                        onChange={e => setSideByS(e.target.checked)}
-                        className="w-4 h-4 rounded accent-[#EC0000]"
-                      />
-                      <span className={`text-sm font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                        {t('createPlan.sideByS')}
-                      </span>
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <Label isDark={isDark}>{t('createPlan.observationDate')}</Label>
-                        <Input type="date" value={obsDate} onChange={setObsDate} isDark={isDark} />
-                      </div>
-                      <div>
-                        <Label isDark={isDark}>{t('createPlan.observationNotes')}</Label>
-                        <Textarea value={obsNotes} onChange={setObsNotes} placeholder={t('createPlan.observationNotesHint')} rows={3} isDark={isDark} />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+            <div>
+              <Label>{t('createPlan.planExpectedResult')}</Label>
+              <Textarea value={correctivoResult} onChange={setCorrectivoResult}
+                placeholder={t('createPlan.expectedResultHint')} rows={2} />
             </div>
-          </motion.div>
-        )}
-
-        {step === 2 && (
-          <motion.div
-            key="step2"
-            initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }}
-            transition={{ duration: 0.3 }}
-            className={`rounded-2xl border overflow-hidden ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
-          >
-            <div className={`px-6 py-4 border-b flex items-center gap-3 ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center"><Target className="w-4 h-4 text-white" /></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <p className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{t('createPlan.methodology5W2H')}</p>
-                <p className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('createPlan.methodology5W2HSubtitle')}</p>
-              </div>
-            </div>
-            <div className="p-6 space-y-5">
-              <div>
-                <Label isDark={isDark} required>{t('createPlan.what')}</Label>
-                <Input value={what} onChange={setWhat} placeholder={t('createPlan.whatHint')} isDark={isDark} />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                  <Label isDark={isDark}>{t('createPlan.why')}</Label>
-                  <Textarea value={why} onChange={setWhy} placeholder={t('createPlan.whyHint')} rows={3} isDark={isDark} />
-                </div>
-                <div>
-                  <Label isDark={isDark}>{t('createPlan.where')}</Label>
-                  <Textarea value={whereField} onChange={setWhere} placeholder={t('createPlan.whereHint')} rows={3} isDark={isDark} />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                  <Label isDark={isDark}>{t('createPlan.tutorado')}</Label>
-                  <div className="relative">
-                    <select
-                      value={tutoradoId}
-                      onChange={e => { setTutorado(e.target.value); const u = students.find(u => String(u.id) === e.target.value); if (u) setWho(u.full_name); }}
-                      className={`w-full appearance-none px-3 py-2.5 pr-9 rounded-xl border text-sm outline-none ${isDark ? 'bg-white/[0.04] border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
-                      style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : undefined }}
-                    >
-                      <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.selectTutorado')}</option>
-                      {students.map(u => <option key={u.id} value={String(u.id)} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{u.full_name}</option>)}
-                    </select>
-                    <User className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
-                  </div>
-                </div>
-                <div>
-                  <Label isDark={isDark}>{t('createPlan.who')}</Label>
-                  <div className="relative">
-                    <select
-                      value={who}
-                      onChange={e => setWho(e.target.value)}
-                      className={`w-full appearance-none px-3 py-2.5 pr-9 rounded-xl border text-sm outline-none ${isDark ? 'bg-white/[0.04] border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`}
-                      style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : undefined }}
-                    >
-                      <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('createPlan.selectResponsible')}</option>
-                      {team.map(u => <option key={u.id} value={u.full_name} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{u.full_name}</option>)}
-                    </select>
-                    <User className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
-                  </div>
-                </div>
+                <Label>{t('createPlan.planResponsible')}</Label>
+                <SelectField value={correctivoResponsible} onChange={setCorrectivoResponsible}>
+                  <option value="">{t('createPlan.selectPlanResponsible')}</option>
+                  {teamForCorretivoPrev.map(u => (
+                    <option key={u.id} value={String(u.id)}>{u.full_name}</option>
+                  ))}
+                </SelectField>
               </div>
               <div>
-                <Label isDark={isDark}>{t('createPlan.when')}</Label>
+                <Label>{t('createPlan.deadline')}</Label>
                 <div className="relative">
-                  <Input type="date" value={whenDeadline} onChange={setWhen} isDark={isDark} />
+                  <Input type="date" value={correctivoPrazo} onChange={setCorrectivoPrazo} />
                   <Calendar className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
                 </div>
               </div>
+            </div>
+          </PlanSection>
+
+          {/* Plano Preventivo */}
+          <PlanSection
+            title={t('createPlan.preventivoPlanTitle')}
+            subtitle={t('createPlan.preventivoPlanSubtitle')}
+            enabled={preventivoEnabled}
+            onToggle={() => setPreventivoEnabled(v => !v)}
+            colorScheme="blue"
+            icon={<Shield className="w-4 h-4 text-white" />}
+          >
+            <div>
+              <Label required>{t('createPlan.planDesc')}</Label>
+              <Textarea value={preventivoDesc} onChange={setPreventivoDesc}
+                placeholder={t('createPlan.preventivoDescHint')} rows={3} />
+            </div>
+            <div>
+              <Label>{t('createPlan.planExpectedResult')}</Label>
+              <Textarea value={preventivoResult} onChange={setPreventivoResult}
+                placeholder={t('createPlan.expectedResultHint')} rows={2} />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label isDark={isDark}>{t('createPlan.how')}</Label>
-                <Textarea value={how} onChange={setHow} placeholder={t('createPlan.howHint')} rows={4} isDark={isDark} />
+                <Label>{t('createPlan.planResponsible')}</Label>
+                <SelectField value={preventivoResponsible} onChange={setPreventivoResponsible}>
+                  <option value="">{t('createPlan.selectPlanResponsible')}</option>
+                  {teamForCorretivoPrev.map(u => (
+                    <option key={u.id} value={String(u.id)}>{u.full_name}</option>
+                  ))}
+                </SelectField>
               </div>
               <div>
-                <Label isDark={isDark}>{t('createPlan.howMuch')}</Label>
-                <Input value={howMuch} onChange={setHowMuch} placeholder={t('createPlan.howMuchHint')} isDark={isDark} />
+                <Label>{t('createPlan.deadline')}</Label>
+                <div className="relative">
+                  <Input type="date" value={preventivoPrazo} onChange={setPreventivoPrazo} />
+                  <Calendar className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
+                </div>
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </PlanSection>
+
+          {/* Plano Melhoria/Desenvolvimento — só visível se Trade_Personas */}
+          {isTradePessonas && (
+            <PlanSection
+              title={t('createPlan.melhoriaPlanTitle')}
+              subtitle={t('createPlan.melhoriaPlanSubtitle')}
+              enabled={melhoriaEnabled}
+              onToggle={() => setMelhoriaEnabled(v => !v)}
+              colorScheme="green"
+              icon={<TrendingUp className="w-4 h-4 text-white" />}
+            >
+              <div>
+                <Label required>{t('createPlan.planDesc')}</Label>
+                <Textarea value={melhoriaDesc} onChange={setMelhoriaDesc}
+                  placeholder={t('createPlan.melhoriaDescHint')} rows={3} />
+              </div>
+              <div>
+                <Label>{t('createPlan.planExpectedResult')}</Label>
+                <Textarea value={melhoriaResult} onChange={setMelhoriaResult}
+                  placeholder={t('createPlan.expectedResultHint')} rows={2} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label>{t('createPlan.planResponsibleTutor')}</Label>
+                  <SelectField value={melhoriaResponsible} onChange={setMelhoriaResponsible}>
+                    <option value="">{t('createPlan.selectPlanResponsible')}</option>
+                    {teamForMelhoria.map(u => (
+                      <option key={u.id} value={String(u.id)}>{u.full_name}</option>
+                    ))}
+                  </SelectField>
+                  <p className="text-xs mt-1 text-green-700/60 dark:text-green-400/60">{t('createPlan.melhoriaTutorNote')}</p>
+                </div>
+                <div>
+                  <Label>{t('createPlan.deadline')}</Label>
+                  <div className="relative">
+                    <Input type="date" value={melhoriaPrazo} onChange={setMelhoriaPrazo} />
+                    <Calendar className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
+                  </div>
+                </div>
+              </div>
+            </PlanSection>
+          )}
+
+          {!correctivoEnabled && !preventivoEnabled && (!isTradePessonas || !melhoriaEnabled) && (
+            <p className="text-xs text-center py-2 text-gray-400 dark:text-gray-600">
+              {t('createPlan.activateAtLeastOne')}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* ── Step 2: Revisão e Submissão ────────────────────────────────────── */}
+      {step === 2 && (
+        <div className="rounded-2xl border overflow-hidden bg-white border-gray-200 shadow-sm dark:bg-white/[0.03] dark:border-white/8 dark:shadow-none">
+          <div className="px-6 py-4 border-b flex items-center gap-3 border-gray-100 bg-gray-50 dark:border-white/8 dark:bg-white/[0.02]">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+              <Eye className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900 dark:text-white">{t('createPlan.reviewTitle')}</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">{t('createPlan.reviewSubtitle')}</p>
+            </div>
+          </div>
+          <div className="p-6 space-y-5">
+
+            {/* Resumo análise */}
+            <div className="rounded-xl p-4 bg-yellow-50 border border-yellow-200 dark:bg-yellow-500/5 dark:border-yellow-500/15">
+              <p className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5 text-yellow-700/70 dark:text-yellow-400/70">
+                <Lightbulb className="w-3.5 h-3.5" />
+                {t('createPlan.rootCauseTitle')}
+              </p>
+              <p className="text-sm whitespace-pre-wrap text-yellow-900/80 dark:text-yellow-200/80">{analysis5Why || '—'}</p>
+            </div>
+
+            {/* Resumo Excel */}
+            {actionPlanSummary && (
+              <div className="rounded-xl p-4 bg-violet-50 border border-violet-200 dark:bg-violet-500/5 dark:border-violet-500/15">
+                <p className="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5 text-violet-700/70 dark:text-violet-400/70">
+                  <FileText className="w-3.5 h-3.5" />
+                  {t('createPlan.actionPlanSummaryLabel')}
+                </p>
+                <p className="text-sm text-violet-900/80 dark:text-violet-200/80">{actionPlanSummary}</p>
+              </div>
+            )}
+
+            {/* Planos activados */}
+            {[
+              {
+                enabled: correctivoEnabled,
+                label: t('createPlan.correctivoPlanTitle'),
+                desc: correctivoDesc,
+                result: correctivoResult,
+                responsible: correctivoResponsible,
+                prazo: correctivoPrazo,
+                color: 'amber' as const,
+              },
+              {
+                enabled: preventivoEnabled,
+                label: t('createPlan.preventivoPlanTitle'),
+                desc: preventivoDesc,
+                result: preventivoResult,
+                responsible: preventivoResponsible,
+                prazo: preventivoPrazo,
+                color: 'blue' as const,
+              },
+              {
+                enabled: melhoriaEnabled && isTradePessonas,
+                label: t('createPlan.melhoriaPlanTitle'),
+                desc: melhoriaDesc,
+                result: melhoriaResult,
+                responsible: melhoriaResponsible,
+                prazo: melhoriaPrazo,
+                color: 'green' as const,
+              },
+            ]
+              .filter(p => p.enabled)
+              .map((p, i) => {
+                const responsibleUser = team.find(u => String(u.id) === p.responsible);
+                const s = reviewStyles[p.color];
+                return (
+                  <div key={i} className={`rounded-xl p-4 border ${s.wrap}`}>
+                    <p className={`text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-1.5 ${s.label}`}>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      {p.label}
+                    </p>
+                    <div className="space-y-1.5">
+                      <p className={`text-sm ${s.text}`}><span className="font-semibold">{t('createPlan.planDesc')}:</span> {p.desc || '—'}</p>
+                      {p.result && <p className={`text-sm ${s.text}`}><span className="font-semibold">{t('createPlan.planExpectedResult')}:</span> {p.result}</p>}
+                      {responsibleUser && <p className={`text-sm ${s.text}`}><span className="font-semibold">{t('createPlan.planResponsible')}:</span> {responsibleUser.full_name}</p>}
+                      {p.prazo && <p className={`text-sm ${s.text}`}><span className="font-semibold">{t('createPlan.deadline')}:</span> {p.prazo}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+
+            {!hasAnyPlanActive && (
+              <div className="rounded-xl p-4 border bg-red-50 border-red-200 dark:bg-red-500/5 dark:border-red-500/20">
+                <p className="text-sm flex items-center gap-2 text-red-600 dark:text-red-400">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  {t('createPlan.noPlansWarning')}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Error message ────────────────────────────────────────────────────── */}
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-            className={`flex items-center gap-3 px-5 py-4 rounded-2xl border text-sm ${isDark ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-red-50 border-red-200 text-red-600'}`}
-          >
-            <AlertTriangle className="w-4 h-4 flex-shrink-0" />{error}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {error && (
+        <div className="flex items-center gap-3 px-5 py-4 rounded-2xl border text-sm bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />{error}
+        </div>
+      )}
 
       {/* ── Navigation bar ───────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }}
-        className={`rounded-2xl border p-5 flex items-center justify-between ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}
-      >
+      <div className="rounded-2xl border p-5 flex items-center justify-between bg-white border-gray-200 shadow-sm dark:bg-white/[0.03] dark:border-white/8 dark:shadow-none">
         <button
           onClick={() => step === 0 ? navigate(`/tutoria/errors/${errorId}`) : setStep(s => s - 1)}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-            isDark
-              ? 'bg-white/5 border-white/10 text-gray-300 hover:text-white'
-              : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-          }`}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-white/5 dark:border-white/10 dark:text-gray-300 dark:hover:text-white"
         >
           {step === 0 ? <><X className="w-4 h-4" /> {t('common.cancel')}</> : <><ChevronLeft className="w-4 h-4" /> {t('createPlan.previous')}</>}
         </button>
 
         <div className="flex items-center gap-2">
           {step < STEPS.length - 1 ? (
-            <motion.button
-              whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+            <button
               onClick={handleNext}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-bold shadow-lg shadow-blue-500/25"
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-bold shadow-lg shadow-blue-500/25 hover:from-blue-400 hover:to-indigo-400 transition-all"
             >
               {t('createPlan.next')} <ChevronRight className="w-4 h-4" />
-            </motion.button>
+            </button>
           ) : (
-            <motion.button
-              whileHover={{ scale: 1.03, boxShadow: '0 12px 30px rgba(59,130,246,.4)' }}
-              whileTap={{ scale: 0.97 }}
+            <button
               onClick={handleSave}
-              disabled={saving || !canSave}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 text-white text-sm font-bold shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={saving || !hasAnyPlanActive}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-400 hover:to-indigo-400 text-white text-sm font-bold shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {saving ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('createPlan.saving')}</> : <><Save className="w-4 h-4" /> {t('createPlan.createPlan')}</>}
-            </motion.button>
+              {saving
+                ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('createPlan.saving')}</>
+                : <><Save className="w-4 h-4" /> {t('createPlan.createPlan')}</>}
+            </button>
           )}
         </div>
-      </motion.div>
+      </div>
 
     </div>
   );

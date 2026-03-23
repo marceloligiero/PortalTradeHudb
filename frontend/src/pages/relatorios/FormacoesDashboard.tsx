@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Loader2, GraduationCap, CheckCircle2, Clock, Award, Target, BookOpen, AlertCircle } from 'lucide-react';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
-} from 'recharts';
+  Loader2, GraduationCap, CheckCircle2, Clock, Award, Target,
+  BookOpen, AlertCircle, TrendingUp,
+} from 'lucide-react';
+import { AreaChart, BarChart, DonutChart, BarList, Legend } from '@tremor/react';
 import { useTranslation } from 'react-i18next';
 import api from '../../lib/axios';
+
+/* ─── Types ──────────────────────────────────────────────────────────────── */
 
 interface FormData {
   total_enrollments: number;
@@ -21,35 +23,32 @@ interface FormData {
   error_breakdown: { methodology: number; knowledge: number; detail: number; procedure: number };
 }
 
-const PIE_COLORS = ['#EC0000', '#10B981', '#F59E0B', '#3B82F6', '#8B5CF6'];
+interface MonthlyRow {
+  month: number; year: number;
+  enrollments: number; completions: number; completion_rate: number;
+}
 
-const TOOLTIP_STYLE = {
-  backgroundColor: 'var(--tooltip-bg)',
-  border: 'none',
-  borderRadius: '12px',
-  fontSize: 12,
-};
+interface CourseRow {
+  course_name: string; enrollments: number; completions: number; completion_rate: number;
+}
 
-function KpiCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  iconColor,
-}: {
-  icon: any;
-  label: string;
-  value: string | number;
-  sub?: string;
-  iconColor: string;
+/* ─── Constants ──────────────────────────────────────────────────────────── */
+
+const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+/* ─── KPI Card ────────────────────────────────────────────────────────────── */
+
+function KpiCard({ icon: Icon, label, value, sub, boxClass, iconClass }: {
+  icon: any; label: string; value: string | number; sub?: string;
+  boxClass: string; iconClass: string;
 }) {
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 flex gap-4">
-      <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center flex-shrink-0">
-        <Icon className={`w-6 h-6 ${iconColor}`} />
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 flex gap-4">
+      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${boxClass}`}>
+        <Icon className={`w-5 h-5 ${iconClass}`} />
       </div>
       <div>
-        <p className="font-mono text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+        <p className="text-xl font-mono font-bold text-gray-900 dark:text-white">{value}</p>
         <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
         {sub && <p className="text-xs mt-0.5 text-gray-400 dark:text-gray-500">{sub}</p>}
       </div>
@@ -57,26 +56,73 @@ function KpiCard({
   );
 }
 
+/* ─── Card Shell ──────────────────────────────────────────────────────────── */
+
+function ChartCard({ title, icon: Icon, children, className = '' }: {
+  title: string; icon?: any; children: React.ReactNode; className?: string;
+}) {
+  return (
+    <div className={`bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 ${className}`}>
+      <p className="text-sm font-headline font-bold mb-4 flex items-center gap-2 text-gray-900 dark:text-white">
+        {Icon && <Icon className="w-4 h-4 text-[#EC0000]" />}
+        {title}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+/* ─── Main ────────────────────────────────────────────────────────────────── */
+
 export default function FormacoesDashboard() {
   const { t } = useTranslation();
   const [data, setData] = useState<FormData | null>(null);
+  const [monthly, setMonthly] = useState<MonthlyRow[]>([]);
+  const [courses, setCourses] = useState<CourseRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const currentYear = new Date().getFullYear();
+
   useEffect(() => {
-    api.get('/relatorios/formacoes')
-      .then(r => setData(r.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    Promise.allSettled([
+      api.get('/relatorios/formacoes'),
+      api.get(`/dw/training/by-month?year=${currentYear}`),
+      api.get('/dw/training/by-course?limit=8'),
+    ]).then(([formRes, monthRes, courseRes]) => {
+      if (formRes.status === 'fulfilled') setData(formRes.value.data);
+      if (monthRes.status === 'fulfilled') {
+        const d = monthRes.value.data;
+        setMonthly(Array.isArray(d) ? d : []);
+      }
+      if (courseRes.status === 'fulfilled') {
+        const d = courseRes.value.data;
+        setCourses(Array.isArray(d) ? d : []);
+      }
+    }).finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-[#EC0000]" /></div>;
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-[#EC0000]" />
+      </div>
+    );
+  }
   if (!data) return null;
 
+  /* ── Derived data ─────────────────────────────────────────────────────── */
+
   const planLabels: Record<string, string> = {
-    PENDING: t('relFormacoes.planPending'), IN_PROGRESS: t('relFormacoes.planInProgress'),
-    COMPLETED: t('relFormacoes.planCompleted'), DELAYED: t('relFormacoes.planDelayed'),
+    PENDING: t('relFormacoes.planPending'),
+    IN_PROGRESS: t('relFormacoes.planInProgress'),
+    COMPLETED: t('relFormacoes.planCompleted'),
+    DELAYED: t('relFormacoes.planDelayed'),
   };
-  const planChartData = Object.entries(data.plan_status).map(([k, v]) => ({ name: planLabels[k] || k, value: v }));
+  const planChartData = Object.entries(data.plan_status).map(([k, v]) => ({
+    name: planLabels[k] || k,
+    Planos: v,
+  }));
+
   const errData = [
     { name: t('relFormacoes.errMethodology'), value: data.error_breakdown.methodology },
     { name: t('relFormacoes.errKnowledge'), value: data.error_breakdown.knowledge },
@@ -84,9 +130,21 @@ export default function FormacoesDashboard() {
     { name: t('relFormacoes.errProcedure'), value: data.error_breakdown.procedure },
   ].filter(d => d.value > 0);
 
+  const monthlyChartData = monthly.map(row => ({
+    name: MONTH_NAMES[row.month - 1],
+    Matrículas: row.enrollments,
+    Concluídas: row.completions,
+  }));
+
+  const courseBarList = courses.map(c => ({
+    name: c.course_name,
+    value: c.enrollments,
+  }));
+
   return (
-    <div className="space-y-6 max-w-5xl">
-      {/* Header */}
+    <div className="space-y-6">
+
+      {/* ── Header ────────────────────────────────────────────────────────── */}
       <div>
         <p className="text-xs font-bold uppercase tracking-widest mb-1 text-[#EC0000]">
           {t('relFormacoes.portalTitle')}
@@ -96,96 +154,126 @@ export default function FormacoesDashboard() {
         </h1>
       </div>
 
-      {/* KPIs */}
+      {/* ── KPIs ──────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <KpiCard
-          icon={BookOpen}
-          label={t('relFormacoes.enrollments')}
+          icon={BookOpen} label={t('relFormacoes.enrollments')}
           value={data.total_enrollments}
           sub={t('relFormacoes.completedSub', { count: data.completed_enrollments })}
-          iconColor="text-[#3B82F6]"
+          boxClass="bg-blue-50 dark:bg-blue-900/20" iconClass="text-blue-600 dark:text-blue-400"
         />
         <KpiCard
-          icon={CheckCircle2}
-          label={t('relFormacoes.completionRate')}
+          icon={CheckCircle2} label={t('relFormacoes.completionRate')}
           value={`${data.completion_rate}%`}
-          iconColor="text-[#10B981]"
+          boxClass="bg-emerald-50 dark:bg-emerald-900/20" iconClass="text-emerald-600 dark:text-emerald-400"
         />
         <KpiCard
-          icon={Target}
-          label={t('relFormacoes.approvalRate')}
+          icon={Target} label={t('relFormacoes.approvalRate')}
           value={`${data.approval_rate}%`}
           sub={t('relFormacoes.submissionsSub', { approved: data.approved_submissions, total: data.total_submissions })}
-          iconColor="text-[#8B5CF6]"
+          boxClass="bg-purple-50 dark:bg-purple-900/20" iconClass="text-purple-600 dark:text-purple-400"
         />
         <KpiCard
-          icon={Clock}
-          label={t('relFormacoes.studyHours')}
+          icon={Clock} label={t('relFormacoes.studyHours')}
           value={`${data.total_study_hours}h`}
-          iconColor="text-[#F59E0B]"
+          boxClass="bg-amber-50 dark:bg-amber-900/20" iconClass="text-amber-600 dark:text-amber-400"
         />
         <KpiCard
-          icon={GraduationCap}
-          label={t('relFormacoes.avgMpu')}
-          value={data.avg_mpu > 0 ? `${data.avg_mpu}` : '\u2014'}
-          sub={t('relFormacoes.minPerOperation')}
-          iconColor="text-[#EC0000]"
+          icon={GraduationCap} label={t('relFormacoes.avgMpu')}
+          value={data.avg_mpu > 0 ? `${data.avg_mpu}` : '—'}
+          sub={data.avg_mpu > 0 ? t('relFormacoes.minPerOperation') : undefined}
+          boxClass="bg-[#EC0000]/10" iconClass="text-[#EC0000]"
         />
         <KpiCard
-          icon={Award}
-          label={t('relFormacoes.certificates')}
+          icon={Award} label={t('relFormacoes.certificates')}
           value={data.total_certificates}
-          iconColor="text-[#EC0000]"
+          boxClass="bg-yellow-50 dark:bg-yellow-900/20" iconClass="text-yellow-600 dark:text-yellow-400"
         />
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Plan status bar chart */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
-          <p className="text-sm font-headline font-bold mb-4 text-gray-900 dark:text-white">
-            {t('relFormacoes.plansByStatus')}
-          </p>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={planChartData} barSize={32}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--grid-color)" />
-              <XAxis dataKey="name" tick={{ fontSize: 11, fill: 'var(--axis-color)' }} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--axis-color)' }} allowDecimals={false} />
-              <Tooltip contentStyle={TOOLTIP_STYLE} />
-              <Bar dataKey="value" fill="#EC0000" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+      {/* ── Monthly Trend — AreaChart (Tremor) ────────────────────────────── */}
+      {monthlyChartData.length > 0 && (
+        <ChartCard title={`${t('relFormacoes.monthlyTrend', 'Evolução Mensal')} — ${currentYear}`} icon={TrendingUp}>
+          <AreaChart
+            className="h-52"
+            data={monthlyChartData}
+            index="name"
+            categories={['Matrículas', 'Concluídas']}
+            colors={['blue', 'emerald']}
+            valueFormatter={(v) => `${v}`}
+            showLegend
+            showAnimation
+            showGridLines={false}
+            curveType="monotone"
+          />
+        </ChartCard>
+      )}
 
-        {/* Error breakdown pie */}
-        {errData.length > 0 && (
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
-            <p className="text-sm font-headline font-bold mb-4 flex items-center gap-2 text-gray-900 dark:text-white">
-              <AlertCircle className="w-4 h-4 text-[#EC0000]" /> {t('relFormacoes.errorsByTypology')}
-            </p>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={errData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={70}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  labelLine={false}
-                  fontSize={10}
-                >
-                  {errData.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={TOOLTIP_STYLE} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+      {/* ── Charts Row ────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Plan status — BarChart (Tremor) */}
+        <ChartCard title={t('relFormacoes.plansByStatus')}>
+          {planChartData.every(d => d.Planos === 0) ? (
+            <div className="flex items-center justify-center h-48 text-sm text-gray-400 dark:text-gray-600">
+              {t('relFormacoes.noPlans', 'Sem dados de planos')}
+            </div>
+          ) : (
+            <BarChart
+              className="h-48"
+              data={planChartData}
+              index="name"
+              categories={['Planos']}
+              colors={['red']}
+              showLegend={false}
+              showAnimation
+              showGridLines={false}
+              valueFormatter={(v) => `${v}`}
+            />
+          )}
+        </ChartCard>
+
+        {/* Error breakdown — DonutChart (Tremor) */}
+        {errData.length > 0 ? (
+          <ChartCard title={t('relFormacoes.errorsByTypology')} icon={AlertCircle}>
+            <div className="flex items-center gap-6">
+              <DonutChart
+                className="h-48 w-48 flex-shrink-0"
+                data={errData}
+                category="value"
+                index="name"
+                colors={['red', 'emerald', 'amber', 'blue']}
+                showAnimation
+                showLabel={false}
+              />
+              <Legend
+                categories={errData.map(d => d.name)}
+                colors={['red', 'emerald', 'amber', 'blue']}
+                className="flex-1"
+              />
+            </div>
+          </ChartCard>
+        ) : (
+          <ChartCard title={t('relFormacoes.errorsByTypology')} icon={AlertCircle}>
+            <div className="flex items-center justify-center h-48 text-sm text-gray-400 dark:text-gray-600">
+              {t('relFormacoes.noErrors', 'Sem erros registados')}
+            </div>
+          </ChartCard>
         )}
       </div>
+
+      {/* ── Top Courses — BarList (Tremor) ───────────────────────────────── */}
+      {courseBarList.length > 0 && (
+        <ChartCard title={t('relFormacoes.topCourses', 'Cursos por Matrículas')} icon={GraduationCap}>
+          <BarList
+            data={courseBarList}
+            color="red"
+            valueFormatter={(v) => `${v} mat.`}
+            className="mt-1"
+          />
+        </ChartCard>
+      )}
+
     </div>
   );
 }

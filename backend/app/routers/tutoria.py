@@ -20,9 +20,46 @@ from app.models import (
     TutoriaLearningSheet, User, Product, Bank, Course,
     ErrorImpact, ErrorOrigin, ErrorDetectedBy, Department, Activity,
 )
-from app.auth import get_current_user
+from app.auth import get_current_user, is_trainer_user, get_visible_user_ids
 
 router = APIRouter()
+
+# ─── GAP 2 & 3 Validation constants ──────────────────────────────────────────
+
+IMPACT_DETAIL_VALID: dict = {
+    "ALTO":  ["Económico", "Regulatorio", "Reputacional (Imagen)", "GDPR (Protección de Datos)"],
+    "BAIXO": ["Imagen", "Retraso Operativo"],
+}
+
+ORIGIN_DETAIL_VALID: dict = {
+    "Trade_Personas":   ["Formación Insuficiente", "Dependencia de Personal Clave", "Error Puntual", "Sobrecarga Operativa", "Segregación Funcional"],
+    "Trade_Procesos":   ["Diseño Ineficaz del Proceso", "Desempeño Ineficaz de un Proceso", "Calidad de los Datos"],
+    "Trade_Tecnología": ["Gestión del Cambio Tecnológico Inadecuado", "Diseño Inadecuado de los Sistemas", "Funcionamiento Inadecuado de un Sistema"],
+    "Terceros":         ["Proveedores", "Oficina/Uni/Middle", "Corresponsal"],
+}
+
+
+def _normalize_origin_str(s: str) -> str:
+    return s.lower().replace("_", " ").replace("\u00e1", "a").replace("\u00f3", "o").replace("\u00e9", "e").replace("\u00ed", "i").replace("\u00fa", "u")
+
+
+def _validate_origin_detail(origin_detail: Optional[str], origin_name: Optional[str]) -> None:
+    if not origin_detail or not origin_name:
+        return
+    for key, valid_list in ORIGIN_DETAIL_VALID.items():
+        if _normalize_origin_str(key) in _normalize_origin_str(origin_name):
+            if origin_detail not in valid_list:
+                raise HTTPException(400, f"origin_detail inv\u00e1lido para origen '{origin_name}'")
+            return
+
+
+def _validate_impact_detail(impact_detail: Optional[str], impact_level: Optional[str]) -> None:
+    if not impact_detail or not impact_level:
+        return
+    valid = IMPACT_DETAIL_VALID.get(impact_level, [])
+    if valid and impact_detail not in valid:
+        raise HTTPException(400, f"impact_detail inv\u00e1lido para nivel {impact_level}")
+
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -127,7 +164,9 @@ class ErrorIn(BaseModel):
     amount: Optional[float] = None
     final_client: Optional[str] = None
     impact_id: Optional[int] = None
+    impact_detail: Optional[str] = None
     origin_id: Optional[int] = None
+    origin_detail: Optional[str] = None
     category_id: Optional[int] = None
     detected_by_id: Optional[int] = None
     department_id: Optional[int] = None
@@ -168,6 +207,9 @@ class ConfirmSolutionIn(BaseModel):
 
 class ReturnAnalysisIn(BaseModel):
     reason: str
+
+class SubmitAnalysisIn(BaseModel):
+    send_direct: bool = False  # GAP 7: referente can choose to skip chief approval
 
 class TutorReviewIn(BaseModel):
     solution: Optional[str] = None
@@ -494,9 +536,21 @@ def _errors_query(db: Session, user: User):
         )
         .filter(TutoriaError.is_active == True)
     )
-    if user.role == "TRAINER" and not getattr(user, 'is_tutor', False):
-        q = q.join(TutoriaError.tutorado).filter(User.tutor_id == user.id)
-    elif user.role in ("STUDENT", "TRAINEE") and not is_chefe_referente_manager(user) and not getattr(user, 'is_tutor', False):
+    if user.role in ("ADMIN", "GESTOR"):
+        pass  # vê tudo
+    elif user.role == "MANAGER" or getattr(user, "is_team_lead", False):
+        # Chefe de equipa → vê erros dos membros da sua equipa
+        visible_ids = get_visible_user_ids(db, user)
+        if visible_ids:
+            q = q.filter(TutoriaError.tutorado_id.in_(visible_ids))
+    elif getattr(user, "is_tutor", False):
+        # Tutor → vê erros dos seus tutorados
+        q = q.join(TutoriaError.tutorado, aliased=False).filter(User.tutor_id == user.id)
+    elif is_trainer_user(user):
+        # Formador → vê erros dos seus tutorados directos
+        q = q.join(TutoriaError.tutorado, aliased=False).filter(User.tutor_id == user.id)
+    else:
+        # Utilizador simples (TRAINEE / student / liberador / referente) → só os seus
         q = q.filter(TutoriaError.tutorado_id == user.id)
     return q
 
@@ -511,9 +565,20 @@ def _plans_query(db: Session, user: User):
             joinedload(TutoriaActionPlan.items).joinedload(TutoriaActionItem.responsible),
         )
     )
-    if user.role == "TRAINER" and not is_chefe_referente_manager(user):
-        q = q.join(TutoriaActionPlan.tutorado).filter(User.tutor_id == user.id)
-    elif user.role in ("STUDENT", "TRAINEE") and not is_chefe_referente_manager(user) and not getattr(user, 'is_tutor', False):
+    if user.role in ("ADMIN", "GESTOR"):
+        pass  # vê tudo
+    elif user.role == "MANAGER" or getattr(user, "is_team_lead", False):
+        # Chefe de equipa → planos dos membros da sua equipa
+        visible_ids = get_visible_user_ids(db, user)
+        if visible_ids:
+            q = q.filter(TutoriaActionPlan.tutorado_id.in_(visible_ids))
+    elif getattr(user, "is_tutor", False):
+        # Tutor → planos dos seus tutorados
+        q = q.join(TutoriaActionPlan.tutorado, aliased=False).filter(User.tutor_id == user.id)
+    elif is_trainer_user(user):
+        q = q.join(TutoriaActionPlan.tutorado, aliased=False).filter(User.tutor_id == user.id)
+    else:
+        # Utilizador simples → só os seus planos
         q = q.filter(TutoriaActionPlan.tutorado_id == user.id)
     return q
 
@@ -632,6 +697,16 @@ def create_error(
     if tutorado_id != current_user.id and not is_chefe_referente_manager(current_user) and not _is_tutor_or_admin(current_user):
         raise HTTPException(403, "Sem permissão para atribuir a outro utilizador")
 
+    # GAP 2: validate impact_detail against impact level
+    if body.impact_detail and body.impact_id:
+        impact_obj = db.get(ErrorImpact, body.impact_id)
+        _validate_impact_detail(body.impact_detail, impact_obj.level if impact_obj else None)
+
+    # GAP 3: validate origin_detail against origin name
+    if body.origin_detail and body.origin_id:
+        origin_obj = db.get(ErrorOrigin, body.origin_id)
+        _validate_origin_detail(body.origin_detail, origin_obj.name if origin_obj else None)
+
     # Recurrence detection
     count = 0
     if body.category_id:
@@ -662,7 +737,9 @@ def create_error(
         amount=body.amount,
         final_client=body.final_client,
         impact_id=body.impact_id,
+        impact_detail=body.impact_detail,
         origin_id=body.origin_id,
+        origin_detail=body.origin_detail,
         category_id=body.category_id,
         detected_by_id=body.detected_by_id,
         department_id=body.department_id,
@@ -790,6 +867,20 @@ def update_error(
     data = body.model_dump(exclude_none=True)
     refs_data = data.pop("refs", None)
 
+    # GAP 2: validate impact_detail against impact level
+    impact_detail_upd = data.get("impact_detail")
+    impact_level_upd = data.get("impact_level", getattr(error, "impact_level", None))
+    if impact_detail_upd:
+        _validate_impact_detail(impact_detail_upd, impact_level_upd)
+
+    # GAP 3: validate origin_detail against origin name
+    origin_detail_upd = data.get("origin_detail")
+    if origin_detail_upd:
+        origin_id_upd = data.get("origin_id", getattr(error, "origin_id", None))
+        if origin_id_upd:
+            origin_obj = db.get(ErrorOrigin, origin_id_upd)
+            _validate_origin_detail(origin_detail_upd, origin_obj.name if origin_obj else None)
+
     for k, v in data.items():
         setattr(error, k, v)
 
@@ -899,11 +990,20 @@ def create_plan(
         origin = error.origin
         if not origin or "persona" not in (origin.name or "").lower():
             raise HTTPException(400, "Plano MELHORIA apenas aplicável a erros com origem Trade_Personas")
-        # Responsible for MELHORIA plan must be a tutor
-        if body.responsible_id:
-            responsible = db.get(User, body.responsible_id)
-            if not responsible or not getattr(responsible, 'is_tutor', False):
-                raise HTTPException(400, "Responsável do Plano MELHORIA deve ser Tutor")
+
+    # Validate responsible_id is tutor, chefe, referente, or admin/manager (all plan types)
+    if body.responsible_id:
+        resp_user = db.query(User).filter(User.id == body.responsible_id).first()
+        if not resp_user:
+            raise HTTPException(400, "Responsável não encontrado")
+        is_valid_responsible = (
+            resp_user.role in ("ADMIN", "MANAGER") or
+            getattr(resp_user, 'is_tutor', False) or
+            getattr(resp_user, 'is_team_lead', False) or
+            getattr(resp_user, 'is_referente', False)
+        )
+        if not is_valid_responsible:
+            raise HTTPException(400, "Responsável deve ser Tutor, Chefe de Equipa, Referente ou Manager")
 
     try:
         data = body.model_dump()
@@ -932,6 +1032,72 @@ def create_plan(
     if not plan:
         raise HTTPException(500, "Plano criado mas não encontrado na query")
     return _plan_out(plan)
+
+
+# ─── SIDE BY SIDE PLANS (GAP 8) ──────────────────────────────────────────────
+
+class SideBySidePlanIn(BaseModel):
+    tutorado_id: int
+    observation_date: Optional[str] = None
+    observation_notes: Optional[str] = None
+    expected_result: Optional[str] = None
+    responsible_id: Optional[int] = None
+    deadline: Optional[str] = None
+    plan_type: str = "SEGUIMENTO"
+    side_by_side: bool = True
+
+
+@router.post("/plans/side-by-side", status_code=201)
+def create_side_by_side_plan(
+    body: SideBySidePlanIn,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Cria um plano de seguimento Side by Side sem erro associado."""
+    if not (
+        getattr(current_user, "is_tutor", False)
+        or getattr(current_user, "is_team_lead", False)
+        or current_user.role in ("ADMIN", "MANAGER") or is_trainer_user(current_user)
+    ):
+        raise HTTPException(403, "Sem permissão para criar planos Side by Side")
+
+    tutorado = db.get(User, body.tutorado_id)
+    if not tutorado:
+        raise HTTPException(400, "Tutorado não encontrado")
+
+    if body.responsible_id:
+        responsible = db.get(User, body.responsible_id)
+        if not responsible:
+            raise HTTPException(400, "Responsável não encontrado")
+
+    from datetime import date as date_type
+    sbs_plan = TutoriaActionPlan(
+        error_id=None,
+        created_by_id=current_user.id,
+        tutorado_id=body.tutorado_id,
+        plan_type="SEGUIMENTO",
+        side_by_side=True,
+        observation_date=date_type.fromisoformat(body.observation_date) if body.observation_date else None,
+        observation_notes=body.observation_notes,
+        expected_result=body.expected_result,
+        responsible_id=body.responsible_id,
+        deadline=date_type.fromisoformat(body.deadline) if body.deadline else None,
+        status="OPEN",
+    )
+    db.add(sbs_plan)
+    try:
+        db.commit()
+        db.refresh(sbs_plan)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, f"Erro ao criar plano Side by Side: {str(e)}")
+
+    result = (
+        _plans_query(db, current_user)
+        .filter(TutoriaActionPlan.id == sbs_plan.id)
+        .first()
+    )
+    return _plan_out(result) if result else {"id": sbs_plan.id, "status": sbs_plan.status}
 
 
 @router.get("/plans")
@@ -972,6 +1138,20 @@ def update_plan(
         raise HTTPException(404, "Plano não encontrado")
     if plan.status not in ("RASCUNHO", "DEVOLVIDO", "OPEN"):
         raise HTTPException(400, "Só é possível editar planos em rascunho, abertos ou devolvidos")
+    # Validate responsible_id is tutor, chefe, referente, or admin/manager
+    new_responsible_id = body.model_dump(exclude_none=True).get("responsible_id")
+    if new_responsible_id:
+        resp_user = db.query(User).filter(User.id == new_responsible_id).first()
+        if not resp_user:
+            raise HTTPException(400, "Responsável não encontrado")
+        is_valid_responsible = (
+            resp_user.role in ("ADMIN", "MANAGER") or
+            getattr(resp_user, 'is_tutor', False) or
+            getattr(resp_user, 'is_team_lead', False) or
+            getattr(resp_user, 'is_referente', False)
+        )
+        if not is_valid_responsible:
+            raise HTTPException(400, "Responsável deve ser Tutor, Chefe de Equipa, Referente ou Manager")
     for k, v in body.model_dump(exclude_none=True).items():
         setattr(plan, k, v)
     db.commit()
@@ -1317,7 +1497,7 @@ def list_students(
     if not is_chefe_referente_manager(current_user) and not is_tutor_or_above(current_user):
         raise HTTPException(403, "Acesso negado")
     q = db.query(User).filter(User.role.in_(["STUDENT", "TRAINEE"]), User.is_active == True)
-    if current_user.role == "TRAINER" and not getattr(current_user, 'is_team_lead', False):
+    if is_trainer_user(current_user) and not getattr(current_user, 'is_team_lead', False):
         q = q.filter(User.tutor_id == current_user.id)
     users = q.order_by(User.full_name).all()
     return [{"id": u.id, "full_name": u.full_name, "email": u.email, "tutor_id": u.tutor_id} for u in users]
@@ -1425,6 +1605,17 @@ def save_analysis(
         raise HTTPException(404, "Erro não encontrado")
     if error.status not in ("REGISTERED", "ANALYSIS"):
         raise HTTPException(400, f"Incidência não está em estado analisável (atual: {error.status})")
+
+    # GAP 2: validate impact_detail
+    effective_impact_level = body.impact_level or getattr(error, "impact_level", None)
+    _validate_impact_detail(body.impact_detail, effective_impact_level)
+
+    # GAP 3: validate origin_detail
+    effective_origin_id = body.origin_id or getattr(error, "origin_id", None)
+    if body.origin_detail and effective_origin_id:
+        origin_obj = db.get(ErrorOrigin, effective_origin_id)
+        _validate_origin_detail(body.origin_detail, origin_obj.name if origin_obj else None)
+
     if error.status == "REGISTERED":
         error.status = "ANALYSIS"
     for k, v in body.model_dump(exclude_none=True).items():
@@ -1440,10 +1631,15 @@ def save_analysis(
 @router.post("/errors/{error_id}/submit-analysis")
 def submit_analysis(
     error_id: int,
+    body: SubmitAnalysisIn = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Submit analysis for tutor review → PENDING_TUTOR_REVIEW."""
+    """Submit analysis for tutor review → PENDING_TUTOR_REVIEW.
+    GAP 7: Referente can choose send_direct=True to skip chief approval.
+    """
+    if body is None:
+        body = SubmitAnalysisIn()
     if not is_chefe_referente_manager(current_user):
         raise HTTPException(403, "Apenas Chefe/Referente/Manager pode submeter análise")
     error = db.get(TutoriaError, error_id)
@@ -1461,8 +1657,8 @@ def submit_analysis(
                 f"Prazo de encerramento expirado ({deadline}). Apenas ADMIN pode submeter fora do prazo."
             )
 
-    # If referente, needs chief approval first
-    if is_referente_user(current_user) and not is_chefe_or_manager(current_user):
+    # GAP 7: If referente (without chefe/manager), route depends on send_direct choice
+    if is_referente_user(current_user) and not is_chefe_or_manager(current_user) and not body.send_direct:
         error.status = "PENDING_CHIEF_APPROVAL"
         db.commit()
         # Notify chefes
@@ -1558,10 +1754,24 @@ def cancel_error(
     error.cancelled_by_id = current_user.id
     db.flush()
 
-    # Notify the original registrant
+    msg = f"Incidência #{error.id} cancelada. Motivo: {error.cancelled_reason or 'não especificado'}"
+
+    # Notify creator
     if error.created_by_id and error.created_by_id != current_user.id:
-        create_notification(db, error.created_by_id, "CANCELLED_ERROR",
-                          f"Incidência #{error_id} eliminada: {body.reason.strip()[:100]}", error_id=error.id)
+        create_notification(db, error.created_by_id, "CANCELLED_ERROR", msg, error_id=error.id)
+
+    # Notify tutorado/grabador (if different from creator and canceller)
+    if error.tutorado_id and error.tutorado_id != error.created_by_id and error.tutorado_id != current_user.id:
+        create_notification(db, error.tutorado_id, "CANCELLED_ERROR", msg, error_id=error.id)
+
+    # Notify liberador
+    if error.liberador_id and error.liberador_id != current_user.id:
+        create_notification(db, error.liberador_id, "CANCELLED_ERROR", msg, error_id=error.id)
+
+    # Notify tutor (via tutorado's tutor_id)
+    tutorado = db.query(User).filter(User.id == error.tutorado_id).first() if error.tutorado_id else None
+    if tutorado and tutorado.tutor_id and tutorado.tutor_id not in [error.created_by_id, error.tutorado_id, current_user.id]:
+        create_notification(db, tutorado.tutor_id, "CANCELLED_ERROR", msg, error_id=error.id)
 
     db.commit()
     return {"ok": True, "status": "CANCELLED"}
@@ -2073,6 +2283,7 @@ class CapsulaIn(BaseModel):
     description: Optional[str] = None
     course_type: str = "CAPSULA_METODOLOGIA"  # CAPSULA_METODOLOGIA | CAPSULA_FUNCIONALIDADE
     level: Optional[str] = None
+    started_by: Optional[str] = "TRAINEE"  # TRAINEE = vídeo iniciado pelo user | TRAINER = cápsula iniciada pelo tutor
 
 class CapsulaUpdate(BaseModel):
     title: Optional[str] = None
@@ -2089,6 +2300,7 @@ def _capsula_out(c: Course) -> dict:
         "course_type": getattr(c, 'course_type', 'CURSO'),
         "managed_by_tutor": getattr(c, 'managed_by_tutor', False),
         "level": c.level,
+        "started_by": getattr(c, 'started_by', 'TRAINEE'),
         "is_active": c.is_active,
         "created_by": c.created_by,
         "created_at": c.created_at,
@@ -2123,6 +2335,7 @@ def create_capsula(
         description=body.description,
         course_type=body.course_type,
         level=body.level,
+        started_by=body.started_by or "TRAINEE",
         managed_by_tutor=True,
         created_by=current_user.id,
         is_active=True,
