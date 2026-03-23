@@ -4,4 +4,4 @@
 
 ALTER TABLE org_node_members
   ADD COLUMN member_role VARCHAR(50) NULL DEFAULT NULL
-  COMMENT 'DIRECTOR | MANAGER — apenas no nó raiz; NULL para membros normais';
+  COMMENT 'DIRECTOR ou MANAGER no no raiz';

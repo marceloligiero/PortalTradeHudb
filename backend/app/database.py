@@ -17,14 +17,25 @@ _engine_kwargs = {
     "pool_recycle": 3600,
 }
 
-if settings.DATABASE_URL.startswith("mysql"):
+_is_mysql = settings.DATABASE_URL.startswith("mysql")
+
+if _is_mysql:
     _engine_kwargs["connect_args"] = {
         "connect_timeout": 5,
         "read_timeout": 10,
         "write_timeout": 10,
+        "charset": "utf8mb4",
     }
 
 engine = create_engine(settings.DATABASE_URL, **_engine_kwargs)
+
+if _is_mysql:
+    # Forçar collation consistente em todas as sessões — resolve conflito
+    # utf8mb4_0900_ai_ci (HP MySQL 8.0 default) vs utf8mb4_unicode_ci (Docker)
+    @event.listens_for(engine, "connect", insert=True)
+    def _set_collation(dbapi_conn, _rec):
+        with dbapi_conn.cursor() as cur:
+            cur.execute("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci")
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
