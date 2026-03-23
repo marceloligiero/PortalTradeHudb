@@ -146,11 +146,24 @@ if errorlevel 1 goto :wait_loop
 echo       Backend OK: http://localhost:%BACKEND_PORT%
 
 :: ────────────────────────────────────────────
-:: 6. Iniciar frontend Vite (na janela actual)
+:: 6. Port proxy 80 → 5173 (acesso via hostname sem porta)
+:: ────────────────────────────────────────────
+netsh interface portproxy delete v4tov4 listenport=80 listenaddress=0.0.0.0 >nul 2>&1
+netsh interface portproxy add    v4tov4 listenport=80 listenaddress=0.0.0.0 connectport=%FRONTEND_PORT% connectaddress=127.0.0.1 >nul 2>&1
+if errorlevel 1 (
+    echo  [AVISO] Port proxy 80→%FRONTEND_PORT% nao configurado (requer administrador^).
+    echo          Aceda via http://localhost:%FRONTEND_PORT% ou execute como administrador.
+) else (
+    echo       Port proxy OK: http://portaltradedatahub → porta %FRONTEND_PORT%
+)
+
+:: ────────────────────────────────────────────
+:: 7. Iniciar frontend Vite (na janela actual)
 :: ────────────────────────────────────────────
 echo.
 echo ════════════════════════════════════════════
-echo   Frontend : http://localhost:%FRONTEND_PORT%
+echo   Frontend : http://portaltradedatahub
+echo            : http://localhost:%FRONTEND_PORT%
 echo   Backend  : http://localhost:%BACKEND_PORT%/api
 echo.
 echo   Feche "TradeHub Backend" para parar o backend.
