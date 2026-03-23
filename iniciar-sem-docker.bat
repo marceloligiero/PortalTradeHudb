@@ -159,4 +159,5 @@ echo ═════════════════════════
 echo.
 
 cd /d "%ROOT%frontend"
+set DEV_PUBLIC_IP=all
 call npm run dev
