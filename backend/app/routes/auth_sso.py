@@ -82,6 +82,12 @@ def _sso_configured() -> bool:
 # Endpoints
 # ---------------------------------------------------------------------------
 
+@router.get("/status")
+def microsoft_sso_status():
+    """Retorna se o SSO Microsoft está configurado. Público, sem autenticação."""
+    return {"enabled": _sso_configured()}
+
+
 @router.get("/login")
 def microsoft_login():
     """Inicia o fluxo OAuth2 — redireciona para Microsoft."""
