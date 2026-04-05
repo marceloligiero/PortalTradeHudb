@@ -10,8 +10,15 @@ import bcrypt
 
 db = next(get_db())
 
+admin_email = os.environ.get('ADMIN_EMAIL')
+if not admin_email:
+    print("❌ Erro: ADMIN_EMAIL deve estar definido como variável de ambiente.")
+    print("   Exemplo: ADMIN_EMAIL=admin@example.com python reset_admin_password.py <nova_senha>")
+    db.close()
+    sys.exit(1)
+
 # Buscar admin
-admin = db.query(User).filter(User.email == 'admin@tradehub.com').first()
+admin = db.query(User).filter(User.email == admin_email).first()
 
 if admin:
     print(f"✅ Admin encontrado: {admin.email}")
@@ -48,7 +55,7 @@ if admin:
     else:
         db.commit()
         print(f"\n✅ Senha resetada com sucesso!")
-    print(f"   Email: admin@tradehub.com")
+    print(f"   Email: {admin_email}")
     
     # Testar a senha
     test_password_bytes = password.encode('utf-8')[:72]

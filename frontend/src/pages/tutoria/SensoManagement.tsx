@@ -122,7 +122,7 @@ export default function SensoManagement() {
   };
 
   const remove = async (s: Senso) => {
-    if (!confirm(t('sensoManagement.confirmDelete'))) return;
+    if (!confirm(t('sensoManagement.deleteConfirm'))) return;
     try {
       await axios.delete(`/internal-errors/sensos/${s.id}`);
       if (expandedId === s.id) setExpandedId(null);
@@ -149,7 +149,7 @@ export default function SensoManagement() {
     const light: Record<string, string> = { PENDENTE: 'bg-yellow-50 text-yellow-700', AVALIADO: 'bg-blue-50 text-blue-700', PLANO_CRIADO: 'bg-purple-50 text-purple-700', CONCLUIDO: 'bg-green-50 text-green-700' };
     return (isDark ? dark : light)[st] || (isDark ? 'bg-gray-500/15 text-gray-400' : 'bg-gray-100 text-gray-600');
   };
-  const errStatusLabel: Record<string, string> = { PENDENTE: t('sensoManagement.statusPending'), AVALIADO: t('sensoManagement.statusEvaluated'), PLANO_CRIADO: t('sensoManagement.statusPlanCreated'), CONCLUIDO: t('sensoManagement.statusCompleted') };
+  const errStatusLabel: Record<string, string> = { PENDENTE: t('sensoManagement.statusPendente'), AVALIADO: t('sensoManagement.statusAvaliado'), PLANO_CRIADO: t('sensoManagement.statusPlanoCriado'), CONCLUIDO: t('sensoManagement.statusConcluido') };
 
   const classLabelMap: Record<string, string> = { METHODOLOGY: t('sensoManagement.methodology'), KNOWLEDGE: t('sensoManagement.knowledge'), DETAIL: t('sensoManagement.detail'), PROCEDURE: t('sensoManagement.procedure') };
   const classColorMap = (cls: string) => {
@@ -234,7 +234,7 @@ export default function SensoManagement() {
       ) : sensos.length === 0 ? (
         <div className={`text-center py-20 rounded-2xl border ${isDark ? 'bg-white/[0.02] border-white/5' : 'bg-white border-gray-200'}`}>
           <Calendar className={`w-12 h-12 mx-auto mb-3 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
-          <p className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('sensoManagement.noSenso')}</p>
+          <p className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('sensoManagement.noSensos')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -257,7 +257,7 @@ export default function SensoManagement() {
                         <Calendar className="w-3 h-3" /> {new Date(s.start_date).toLocaleDateString('pt-PT')} — {new Date(s.end_date).toLocaleDateString('pt-PT')}
                       </span>
                       <span className="flex items-center gap-1">
-                        <ShieldAlert className="w-3 h-3" /> {s.error_count} {t('sensoManagement.errors')}
+                        <ShieldAlert className="w-3 h-3" /> {s.error_count} {t('sensoManagement.errorsCount', { count: s.error_count })}
                       </span>
                       {s.creator_name && <span>{t('sensoManagement.createdBy')} {s.creator_name}</span>}
                     </div>
@@ -298,17 +298,17 @@ export default function SensoManagement() {
                           <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${(isDark ? STATUS_CLS.dark : STATUS_CLS.light)[s.status] || ''}`}>{s.status}</span>
                         </div>
                         <div>
-                          <span className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('sensoManagement.errorsRegistered')}</span>
+                          <span className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('sensoManagement.registeredErrors')}</span>
                           {s.error_count}
                         </div>
                         <div>
-                          <span className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('sensoManagement.createdByLabel')}</span>
+                          <span className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('sensoManagement.createdBy')}</span>
                           {s.creator_name || '—'}
                         </div>
                       </div>
                       {s.description && (
                         <div className={`mb-4 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                          <span className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('sensoManagement.descriptionLabel')}</span>
+                          <span className={`block text-xs font-semibold uppercase tracking-wider mb-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('sensoManagement.description')}</span>
                           {s.description}
                         </div>
                       )}
@@ -316,12 +316,12 @@ export default function SensoManagement() {
                       {/* Errors list */}
                       <div>
                         <h4 className={`text-sm font-bold mb-3 flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                          <ShieldAlert className="w-4 h-4 text-red-500" /> {t('sensoManagement.sensoErrors')}
+                          <ShieldAlert className="w-4 h-4 text-red-500" /> {t('sensoManagement.errorsOfSenso')}
                         </h4>
                         {loadingErrors ? (
                           <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-red-500" /></div>
                         ) : sensoErrors.length === 0 ? (
-                          <p className={`text-sm text-center py-6 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{t('sensoManagement.noErrors')}</p>
+                          <p className={`text-sm text-center py-6 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{t('sensoManagement.noErrorsInSenso')}</p>
                         ) : (
                           <div className="space-y-2">
                             {sensoErrors.map(err => (

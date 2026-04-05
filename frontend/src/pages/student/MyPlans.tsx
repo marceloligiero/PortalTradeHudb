@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { 
-  GraduationCap, 
-  BookOpen, 
-  Clock, 
+import {
+  GraduationCap,
+  BookOpen,
+  Clock,
   CheckCircle2,
   PlayCircle,
   AlertTriangle
@@ -13,8 +12,6 @@ import {
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
 import TrainingPlanCard from '../../components/plans/TrainingPlanCard';
-import { PremiumHeader, AnimatedStatCard, FloatingOrbs } from '../../components/premium';
-import { useTheme } from '../../contexts/ThemeContext';
 
 interface TrainingPlan {
   id: number;
@@ -39,25 +36,10 @@ interface TrainingPlan {
   is_active?: boolean;
 }
 
-// Animation variants
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08 }
-  }
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 20, scale: 0.95 },
-  visible: { opacity: 1, y: 0, scale: 1 }
-};
-
 export default function MyPlans() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { token, user } = useAuthStore();
-  const { isDark } = useTheme();
   const [plans, setPlans] = useState<TrainingPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -91,121 +73,75 @@ export default function MyPlans() {
   const totalCourses = plans.reduce((acc, p) => acc + (p.total_courses || 0), 0);
 
   return (
-    <div className="space-y-6">
-      {/* Premium Header - Sem botão de criar para estudantes */}
-      <PremiumHeader
-        icon={GraduationCap}
-        title={t('trainingPlan.myPlans')}
-        subtitle={t('myPlans.subtitle')}
-        badge={t('myPlans.badge')}
-        iconColor="from-indigo-500 to-indigo-700"
-      />
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header card */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+            <GraduationCap className="w-6 h-6 text-[#EC0000]" />
+          </div>
+          <div>
+            <p className="font-body text-xs font-bold uppercase tracking-widest text-[#EC0000] mb-1">
+              {t('myPlans.badge')}
+            </p>
+            <h1 className="font-headline text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+              {t('trainingPlan.myPlans')}
+            </h1>
+            <p className="font-body text-gray-500 dark:text-gray-400 mt-1 max-w-xl text-sm">
+              {t('myPlans.subtitle')}
+            </p>
+          </div>
+        </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <AnimatedStatCard
-          icon={GraduationCap}
-          label={t('myPlans.totalPlans')}
-          value={totalPlans}
-          color="from-indigo-500 to-indigo-700"
-          delay={0}
-        />
-        <AnimatedStatCard
-          icon={PlayCircle}
-          label={t('myPlans.inProgress')}
-          value={inProgressPlans}
-          color="from-blue-500 to-blue-600"
-          delay={0.1}
-        />
-        <AnimatedStatCard
-          icon={CheckCircle2}
-          label={t('myPlans.completed')}
-          value={completedPlans}
-          color="from-green-500 to-emerald-600"
-          delay={0.2}
-        />
-        <AnimatedStatCard
-          icon={AlertTriangle}
-          label={t('myPlans.delayed')}
-          value={delayedPlans}
-          color="from-red-500 to-red-600"
-          delay={0.3}
-        />
-        <AnimatedStatCard
-          icon={BookOpen}
-          label={t('myPlans.totalCourses')}
-          value={totalCourses}
-          color="from-purple-500 to-purple-700"
-          delay={0.4}
-        />
+        {/* Stats bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+          {[
+            { icon: GraduationCap, value: totalPlans, label: t('myPlans.totalPlans') },
+            { icon: PlayCircle, value: inProgressPlans, label: t('myPlans.inProgress') },
+            { icon: CheckCircle2, value: completedPlans, label: t('myPlans.completed') },
+            { icon: AlertTriangle, value: delayedPlans, label: t('myPlans.delayed') },
+            { icon: BookOpen, value: totalCourses, label: t('myPlans.totalCourses') },
+          ].map((stat, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <stat.icon className="w-5 h-5 text-[#EC0000] shrink-0" />
+              <div>
+                <p className="font-mono text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+                <p className="font-body text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">{stat.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Error Message */}
       {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400"
-        >
+        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl font-body text-sm text-red-700 dark:text-red-400">
           {error}
-        </motion.div>
+        </div>
       )}
 
       {/* Plans Grid */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
-        className="relative"
-      >
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full"
-            />
-          </div>
-        ) : plans.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className={`relative overflow-hidden ${isDark ? 'bg-white/5' : 'bg-white'} backdrop-blur-xl rounded-2xl border ${isDark ? 'border-white/10' : 'border-gray-200'} p-12 text-center`}
-          >
-            <FloatingOrbs variant="subtle" />
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", damping: 15, delay: 0.2 }}
-            >
-              <GraduationCap className="w-20 h-20 text-gray-600 mx-auto mb-4" />
-            </motion.div>
-            <h3 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>
-              {t('trainingPlan.noAssignedPlans')}
-            </h3>
-            <p className={`${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              {t('trainingPlan.contactTrainer')}
-            </p>
-          </motion.div>
-        ) : (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            {plans.map((plan) => (
-              <motion.div
-                key={plan.id}
-                variants={cardVariants}
-                whileHover={{ y: -4 }}
-              >
-                <TrainingPlanCard plan={plan} />
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </motion.div>
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-12 h-12 border-4 border-[#EC0000]/20 border-t-[#EC0000] rounded-full animate-spin mx-auto" />
+        </div>
+      ) : plans.length === 0 ? (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-12 text-center">
+          <GraduationCap className="w-20 h-20 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+          <h3 className="font-headline text-xl font-bold text-gray-900 dark:text-white mb-2">
+            {t('trainingPlan.noAssignedPlans')}
+          </h3>
+          <p className="font-body text-gray-500 dark:text-gray-400">
+            {t('trainingPlan.contactTrainer')}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {plans.map((plan) => (
+            <TrainingPlanCard key={plan.id} plan={plan} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

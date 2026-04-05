@@ -55,7 +55,7 @@ export default function OrgHierarchy() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'GESTOR';
+  const isAdmin = user?.is_admin || user?.is_diretor;
 
   const [data, setData] = useState<VHierarchy | null>(null);
   const [loading, setLoading] = useState(true);

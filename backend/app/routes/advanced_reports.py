@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, text, or_
 from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel
 
 from app import models, auth
@@ -134,7 +134,7 @@ async def get_dashboard_summary(
         total_study_hours = (float(total_study_seconds) / 3600.0) + (float(challenge_time_minutes) / 60.0)
         
         # Active students (30 days) - simplified query
-        month_ago = datetime.utcnow() - timedelta(days=30)
+        month_ago = datetime.now(timezone.utc) - timedelta(days=30)
         active_students_30d = db.query(func.count(func.distinct(models.LessonProgress.user_id))).filter(
             models.LessonProgress.started_at >= month_ago
         ).scalar() or 0
@@ -497,7 +497,7 @@ async def get_certification_report(
         
         # If no data, return some sample months
         if not certifications_list:
-            current = datetime.utcnow()
+            current = datetime.now(timezone.utc)
             for i in range(6):
                 month = current - timedelta(days=30*i)
                 certifications_list.append(CertificationItem(

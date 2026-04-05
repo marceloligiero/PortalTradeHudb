@@ -4,7 +4,7 @@ from sqlalchemy import func
 from typing import List, Dict, Any
 from app.database import get_db
 from app import models, schemas, auth
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter()
 
@@ -343,7 +343,7 @@ async def get_student_overview(
     certificates_count = completed_courses
     
     # Recent activity (last 7 days) - enrollments
-    week_ago = datetime.utcnow() - timedelta(days=7)
+    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
     recent_enrollments = db.query(models.Enrollment).filter(
         models.Enrollment.user_id == current_user.id,
         models.Enrollment.enrolled_at >= week_ago
@@ -462,12 +462,11 @@ async def get_student_achievements(
     
     achievements_list = []
     for cert in certificates:
-        course = db.query(models.Course).filter(models.Course.id == cert.course_id).first()
         achievements_list.append({
             "id": cert.id,
-            "course_title": course.title if course else "Unknown",
+            "course_title": cert.training_plan_title,
             "issued_at": cert.issued_at.isoformat() if cert.issued_at else None,
-            "certificate_url": cert.certificate_url,
+            "certificate_url": getattr(cert, "certificate_url", None),
             "type": "certificate"
         })
     

@@ -5,11 +5,11 @@ Roles:
   TRAINER → apenas seus tutorados (tutor_id = current user)
   STUDENT/TRAINEE → apenas os seus próprios dados
 """
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, ConfigDict, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
@@ -19,16 +19,17 @@ from app.models import (
     TutoriaActionPlan, TutoriaActionItem, TutoriaComment, TutoriaNotification,
     TutoriaLearningSheet, User, Product, Bank, Course,
     ErrorImpact, ErrorOrigin, ErrorDetectedBy, Department, Activity,
+    Challenge, ChallengeSubmission,
 )
-from app.auth import get_current_user, is_trainer_user, get_visible_user_ids
+from app.auth import get_current_user, get_visible_user_ids
 
 router = APIRouter()
 
 # ─── GAP 2 & 3 Validation constants ──────────────────────────────────────────
 
 IMPACT_DETAIL_VALID: dict = {
-    "ALTO":  ["Económico", "Regulatorio", "Reputacional (Imagen)", "GDPR (Protección de Datos)"],
-    "BAIXO": ["Imagen", "Retraso Operativo"],
+    "ALTA":  ["Económico", "Regulatorio", "Reputacional (Imagen)", "GDPR (Protección de Datos)"],
+    "BAIXA": ["Imagen", "Retraso Operativo"],
 }
 
 ORIGIN_DETAIL_VALID: dict = {
@@ -64,34 +65,34 @@ def _validate_impact_detail(impact_detail: Optional[str], impact_level: Optional
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def is_manager(user: User) -> bool:
-    return user.role in ("ADMIN", "TRAINER", "MANAGER") or getattr(user, 'is_tutor', False)
+    return user.is_admin or user.is_diretor or user.is_gerente or user.is_tutor
 
 def require_manager(user: User):
     if not is_manager(user):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
 def _is_tutor_or_admin(user: User) -> bool:
-    return user.role == "ADMIN" or getattr(user, 'is_tutor', False)
+    return user.is_admin or user.is_tutor
 
 def _require_tutor_or_admin(user: User):
     if not _is_tutor_or_admin(user):
         raise HTTPException(status_code=403, detail="Apenas admins e tutores")
 
 def require_admin(user: User):
-    if user.role != "ADMIN":
+    if not user.is_admin:
         raise HTTPException(status_code=403, detail="Apenas admins")
 
 def is_chefe_or_manager(u: User) -> bool:
-    return getattr(u, 'is_team_lead', False) or u.role in ("MANAGER", "ADMIN")
+    return u.is_chefe_equipe or u.is_gerente or u.is_admin
 
 def is_referente_user(u: User) -> bool:
     return getattr(u, 'is_referente', False)
 
 def is_chefe_referente_manager(u: User) -> bool:
-    return getattr(u, 'is_team_lead', False) or getattr(u, 'is_referente', False) or u.role in ("MANAGER", "ADMIN")
+    return u.is_chefe_equipe or u.is_referente or u.is_gerente or u.is_admin
 
 def is_tutor_or_above(u: User) -> bool:
-    return getattr(u, 'is_tutor', False) or u.role in ("MANAGER", "ADMIN")
+    return u.is_tutor or u.is_gerente or u.is_admin
 
 def _user_name(u) -> Optional[str]:
     return u.full_name if u else None
@@ -128,15 +129,14 @@ class CategoryIn(BaseModel):
     is_active: Optional[bool] = None
 
 class CategoryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     description: Optional[str]
     parent_id: Optional[int]
     origin_id: Optional[int] = None
     is_active: bool
-
-    class Config:
-        from_attributes = True
 
 # ── Errors ──
 
@@ -195,8 +195,12 @@ class AnalysisIn(BaseModel):
     solution_confirmed: Optional[bool] = None
     recurrence_type: Optional[str] = None
     action_plan_summary: Optional[str] = None
+    action_plan_text: Optional[str] = None
     analysis_5_why: Optional[str] = None
     excel_sent: Optional[bool] = None
+    clasificacion: Optional[str] = None
+    escalado: Optional[str] = None
+    comentarios_reunion: Optional[str] = None
 
 class CancelErrorIn(BaseModel):
     reason: str
@@ -321,6 +325,9 @@ def _error_out(e: TutoriaError) -> dict:
         "pending_solution": getattr(e, 'pending_solution', False),
         "excel_sent": getattr(e, 'excel_sent', False),
         "action_plan_summary": getattr(e, 'action_plan_summary', None),
+        "clasificacion": getattr(e, 'clasificacion', None),
+        "escalado": getattr(e, 'escalado', None),
+        "comentarios_reunion": getattr(e, 'comentarios_reunion', None),
         "cancelled_reason": getattr(e, 'cancelled_reason', None),
         "cancelled_by_id": getattr(e, 'cancelled_by_id', None),
         "cancelled_by_name": _user_name(getattr(e, 'cancelled_by', None)),
@@ -372,7 +379,8 @@ class PlanIn(BaseModel):
     observation_date: Optional[date] = None
     observation_notes: Optional[str] = None
 
-    @validator("when_deadline", pre=True)
+    @field_validator("when_deadline", mode="before")
+    @classmethod
     def _empty_date_to_none(cls, v):
         if v == "" or v is None:
             return None
@@ -536,19 +544,16 @@ def _errors_query(db: Session, user: User):
         )
         .filter(TutoriaError.is_active == True)
     )
-    if user.role in ("ADMIN", "GESTOR"):
+    if user.can_see_all:
         pass  # vê tudo
-    elif user.role == "MANAGER" or getattr(user, "is_team_lead", False):
+    elif user.is_gerente or user.is_chefe_equipe:
         # Chefe de equipa → vê erros dos membros da sua equipa
         visible_ids = get_visible_user_ids(db, user)
         if visible_ids:
             q = q.filter(TutoriaError.tutorado_id.in_(visible_ids))
-    elif getattr(user, "is_tutor", False):
+    elif user.is_tutor:
         # Tutor → vê erros dos seus tutorados
-        q = q.join(TutoriaError.tutorado, aliased=False).filter(User.tutor_id == user.id)
-    elif is_trainer_user(user):
-        # Formador → vê erros dos seus tutorados directos
-        q = q.join(TutoriaError.tutorado, aliased=False).filter(User.tutor_id == user.id)
+        q = q.join(TutoriaError.tutorado).filter(User.tutor_id == user.id)
     else:
         # Utilizador simples (TRAINEE / student / liberador / referente) → só os seus
         q = q.filter(TutoriaError.tutorado_id == user.id)
@@ -565,18 +570,16 @@ def _plans_query(db: Session, user: User):
             joinedload(TutoriaActionPlan.items).joinedload(TutoriaActionItem.responsible),
         )
     )
-    if user.role in ("ADMIN", "GESTOR"):
+    if user.can_see_all:
         pass  # vê tudo
-    elif user.role == "MANAGER" or getattr(user, "is_team_lead", False):
+    elif user.is_gerente or user.is_chefe_equipe:
         # Chefe de equipa → planos dos membros da sua equipa
         visible_ids = get_visible_user_ids(db, user)
         if visible_ids:
             q = q.filter(TutoriaActionPlan.tutorado_id.in_(visible_ids))
-    elif getattr(user, "is_tutor", False):
+    elif user.is_tutor:
         # Tutor → planos dos seus tutorados
-        q = q.join(TutoriaActionPlan.tutorado, aliased=False).filter(User.tutor_id == user.id)
-    elif is_trainer_user(user):
-        q = q.join(TutoriaActionPlan.tutorado, aliased=False).filter(User.tutor_id == user.id)
+        q = q.join(TutoriaActionPlan.tutorado).filter(User.tutor_id == user.id)
     else:
         # Utilizador simples → só os seus planos
         q = q.filter(TutoriaActionPlan.tutorado_id == user.id)
@@ -673,7 +676,7 @@ def list_errors(
         q = q.filter(TutoriaError.status == status)
     if category_id:
         q = q.filter(TutoriaError.category_id == category_id)
-    if tutorado_id and current_user.role in ("ADMIN", "GESTOR"):
+    if tutorado_id and current_user.can_see_all:
         q = q.filter(TutoriaError.tutorado_id == tutorado_id)
     if is_recurrent is not None:
         q = q.filter(TutoriaError.is_recurrent == is_recurrent)
@@ -698,9 +701,12 @@ def create_error(
         raise HTTPException(403, "Sem permissão para atribuir a outro utilizador")
 
     # GAP 2: validate impact_detail against impact level
-    if body.impact_detail and body.impact_id:
-        impact_obj = db.get(ErrorImpact, body.impact_id)
-        _validate_impact_detail(body.impact_detail, impact_obj.level if impact_obj else None)
+    impact_obj = db.get(ErrorImpact, body.impact_id) if body.impact_id else None
+    if body.impact_detail and impact_obj:
+        _validate_impact_detail(body.impact_detail, impact_obj.level)
+
+    # Derive impact_level from impact lookup (ALTA/BAIXA) when not provided directly
+    derived_impact_level = impact_obj.level if impact_obj else None
 
     # GAP 3: validate origin_detail against origin name
     if body.origin_detail and body.origin_id:
@@ -737,6 +743,7 @@ def create_error(
         amount=body.amount,
         final_client=body.final_client,
         impact_id=body.impact_id,
+        impact_level=derived_impact_level,
         impact_detail=body.impact_detail,
         origin_id=body.origin_id,
         origin_detail=body.origin_detail,
@@ -773,11 +780,13 @@ def create_error(
         from app.models import Team
         team = db.get(Team, tutorado.team_id)
         if team and team.manager_id and team.manager_id not in notified_ids:
-            create_notification(db, team.manager_id, "NEW_ERROR", f"Nova incidência registada por {current_user.full_name}", error_id=error.id)
-            notified_ids.add(team.manager_id)
+            mgr = db.get(User, team.manager_id)
+            if mgr and mgr.is_active:
+                create_notification(db, team.manager_id, "NEW_ERROR", f"Nova incidência registada por {current_user.full_name}", error_id=error.id)
+                notified_ids.add(team.manager_id)
     # Notify chefes de equipa in the same team
     if tutorado.team_id:
-        chefes = db.query(User).filter(User.team_id == tutorado.team_id, User.is_team_lead == True, User.id != current_user.id).all()
+        chefes = db.query(User).filter(User.team_id == tutorado.team_id, User.is_chefe_equipe == True, User.id != current_user.id).all()
         for c in chefes:
             if c.id not in notified_ids:
                 create_notification(db, c.id, "NEW_ERROR", f"Nova incidência registada por {current_user.full_name}", error_id=error.id)
@@ -847,7 +856,7 @@ def get_error(
     )
     if not error:
         raise HTTPException(404, "Erro não encontrado")
-    if current_user.role in ("STUDENT", "TRAINEE") and error.tutorado_id != current_user.id:
+    if current_user.is_usuario_basico and error.tutorado_id != current_user.id:
         raise HTTPException(403, "Acesso negado")
     return _error_out(error)
 
@@ -997,10 +1006,9 @@ def create_plan(
         if not resp_user:
             raise HTTPException(400, "Responsável não encontrado")
         is_valid_responsible = (
-            resp_user.role in ("ADMIN", "MANAGER") or
-            getattr(resp_user, 'is_tutor', False) or
-            getattr(resp_user, 'is_team_lead', False) or
-            getattr(resp_user, 'is_referente', False)
+            resp_user.is_admin or resp_user.is_gerente or resp_user.is_chefe_equipe or
+            resp_user.is_tutor or
+            resp_user.is_referente
         )
         if not is_valid_responsible:
             raise HTTPException(400, "Responsável deve ser Tutor, Chefe de Equipa, Referente ou Manager")
@@ -1024,13 +1032,7 @@ def create_plan(
         db.rollback()
         raise HTTPException(500, f"Erro ao criar plano: {str(e)}")
 
-    plan = (
-        _plans_query(db, current_user)
-        .filter(TutoriaActionPlan.id == plan.id)
-        .first()
-    )
-    if not plan:
-        raise HTTPException(500, "Plano criado mas não encontrado na query")
+    db.refresh(plan)
     return _plan_out(plan)
 
 
@@ -1055,9 +1057,9 @@ def create_side_by_side_plan(
 ):
     """Cria um plano de seguimento Side by Side sem erro associado."""
     if not (
-        getattr(current_user, "is_tutor", False)
-        or getattr(current_user, "is_team_lead", False)
-        or current_user.role in ("ADMIN", "MANAGER") or is_trainer_user(current_user)
+        current_user.is_tutor
+        or current_user.is_chefe_equipe
+        or current_user.is_admin or current_user.is_diretor or current_user.is_gerente
     ):
         raise HTTPException(403, "Sem permissão para criar planos Side by Side")
 
@@ -1092,12 +1094,7 @@ def create_side_by_side_plan(
         db.rollback()
         raise HTTPException(500, f"Erro ao criar plano Side by Side: {str(e)}")
 
-    result = (
-        _plans_query(db, current_user)
-        .filter(TutoriaActionPlan.id == sbs_plan.id)
-        .first()
-    )
-    return _plan_out(result) if result else {"id": sbs_plan.id, "status": sbs_plan.status}
+    return _plan_out(sbs_plan)
 
 
 @router.get("/plans")
@@ -1145,10 +1142,9 @@ def update_plan(
         if not resp_user:
             raise HTTPException(400, "Responsável não encontrado")
         is_valid_responsible = (
-            resp_user.role in ("ADMIN", "MANAGER") or
-            getattr(resp_user, 'is_tutor', False) or
-            getattr(resp_user, 'is_team_lead', False) or
-            getattr(resp_user, 'is_referente', False)
+            resp_user.is_admin or resp_user.is_gerente or resp_user.is_chefe_equipe or
+            resp_user.is_tutor or
+            resp_user.is_referente
         )
         if not is_valid_responsible:
             raise HTTPException(400, "Responsável deve ser Tutor, Chefe de Equipa, Referente ou Manager")
@@ -1176,12 +1172,12 @@ def submit_plan(
     if current_user.role == "ADMIN":
         plan.status = "APROVADO"
         plan.approved_by_id = current_user.id
-        plan.approved_at = datetime.utcnow()
+        plan.approved_at = datetime.now(timezone.utc)
     else:
         plan.status = "AGUARDANDO_APROVACAO"
     db.commit()
 
-    plan = _plans_query(db, current_user).filter(TutoriaActionPlan.id == plan_id).first()
+    db.refresh(plan)
     return _plan_out(plan)
 
 
@@ -1199,14 +1195,14 @@ def approve_plan(
         raise HTTPException(400, "Plano não está aguardando aprovação")
     plan.status = "APROVADO"
     plan.approved_by_id = current_user.id
-    plan.approved_at = datetime.utcnow()
+    plan.approved_at = datetime.now(timezone.utc)
 
     error = db.get(TutoriaError, plan.error_id)
     if error and error.status == "PLANO_CRIADO":
         error.status = "EM_EXECUCAO"
 
     db.commit()
-    plan = _plans_query(db, current_user).filter(TutoriaActionPlan.id == plan_id).first()
+    db.refresh(plan)
     return _plan_out(plan)
 
 
@@ -1231,7 +1227,7 @@ def return_plan(
     db.add(comment)
     db.commit()
 
-    plan = _plans_query(db, current_user).filter(TutoriaActionPlan.id == plan_id).first()
+    db.refresh(plan)
     return _plan_out(plan)
 
 
@@ -1257,14 +1253,14 @@ def validate_plan(
 
     plan.status = "CONCLUIDO"
     plan.validated_by_id = current_user.id
-    plan.validated_at = datetime.utcnow()
+    plan.validated_at = datetime.now(timezone.utc)
 
     error = db.get(TutoriaError, plan.error_id)
     if error:
         error.status = "CONCLUIDO"
 
     db.commit()
-    plan = _plans_query(db, current_user).filter(TutoriaActionPlan.id == plan_id).first()
+    db.refresh(plan)
     return _plan_out(plan)
 
 # ─── ACTION ITEMS ──────────────────────────────────────────────────────────────
@@ -1349,7 +1345,7 @@ def update_item(
                 f"Transições permitidas: {', '.join(allowed_next) if allowed_next else 'nenhuma'}",
             )
 
-    if current_user.role in ("STUDENT", "TRAINEE"):
+    if current_user.is_usuario_basico:
         if item.responsible_id != current_user.id:
             raise HTTPException(403, "Só pode atualizar os seus próprios itens")
         allowed = {"evidence_text", "status"}
@@ -1496,8 +1492,8 @@ def list_students(
 ):
     if not is_chefe_referente_manager(current_user) and not is_tutor_or_above(current_user):
         raise HTTPException(403, "Acesso negado")
-    q = db.query(User).filter(User.role.in_(["STUDENT", "TRAINEE"]), User.is_active == True)
-    if is_trainer_user(current_user) and not getattr(current_user, 'is_team_lead', False):
+    q = db.query(User).filter(User.role == "USUARIO", User.is_active == True)
+    if current_user.is_tutor and not current_user.is_chefe_equipe and not current_user.is_gerente and not current_user.is_admin and not current_user.is_diretor:
         q = q.filter(User.tutor_id == current_user.id)
     users = q.order_by(User.full_name).all()
     return [{"id": u.id, "full_name": u.full_name, "email": u.email, "tutor_id": u.tutor_id} for u in users]
@@ -1511,7 +1507,7 @@ def list_team(
     if not is_chefe_referente_manager(current_user) and not is_tutor_or_above(current_user):
         raise HTTPException(403, "Acesso negado")
     users = db.query(User).filter(User.is_active == True).order_by(User.full_name).all()
-    return [{"id": u.id, "full_name": u.full_name, "role": u.role, "is_tutor": getattr(u, 'is_tutor', False), "is_team_lead": getattr(u, 'is_team_lead', False), "is_referente": getattr(u, 'is_referente', False)} for u in users]
+    return [{"id": u.id, "full_name": u.full_name, "role": u.role, "is_tutor": u.is_tutor, "is_chefe_equipe": u.is_chefe_equipe, "is_referente": u.is_referente} for u in users]
 
 @router.get("/my-plans")
 def my_plans(
@@ -1570,13 +1566,14 @@ def dashboard(
         TutoriaActionPlan.status.notin_(["CONCLUIDO"]),
     ).count()
 
-    severity_counts: dict = {}
+    impact_counts: dict = {}
     for row in (
-        errors_q.with_entities(TutoriaError.severity, func.count(TutoriaError.id))
-        .group_by(TutoriaError.severity)
+        errors_q.with_entities(TutoriaError.impact_level, func.count(TutoriaError.id))
+        .group_by(TutoriaError.impact_level)
         .all()
     ):
-        severity_counts[row[0]] = row[1]
+        if row[0]:
+            impact_counts[row[0]] = row[1]
 
     return {
         "total_errors": total_errors,
@@ -1585,7 +1582,7 @@ def dashboard(
         "total_plans": total_plans,
         "plans_by_status": plans_by_status,
         "overdue_plans": overdue_plans,
-        "severity_counts": severity_counts,
+        "impact_counts": impact_counts,
     }
 
 # ─── ANALYSIS ENDPOINTS ──────────────────────────────────────────────────────
@@ -1621,10 +1618,10 @@ def save_analysis(
     for k, v in body.model_dump(exclude_none=True).items():
         setattr(error, k, v)
     # Auto-set excel_sent=True for high/critical impact
-    if getattr(error, 'impact_level', None) in ("ALTO", "CRITICO") and not getattr(error, 'excel_sent', False):
+    if getattr(error, 'impact_level', None) == "ALTA" and not getattr(error, 'excel_sent', False):
         error.excel_sent = True
     db.commit()
-    error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+    db.refresh(error)
     return _error_out(error)
 
 
@@ -1649,7 +1646,8 @@ def submit_analysis(
         raise HTTPException(400, "Incidência não está em estado para submissão de análise")
 
     # A.6.1 — Deadline enforcement: close by 1st business day of following month
-    if current_user.role != "ADMIN":
+    # Management roles (admin, gerente, chefe_equipe) are exempt from deadline enforcement
+    if not current_user.is_admin and not current_user.can_manage_teams:
         deadline = _get_error_deadline(error.date_occurrence)
         if deadline and date.today() > deadline:
             raise HTTPException(
@@ -1665,11 +1663,11 @@ def submit_analysis(
         if error.tutorado:
             tutorado = error.tutorado
             if hasattr(tutorado, 'team_id') and tutorado.team_id:
-                chefes = db.query(User).filter(User.team_id == tutorado.team_id, User.is_team_lead == True).all()
+                chefes = db.query(User).filter(User.team_id == tutorado.team_id, User.is_chefe_equipe == True).all()
                 for c in chefes:
                     create_notification(db, c.id, "PENDING_REVIEW", f"Análise do Referente aguarda aprovação", error_id=error.id)
         db.commit()
-        error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+        db.refresh(error)
         return _error_out(error)
 
     # Check if solution is pending
@@ -1692,7 +1690,7 @@ def submit_analysis(
         create_notification(db, error.tutorado.tutor_id, "PENDING_REVIEW", f"Incidência #{error_id} submetida para revisão", error_id=error.id)
 
     db.commit()
-    error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+    db.refresh(error)
     return _error_out(error)
 
 
@@ -1729,7 +1727,7 @@ def approve_chief(
         create_notification(db, error.tutorado.tutor_id, "PENDING_REVIEW", f"Incidência #{error_id} aprovada pelo Chefe, aguarda revisão", error_id=error.id)
 
     db.commit()
-    error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+    db.refresh(error)
     return _error_out(error)
 
 
@@ -1832,7 +1830,7 @@ def approve_plans(
                 create_notification(db, uid, "LEARNING_SHEET", f"Nova ficha de aprendizagem para incidência #{error_id}", error_id=error.id)
 
     db.commit()
-    error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+    db.refresh(error)
     return _error_out(error)
 
 
@@ -1870,13 +1868,13 @@ def return_analysis(
                           f"Análise da incidência #{error_id} devolvida: {body.reason.strip()[:100]}", error_id=error.id)
     # Also notify chefes of team
     if error.tutorado and hasattr(error.tutorado, 'team_id') and error.tutorado.team_id:
-        chefes = db.query(User).filter(User.team_id == error.tutorado.team_id, User.is_team_lead == True, User.id != error.created_by_id).all()
+        chefes = db.query(User).filter(User.team_id == error.tutorado.team_id, User.is_chefe_equipe == True, User.id != error.created_by_id).all()
         for c in chefes:
             create_notification(db, c.id, "PLAN_RETURNED",
                               f"Análise da incidência #{error_id} devolvida pelo Tutor", error_id=error.id)
 
     db.commit()
-    error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+    db.refresh(error)
     return _error_out(error)
 
 
@@ -1898,7 +1896,7 @@ def tutor_review_edit(
     for k, v in body.model_dump(exclude_none=True).items():
         setattr(error, k, v)
     db.commit()
-    error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+    db.refresh(error)
     return _error_out(error)
 
 
@@ -1929,7 +1927,7 @@ def confirm_solution(
                           f"Solução confirmada para incidência #{error_id}, aguarda revisão final", error_id=error.id)
 
     db.commit()
-    error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+    db.refresh(error)
     return _error_out(error)
 
 
@@ -1950,7 +1948,7 @@ def resolve_error(
 
     error.status = "RESOLVED"
     db.commit()
-    error = _errors_query(db, current_user).filter(TutoriaError.id == error_id).first()
+    db.refresh(error)
     return _error_out(error)
 
 
@@ -1973,9 +1971,9 @@ def start_plan(
         raise HTTPException(403, "Apenas o responsável pode iniciar o plano")
 
     plan.status = "IN_PROGRESS"
-    plan.started_at = datetime.utcnow()
+    plan.started_at = datetime.now(timezone.utc)
     db.commit()
-    plan = _plans_query(db, current_user).filter(TutoriaActionPlan.id == plan_id).first()
+    db.refresh(plan)
     return _plan_out(plan)
 
 
@@ -2007,9 +2005,9 @@ def complete_plan(
     plan.status = "DONE"
     plan.result_score = body.result_score
     plan.result_comment = body.result_comment
-    plan.completed_at = datetime.utcnow()
+    plan.completed_at = datetime.now(timezone.utc)
     db.commit()
-    plan = _plans_query(db, current_user).filter(TutoriaActionPlan.id == plan_id).first()
+    db.refresh(plan)
     return _plan_out(plan)
 
 
@@ -2103,7 +2101,7 @@ def list_learning_sheets(
     status: Optional[str] = None,
 ):
     """List learning sheets — Tutors see submitted sheets from their tutorados."""
-    if not is_tutor_or_above(current_user) and current_user.role != "GESTOR":
+    if not is_tutor_or_above(current_user):
         raise HTTPException(403, "Apenas Tutor/Manager/Admin pode listar fichas")
     q = (
         db.query(TutoriaLearningSheet)
@@ -2112,7 +2110,7 @@ def list_learning_sheets(
             joinedload(TutoriaLearningSheet.tutor),
         )
     )
-    if current_user.role not in ("ADMIN", "MANAGER", "GESTOR"):
+    if not current_user.is_gestor_or_above:
         # Tutor sees sheets where they are the tutor
         q = q.filter(TutoriaLearningSheet.tutor_id == current_user.id)
     if status:
@@ -2222,7 +2220,7 @@ def submit_reflection(
         raise HTTPException(400, "Ficha já foi submetida")
 
     sheet.reflection = body.reflection
-    sheet.submitted_at = datetime.utcnow()
+    sheet.submitted_at = datetime.now(timezone.utc)
     sheet.status = "SUBMITTED"
     db.flush()
 
@@ -2264,7 +2262,7 @@ def review_sheet(
 
     sheet.tutor_outcome = body.tutor_outcome
     sheet.tutor_notes = body.tutor_notes
-    sheet.reviewed_at = datetime.utcnow()
+    sheet.reviewed_at = datetime.now(timezone.utc)
     sheet.status = "REVIEWED"
     db.commit()
     sheet = (
@@ -2379,4 +2377,210 @@ def delete_capsula(
     if not c or not getattr(c, 'managed_by_tutor', False):
         raise HTTPException(404, "Cápsula não encontrada")
     c.is_active = False
+    db.commit()
+
+
+# ─── CÁPSULAS como DESAFIOS (C.2) — CRUD atómico ────────────────────────────
+
+class CapsulaChallengeIn(BaseModel):
+    # Course wrapper fields
+    course_type: str = "CAPSULA_METODOLOGIA"
+    level: Optional[str] = None
+    started_by: Optional[str] = "TRAINEE"
+    # Challenge fields
+    title: str
+    description: Optional[str] = None
+    difficulty: str = "medium"
+    challenge_type: str = "COMPLETE"
+    operations_required: int = 100
+    time_limit_minutes: int = 60
+    target_mpu: float = 5.0
+    max_errors: int = 0
+    use_volume_kpi: bool = True
+    use_mpu_kpi: bool = True
+    use_errors_kpi: bool = True
+    kpi_mode: str = "AUTO"
+    allow_retry: bool = False
+
+
+class CapsulaChallengeUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    difficulty: Optional[str] = None
+    operations_required: Optional[int] = None
+    time_limit_minutes: Optional[int] = None
+    target_mpu: Optional[float] = None
+    max_errors: Optional[int] = None
+    use_volume_kpi: Optional[bool] = None
+    use_mpu_kpi: Optional[bool] = None
+    use_errors_kpi: Optional[bool] = None
+    kpi_mode: Optional[str] = None
+    allow_retry: Optional[bool] = None
+    course_type: Optional[str] = None
+    level: Optional[str] = None
+
+
+def _capsule_challenge_out(ch: Challenge, course: Course, subs_count: int = 0) -> dict:
+    return {
+        "id": ch.id,
+        "course_id": ch.course_id,
+        "title": ch.title,
+        "description": ch.description,
+        "difficulty": ch.difficulty,
+        "challenge_type": ch.challenge_type,
+        "operations_required": ch.operations_required,
+        "time_limit_minutes": ch.time_limit_minutes,
+        "target_mpu": ch.target_mpu,
+        "max_errors": ch.max_errors,
+        "use_volume_kpi": ch.use_volume_kpi,
+        "use_mpu_kpi": ch.use_mpu_kpi,
+        "use_errors_kpi": ch.use_errors_kpi,
+        "kpi_mode": ch.kpi_mode,
+        "allow_retry": ch.allow_retry,
+        "is_active": ch.is_active,
+        "is_released": ch.is_released,
+        "created_by": ch.created_by,
+        "created_at": ch.created_at,
+        "updated_at": ch.updated_at,
+        # Course fields
+        "course_type": getattr(course, "course_type", "CAPSULA_METODOLOGIA"),
+        "level": course.level,
+        "started_by": getattr(course, "started_by", "TRAINEE"),
+        "submissions_count": subs_count,
+    }
+
+
+@router.get("/capsulas-challenges")
+def list_capsule_challenges(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List all challenges belonging to tutor-managed capsule courses."""
+    rows = (
+        db.query(Challenge, Course, func.count(ChallengeSubmission.id))
+        .join(Course, Challenge.course_id == Course.id)
+        .outerjoin(ChallengeSubmission, ChallengeSubmission.challenge_id == Challenge.id)
+        .filter(
+            Course.managed_by_tutor == True,
+            Course.is_active == True,
+            Challenge.is_active == True,
+        )
+        .group_by(Challenge.id, Course.id)
+        .order_by(Challenge.created_at.desc())
+        .all()
+    )
+    return [_capsule_challenge_out(ch, course, cnt) for ch, course, cnt in rows]
+
+
+@router.post("/capsulas-challenges", status_code=201)
+def create_capsule_challenge(
+    body: CapsulaChallengeIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Atomically create a wrapper Course + Challenge for a capsule."""
+    if not is_tutor_or_above(current_user):
+        raise HTTPException(403, "Apenas Tutor/Admin pode criar cápsulas")
+    if body.course_type not in ("CAPSULA_METODOLOGIA", "CAPSULA_FUNCIONALIDADE"):
+        raise HTTPException(400, "course_type inválido")
+    if body.challenge_type not in ("COMPLETE", "SUMMARY"):
+        raise HTTPException(400, "challenge_type deve ser COMPLETE ou SUMMARY")
+    # 1. Create hidden wrapper Course
+    course = Course(
+        title=body.title,
+        description=body.description,
+        course_type=body.course_type,
+        level=body.level,
+        started_by=body.started_by or "TRAINEE",
+        managed_by_tutor=True,
+        created_by=current_user.id,
+        is_active=True,
+    )
+    db.add(course)
+    db.flush()
+    # 2. Create Challenge under that Course
+    ch = Challenge(
+        course_id=course.id,
+        title=body.title,
+        description=body.description,
+        difficulty=body.difficulty,
+        challenge_type=body.challenge_type,
+        operations_required=body.operations_required,
+        time_limit_minutes=body.time_limit_minutes,
+        target_mpu=body.target_mpu,
+        max_errors=body.max_errors,
+        use_volume_kpi=body.use_volume_kpi,
+        use_mpu_kpi=body.use_mpu_kpi,
+        use_errors_kpi=body.use_errors_kpi,
+        kpi_mode=body.kpi_mode,
+        allow_retry=body.allow_retry,
+        created_by=current_user.id,
+        is_active=True,
+    )
+    db.add(ch)
+    db.commit()
+    db.refresh(ch)
+    db.refresh(course)
+    return _capsule_challenge_out(ch, course, 0)
+
+
+@router.put("/capsulas-challenges/{challenge_id}")
+def update_capsule_challenge(
+    challenge_id: int,
+    body: CapsulaChallengeUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Update a capsule challenge and sync wrapper Course title."""
+    if not is_tutor_or_above(current_user):
+        raise HTTPException(403, "Apenas Tutor/Admin pode editar cápsulas")
+    ch = db.query(Challenge).filter(Challenge.id == challenge_id, Challenge.is_active == True).first()
+    if not ch:
+        raise HTTPException(404, "Desafio não encontrado")
+    course = db.query(Course).filter(Course.id == ch.course_id).first()
+    if not course or not getattr(course, "managed_by_tutor", False):
+        raise HTTPException(404, "Cápsula não encontrada")
+    updates = body.model_dump(exclude_none=True)
+    # Update challenge fields
+    challenge_fields = {
+        "title", "description", "difficulty", "operations_required",
+        "time_limit_minutes", "target_mpu", "max_errors",
+        "use_volume_kpi", "use_mpu_kpi", "use_errors_kpi", "kpi_mode", "allow_retry",
+    }
+    for k, v in updates.items():
+        if k in challenge_fields:
+            setattr(ch, k, v)
+    # Update course wrapper fields
+    if "title" in updates:
+        course.title = updates["title"]
+    if "description" in updates:
+        course.description = updates["description"]
+    if "course_type" in updates:
+        course.course_type = updates["course_type"]
+    if "level" in updates:
+        course.level = updates["level"]
+    db.commit()
+    db.refresh(ch)
+    db.refresh(course)
+    subs = db.query(func.count(ChallengeSubmission.id)).filter(ChallengeSubmission.challenge_id == ch.id).scalar() or 0
+    return _capsule_challenge_out(ch, course, subs)
+
+
+@router.delete("/capsulas-challenges/{challenge_id}", status_code=204)
+def delete_capsule_challenge(
+    challenge_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Soft-delete a capsule challenge and its wrapper Course."""
+    if not is_tutor_or_above(current_user):
+        raise HTTPException(403, "Apenas Tutor/Admin pode eliminar cápsulas")
+    ch = db.query(Challenge).filter(Challenge.id == challenge_id).first()
+    if not ch:
+        raise HTTPException(404, "Desafio não encontrado")
+    course = db.query(Course).filter(Course.id == ch.course_id).first()
+    if not course or not getattr(course, "managed_by_tutor", False):
+        raise HTTPException(404, "Cápsula não encontrada")
+    ch.is_active = False
+    course.is_active = False
     db.commit()

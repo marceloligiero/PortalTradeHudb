@@ -31,6 +31,7 @@ frontend/dist/
 # ── Ambiente (NUNCA commitar .env com valores reais) ───
 .env
 .env.local
+.env.prod
 .env.*.local
 backend/.env
 backend/.env.*
@@ -38,7 +39,8 @@ backend/.env.*
 !backend/.env.*.example
 frontend/.env
 frontend/.env.local
-frontend/.env.production
+# .env.production é seguro (sem segredos, só empty vars) → commitado
+!frontend/.env.production
 # Manter apenas .env.example
 
 # ── Logs e runtime ─────────────────────────────────────
@@ -88,6 +90,9 @@ ssl/
 *.key
 *.p12
 *.pfx
+
+# ── Vídeos de demonstração (demasiado grandes para git) ────────────────────
+docs/videos/
 
 # ── Backups e temporários ──────────────────────────────
 *.bak

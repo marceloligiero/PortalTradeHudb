@@ -257,7 +257,7 @@ export default function AdvancedReportsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#EC0000]"></div>
+          <div className="border-4 border-[#EC0000]/20 border-t-[#EC0000] rounded-full animate-spin w-8 h-8" />
         </div>
       ) : (
         <>
@@ -569,7 +569,6 @@ export default function AdvancedReportsPage() {
                         <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={formatMonth} />
                         <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} allowDecimals={false} />
                         <Tooltip
-                          contentStyle={{ backgroundColor: '#171717', border: '1px solid #262626', borderRadius: '12px', color: '#fff' }}
                           labelFormatter={formatMonth}
                           formatter={(value: number) => [value, t('advancedReports.certificatesIssued', 'Certificados Emitidos')]}
                         />
@@ -646,7 +645,6 @@ export default function AdvancedReportsPage() {
                       <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={formatMonth} />
                       <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} />
                       <Tooltip
-                        contentStyle={{ backgroundColor: '#171717', border: '1px solid #262626', borderRadius: '12px', color: '#fff' }}
                         labelFormatter={formatMonth}
                         formatter={(value: number) => [`${value.toFixed(1)} ${t('advancedReports.days', 'dias')}`, t('advancedReports.avgCompletionTime', 'Tempo Médio')]}
                       />
@@ -700,8 +698,7 @@ export default function AdvancedReportsPage() {
                           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#374151" strokeOpacity={0.2} />
                           <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} unit=" min/op" />
                           <YAxis dataKey="name" type="category" tick={{ fontSize: 12, fill: '#d1d5db', fontWeight: 500 }} width={140} />
-                          <Tooltip formatter={(value: number) => [`${value.toFixed(2)} min/op`, 'MPU']}
-                            contentStyle={{ backgroundColor: '#171717', border: '1px solid #262626', borderRadius: '12px', color: '#fff' }} />
+                          <Tooltip formatter={(value: number) => [`${value.toFixed(2)} min/op`, 'MPU']} />
                           <Bar dataKey="avg_mpu" radius={[0, 8, 8, 0]} barSize={28}>
                             {mpuData.by_bank.filter(d => d.avg_mpu > 0).map((entry, index) => (
                               <Cell key={`bank-${index}`} fill={entry.avg_mpu <= 5 ? '#10b981' : entry.avg_mpu <= 10 ? '#f59e0b' : '#EC0000'} />
@@ -740,8 +737,7 @@ export default function AdvancedReportsPage() {
                           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#374151" strokeOpacity={0.2} />
                           <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} unit=" min/op" />
                           <YAxis dataKey="name" type="category" tick={{ fontSize: 12, fill: '#d1d5db', fontWeight: 500 }} width={140} />
-                          <Tooltip formatter={(value: number) => [`${value.toFixed(2)} min/op`, 'MPU']}
-                            contentStyle={{ backgroundColor: '#171717', border: '1px solid #262626', borderRadius: '12px', color: '#fff' }} />
+                          <Tooltip formatter={(value: number) => [`${value.toFixed(2)} min/op`, 'MPU']} />
                           <Bar dataKey="avg_mpu" radius={[0, 8, 8, 0]} barSize={28}>
                             {mpuData.by_service.filter(d => d.avg_mpu > 0).map((entry, index) => (
                               <Cell key={`svc-${index}`} fill={entry.avg_mpu <= 5 ? '#10b981' : entry.avg_mpu <= 10 ? '#f59e0b' : '#EC0000'} />
@@ -780,8 +776,7 @@ export default function AdvancedReportsPage() {
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#374151" strokeOpacity={0.2} />
                       <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} unit=" min/op" />
                       <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: '#d1d5db' }} width={160} />
-                      <Tooltip formatter={(value: number) => [`${value.toFixed(2)} min/op`, 'MPU']}
-                        contentStyle={{ backgroundColor: '#171717', border: '1px solid #262626', borderRadius: '12px', color: '#fff' }} />
+                      <Tooltip formatter={(value: number) => [`${value.toFixed(2)} min/op`, 'MPU']} />
                       <Bar dataKey="avg_mpu" radius={[0, 8, 8, 0]} barSize={22}>
                         {mpuData.by_plan.filter(d => d.avg_mpu > 0).map((entry, index) => (
                           <Cell key={`plan-${index}`} fill={entry.avg_mpu <= 5 ? '#10b981' : entry.avg_mpu <= 10 ? '#f59e0b' : '#EC0000'} />

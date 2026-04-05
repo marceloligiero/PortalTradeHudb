@@ -10,7 +10,7 @@
 
 **PortalTradeHub** — Gestão de formações, tutoria, relatórios e suporte para equipas de trading.
 Stack: **FastAPI (Python 3.13) + React 18 + Tailwind CSS + MySQL 8.0 + Docker Compose.**
-341 testes. 5 roles: ADMIN, TRAINER, STUDENT, TRAINEE, MANAGER. CI/CD GitHub Actions.
+451 testes. 5 roles: ADMIN, TRAINER, STUDENT, TRAINEE, MANAGER. CI/CD GitHub Actions.
 Design System: **Santander** — `#EC0000` primary, `font-headline`, dark/light via `dark:` classes.
 
 ---

@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from typing import List, Optional
-from datetime import datetime
-from pydantic import BaseModel, Field
+from datetime import datetime, timezone
+from pydantic import BaseModel, ConfigDict, Field
 
 from app import models, auth
 from app.database import get_db
@@ -44,8 +44,7 @@ class RatingResponse(BaseModel):
     comment: Optional[str] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RatingSummary(BaseModel):
@@ -75,7 +74,11 @@ async def submit_rating(
     db: Session = Depends(get_db)
 ):
     """Formando submete uma avaliação após finalização"""
-    
+
+    # Apenas formandos (sem flags de staff) podem avaliar
+    if current_user.is_formador or current_user.is_tutor or current_user.is_admin or current_user.is_diretor or current_user.is_gerente:
+        raise HTTPException(status_code=403, detail="Apenas formandos podem submeter avaliações")
+
     # Debug log
     print(f"Rating submit: type={rating_data.rating_type}, stars={rating_data.stars}, challenge_id={rating_data.challenge_id}, user={current_user.id}")
     
@@ -124,7 +127,7 @@ async def submit_rating(
         # Atualizar avaliação existente
         existing.stars = rating_data.stars
         existing.comment = rating_data.comment
-        existing.updated_at = datetime.utcnow()
+        existing.updated_at = datetime.now(timezone.utc)
         db.commit()
         db.refresh(existing)
         rating = existing

@@ -7,10 +7,10 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-# API Key do Resend - loaded from environment
+# API Key e URL do Resend - loaded from environment / config
 import os
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
-RESEND_API_URL = "https://api.resend.com/emails"
+RESEND_API_URL = settings.RESEND_API_URL
 
 
 def send_email(to_email: str, subject: str, html_content: str) -> bool:
@@ -31,8 +31,7 @@ def send_email(to_email: str, subject: str, html_content: str) -> bool:
             "Content-Type": "application/json"
         }
         
-        # Resend usa domínio onboarding para testes
-        from_email = "TradeHub Formações <onboarding@resend.dev>"
+        from_email = settings.RESEND_FROM_EMAIL or settings.SMTP_FROM_EMAIL or f"{settings.SMTP_FROM_NAME} <noreply@{settings.FRONTEND_URL.replace('http://', '').replace('https://', '')}>"
         
         payload = {
             "from": from_email,

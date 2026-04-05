@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Award, 
-  Calendar, 
-  Clock, 
+import {
+  Award,
+  Calendar,
+  Clock,
   GraduationCap,
   CheckCircle2,
   FileText,
@@ -13,7 +12,6 @@ import {
   Sparkles
 } from 'lucide-react';
 import api from '../../lib/axios';
-import { PremiumHeader, AnimatedStatCard, FloatingOrbs, GridBackground } from '../../components/premium';
 
 interface Certificate {
   id: number;
@@ -27,20 +25,6 @@ interface Certificate {
   average_approval_rate: number;
   is_valid: boolean;
 }
-
-// Animation variants
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 20, scale: 0.95 },
-  visible: { opacity: 1, y: 0, scale: 1 }
-};
 
 export default function CertificatesPage() {
   const { t } = useTranslation();
@@ -69,266 +53,214 @@ export default function CertificatesPage() {
   const totalHours = certificates.reduce((acc, c) => acc + (c.total_hours || 0), 0);
 
   return (
-    <div className="space-y-6">
-      {/* Premium Header */}
-      <PremiumHeader
-        icon={Award}
-        title={t('certificates.title')}
-        subtitle={t('certificates.subtitle')}
-        badge={t('certificates.badge')}
-        iconColor="from-yellow-500 to-orange-600"
-      />
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header card */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+            <Award className="w-6 h-6 text-[#EC0000]" />
+          </div>
+          <div>
+            <p className="font-body text-xs font-bold uppercase tracking-widest text-[#EC0000] mb-1">
+              {t('certificates.badge')}
+            </p>
+            <h1 className="font-headline text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+              {t('certificates.title')}
+            </h1>
+            <p className="font-body text-gray-500 dark:text-gray-400 mt-1 max-w-xl text-sm">
+              {t('certificates.subtitle')}
+            </p>
+          </div>
+        </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <AnimatedStatCard
-          icon={Award}
-          label={t('certificates.totalCertificates')}
-          value={certificates.length}
-          color="from-yellow-500 to-orange-600"
-          delay={0}
-        />
-        <AnimatedStatCard
-          icon={Clock}
-          label={t('certificates.trainingHours')}
-          value={totalHours}
-          suffix="h"
-          color="from-blue-500 to-blue-700"
-          delay={0.1}
-        />
-        <AnimatedStatCard
-          icon={GraduationCap}
-          label={t('certificates.coursesCompleted')}
-          value={certificates.reduce((acc, c) => acc + (c.courses_completed || 0), 0)}
-          color="from-green-500 to-emerald-600"
-          delay={0.2}
-        />
+        {/* Stats bar */}
+        <div className="grid grid-cols-3 gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+          {[
+            { icon: Award, value: certificates.length, label: t('certificates.totalCertificates') },
+            { icon: Clock, value: `${totalHours}h`, label: t('certificates.trainingHours') },
+            { icon: GraduationCap, value: certificates.reduce((acc, c) => acc + (c.courses_completed || 0), 0), label: t('certificates.coursesCompleted') },
+          ].map((stat, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <stat.icon className="w-5 h-5 text-[#EC0000] shrink-0" />
+              <div>
+                <p className="font-mono text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+                <p className="font-body text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">{stat.label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Certificates Grid */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.3 }}
-        className="relative"
-      >
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="w-12 h-12 border-4 border-yellow-600 border-t-transparent rounded-full"
-            />
-          </div>
-        ) : certificates.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="relative overflow-hidden bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-12 text-center"
-          >
-            <FloatingOrbs variant="subtle" />
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", damping: 15, delay: 0.2 }}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-12 h-12 border-4 border-[#EC0000]/20 border-t-[#EC0000] rounded-full animate-spin mx-auto" />
+        </div>
+      ) : certificates.length === 0 ? (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-12 text-center">
+          <Award className="w-20 h-20 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+          <h3 className="font-headline text-xl font-bold text-gray-900 dark:text-white mb-2">
+            {t('certificates.noCertificates')}
+          </h3>
+          <p className="font-body text-gray-500 dark:text-gray-400 mb-2">
+            {t('certificates.noCertificatesDesc')}
+          </p>
+          <p className="font-body text-gray-400 dark:text-gray-500 text-sm">
+            {t('dashboard.student.emptyDescription')}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {certificates.map((cert) => (
+            <div
+              key={cert.id}
+              onClick={() => setSelectedCert(cert)}
+              className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 hover:border-[#EC0000]/30 transition-colors cursor-pointer"
             >
-              <Award className="w-20 h-20 text-gray-600 mx-auto mb-4" />
-            </motion.div>
-            <h3 className="text-xl font-semibold text-white mb-2">
-              {t('certificates.noCertificates')}
-            </h3>
-            <p className="text-gray-400 mb-2">
-              {t('certificates.noCertificatesDesc')}
-            </p>
-            <p className="text-gray-500 text-sm">
-              {t('dashboard.student.emptyDescription')}
-            </p>
-          </motion.div>
-        ) : (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            {certificates.map((cert, index) => (
-              <motion.div
-                key={cert.id}
-                variants={cardVariants}
-                whileHover={{ y: -4, scale: 1.01 }}
-                onClick={() => setSelectedCert(cert)}
-                className="relative group cursor-pointer"
-              >
-                {/* Glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-yellow-600/20 to-orange-600/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
-                <div className="relative bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 hover:border-yellow-500/30 transition-all overflow-hidden">
-                  {/* Certificate Badge */}
-                  <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 rounded-bl-full" />
-                  
-                  <div className="flex items-start justify-between mb-4">
-                    <motion.div
-                      whileHover={{ rotate: 5, scale: 1.1 }}
-                      className="w-14 h-14 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center shadow-lg shadow-yellow-900/50"
-                    >
-                      <Award className="w-7 h-7 text-white" />
-                    </motion.div>
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${
-                      cert.is_valid
-                        ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                        : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                    }`}>
-                      {cert.is_valid ? (
-                        <>
-                          <CheckCircle2 className="w-3 h-3" />
-                          {t('certificates.valid')}
-                        </>
-                      ) : (
-                        t('certificates.revoked')
-                      )}
-                    </span>
-                  </div>
-                  
-                  <div className="mb-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <FileText className="w-3 h-3 text-yellow-400" />
-                      <span className="text-xs text-gray-500 uppercase tracking-wider">{t('certificates.certNumber')}</span>
-                    </div>
-                    <p className="font-mono text-yellow-400 font-medium text-sm">{cert.certificate_number}</p>
-                  </div>
-                  
-                  <h3 className="text-lg font-bold text-white mb-3 group-hover:text-yellow-400 transition-colors line-clamp-2">
-                    {cert.training_plan_title}
-                  </h3>
-                  
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="bg-white/5 rounded-lg p-2">
-                      <div className="text-xs text-gray-500 mb-1">{t('certificates.hours')}</div>
-                      <div className="text-sm font-semibold text-white">{cert.total_hours}h</div>
-                    </div>
-                    <div className="bg-white/5 rounded-lg p-2">
-                      <div className="text-xs text-gray-500 mb-1">{t('certificates.courses')}</div>
-                      <div className="text-sm font-semibold text-green-400">{cert.courses_completed}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-gray-500 text-xs mb-4">
-                    <Calendar className="w-3 h-3" />
-                    <span>
-                      {t('certificates.issuedOn')} {new Date(cert.issued_at).toLocaleDateString('pt-PT', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric'
-                      })}
-                    </span>
-                  </div>
-                  
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={(e) => { e.stopPropagation(); navigate(`/certificates/${cert.id}`); }}
-                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg text-sm font-medium hover:shadow-lg hover:shadow-red-600/30 transition-all"
-                  >
-                    <Award className="w-4 h-4" />
-                    {t('certificates.viewCertificate')}
-                  </motion.button>
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-14 h-14 rounded-xl bg-yellow-50 dark:bg-yellow-900/20 flex items-center justify-center">
+                  <Award className="w-7 h-7 text-yellow-600 dark:text-yellow-400" />
                 </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
-      </motion.div>
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full font-body text-xs font-medium ${
+                  cert.is_valid
+                    ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800'
+                    : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800'
+                }`}>
+                  {cert.is_valid ? (
+                    <>
+                      <CheckCircle2 className="w-3 h-3" />
+                      {t('certificates.valid')}
+                    </>
+                  ) : (
+                    t('certificates.revoked')
+                  )}
+                </span>
+              </div>
+
+              <div className="mb-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <FileText className="w-3 h-3 text-[#EC0000]" />
+                  <span className="font-body text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('certificates.certNumber')}</span>
+                </div>
+                <p className="font-mono text-[#EC0000] font-medium text-sm">{cert.certificate_number}</p>
+              </div>
+
+              <h3 className="font-headline text-lg font-bold text-gray-900 dark:text-white mb-3 line-clamp-2">
+                {cert.training_plan_title}
+              </h3>
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-2">
+                  <div className="font-body text-xs text-gray-500 dark:text-gray-400 mb-1">{t('certificates.hours')}</div>
+                  <div className="font-mono text-sm font-bold text-gray-900 dark:text-white">{cert.total_hours}h</div>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-2">
+                  <div className="font-body text-xs text-gray-500 dark:text-gray-400 mb-1">{t('certificates.courses')}</div>
+                  <div className="font-mono text-sm font-bold text-green-600 dark:text-green-400">{cert.courses_completed}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500 font-body text-xs mb-4">
+                <Calendar className="w-3 h-3" />
+                <span>
+                  {t('certificates.issuedOn')} {new Date(cert.issued_at).toLocaleDateString('pt-PT', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric'
+                  })}
+                </span>
+              </div>
+
+              <button
+                onClick={(e) => { e.stopPropagation(); navigate(`/certificates/${cert.id}`); }}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body text-sm font-bold transition-colors"
+              >
+                <Award className="w-4 h-4" />
+                {t('certificates.viewCertificate')}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Certificate Detail Modal */}
-      <AnimatePresence>
-        {selectedCert && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-            onClick={() => setSelectedCert(null)}
+      {selectedCert && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+          onClick={() => setSelectedCert(null)}
+        >
+          <div
+            className="relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-2xl w-full max-w-lg overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
           >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-white/10 shadow-2xl w-full max-w-lg overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Modal Header */}
-              <div className="relative overflow-hidden">
-                <GridBackground opacity={0.2} color="234, 179, 8" />
-                <div className="relative flex items-center justify-between px-6 py-4 border-b border-white/10">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center">
-                      <Award className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-semibold text-white">{t('certificates.certificate')}</h2>
-                      <p className="text-xs text-yellow-400 font-mono">{selectedCert.certificate_number}</p>
-                    </div>
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-yellow-50 dark:bg-yellow-900/20 flex items-center justify-center">
+                  <Award className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div>
+                  <h2 className="font-headline text-xl font-bold text-gray-900 dark:text-white">{t('certificates.certificate')}</h2>
+                  <p className="font-mono text-xs text-[#EC0000]">{selectedCert.certificate_number}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedCert(null)}
+                className="w-8 h-8 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
+              >
+                <X className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4">
+              <div className="text-center mb-6">
+                <Sparkles className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+                <h3 className="font-headline text-2xl font-bold text-gray-900 dark:text-white">{selectedCert.training_plan_title}</h3>
+                <p className="font-body text-gray-500 dark:text-gray-400 mt-1">
+                  {t('certificates.weCertify')} <strong className="text-gray-900 dark:text-white">{selectedCert.student_name}</strong>
+                </p>
+                <p className="font-body text-gray-500 dark:text-gray-400">{t('certificates.completedTraining')}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
+                  <Clock className="w-5 h-5 text-[#EC0000] mx-auto mb-2" />
+                  <div className="font-mono text-2xl font-bold text-gray-900 dark:text-white">{selectedCert.total_hours}h</div>
+                  <div className="font-body text-xs text-gray-500 dark:text-gray-400">{t('certificates.trainingHours')}</div>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
+                  <GraduationCap className="w-5 h-5 text-green-600 dark:text-green-400 mx-auto mb-2" />
+                  <div className="font-mono text-2xl font-bold text-green-600 dark:text-green-400">100%</div>
+                  <div className="font-body text-xs text-gray-500 dark:text-gray-400">{t('certificates.approval')}</div>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
+                  <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 mx-auto mb-2" />
+                  <div className="font-mono text-2xl font-bold text-green-600 dark:text-green-400">{selectedCert.courses_completed}</div>
+                  <div className="font-body text-xs text-gray-500 dark:text-gray-400">{t('certificates.coursesCompleted')}</div>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 text-center">
+                  <Calendar className="w-5 h-5 text-[#EC0000] mx-auto mb-2" />
+                  <div className="font-mono text-lg font-bold text-gray-900 dark:text-white">
+                    {new Date(selectedCert.issued_at).toLocaleDateString('pt-PT')}
                   </div>
-                  <button
-                    onClick={() => setSelectedCert(null)}
-                    className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
-                  >
-                    <X className="w-4 h-4 text-gray-400" />
-                  </button>
+                  <div className="font-body text-xs text-gray-500 dark:text-gray-400">{t('certificates.issueDate')}</div>
                 </div>
               </div>
 
-              {/* Modal Body */}
-              <div className="p-6 space-y-4">
-                <div className="text-center mb-6">
-                  <Sparkles className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                  <h3 className="text-2xl font-bold text-white">{selectedCert.training_plan_title}</h3>
-                  <p className="text-gray-400 mt-1">{t('certificates.weCertify')} <strong className="text-white">{selectedCert.student_name}</strong></p>
-                  <p className="text-gray-400">{t('certificates.completedTraining')}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white/5 rounded-xl p-4 text-center">
-                    <Clock className="w-5 h-5 text-blue-400 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-white">{selectedCert.total_hours}h</div>
-                    <div className="text-xs text-gray-400">{t('certificates.trainingHours')}</div>
-                  </div>
-                  <div className="bg-white/5 rounded-xl p-4 text-center">
-                    <GraduationCap className="w-5 h-5 text-green-400 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-green-400">100%</div>
-                    <div className="text-xs text-gray-400">{t('certificates.approval')}</div>
-                  </div>
-                  <div className="bg-white/5 rounded-xl p-4 text-center">
-                    <CheckCircle2 className="w-5 h-5 text-green-400 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-green-400">{selectedCert.courses_completed}</div>
-                    <div className="text-xs text-gray-400">{t('certificates.coursesCompleted')}</div>
-                  </div>
-                  <div className="bg-white/5 rounded-xl p-4 text-center">
-                    <Calendar className="w-5 h-5 text-yellow-400 mx-auto mb-2" />
-                    <div className="text-lg font-bold text-white">
-                      {new Date(selectedCert.issued_at).toLocaleDateString('pt-PT')}
-                    </div>
-                    <div className="text-xs text-gray-400">{t('certificates.issueDate')}</div>
-                  </div>
-                </div>
-
-                <div className="pt-4">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => { setSelectedCert(null); navigate(`/certificates/${selectedCert.id}`); }}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl hover:shadow-lg hover:shadow-red-600/30 transition-all font-medium flex items-center justify-center gap-2"
-                  >
-                    <Award className="w-4 h-4" />
-                    {t('certificates.viewFullCertificate')}
-                  </motion.button>
-                </div>
+              <div className="pt-4">
+                <button
+                  onClick={() => { setSelectedCert(null); navigate(`/certificates/${selectedCert.id}`); }}
+                  className="w-full px-4 py-3 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                >
+                  <Award className="w-4 h-4" />
+                  {t('certificates.viewFullCertificate')}
+                </button>
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

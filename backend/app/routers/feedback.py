@@ -6,7 +6,7 @@ B.3  Separar: Opinião / Sentimento / Situações concretas
 B.4  Construído com tutores (design)
 B.5  Gerar outputs acionáveis
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -199,7 +199,7 @@ def submit_response(
         existing.sentiment = body.sentiment
         existing.concrete_situations = body.concrete_situations
         existing.needs_tutor_intervention = body.needs_tutor_intervention
-        existing.submitted_at = datetime.utcnow()
+        existing.submitted_at = datetime.now(timezone.utc)
         db.commit()
         db.refresh(existing)
         return _response_out(existing)

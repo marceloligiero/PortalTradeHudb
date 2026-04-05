@@ -70,6 +70,10 @@ interface ErrorDetail {
   activity_name?: string;
   error_type_id?: number;
   error_type_name?: string;
+  // Report fields
+  clasificacion?: string;
+  escalado?: string;
+  comentarios_reunion?: string;
   // Estado
   severity: string;
   status: string;
@@ -153,7 +157,7 @@ function statusCls(s: string, isDark: boolean) {
     PENDING_TUTOR_REVIEW: 'bg-orange-500/15 text-orange-400 border-orange-500/20',
     PENDING_SOLUTION: 'bg-red-500/15 text-red-300 border-red-500/20',
     APPROVED: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
-    RESOLVED: 'bg-green-500/15 text-green-400 border-green-500/20',
+    RESOLVED: 'bg-emerald-500 text-white border-emerald-500',
     CANCELLED: 'bg-gray-500/15 text-gray-400 border-gray-500/20',
     // Legacy
     ABERTO: 'bg-red-500/15 text-red-400 border-red-500/20',
@@ -170,7 +174,7 @@ function statusCls(s: string, isDark: boolean) {
     PENDING_TUTOR_REVIEW: 'bg-orange-50 text-orange-700 border-orange-200',
     PENDING_SOLUTION: 'bg-red-50 text-red-600 border-red-200',
     APPROVED: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    RESOLVED: 'bg-green-50 text-green-700 border-green-200',
+    RESOLVED: 'bg-emerald-500 text-white border-emerald-500',
     CANCELLED: 'bg-gray-100 text-gray-500 border-gray-200',
     // Legacy
     ABERTO: 'bg-red-50 text-red-700 border-red-200',
@@ -186,8 +190,8 @@ function statusCls(s: string, isDark: boolean) {
 // ─── GAP 2 & 3 Constants ──────────────────────────────────────────────────────
 
 const IMPACT_DETAIL_OPTIONS_MAP: Record<string, string[]> = {
-  BAIXO: ['Imagen', 'Retraso Operativo'],
-  ALTO:  ['Económico', 'Regulatorio', 'Reputacional (Imagen)', 'GDPR (Protección de Datos)'],
+  BAIXA: ['Imagen', 'Retraso Operativo'],
+  ALTA:  ['Económico', 'Regulatorio', 'Reputacional (Imagen)', 'GDPR (Protección de Datos)'],
 };
 
 const ORIGIN_DETAIL_OPTIONS_MAP: Record<string, string[]> = {
@@ -303,11 +307,11 @@ export default function ErrorDetail() {
     PROCEDURE: t('tutoriaDetail.typology.PROCEDURE'),
   };
 
-  const isManager = user?.role === 'ADMIN' || user?.role === 'TRAINER';
-  const isAdmin   = user?.role === 'ADMIN';
-  const isTutor   = !!(user as any)?.is_tutor || user?.role === 'ADMIN';
-  const isChefe   = !!(user as any)?.is_team_lead || user?.role === 'MANAGER' || user?.role === 'ADMIN';
-  const isReferente = !!(user as any)?.is_referente;
+  const isManager = user?.is_admin || user?.is_diretor || user?.is_gerente || user?.is_tutor;
+  const isAdmin   = user?.is_admin;
+  const isTutor   = !!user?.is_tutor || !!user?.is_admin;
+  const isChefe   = !!user?.is_chefe_equipe || !!user?.is_gerente || !!user?.is_admin;
+  const isReferente = !!user?.is_referente;
   const isChefRef = isChefe || isReferente;
   const canAnalyze = isChefRef;
   const canReviewAsTutor = isTutor;
@@ -335,7 +339,9 @@ export default function ErrorDetail() {
   const [analysisForm, setAnalysisForm] = useState({
     impact_level: '', impact_detail: '', origin_id: '', origin_detail: '',
     grabador_id: '', liberador_id: '', date_solution: '', solution: '',
-    solution_confirmed: false, recurrence_type: '', action_plan_summary: '', analysis_5_why: '', excel_sent: false,
+    solution_confirmed: false, recurrence_type: '', action_plan_summary: '',
+    action_plan_text: '', analysis_5_why: '', excel_sent: false,
+    clasificacion: '', escalado: '', comentarios_reunion: '',
   });
   const [analysisSaving, setAnalysisSaving] = useState(false);
   const [analysisOrigins, setAnalysisOrigins] = useState<{ id: number; name: string }[]>([]);
@@ -379,8 +385,12 @@ export default function ErrorDetail() {
       solution_confirmed: error.solution_confirmed ?? false,
       recurrence_type: error.recurrence_type || '',
       action_plan_summary: error.action_plan_summary || '',
+      action_plan_text: error.action_plan_text || '',
       analysis_5_why: error.analysis_5_why || '',
       excel_sent: error.excel_sent ?? false,
+      clasificacion: error.clasificacion || '',
+      escalado: error.escalado || '',
+      comentarios_reunion: error.comentarios_reunion || '',
     });
     if (!analysisOrigins.length) {
       axios.get('/api/admin/master/origins').then(r => setAnalysisOrigins(Array.isArray(r.data) ? r.data : [])).catch(() => {});
@@ -415,7 +425,7 @@ export default function ErrorDetail() {
       const res = await axios.post(`/api/tutoria/errors/${id}/submit-analysis`, { send_direct: sendDirect });
       setError(res.data);
     } catch (e: any) {
-      alert(e?.response?.data?.detail || 'Erro ao submeter análise');
+      alert(e?.response?.data?.detail || t('tutoriaDetail.errorSubmitAnalysis', 'Erro ao submeter análise'));
     } finally {
       setActionLoading(false);
     }
@@ -427,7 +437,7 @@ export default function ErrorDetail() {
       const res = await axios.post(`/api/tutoria/errors/${id}/approve-chief`);
       setError(res.data);
     } catch (e: any) {
-      alert(e?.response?.data?.detail || 'Erro ao aprovar');
+      alert(e?.response?.data?.detail || t('tutoriaDetail.errorApprove', 'Erro ao aprovar'));
     } finally {
       setActionLoading(false);
     }
@@ -449,12 +459,16 @@ export default function ErrorDetail() {
         solution_confirmed: analysisForm.solution_confirmed,
         recurrence_type: analysisForm.recurrence_type || null,
         action_plan_summary: analysisForm.action_plan_summary || null,
+        action_plan_text: analysisForm.action_plan_text || null,
         analysis_5_why: analysisForm.analysis_5_why || null,
         excel_sent: analysisForm.excel_sent,
+        clasificacion: analysisForm.clasificacion || null,
+        escalado: analysisForm.escalado || null,
+        comentarios_reunion: analysisForm.comentarios_reunion || null,
       });
       setError(res.data);
     } catch (e: any) {
-      alert(e?.response?.data?.detail || 'Erro ao guardar análise');
+      alert(e?.response?.data?.detail || t('tutoriaDetail.errorSaveAnalysis', 'Erro ao guardar análise'));
     } finally {
       setAnalysisSaving(false);
     }
@@ -483,7 +497,7 @@ export default function ErrorDetail() {
       });
       setError(res.data);
     } catch (e: any) {
-      alert(e?.response?.data?.detail || 'Erro ao guardar revisão');
+      alert(e?.response?.data?.detail || t('tutoriaDetail.errorSaveReview', 'Erro ao guardar revisão'));
     } finally {
       setReviewSaving(false);
     }
@@ -498,7 +512,7 @@ export default function ErrorDetail() {
       setShowCancelModal(false);
       setCancelReason('');
     } catch (e: any) {
-      alert(e?.response?.data?.detail || 'Erro ao cancelar');
+      alert(e?.response?.data?.detail || t('tutoriaDetail.errorCancel', 'Erro ao cancelar'));
     } finally {
       setActionLoading(false);
     }
@@ -510,7 +524,7 @@ export default function ErrorDetail() {
       const res = await axios.post(`/api/tutoria/errors/${id}/approve-plans`);
       setError(res.data);
     } catch (e: any) {
-      alert(e?.response?.data?.detail || 'Erro ao aprovar planos');
+      alert(e?.response?.data?.detail || t('tutoriaDetail.errorApprovePlans', 'Erro ao aprovar planos'));
     } finally {
       setActionLoading(false);
     }
@@ -525,7 +539,7 @@ export default function ErrorDetail() {
       setShowReturnModal(false);
       setReturnReason('');
     } catch (e: any) {
-      alert(e?.response?.data?.detail || 'Erro ao devolver análise');
+      alert(e?.response?.data?.detail || t('tutoriaDetail.errorReturnAnalysis', 'Erro ao devolver análise'));
     } finally {
       setActionLoading(false);
     }
@@ -537,7 +551,7 @@ export default function ErrorDetail() {
       const res = await axios.post(`/api/tutoria/errors/${id}/resolve`);
       setError(res.data);
     } catch (e: any) {
-      alert(e?.response?.data?.detail || 'Erro ao resolver');
+      alert(e?.response?.data?.detail || t('tutoriaDetail.errorResolve', 'Erro ao resolver'));
     } finally {
       setActionLoading(false);
     }
@@ -571,173 +585,256 @@ export default function ErrorDetail() {
     </div>
   );
 
-  const STATUS_TRANSITIONS: Record<string, string[]> = {};
-  const availableTransitions: string[] = [];
+  // step index helper (PENDING_CHIEF_APPROVAL sits at same visual step as ANALYSIS)
+  const FLOW_STEPS = ['REGISTERED', 'ANALYSIS', 'PENDING_TUTOR_REVIEW', 'APPROVED', 'RESOLVED'] as const;
+  const FLOW_STEP_LABELS: Record<string, string> = {
+    REGISTERED:           t('tutoriaDetail.status.REGISTERED', 'Registada'),
+    ANALYSIS:             t('tutoriaDetail.status.ANALYSIS', 'Em Análise'),
+    PENDING_TUTOR_REVIEW: t('tutoriaDetail.status.PENDING_TUTOR_REVIEW', 'Revisão Tutor'),
+    APPROVED:             t('tutoriaDetail.status.APPROVED', 'Aprovada'),
+    RESOLVED:             t('tutoriaDetail.status.RESOLVED', 'Resolvida'),
+  };
+  const statusToStepIdx: Record<string, number> = {
+    REGISTERED: 0, ANALYSIS: 1, PENDING_CHIEF_APPROVAL: 1,
+    PENDING_TUTOR_REVIEW: 2, APPROVED: 3, RESOLVED: 4,
+    // legacy
+    ABERTO: 0, EM_ANALISE: 1, PLANO_CRIADO: 1, EM_EXECUCAO: 2, CONCLUIDO: 3, VERIFICADO: 4,
+  };
+  const currentStepIdx = statusToStepIdx[error.status] ?? 0;
 
   return (
-    <div className="space-y-8 max-w-4xl">
+    <div className="space-y-5 max-w-4xl">
 
-      {/* ── Back + Header ─────────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-        className={`border-b pb-8 ${isDark ? 'border-white/10' : 'border-gray-200'}`}
+      {/* ── Back ── */}
+      <button
+        onClick={() => navigate('/tutoria/errors')}
+        className={`flex items-center gap-1.5 text-xs font-semibold ${isDark ? 'text-gray-500 hover:text-white' : 'text-gray-400 hover:text-gray-700'} transition-colors`}
       >
-        <button
-          onClick={() => navigate('/tutoria/errors')}
-          className={`flex items-center gap-1.5 text-xs font-semibold mb-5 ${isDark ? 'text-gray-500 hover:text-white' : 'text-gray-400 hover:text-gray-700'}`}
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> {t('tutoriaDetail.backToErrors')}
-        </button>
+        <ArrowLeft className="w-3.5 h-3.5" /> {t('tutoriaDetail.backToErrors')}
+      </button>
 
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex items-start gap-4">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
-              error.severity === 'CRITICA' ? 'bg-gradient-to-br from-red-500 to-rose-600' :
-              error.severity === 'ALTA' ? 'bg-gradient-to-br from-orange-500 to-amber-500' :
-              'bg-gradient-to-br from-yellow-500 to-amber-400'
-            } shadow-lg`}>
-              <AlertTriangle className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <span className={`text-xs font-bold uppercase tracking-widest ${isDark ? 'text-red-400' : 'text-red-500'}`}>{t('tutoriaDetail.errorLabel')} #{error.id}</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusCls(error.status, isDark)}`}>
-                  {STATUS_LABEL[error.status] ?? error.status}
+      {/* ── Header card ── */}
+      <div className={`rounded-2xl border p-5 ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}>
+        <div className="flex items-start gap-4">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg ${
+            error.status === 'RESOLVED'
+              ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-500/25'
+              : error.impact_level === 'ALTA'
+                ? 'bg-gradient-to-br from-[#EC0000] to-rose-700 shadow-red-500/25'
+                : 'bg-gradient-to-br from-gray-500 to-gray-600 shadow-gray-500/20'
+          }`}>
+            {error.status === 'RESOLVED'
+              ? <CheckCircle2 className="w-6 h-6 text-white" />
+              : <AlertTriangle className="w-6 h-6 text-white" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-[#EC0000]">
+                {t('tutoriaDetail.errorLabel')} #{error.id}
+              </span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusCls(error.status, isDark)}`}>
+                {STATUS_LABEL[error.status] ?? error.status}
+              </span>
+              {error.impact_level && (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                  error.impact_level === 'ALTA'
+                    ? isDark ? 'bg-red-500/15 text-red-400 border-red-500/20' : 'bg-red-50 text-[#EC0000] border-red-200'
+                    : isDark ? 'bg-green-500/15 text-green-400 border-green-500/20' : 'bg-green-50 text-green-700 border-green-200'
+                }`}>
+                  {t('adminPortalTutoria.impact.' + error.impact_level)}
                 </span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${severityCls(error.severity, isDark)}`}>
-                  {SEVERITY_LABEL[error.severity]}
+              )}
+              {error.is_recurrent && (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${isDark ? 'bg-orange-500/15 text-orange-400 border-orange-500/20' : 'bg-orange-50 text-orange-600 border-orange-200'}`}>
+                  <RefreshCw className="w-2.5 h-2.5" /> {error.recurrence_count + 1}ª {t('tutoriaDetail.occurrence')}
                 </span>
-                {error.is_recurrent && (
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${isDark ? 'bg-orange-500/15 text-orange-400 border-orange-500/20' : 'bg-orange-50 text-orange-700 border-orange-200'}`}>
-                    <RefreshCw className="w-2.5 h-2.5" /> {error.recurrence_count + 1}ª {t('tutoriaDetail.occurrence')}
-                  </span>
-                )}
-                {error.pending_solution && (
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${isDark ? 'bg-red-500/15 text-red-400 border-red-500/20' : 'bg-red-50 text-red-600 border-red-200'}`}>
-                    {t('tutoriaDetail.pendingSolution', 'Pendente Solução')}
-                  </span>
-                )}
-              </div>
-              <p className={`text-lg font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>{error.description}</p>
-              {error.cancelled_reason && (
-                <p className={`text-sm mt-1 ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                  {t('tutoriaDetail.cancelledReason', 'Motivo')}: {error.cancelled_reason}
-                </p>
+              )}
+              {error.pending_solution && (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${isDark ? 'bg-red-500/15 text-red-400 border-red-500/20' : 'bg-red-50 text-red-600 border-red-200'}`}>
+                  {t('tutoriaDetail.pendingSolution', 'Pendente Solução')}
+                </span>
               )}
             </div>
-          </div>
-
-          {/* Contextual action buttons */}
-          <div className="flex gap-2 flex-wrap">
-            {/* Chefe/Manager: cancel button */}
-            {isChefe && error.status !== 'CANCELLED' && error.status !== 'RESOLVED' && (
-              <button
-                onClick={() => setShowCancelModal(true)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${isDark ? 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20' : 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100'}`}
-              >
-                {t('tutoriaDetail.cancelIncident', 'Eliminar')}
-              </button>
-            )}
-            {/* GAP 7 — Referente: two submit buttons */}
-            {isReferente && !isChefe && (error.status === 'REGISTERED' || error.status === 'ANALYSIS') && (
-              <>
-                <button
-                  onClick={() => handleSubmitAnalysis(false)}
-                  disabled={actionLoading}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shadow-md disabled:opacity-50"
-                >
-                  {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                  {t('tutoriaDetail.submitToChief', 'Enviar para Chefe de Equipa')}
-                </button>
-                <button
-                  onClick={() => handleSubmitAnalysis(true)}
-                  disabled={actionLoading}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold shadow-md disabled:opacity-50"
-                >
-                  {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                  {t('tutoriaDetail.submitDirect', 'Enviar diretamente para Tutor')}
-                </button>
-              </>
-            )}
-            {/* Chefe/Manager: submit analysis (single button) */}
-            {isChefe && (error.status === 'REGISTERED' || error.status === 'ANALYSIS') && (
-              <button
-                onClick={() => handleSubmitAnalysis(false)}
-                disabled={actionLoading}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold shadow-md disabled:opacity-50"
-              >
-                {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                {t('tutoriaDetail.submitAnalysis', 'Submeter para Tutor')}
-              </button>
-            )}
-            {/* GAP 7 — Chefe: approve referente's analysis */}
-            {isChefe && error.status === 'PENDING_CHIEF_APPROVAL' && (
-              <button
-                onClick={handleApproveChief}
-                disabled={actionLoading}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold shadow-md disabled:opacity-50"
-              >
-                {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                {t('tutoriaDetail.approveChief', 'Aprovar Análise do Referente')}
-              </button>
-            )}
-            {/* Tutor: approve plans */}
-            {canReviewAsTutor && error.status === 'PENDING_TUTOR_REVIEW' && (
-              <>
-                <button
-                  onClick={handleApprovePlans}
-                  disabled={actionLoading}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold shadow-md disabled:opacity-50"
-                >
-                  {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                  {t('tutoriaDetail.approvePlans', 'Aprovar Planos')}
-                </button>
-                <button
-                  onClick={() => setShowReturnModal(true)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${isDark ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20' : 'bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100'}`}
-                >
-                  {t('tutoriaDetail.returnAnalysis', 'Devolver')}
-                </button>
-              </>
-            )}
-            {/* Tutor: resolve */}
-            {canReviewAsTutor && (error.status === 'APPROVED' || (error.status === 'PENDING_TUTOR_REVIEW' && error.solution_confirmed)) && (
-              <button
-                onClick={handleResolve}
-                disabled={actionLoading}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs font-bold shadow-md disabled:opacity-50"
-              >
-                {t('tutoriaDetail.resolve', 'Resolver')}
-              </button>
-            )}
-            {/* Manager: create plan */}
-            {isManager && error.status !== 'CANCELLED' && error.status !== 'RESOLVED' && (
-              <button
-                onClick={() => navigate(`/tutoria/errors/${error.id}/plans/new`)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-sm font-bold shadow-lg shadow-blue-500/20"
-              >
-                <Plus className="w-4 h-4" /> {t('tutoriaDetail.actionPlan')}
-              </button>
+            <p className={`text-xl font-black leading-snug ${isDark ? 'text-white' : 'text-gray-900'}`}>{error.description}</p>
+            <div className={`flex items-center gap-4 mt-2 text-xs flex-wrap ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+              <span className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" />{error.tutorado_name ?? '—'}</span>
+              <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />{new Date(error.date_occurrence).toLocaleDateString('pt-PT')}</span>
+              {error.category_name && <span className="flex items-center gap-1.5"><Tag className="w-3.5 h-3.5" />{error.category_name}</span>}
+              {error.bank_name && <span className="flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5" />{error.bank_name}</span>}
+            </div>
+            {error.cancelled_reason && (
+              <div className={`mt-3 flex items-center gap-2 text-xs px-3 py-2 rounded-xl border ${isDark ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                {t('tutoriaDetail.cancelledReason', 'Motivo')}: {error.cancelled_reason}
+              </div>
             )}
           </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* ── Status stepper ────────────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05 }}
-        className={`rounded-2xl border p-4 overflow-x-auto ${isDark ? 'bg-white/[0.02] border-white/8' : 'bg-gray-50 border-gray-200'}`}
-      >
-        <StatusStepper status={error.status} isDark={isDark} />
-      </motion.div>
+      {/* ── Approval workflow card ── */}
+      <div className={`rounded-2xl border overflow-hidden ${isDark ? 'bg-white/[0.03] border-white/8' : 'bg-white border-gray-200 shadow-sm'}`}>
 
-      {/* ── Tabs ─────────────────────────────────────────────────────────────── */}
-      <div className="flex gap-1 overflow-x-auto">
+        {/* card header */}
+        <div className={`px-5 py-3.5 border-b flex items-center justify-between gap-3 ${isDark ? 'border-white/8 bg-white/[0.02]' : 'border-gray-100 bg-gray-50'}`}>
+          <span className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+            {t('tutoriaDetail.approvalFlow', 'Fluxo de Aprovação')}
+          </span>
+          {isChefe && error.status !== 'CANCELLED' && error.status !== 'RESOLVED' && (
+            <button
+              onClick={() => setShowCancelModal(true)}
+              className={`flex items-center gap-1.5 text-[11px] font-bold px-3 py-1.5 rounded-xl border transition-all ${isDark ? 'border-red-500/20 text-red-400 hover:bg-red-500/10' : 'border-red-200 text-red-600 hover:bg-red-50'}`}
+            >
+              {t('tutoriaDetail.cancelError', 'Cancelar Incidência')}
+            </button>
+          )}
+        </div>
+
+        {/* stepper */}
+        <div className="px-6 pt-6 pb-4">
+          {error.status === 'CANCELLED' ? (
+            <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${isDark ? 'bg-gray-500/10 border-gray-500/20 text-gray-400' : 'bg-gray-100 border-gray-200 text-gray-500'}`}>
+              <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-bold">{t('tutoriaDetail.status.CANCELLED', 'Incidência Cancelada')}</p>
+                {error.cancelled_by_name && (
+                  <p className="text-xs opacity-70">{t('tutoriaDetail.cancelledBy', 'Cancelada por')} {error.cancelled_by_name}</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start w-full">
+              {FLOW_STEPS.map((step, i) => {
+                const isResolved = error.status === 'RESOLVED';
+                const done = isResolved ? true : i < currentStepIdx;
+                const active = !isResolved && i === currentStepIdx;
+                return (
+                  <div key={step} className="flex items-start flex-1">
+                    <div className="flex flex-col items-center w-full">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center border-2 font-bold text-sm flex-shrink-0 transition-all ${
+                        done    ? 'bg-emerald-500 border-emerald-500 text-white'
+                        : active ? 'bg-[#EC0000] border-[#EC0000] text-white'
+                                 : isDark ? 'bg-transparent border-white/10 text-gray-700' : 'bg-transparent border-gray-200 text-gray-300'
+                      }`}>
+                        {done ? <CheckCircle2 className="w-4.5 h-4.5" /> : active ? <Clock className="w-4 h-4" /> : <span>{i + 1}</span>}
+                      </div>
+                      <span className={`text-[10px] font-bold mt-1.5 text-center leading-tight px-1 ${
+                        active  ? 'text-[#EC0000]'
+                        : done  ? isDark ? 'text-emerald-400' : 'text-emerald-600'
+                                : isDark ? 'text-gray-700' : 'text-gray-300'
+                      }`}>
+                        {FLOW_STEP_LABELS[step]}
+                      </span>
+                    </div>
+                    {i < FLOW_STEPS.length - 1 && (
+                      <div className={`flex-1 h-0.5 mt-4 mx-1 flex-shrink-0 ${done ? isDark ? 'bg-emerald-500/40' : 'bg-emerald-300' : isDark ? 'bg-white/10' : 'bg-gray-200'}`} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* sub-state note */}
+          {error.status === 'PENDING_CHIEF_APPROVAL' && (
+            <div className={`mt-3 flex items-center gap-2 text-xs px-3 py-2 rounded-xl border ${isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+              <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+              {t('tutoriaDetail.status.PENDING_CHIEF_APPROVAL', 'Aguarda aprovação do Chefe de Equipa')}
+            </div>
+          )}
+        </div>
+
+        {/* actions panel */}
+        {(() => {
+          const btns: React.ReactNode[] = [];
+
+          if (isReferente && !isChefe && (error.status === 'REGISTERED' || error.status === 'ANALYSIS')) {
+            btns.push(
+              <button key="ref-chief" onClick={() => handleSubmitAnalysis(false)} disabled={actionLoading}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold shadow-sm disabled:opacity-50">
+                {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
+                {t('tutoriaDetail.submitToChief', 'Enviar para Chefe de Equipa')}
+              </button>,
+              <button key="ref-direct" onClick={() => handleSubmitAnalysis(true)} disabled={actionLoading}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold shadow-sm disabled:opacity-50">
+                {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
+                {t('tutoriaDetail.submitDirect', 'Enviar diretamente para Tutor')}
+              </button>
+            );
+          }
+
+          if (isChefe && (error.status === 'REGISTERED' || error.status === 'ANALYSIS')) {
+            btns.push(
+              <button key="chefe-submit" onClick={() => handleSubmitAnalysis(false)} disabled={actionLoading}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold shadow-sm disabled:opacity-50">
+                {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
+                {t('tutoriaDetail.submitAnalysis', 'Submeter para Tutor')}
+              </button>
+            );
+          }
+
+          if (isChefe && error.status === 'PENDING_CHIEF_APPROVAL') {
+            btns.push(
+              <button key="chefe-approve" onClick={handleApproveChief} disabled={actionLoading}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold shadow-sm disabled:opacity-50">
+                {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                {t('tutoriaDetail.approveChief', 'Aprovar Análise do Referente')}
+              </button>
+            );
+          }
+
+          if (canReviewAsTutor && error.status === 'PENDING_TUTOR_REVIEW') {
+            btns.push(
+              <button key="tutor-approve" onClick={handleApprovePlans} disabled={actionLoading}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 text-white text-xs font-bold shadow-sm disabled:opacity-50">
+                {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                {t('tutoriaDetail.approvePlans', 'Aprovar Planos')}
+              </button>,
+              <button key="tutor-return" onClick={() => setShowReturnModal(true)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all ${isDark ? 'border-amber-500/20 text-amber-400 hover:bg-amber-500/10' : 'border-amber-200 text-amber-700 hover:bg-amber-50'}`}>
+                {t('tutoriaDetail.returnAnalysis', 'Devolver')}
+              </button>
+            );
+          }
+
+          if (canReviewAsTutor && (error.status === 'APPROVED' || (error.status === 'PENDING_TUTOR_REVIEW' && error.solution_confirmed))) {
+            btns.push(
+              <button key="tutor-resolve" onClick={handleResolve} disabled={actionLoading}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs font-bold shadow-sm disabled:opacity-50">
+                {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                {t('tutoriaDetail.resolve', 'Marcar como Resolvida')}
+              </button>
+            );
+          }
+
+          if (isManager && error.status !== 'CANCELLED' && error.status !== 'RESOLVED') {
+            btns.push(
+              <button key="create-plan" onClick={() => navigate(`/tutoria/errors/${error.id}/plans/new`)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-xs font-bold shadow-sm">
+                <Plus className="w-3.5 h-3.5" /> {t('tutoriaDetail.actionPlan')}
+              </button>
+            );
+          }
+
+          if (btns.length === 0) return null;
+          return (
+            <div className={`mx-5 mb-5 px-4 py-4 rounded-xl border ${isDark ? 'bg-white/[0.02] border-white/8' : 'bg-gray-50 border-gray-200'}`}>
+              <p className={`text-[10px] font-bold uppercase tracking-wider mb-3 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                Ações Disponíveis
+              </p>
+              <div className="flex items-center gap-2.5 flex-wrap">{btns}</div>
+            </div>
+          );
+        })()}
+      </div>
+
+      {/* ── Tabs ── */}
+      <div className={`flex gap-1 p-1 rounded-2xl border ${isDark ? 'bg-white/[0.02] border-white/8' : 'bg-gray-100 border-gray-200'}`}>
         {(['registo', 'analise', 'revisao', 'historico'] as const).map(tab => {
           const labels: Record<string, string> = {
-            registo: t('tutoriaDetail.tabRegisto', 'Registo'),
-            analise: t('tutoriaDetail.tabAnalise', 'Análise'),
-            revisao: t('tutoriaDetail.tabRevisao', 'Revisão Tutor'),
+            registo:   t('tutoriaDetail.tabRegisto', 'Registo'),
+            analise:   t('tutoriaDetail.tabAnalise', 'Análise'),
+            revisao:   t('tutoriaDetail.tabRevisao', 'Revisão Tutor'),
             historico: t('tutoriaDetail.tabHistorico', 'Histórico'),
           };
           const isActive = activeTab === tab;
@@ -745,10 +842,10 @@ export default function ErrorDetail() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+              className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                 isActive
-                  ? isDark ? 'bg-red-500/15 text-red-400 border border-red-500/30' : 'bg-red-50 text-red-700 border border-red-200'
-                  : isDark ? 'bg-white/[0.03] text-gray-500 border border-white/5 hover:text-white' : 'bg-gray-50 text-gray-400 border border-gray-100 hover:text-gray-700'
+                  ? isDark ? 'bg-[#EC0000] text-white shadow-sm' : 'bg-white text-[#EC0000] shadow-sm border border-gray-200'
+                  : isDark ? 'text-gray-500 hover:text-white' : 'text-gray-500 hover:text-gray-800'
               }`}
             >
               {labels[tab]}
@@ -945,7 +1042,7 @@ export default function ErrorDetail() {
           </div>
 
           {/* ── A.2.18: Excel alert banner for HIGH/CRITICAL impact ── */}
-          {(error.impact_level === 'ALTO' || error.impact_level === 'CRITICO') && (
+          {error.impact_level === 'ALTA' && (
             error.excel_sent ? (
               <div className="mx-5 mt-4 flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-medium bg-green-50 border-green-200 text-green-700 dark:bg-green-500/10 dark:border-green-500/25 dark:text-green-400">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
@@ -969,7 +1066,7 @@ export default function ErrorDetail() {
                   <select value={analysisForm.impact_level} onChange={e => setAnalysisForm(p => ({ ...p, impact_level: e.target.value, impact_detail: '' }))}
                     className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none transition-all ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
                     <option value="">— {t('common.select', 'Selecionar')} —</option>
-                    {['BAIXO','MEDIO','ALTO','CRITICO'].map(v => <option key={v} value={v}>{v}</option>)}
+                    {['BAIXA','ALTA'].map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
                 </div>
                 {/* Recurrence */}
@@ -1090,6 +1187,34 @@ export default function ErrorDetail() {
                 <textarea rows={2} value={analysisForm.action_plan_summary} onChange={e => setAnalysisForm(p => ({ ...p, action_plan_summary: e.target.value }))}
                   className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none resize-none transition-all ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`} />
               </div>
+              {/* Action plan text (Análisis y Plan de Acción) */}
+              <div>
+                <label className={`text-xs font-bold uppercase tracking-wider mb-1 block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('tutoriaDetail.actionPlanText', 'Análisis y Plan de Acción')}</label>
+                <textarea rows={3} value={analysisForm.action_plan_text} onChange={e => setAnalysisForm(p => ({ ...p, action_plan_text: e.target.value }))}
+                  className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none resize-none transition-all ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`} />
+              </div>
+              {/* Clasificación */}
+              <div>
+                <label className={`text-xs font-bold uppercase tracking-wider mb-1 block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('tutoriaDetail.clasificacion', 'Clasificación')}</label>
+                <select value={analysisForm.clasificacion} onChange={e => setAnalysisForm(p => ({ ...p, clasificacion: e.target.value }))}
+                  className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none transition-all ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
+                  <option value="">— {t('common.select', 'Selecionar')} —</option>
+                  <option value="Interno">Interno</option>
+                  <option value="Externo">Externo</option>
+                </select>
+              </div>
+              {/* Escalado */}
+              <div>
+                <label className={`text-xs font-bold uppercase tracking-wider mb-1 block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('tutoriaDetail.escalado', 'Escalado')}</label>
+                <textarea rows={2} value={analysisForm.escalado} onChange={e => setAnalysisForm(p => ({ ...p, escalado: e.target.value }))}
+                  className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none resize-none transition-all ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`} />
+              </div>
+              {/* Comentarios reunión */}
+              <div>
+                <label className={`text-xs font-bold uppercase tracking-wider mb-1 block ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{t('tutoriaDetail.comentariosReunion', 'Comentarios Reunión')}</label>
+                <textarea rows={2} value={analysisForm.comentarios_reunion} onChange={e => setAnalysisForm(p => ({ ...p, comentarios_reunion: e.target.value }))}
+                  className={`w-full px-3 py-2.5 rounded-xl border text-sm outline-none resize-none transition-all ${isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900'}`} />
+              </div>
               {/* Action buttons */}
               <div className="flex gap-3 pt-2">
                 <button onClick={handleSaveAnalysis} disabled={analysisSaving}
@@ -1112,6 +1237,7 @@ export default function ErrorDetail() {
                   { label: t('tutoriaDetail.liberador', 'Liberador'), value: error.liberador_name || '—' },
                   { label: t('tutoriaDetail.solutionConfirmed', 'Solução Confirmada'), value: error.solution_confirmed ? t('common.yes', 'Sim') : t('common.no', 'Não') },
                   { label: t('tutoriaDetail.recurrence', 'Recorrência'), value: error.recurrence_type || '—' },
+                  error.clasificacion ? { label: t('tutoriaDetail.clasificacion', 'Clasificación'), value: error.clasificacion } : null,
                   error.action_plan_summary ? { label: t('tutoriaDetail.actionPlanSummary', 'Resumo Plano Ação'), value: error.action_plan_summary } : null,
                 ].filter(Boolean).map((item: any) => (
                   <div key={item.label}>
@@ -1120,7 +1246,7 @@ export default function ErrorDetail() {
                   </div>
                 ))}
               </div>
-              {(error.solution || error.analysis_5_why) && (
+              {(error.solution || error.analysis_5_why || error.action_plan_text || error.escalado || error.comentarios_reunion) && (
                 <div className={`px-5 pb-5 border-t ${isDark ? 'border-white/5' : 'border-gray-100'}`}>
                   {error.analysis_5_why && (
                     <>
@@ -1128,10 +1254,28 @@ export default function ErrorDetail() {
                       <p className={`text-sm whitespace-pre-wrap mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{error.analysis_5_why}</p>
                     </>
                   )}
+                  {error.action_plan_text && (
+                    <>
+                      <p className={`text-xs font-bold uppercase tracking-wider mt-4 mb-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{t('tutoriaDetail.actionPlanText', 'Análisis y Plan de Acción')}</p>
+                      <p className={`text-sm whitespace-pre-wrap mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{error.action_plan_text}</p>
+                    </>
+                  )}
                   {error.solution && (
                     <>
                       <p className={`text-xs font-bold uppercase tracking-wider mt-4 mb-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{t('tutoriaDetail.solution')}</p>
-                      <p className={`text-sm whitespace-pre-wrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{error.solution}</p>
+                      <p className={`text-sm whitespace-pre-wrap mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{error.solution}</p>
+                    </>
+                  )}
+                  {error.escalado && (
+                    <>
+                      <p className={`text-xs font-bold uppercase tracking-wider mt-4 mb-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{t('tutoriaDetail.escalado', 'Escalado')}</p>
+                      <p className={`text-sm whitespace-pre-wrap mb-3 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{error.escalado}</p>
+                    </>
+                  )}
+                  {error.comentarios_reunion && (
+                    <>
+                      <p className={`text-xs font-bold uppercase tracking-wider mt-4 mb-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>{t('tutoriaDetail.comentariosReunion', 'Comentarios Reunión')}</p>
+                      <p className={`text-sm whitespace-pre-wrap ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{error.comentarios_reunion}</p>
                     </>
                   )}
                 </div>

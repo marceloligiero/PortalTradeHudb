@@ -18,7 +18,7 @@ interface DashStats {
   total_plans: number;
   plans_by_status: Record<string, number>;
   overdue_plans: number;
-  severity_counts: Record<string, number>;
+  impact_counts: Record<string, number>;
 }
 
 interface RecentError {
@@ -45,13 +45,31 @@ interface RecentPlan {
   what?: string;
 }
 
-// ─── Severity colors (Santander DS) ──────────────────────────────────────────
+// ─── Impact colors (Santander DS) ────────────────────────────────────────────
 
 const SEVERITY_COLORS: Record<string, { badge: string; bar: string }> = {
   BAIXA:   { badge: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400', bar: 'bg-green-500' },
   MEDIA:   { badge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400', bar: 'bg-amber-500' },
   ALTA:    { badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400', bar: 'bg-orange-500' },
   CRITICA: { badge: 'bg-red-100 text-[#EC0000] dark:bg-red-900/30 dark:text-red-400', bar: 'bg-[#EC0000]' },
+};
+
+const IMPACT_COLORS: Record<string, { bar: string }> = {
+  ALTA:  { bar: 'bg-[#EC0000]' },
+  BAIXA: { bar: 'bg-green-500' },
+};
+
+const PLAN_STATUS_BADGE: Record<string, string> = {
+  RASCUNHO:            'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  AGUARDANDO_APROVACAO:'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  APROVADO:            'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  EM_EXECUCAO:         'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+  CONCLUIDO:           'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  DEVOLVIDO:           'bg-red-100 text-[#EC0000] dark:bg-red-900/30 dark:text-red-400',
+  // English aliases (backend may return these)
+  OPEN:                'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  IN_PROGRESS:         'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+  DONE:                'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
 };
 
 function statusDot(s: string): string {
@@ -112,7 +130,7 @@ export default function PortalTutoria() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const isManager = user?.role === 'ADMIN' || user?.role === 'TRAINER';
+  const isManager = user?.is_admin || user?.is_diretor || user?.is_gerente || user?.is_tutor;
   const isStudent = !isManager;
 
   const [stats, setStats] = useState<DashStats | null>(null);
@@ -156,7 +174,7 @@ export default function PortalTutoria() {
 
   const byStatus = stats?.errors_by_status ?? {};
   const byPlanStatus = stats?.plans_by_status ?? {};
-  const sevCounts = stats?.severity_counts ?? {};
+  const impactCounts = stats?.impact_counts ?? {};
 
   const openErrors = (byStatus['ABERTO'] ?? 0) + (byStatus['EM_ANALISE'] ?? 0) + (byStatus['PLANO_CRIADO'] ?? 0) + (byStatus['EM_EXECUCAO'] ?? 0);
   const activePlans = byPlanStatus['EM_EXECUCAO'] ?? 0;
@@ -308,15 +326,16 @@ export default function PortalTutoria() {
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate flex-1">
                         {p.what ?? t('adminPortalTutoria.planFallback', { id: p.id })}
                       </p>
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                        isDone
-                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                          : isOverdue
-                            ? 'bg-red-100 text-[#EC0000] dark:bg-red-900/30 dark:text-red-400'
-                            : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                      }`}>
-                        {t('adminPortalTutoria.planStatus.' + p.status, p.status)}
-                      </span>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        {isOverdue && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-100 text-[#EC0000] dark:bg-red-900/30 dark:text-red-400">
+                            {t('tutoriaPlans.overdue', 'Vencido')}
+                          </span>
+                        )}
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${PLAN_STATUS_BADGE[p.status] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
+                          {t('tutoriaPlans.status.' + p.status, p.status)}
+                        </span>
+                      </div>
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                       {p.tutorado_name ?? '—'}
@@ -345,31 +364,35 @@ export default function PortalTutoria() {
       {/* ── Breakdown cards ──────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* Errors by severity */}
-        <SectionCard icon={TrendingUp} title={t('adminPortalTutoria.errorsBySeverity')}>
+        {/* Impact breakdown */}
+        <SectionCard icon={TrendingUp} title={t('adminPortalTutoria.impactByAnalysis')}>
           <div className="p-5 space-y-3">
-            {(['CRITICA', 'ALTA', 'MEDIA', 'BAIXA'] as const).map(sev => {
-              const count = sevCounts[sev] ?? 0;
-              const total = stats?.total_errors ?? 1;
-              const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-              const colors = SEVERITY_COLORS[sev];
+            {(['ALTA', 'BAIXA'] as const).map(lvl => {
+              const count = impactCounts[lvl] ?? 0;
+              const total = Object.values(impactCounts).reduce((a, b) => a + b, 0) || 1;
+              const pct = Math.round((count / total) * 100);
               return (
-                <div key={sev}>
+                <div key={lvl}>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t('adminPortalTutoria.severity.' + sev)}
+                      {t('adminPortalTutoria.impact.' + lvl)}
                     </span>
                     <span className="text-xs font-mono font-bold text-gray-900 dark:text-white">{count}</span>
                   </div>
                   <div className="h-2 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800">
                     <div
-                      className={`h-full ${colors?.bar || 'bg-gray-400'} rounded-full transition-all duration-500`}
+                      className={`h-full ${IMPACT_COLORS[lvl]?.bar} rounded-full transition-all duration-500`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
                 </div>
               );
             })}
+            {Object.values(impactCounts).reduce((a, b) => a + b, 0) === 0 && (
+              <p className="text-xs text-gray-400 dark:text-gray-600 text-center py-2">
+                {t('adminPortalTutoria.noImpactData')}
+              </p>
+            )}
           </div>
         </SectionCard>
 
@@ -388,7 +411,7 @@ export default function PortalTutoria() {
                 <div key={key} className={`rounded-xl p-3 ${bg}`}>
                   <div className="flex items-center gap-2 mb-1">
                     <Icon className={`w-4 h-4 ${color}`} />
-                    <span className="text-xs text-gray-500 dark:text-gray-400">{t('adminPortalTutoria.planStatus.' + key)}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{t('tutoriaPlans.status.' + key)}</span>
                   </div>
                   <p className="text-xl font-mono font-bold text-gray-900 dark:text-white">
                     {byPlanStatus[key] ?? 0}

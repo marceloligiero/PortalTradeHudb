@@ -8,7 +8,7 @@ from sqlalchemy import func, case, text
 from typing import Optional, List
 from datetime import date
 from app.database import get_db
-from app.auth import get_current_user, is_trainer_user
+from app.auth import get_current_user, get_visible_user_ids
 from app.models import (
     User, Team,
     TutoriaError, TutoriaActionPlan,
@@ -26,28 +26,8 @@ router = APIRouter()
 
 def _team_user_ids(user: User, db: Session) -> Optional[list]:
     """Returns list of user IDs in scope, or None for 'all'."""
-    if user.role in ("ADMIN", "GESTOR"):
-        return None  # no filter
-    if user.role == "MANAGER":
-        # manager's team members
-        if not user.team_id:
-            # find team where manager_id = user.id
-            team = db.query(Team).filter(Team.manager_id == user.id).first()
-            if not team:
-                return []
-        else:
-            team = db.query(Team).filter(Team.id == user.team_id).first()
-        if not team:
-            return []
-        ids = [m.id for m in db.query(User).filter(User.team_id == team.id).all()]
-        ids.append(team.manager_id or user.id)
-        return ids
-    if is_trainer_user(user):
-        # trainer's students (via tutor_id)
-        students = db.query(User).filter(User.tutor_id == user.id).all()
-        return [s.id for s in students] + [user.id]
-    # STUDENT / TRAINEE
-    return [user.id]
+    from app.auth import get_visible_user_ids
+    return get_visible_user_ids(db, user)
 
 
 def _filter_users(q, model_col, scope_ids):
@@ -72,9 +52,7 @@ def overview(
     total_users = uq.count()
 
     # Teams
-    total_teams = db.query(Team).filter(Team.is_active == True).count() if current_user.role in ("ADMIN", "GESTOR") else (
-        1 if current_user.role == "MANAGER" else 0
-    )
+    total_teams = db.query(Team).filter(Team.is_active == True).count() if current_user.can_see_all else (1 if current_user.is_gerente else 0)
 
     # Formações: training plans
     pq = db.query(TrainingPlan)
@@ -249,11 +227,11 @@ def teams_relatorio(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if current_user.role not in ("ADMIN", "MANAGER", "GESTOR"):
+    if not current_user.is_gestor_or_above:
         raise HTTPException(status_code=403, detail="Acesso restrito")
 
     q = db.query(Team).filter(Team.is_active == True)
-    if current_user.role == "MANAGER":
+    if current_user.is_gerente and not current_user.is_admin:
         q = q.filter(Team.manager_id == current_user.id)
     teams = q.all()
     result = []
@@ -300,7 +278,7 @@ def members_relatorio(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if current_user.role not in ("ADMIN", "MANAGER", "GESTOR"):
+    if not current_user.is_gestor_or_above:
         raise HTTPException(status_code=403, detail="Acesso restrito")
 
     scope = _team_user_ids(current_user, db)
@@ -348,6 +326,7 @@ def incidents_report(
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
     impact_id: Optional[int] = Query(None),
+    impact_level: Optional[str] = Query(None),  # ALTA | BAIXA
     origin_id: Optional[int] = Query(None),
     bank_id: Optional[int] = Query(None),
     department_id: Optional[int] = Query(None),
@@ -360,7 +339,7 @@ def incidents_report(
     db: Session = Depends(get_db),
 ):
     """Returns incidents list for the report with optional filters, scoped by role."""
-    if current_user.role not in ("ADMIN", "MANAGER", "GESTOR"):
+    if not current_user.is_gestor_or_above:
         raise HTTPException(403, "Acesso restrito")
 
     q = (
@@ -392,6 +371,8 @@ def incidents_report(
         q = q.filter(TutoriaError.date_occurrence <= date_to)
     if impact_id:
         q = q.filter(TutoriaError.impact_id == impact_id)
+    if impact_level:
+        q = q.filter(TutoriaError.impact_level == impact_level)
     if origin_id:
         q = q.filter(TutoriaError.origin_id == origin_id)
     if bank_id:
@@ -428,6 +409,7 @@ def incidents_report(
             "final_client": getattr(e, 'final_client', None),
             "amount": getattr(e, 'amount', None),
             "currency": getattr(e, 'currency', None),
+            "impact_level": getattr(e, 'impact_level', None),
             "impact_name": _safe_name(getattr(e, 'impact', None)),
             "origin_name": _safe_name(getattr(e, 'origin', None)),
             "clasificacion": getattr(e, 'clasificacion', None),
@@ -456,7 +438,7 @@ def incidents_filters(
     db: Session = Depends(get_db),
 ):
     """Returns available filter options for the incidents report."""
-    if current_user.role not in ("ADMIN", "MANAGER", "GESTOR"):
+    if not current_user.is_gestor_or_above:
         raise HTTPException(403, "Acesso restrito")
     return {
         "impacts": [{"id": i.id, "name": i.name} for i in db.query(ErrorImpact).filter(ErrorImpact.is_active == True).all()],
@@ -614,20 +596,23 @@ def tutoria_analytics(
         "overdue": int(ai_rows.overdue or 0),
     }
 
-    # 9 — Average weights
-    wt_row = db.execute(text(f"""
-        SELECT
-            AVG(te.peso_liberador) AS wl,
-            AVG(te.peso_gravador) AS wg,
-            AVG(te.peso_tutor) AS wt
-        FROM tutoria_errors te
-        WHERE te.is_active = 1 {scope_filter}
-    """)).fetchone()
-    avg_weights = {
-        "liberador": round(float(wt_row.wl), 2) if wt_row.wl else 0,
-        "gravador": round(float(wt_row.wg), 2) if wt_row.wg else 0,
-        "tutor": round(float(wt_row.wt), 2) if wt_row.wt else 0,
-    }
+    # 9 — Average weights (columns may not exist yet)
+    try:
+        wt_row = db.execute(text(f"""
+            SELECT
+                AVG(te.peso_liberador) AS wl,
+                AVG(te.peso_gravador) AS wg,
+                AVG(te.peso_tutor) AS wt
+            FROM tutoria_errors te
+            WHERE te.is_active = 1 {scope_filter}
+        """)).fetchone()
+        avg_weights = {
+            "liberador": round(float(wt_row.wl), 2) if wt_row.wl else 0,
+            "gravador": round(float(wt_row.wg), 2) if wt_row.wg else 0,
+            "tutor": round(float(wt_row.wt), 2) if wt_row.wt else 0,
+        }
+    except Exception:
+        avg_weights = {"liberador": 0, "gravador": 0, "tutor": 0}
 
     # 10 — Recurrence
     rec_rows = db.execute(text(f"""

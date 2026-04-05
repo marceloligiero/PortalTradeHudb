@@ -8,8 +8,13 @@ from app.database import get_db
 from app.models import User
 import bcrypt
 
-email = os.environ.get('RESET_EMAIL', 'teste@tradehub.com')
-new_password = os.environ.get('RESET_PASSWORD', 'SenhaTeste123!')
+email = os.environ.get('RESET_EMAIL')
+new_password = os.environ.get('RESET_PASSWORD')
+
+if not email or not new_password:
+    print("❌ Erro: RESET_EMAIL e RESET_PASSWORD devem estar definidos como variáveis de ambiente.")
+    print("   Exemplo: RESET_EMAIL=user@example.com RESET_PASSWORD=NovaS3nh@ python reset_user_password.py")
+    sys.exit(1)
 
 print(f"Resetando senha para: {email}")
 

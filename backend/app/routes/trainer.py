@@ -7,7 +7,7 @@ from app import models, schemas, auth
 from app.auth import is_trainer_user
 from app.pagination import paginate, PaginatedResponse
 from app.routers.challenges import reopen_completed_training_plans
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter()
 
@@ -113,7 +113,7 @@ async def get_trainer_stats(
         avg_mpu = round(avg_mpu_result, 2) if avg_mpu_result else 0
         
         # Recent activity - last 7 days submissions
-        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
         recent_submissions = db.query(models.ChallengeSubmission).filter(
             models.ChallengeSubmission.challenge_id.in_(all_challenge_ids),
             models.ChallengeSubmission.created_at >= seven_days_ago
@@ -232,7 +232,7 @@ async def list_all_courses(
             "banks": banks,
             "products": products,
             "bank_code": banks[0]["code"] if banks else "N/A",
-            "trainer_id": course.created_by,
+            "bank_name": banks[0]["name"] if banks else "N/A",
             "trainer_name": trainer.full_name if trainer else "N/A",
             "total_students": total_students,
             "created_at": course.created_at.isoformat() if course.created_at else None
@@ -463,7 +463,7 @@ async def create_course(
     current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
     db: Session = Depends(get_db)
 ):
-    course_data = course.dict()
+    course_data = course.model_dump()
     bank_ids = course_data.pop("bank_ids", None) or []
     product_ids = course_data.pop("product_ids", None) or []
 
@@ -514,7 +514,7 @@ async def update_course(
     if is_trainer_user(current_user) and db_course.created_by != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to update this course")
     
-    for key, value in course_update.dict().items():
+    for key, value in course_update.model_dump().items():
         setattr(db_course, key, value)
     
     db.commit()
@@ -555,7 +555,7 @@ async def create_lesson(
     if is_trainer_user(current_user) and course.created_by != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to create lessons for this course")
     
-    db_lesson = models.Lesson(**lesson.dict())
+    db_lesson = models.Lesson(**lesson.model_dump())
     
     db.add(db_lesson)
     db.commit()
@@ -681,7 +681,9 @@ async def create_training_plan(
     # Verify trainer exists and is active
     trainer = db.query(models.User).filter(
         models.User.id == trainer_id,
-        or_(models.User.role == "TRAINER", models.User.is_trainer == True),
+        or_(models.User.role.in_(["TRAINER", "FORMADOR"]),
+            models.User.is_trainer == True,
+            models.User.is_formador == True),
         models.User.is_active == True
     ).first()
 
@@ -879,13 +881,14 @@ async def list_trainer_students(
 
 @router.get("/students/list")
 async def list_students_for_dropdown(
-    current_user: models.User = Depends(auth.require_role(["TRAINER", "ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["FORMADOR", "ADMIN"])),
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
-    """List all available students for trainer dropdowns (TRAINEE + TRAINER users)"""
+    """List all available students for trainer dropdowns (only USUARIO/FORMADOR roles)"""
     students = db.query(models.User).filter(
-        models.User.role.in_(["TRAINEE", "TRAINER"]),
-        models.User.is_active == True
+        models.User.is_active == True,
+        models.User.is_pending == False,
+        models.User.role.in_(["USUARIO", "FORMADOR", "TRAINEE", "TRAINER"]),
     ).all()
     return [
         {
@@ -953,7 +956,7 @@ async def get_trainer_overview(
         total_plans = db.query(models.TrainingPlan).count()
     
     # Active students (enrolled in last 30 days)
-    month_ago = datetime.utcnow() - timedelta(days=30)
+    month_ago = datetime.now(timezone.utc) - timedelta(days=30)
     active_students = db.query(models.Enrollment.user_id).filter(
         models.Enrollment.course_id.in_(course_ids) if course_ids else False,
         models.Enrollment.enrolled_at >= month_ago
@@ -1011,14 +1014,14 @@ async def get_trainer_plans_report(
         if plan_bank:
             bank = db.query(models.Bank).filter(models.Bank.id == plan_bank.bank_id).first()
             if bank:
-                bank_name = bank.code or bank.name
+                bank_name = bank.name or bank.code
         elif plan.bank_id:
             bank = db.query(models.Bank).filter(models.Bank.id == plan.bank_id).first()
             if bank:
-                bank_name = bank.code or bank.name
+                bank_name = bank.name or bank.code
         
         # Determine status based on dates
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if plan.end_date and now > plan.end_date:
             status = "completed"
         elif plan.start_date and now >= plan.start_date:
@@ -1031,6 +1034,7 @@ async def get_trainer_plans_report(
             "title": plan.title,
             "description": plan.description or "",
             "bank_code": bank_name or "",
+            "bank_name": bank_name or "",
             "students_assigned": assignments,
             "start_date": plan.start_date.isoformat() if plan.start_date else None,
             "end_date": plan.end_date.isoformat() if plan.end_date else None,

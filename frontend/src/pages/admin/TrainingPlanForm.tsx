@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
+import { NAVIGATE_AFTER_SUBMIT_MS } from '../../constants/timings';
 import { getTranslatedProductName } from '../../utils/productTranslation';
 
 interface Course {
@@ -155,7 +156,7 @@ export default function AdminTrainingPlanForm() {
       };
       await api.post('/api/training-plans/', payload);
       setSuccess(true);
-      setTimeout(() => navigate('/admin/training-plans'), 2000);
+      setTimeout(() => navigate('/admin/training-plans'), NAVIGATE_AFTER_SUBMIT_MS);
     } catch (error: any) {
       setErrors({ submit: error.response?.data?.detail || t('trainingPlan.createError') });
     } finally {

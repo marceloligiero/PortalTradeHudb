@@ -104,7 +104,7 @@ export default function TrainingPlans() {
       setProducts(productsRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
-      setError(t('common.loadError') || 'Failed to load training plans');
+      setError(t('messages.error') || 'Failed to load training plans');
     } finally {
       setLoading(false);
     }

@@ -12,11 +12,11 @@ function TutoriaSidebar() {
   const { user } = useAuthStore();
   const { t } = useTranslation();
 
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'GESTOR';
+  const isAdmin = user?.is_admin || user?.is_diretor;
   const isTutor = user?.is_tutor;
-  const isManager = isAdmin || user?.role === 'TRAINER' || isTutor;
-  const isChefe = (user as any)?.is_team_lead;
-  const isReferente = (user as any)?.is_referente;
+  const isManager = isAdmin || user?.is_gerente || isTutor;
+  const isChefe = user?.is_chefe_equipe;
+  const isReferente = user?.is_referente;
   const isLiberador = user?.is_liberador || isAdmin;
   const canAnalyze = isManager || isChefe || isReferente;
   const canSeeInternalErrors = isManager || isLiberador;
@@ -63,13 +63,13 @@ function TutoriaSidebar() {
       )}
 
       {/* Feedback dos Liberadores */}
-      {(isTutor || isAdmin || (user as any)?.is_liberador) && (
+      {(isTutor || isAdmin || user?.is_liberador) && (
         <>
           <SidebarSection label={t('tutoriaSidebar.feedbackSection', 'Feedback')} />
           {(isTutor || isAdmin) && (
             <SidebarLink to="/tutoria/feedback" icon={Star} label={t('tutoriaSidebar.feedbackSurveys', 'Surveys Liberadores')} />
           )}
-          {(user as any)?.is_liberador && (
+          {user?.is_liberador && (
             <SidebarLink to="/tutoria/feedback/respond" icon={BookMarked} label={t('tutoriaSidebar.feedbackRespond', 'Responder Feedback')} />
           )}
         </>

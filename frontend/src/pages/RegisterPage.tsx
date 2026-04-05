@@ -34,12 +34,12 @@ function pwStrength(pw: string, t: (key: string) => string) {
 }
 
 const CAPABILITIES = [
-  { key: 'is_trainer' as const, Icon: BookOpen, labelKey: 'auth.roles.trainer', descKey: 'auth.roles.trainerDesc', gradient: 'from-blue-500 to-indigo-600', glow: 'rgba(59,130,246,0.3)' },
+  { key: 'is_formador' as const, Icon: BookOpen, labelKey: 'auth.roles.trainer', descKey: 'auth.roles.trainerDesc', gradient: 'from-blue-500 to-indigo-600', glow: 'rgba(59,130,246,0.3)' },
   { key: 'is_tutor' as const, Icon: Shield, labelKey: 'auth.roles.tutor', descKey: 'auth.roles.tutorDesc', gradient: 'from-red-500 to-rose-600', glow: 'rgba(239,68,68,0.3)' },
   { key: 'is_liberador' as const, Icon: KeyRound, labelKey: 'auth.roles.releaser', descKey: 'auth.roles.releaserDesc', gradient: 'from-cyan-500 to-teal-600', glow: 'rgba(6,182,212,0.3)' },
-  { key: 'is_team_lead' as const, Icon: Crown, labelKey: 'auth.roles.teamLead', descKey: 'auth.roles.teamLeadDesc', gradient: 'from-purple-500 to-violet-600', glow: 'rgba(139,92,246,0.3)' },
+  { key: 'is_chefe_equipe' as const, Icon: Crown, labelKey: 'auth.roles.teamLead', descKey: 'auth.roles.teamLeadDesc', gradient: 'from-purple-500 to-violet-600', glow: 'rgba(139,92,246,0.3)' },
   { key: 'is_referente' as const, Icon: UserCheck, labelKey: 'auth.roles.referente', descKey: 'auth.roles.referenteDesc', gradient: 'from-amber-500 to-orange-600', glow: 'rgba(245,158,11,0.3)' },
-  { key: 'is_gestor' as const, Icon: Eye, labelKey: 'auth.roles.gestor', descKey: 'auth.roles.gestorDesc', gradient: 'from-gray-500 to-slate-600', glow: 'rgba(100,116,139,0.3)' },
+  { key: 'is_gerente' as const, Icon: Eye, labelKey: 'auth.roles.gestor', descKey: 'auth.roles.gestorDesc', gradient: 'from-gray-500 to-slate-600', glow: 'rgba(100,116,139,0.3)' },
 ];
 
 const slideV = {
@@ -124,7 +124,7 @@ export default function RegisterPage() {
     { title: t('auth.steps.confirmation'), sub: t('auth.steps.confirmationSub') },
   ];
 
-  const [form, setForm] = useState({ full_name: '', email: '', password: '', confirmPassword: '', is_trainer: false, is_tutor: false, is_liberador: false, is_team_lead: false, is_referente: false, is_gestor: false });
+  const [form, setForm] = useState({ full_name: '', email: '', password: '', confirmPassword: '', is_formador: false, is_tutor: false, is_liberador: false, is_chefe_equipe: false, is_referente: false, is_gerente: false });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -156,20 +156,21 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      const role = form.is_gestor ? 'GESTOR' : form.is_team_lead ? 'MANAGER' : 'TRAINEE';
+      const role = form.is_gerente ? 'GERENTE' : form.is_chefe_equipe ? 'CHEFE_EQUIPE' : form.is_formador ? 'FORMADOR' : 'USUARIO';
       const res = await api.post('/auth/register', {
         email: form.email,
         password: form.password,
         full_name: form.full_name,
         role,
-        is_trainer: form.is_trainer,
+        is_formador: form.is_formador,
         is_tutor: form.is_tutor,
         is_liberador: form.is_liberador,
-        is_team_lead: form.is_team_lead,
+        is_chefe_equipe: form.is_chefe_equipe,
         is_referente: form.is_referente,
+        is_gerente: form.is_gerente,
       });
       if (res.data) {
-        const isPending = form.is_team_lead || form.is_trainer || form.is_tutor || form.is_liberador || form.is_referente || form.is_gestor;
+        const isPending = form.is_chefe_equipe || form.is_formador || form.is_tutor || form.is_liberador || form.is_referente || form.is_gerente;
         setSuccess(isPending ? t('auth.registerTrainerSuccess') : t('auth.registerStudentSuccess'));
         setTimeout(() => navigate('/login'), 2500);
       }
@@ -210,7 +211,7 @@ export default function RegisterPage() {
                 <motion.button whileHover={{ x: -3 }} onClick={step === 0 ? () => navigate('/login') : back}
                   className="flex items-center gap-1 text-sm font-body font-medium text-gray-400 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70 transition-colors">
                   <ArrowRight className="w-3.5 h-3.5 rotate-180" />
-                  <span>{step === 0 ? t('auth.login') : t('auth.back')}</span>
+                  <span>{step === 0 ? t('auth.login') : t('common.back')}</span>
                 </motion.button>
                 <div className="flex gap-1.5">
                   {[0, 1, 2].map(i => (
@@ -325,7 +326,7 @@ export default function RegisterPage() {
                       </motion.div>
 
                       <AnimatePresence>
-                        {(form.is_trainer || form.is_tutor || form.is_team_lead || form.is_referente || form.is_liberador || form.is_gestor) && (
+                        {(form.is_formador || form.is_tutor || form.is_chefe_equipe || form.is_referente || form.is_liberador || form.is_gerente) && (
                           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
                             <div className="flex gap-2 p-3 rounded-xl bg-amber-500/[0.06] border border-amber-500/15">
                               <Sparkles className="w-3.5 h-3.5 text-amber-400 flex-shrink-0 mt-0.5" />
@@ -450,12 +451,12 @@ export default function RegisterPage() {
                         <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/15">
                           {t('auth.roles.recorder')}
                         </span>
-                        {form.is_trainer && <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-blue-500/10 text-blue-400 border border-blue-500/15">{t('auth.roles.trainer')}</span>}
+                        {form.is_formador && <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-blue-500/10 text-blue-400 border border-blue-500/15">{t('auth.roles.trainer')}</span>}
                         {form.is_tutor && <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-red-500/10 text-red-400 border border-red-500/15">{t('auth.roles.tutor')}</span>}
                         {form.is_liberador && <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/15">{t('auth.roles.releaser')}</span>}
-                        {form.is_team_lead && <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-purple-500/10 text-purple-400 border border-purple-500/15">{t('auth.roles.teamLead')}</span>}
+                        {form.is_chefe_equipe && <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-purple-500/10 text-purple-400 border border-purple-500/15">{t('auth.roles.teamLead')}</span>}
                         {form.is_referente && <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-amber-500/10 text-amber-400 border border-amber-500/15">{t('auth.roles.referente')}</span>}
-                        {form.is_gestor && <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-gray-500/10 text-gray-400 border border-gray-500/15">{t('auth.roles.gestor')}</span>}
+                        {form.is_gerente && <span className="px-3 py-1.5 rounded-full text-[10px] font-body font-bold bg-gray-500/10 text-gray-400 border border-gray-500/15">{t('auth.roles.gestor')}</span>}
                       </motion.div>
 
                       {/* Summary rows */}

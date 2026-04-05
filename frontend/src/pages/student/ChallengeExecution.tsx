@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { 
-  Target, 
-  Play, 
-  Square, 
-  Clock, 
+import {
+  Target,
+  Play,
+  Square,
+  Clock,
   ArrowLeft,
   RefreshCw,
   CheckCircle,
@@ -14,7 +13,8 @@ import {
   Timer,
   Hash,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  Send
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -65,16 +65,16 @@ export default function ChallengeExecution() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { token } = useAuthStore();
-  
+
   const planId = searchParams.get('planId');
   const submissionIdFromUrl = searchParams.get('submissionId');
-  
+
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [, setSubmission] = useState<Submission | null>(null);
   const [operations, setOperations] = useState<Operation[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  
+
   const [newReference, setNewReference] = useState('');
   const [currentOperation, setCurrentOperation] = useState<Operation | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -84,29 +84,25 @@ export default function ChallengeExecution() {
   useEffect(() => {
     const fetchData = async () => {
       if (!token || !challengeId) return;
-      
+
       try {
         setLoading(true);
-        
-        // Buscar dados do desafio
+
         const challengeResp = await api.get(`/api/challenges/${challengeId}`);
         setChallenge(challengeResp.data);
-        
-        // Pegar submissionId
+
         let subId = submissionIdFromUrl;
-        
-        // Se não tem submissionId na URL, tentar buscar uma submission existente
+
         if (!subId) {
           try {
             const existingResp = await api.post(`/api/challenges/submit/complete/start/${challengeId}/self`, {
               training_plan_id: planId ? parseInt(planId) : null
             });
-            
+
             if (existingResp.data && existingResp.data.id) {
               subId = String(existingResp.data.id);
               setCurrentSubmissionId(subId);
               setSubmission(existingResp.data);
-              // Atualizar URL
               const newParams = new URLSearchParams(searchParams);
               newParams.set('submissionId', subId);
               setSearchParams(newParams, { replace: true });
@@ -117,24 +113,17 @@ export default function ChallengeExecution() {
             }
           }
         }
-        
-        // Buscar submissão e operações
+
         if (subId) {
-          console.log('Buscando submission e operações para subId:', subId);
-          
           const subResp = await api.get(`/api/challenges/submissions/${subId}`);
           setSubmission(subResp.data);
-          
-          // Buscar operações
+
           const opsResp = await api.get(`/api/challenges/submissions/${subId}/operations`);
-          console.log('Operações recebidas:', opsResp.data);
           setOperations(opsResp.data || []);
-          
-          // Verificar se há operação em progresso
+
           const inProgress = (opsResp.data || []).find((op: Operation) => !op.completed_at);
           setCurrentOperation(inProgress || null);
-          
-          // Atualizar state
+
           setCurrentSubmissionId(subId);
         }
       } catch (error) {
@@ -143,24 +132,22 @@ export default function ChallengeExecution() {
         setLoading(false);
       }
     };
-    
-    fetchData();
-  }, [token, challengeId]); // Dependências mínimas - só recarrega quando token ou challengeId muda
 
-  // Função para recarregar dados (botão refresh)
+    fetchData();
+  }, [token, challengeId]);
+
   const loadData = async () => {
     if (!token || !challengeId || !currentSubmissionId) return;
-    
+
     try {
       setLoading(true);
-      
+
       const subResp = await api.get(`/api/challenges/submissions/${currentSubmissionId}`);
       setSubmission(subResp.data);
-      
+
       const opsResp = await api.get(`/api/challenges/submissions/${currentSubmissionId}/operations`);
-      console.log('Operações recebidas (refresh):', opsResp.data);
       setOperations(opsResp.data || []);
-      
+
       const inProgress = (opsResp.data || []).find((op: Operation) => !op.completed_at);
       setCurrentOperation(inProgress || null);
     } catch (error) {
@@ -170,19 +157,18 @@ export default function ChallengeExecution() {
     }
   };
 
-  // Cronómetro para operação em progresso
   useEffect(() => {
     if (!currentOperation) {
       setElapsedTime(0);
       return;
     }
-    
+
     const startTime = new Date(currentOperation.started_at).getTime();
-    
+
     const interval = setInterval(() => {
       setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
     }, 1000);
-    
+
     return () => clearInterval(interval);
   }, [currentOperation]);
 
@@ -191,11 +177,10 @@ export default function ChallengeExecution() {
       alert(t('challengeExecution.insertReference'));
       return;
     }
-    
+
     try {
       setActionLoading(true);
-      
-      // Se não tem submissão, criar uma
+
       let subId = currentSubmissionId;
       if (!subId) {
         const startResp = await api.post(`/api/challenges/submit/complete/start/${challengeId}/self`, {
@@ -204,16 +189,13 @@ export default function ChallengeExecution() {
         subId = String(startResp.data.id);
         setSubmission(startResp.data);
         setCurrentSubmissionId(subId);
-        
-        // Atualizar URL com submissionId
         setSearchParams({ submissionId: subId });
       }
-      
-      // Iniciar operação
+
       const opResp = await api.post(`/api/challenges/submissions/${subId}/operations/start`, {
         operation_reference: newReference.trim()
       });
-      
+
       setCurrentOperation(opResp.data);
       setOperations(prev => [...prev, opResp.data]);
       setNewReference('');
@@ -226,13 +208,12 @@ export default function ChallengeExecution() {
 
   const handleFinishOperation = async () => {
     if (!currentOperation) return;
-    
+
     try {
       setActionLoading(true);
-      
+
       await api.post(`/api/challenges/operations/${currentOperation.id}/finish`);
-      
-      // Atualizar dados
+
       await loadData();
       setCurrentOperation(null);
     } catch (error: any) {
@@ -244,16 +225,16 @@ export default function ChallengeExecution() {
 
   const handleSubmitForReview = async () => {
     if (!currentSubmissionId) return;
-    
+
     if (!confirm(t('challengeExecution.confirmSubmit'))) {
       return;
     }
-    
+
     try {
       setActionLoading(true);
-      
+
       await api.post(`/api/challenges/submissions/${currentSubmissionId}/submit-for-review`);
-      
+
       alert(t('challengeExecution.submittedSuccess'));
       navigate('/challenges');
     } catch (error: any) {
@@ -276,185 +257,177 @@ export default function ChallengeExecution() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full"
-        />
+        <div className="w-12 h-12 border-4 border-[#EC0000]/20 border-t-[#EC0000] rounded-full animate-spin" />
       </div>
     );
   }
 
   const completedOperations = operations.filter(op => op.completed_at);
-  const progressPercent = challenge 
+  const progressPercent = challenge
     ? Math.min(100, (completedOperations.length / challenge.operations_required) * 100)
     : 0;
-  
-  // Verificar se atingiu o limite de operações
-  const allOperationsCompleted = challenge 
-    ? completedOperations.length >= challenge.operations_required 
+
+  const allOperationsCompleted = challenge
+    ? completedOperations.length >= challenge.operations_required
     : false;
-  
-  // Pode adicionar mais operações?
-  const canAddMoreOperations = challenge 
-    ? operations.length < challenge.operations_required 
+
+  const canAddMoreOperations = challenge
+    ? operations.length < challenge.operations_required
     : true;
-  
-  // Quantas operações faltam?
-  const remainingOperations = challenge 
+
+  const remainingOperations = challenge
     ? Math.max(0, challenge.operations_required - completedOperations.length)
     : 0;
 
+  const kpiStats = [
+    {
+      icon: Hash,
+      value: `${completedOperations.length}/${challenge?.operations_required}`,
+      label: t('challengeExecution.operations'),
+      isKpi: challenge?.use_volume_kpi,
+      kpiLabel: 'Volume',
+    },
+    {
+      icon: TrendingUp,
+      value: challenge?.target_mpu ? String(challenge.target_mpu) : '-',
+      label: t('challengeExecution.targetMPU'),
+      isKpi: challenge?.use_mpu_kpi,
+      kpiLabel: 'MPU',
+    },
+    {
+      icon: AlertTriangle,
+      value: `${operations.filter(op => op.has_error).length}/${challenge?.max_errors}`,
+      label: t('challengeExecution.maxErrors'),
+      isKpi: challenge?.use_errors_kpi,
+      kpiLabel: t('challengeExecution.maxErrors'),
+    },
+    {
+      icon: Clock,
+      value: challenge?.time_limit_minutes ? `${challenge.time_limit_minutes}m` : '-',
+      label: t('challengeExecution.timeLimit'),
+      isKpi: false,
+      kpiLabel: '',
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 text-gray-400" />
-        </button>
-        <div className="flex-1">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl">
-              <Target className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">
-                {challenge?.title}
-              </h1>
-              <p className="text-gray-400">
-                {challenge?.description}
-              </p>
-            </div>
-          </div>
-        </div>
-        <button
-          onClick={loadData}
-          className="p-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors"
-        >
-          <RefreshCw className="w-5 h-5 text-gray-400" />
-        </button>
-      </div>
+      {/* ── Header Card ── */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="flex items-start gap-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-[#EC0000]/30 transition-colors shrink-0"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+          </button>
 
-      {/* KPIs do desafio */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${challenge?.use_volume_kpi ? 'bg-blue-500/20' : 'bg-gray-500/20'}`}>
-              <Hash className={`w-5 h-5 ${challenge?.use_volume_kpi ? 'text-blue-400' : 'text-gray-500'}`} />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">
-                {completedOperations.length}/{challenge?.operations_required}
-              </p>
-              <p className="text-xs text-gray-400">
-                {t('challengeExecution.operations')} {challenge?.use_volume_kpi && <span className="text-blue-400">(KPI)</span>}
-              </p>
-            </div>
+          <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+            <Target className="w-6 h-6 text-[#EC0000]" />
           </div>
+
+          <div className="flex-1 min-w-0">
+            <p className="font-body text-xs font-bold uppercase tracking-widest text-[#EC0000] mb-1">
+              {t('challengeExecution.challengeProgress')}
+            </p>
+            <h1 className="font-headline text-2xl font-bold text-gray-900 dark:text-white truncate">
+              {challenge?.title}
+            </h1>
+            {challenge?.description && (
+              <p className="font-body text-sm text-gray-500 dark:text-gray-400 mt-1 max-w-xl">
+                {challenge.description}
+              </p>
+            )}
+          </div>
+
+          <button
+            onClick={loadData}
+            className="p-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-[#EC0000]/30 transition-colors shrink-0"
+          >
+            <RefreshCw className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+          </button>
         </div>
-        
-        <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${challenge?.use_mpu_kpi ? 'bg-green-500/20' : 'bg-gray-500/20'}`}>
-              <TrendingUp className={`w-5 h-5 ${challenge?.use_mpu_kpi ? 'text-green-400' : 'text-gray-500'}`} />
+
+        {/* Stats bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+          {kpiStats.map((stat, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                stat.isKpi
+                  ? 'bg-red-50 dark:bg-red-900/20'
+                  : 'bg-gray-100 dark:bg-gray-800'
+              }`}>
+                <stat.icon className={`w-5 h-5 ${stat.isKpi ? 'text-[#EC0000]' : 'text-gray-400 dark:text-gray-500'}`} />
+              </div>
+              <div>
+                <p className="font-mono text-xl font-bold text-gray-900 dark:text-white leading-none">
+                  {stat.value}
+                </p>
+                <p className="font-body text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider mt-0.5">
+                  {stat.label}
+                  {stat.isKpi && <span className="text-[#EC0000] ml-1">(KPI)</span>}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-white">
-                {challenge?.target_mpu || '-'}
-              </p>
-              <p className="text-xs text-gray-400">
-                {t('challengeExecution.targetMPU')} {challenge?.use_mpu_kpi && <span className="text-green-400">(KPI)</span>}
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${challenge?.use_errors_kpi ? 'bg-red-500/20' : 'bg-gray-500/20'}`}>
-              <AlertTriangle className={`w-5 h-5 ${challenge?.use_errors_kpi ? 'text-red-400' : 'text-gray-500'}`} />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">
-                {operations.filter(op => op.has_error).length}/{challenge?.max_errors}
-              </p>
-              <p className="text-xs text-gray-400">
-                {t('challengeExecution.maxErrors')} {challenge?.use_errors_kpi && <span className="text-red-400">(KPI)</span>}
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-500/20 rounded-lg">
-              <Clock className="w-5 h-5 text-purple-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">
-                {challenge?.time_limit_minutes || '-'}
-              </p>
-              <p className="text-xs text-gray-400">{t('challengeExecution.timeLimit')}</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
-      {/* Barra de progresso */}
-      <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-400">{t('challengeExecution.challengeProgress')}</span>
-            <span className="text-sm text-white">
-              <span className="font-bold text-green-400">{completedOperations.length}</span>
-              <span className="text-gray-500"> / </span>
-              <span className="font-bold">{challenge?.operations_required}</span>
-              <span className="text-gray-500"> {t('challengeExecution.operations').toLowerCase()}</span>
+      {/* ── Progress Bar ── */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <span className="font-body text-sm text-gray-500 dark:text-gray-400">
+              {t('challengeExecution.challengeProgress')}
+            </span>
+            <span className="font-body text-sm text-gray-900 dark:text-white">
+              <span className="font-mono font-bold text-[#EC0000]">{completedOperations.length}</span>
+              <span className="text-gray-400 dark:text-gray-500"> / </span>
+              <span className="font-mono font-bold">{challenge?.operations_required}</span>
             </span>
             {remainingOperations > 0 && (
-              <span className="text-sm text-yellow-400">
-                ({remainingOperations === 1 ? t('challengeExecution.remaining', { count: remainingOperations }) : t('challengeExecution.remainingPlural', { count: remainingOperations })})
+              <span className="font-body text-xs text-amber-600 dark:text-amber-400">
+                ({remainingOperations === 1
+                  ? t('challengeExecution.remaining', { count: remainingOperations })
+                  : t('challengeExecution.remainingPlural', { count: remainingOperations })})
               </span>
             )}
           </div>
-          <span className="text-sm font-bold text-white">{Math.round(progressPercent)}%</span>
+          <span className="font-mono text-sm font-bold text-gray-900 dark:text-white">{Math.round(progressPercent)}%</span>
         </div>
-        <div className="h-3 bg-white/10 rounded-full overflow-hidden">
-          <div 
-            className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-500"
+        <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-[#EC0000] to-[#CC0000] rounded-full transition-all duration-500"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
       </div>
 
-      {/* Operação em progresso */}
+      {/* ── Action Zone ── */}
       {currentOperation ? (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 backdrop-blur-xl rounded-2xl border border-blue-500/30 p-8"
-        >
+        /* Operation in Progress */
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border-2 border-[#EC0000]/30 p-8">
           <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Timer className="w-6 h-6 text-blue-400" />
-              <span className="text-lg font-semibold text-white">{t('challengeExecution.operationInProgress')}</span>
+            <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-4">
+              <Timer className="w-8 h-8 text-[#EC0000]" />
             </div>
-            
-            <div className="text-5xl font-mono font-bold text-white mb-4">
+
+            <p className="font-body text-xs font-bold uppercase tracking-widest text-[#EC0000] mb-2">
+              {t('challengeExecution.operationInProgress')}
+            </p>
+
+            <div className="font-mono text-5xl font-bold text-gray-900 dark:text-white mb-3">
               {formatTime(elapsedTime)}
             </div>
-            
-            <div className="text-lg text-gray-300 mb-6">
-              {t('challengeExecution.reference')}: <span className="font-bold text-blue-400">{currentOperation.operation_reference}</span>
-            </div>
-            
+
+            <p className="font-body text-gray-500 dark:text-gray-400 mb-8">
+              {t('challengeExecution.reference')}: <span className="font-mono font-bold text-gray-900 dark:text-white">{currentOperation.operation_reference}</span>
+            </p>
+
             <button
               onClick={handleFinishOperation}
               disabled={actionLoading}
-              className="flex items-center gap-2 px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-lg transition-colors disabled:opacity-50 mx-auto"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body font-bold text-lg transition-colors disabled:opacity-50"
             >
               {actionLoading ? (
                 <RefreshCw className="w-6 h-6 animate-spin" />
@@ -464,27 +437,32 @@ export default function ChallengeExecution() {
               {t('challengeExecution.finishOperationBtn')}
             </button>
           </div>
-        </motion.div>
+        </div>
       ) : canAddMoreOperations ? (
-        /* Iniciar nova operação */
-        <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-            <Play className="w-5 h-5 text-green-400" />
-            {t('challengeExecution.startNewOperation')}
-          </h3>
-          
-          <div className="flex gap-4">
+        /* Start New Operation */
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+              <Play className="w-5 h-5 text-[#EC0000]" />
+            </div>
+            <h2 className="font-headline text-lg font-bold text-gray-900 dark:text-white">
+              {t('challengeExecution.startNewOperation')}
+            </h2>
+          </div>
+
+          <div className="flex gap-3">
             <input
               type="text"
               value={newReference}
               onChange={(e) => setNewReference(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleStartOperation()}
               placeholder={t('challengeExecution.referencePlaceholder')}
-              className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
+              className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl font-body text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-[#EC0000] focus:ring-1 focus:ring-[#EC0000]/20 transition-colors"
             />
             <button
               onClick={handleStartOperation}
               disabled={actionLoading || !newReference.trim()}
-              className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-6 py-3 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
             >
               {actionLoading ? (
                 <RefreshCw className="w-5 h-5 animate-spin" />
@@ -496,27 +474,30 @@ export default function ChallengeExecution() {
           </div>
         </div>
       ) : (
-        /* Todas operações completas - Botão Submeter */
-        <div className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 backdrop-blur-xl rounded-2xl border border-green-500/30 p-6">
+        /* All Operations Completed — Submit */
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-8">
           <div className="text-center">
-            <CheckCircle className="w-12 h-12 text-green-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white mb-2">
+            <div className="w-16 h-16 rounded-2xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
+            </div>
+
+            <h3 className="font-headline text-xl font-bold text-gray-900 dark:text-white mb-2">
               {t('challengeExecution.allOperationsCompleted')}
             </h3>
-            <p className="text-gray-400 mb-6">
+            <p className="font-body text-gray-500 dark:text-gray-400 mb-6">
               {t('challengeExecution.completedCount', { completed: completedOperations.length, total: challenge?.operations_required })}
               {!allOperationsCompleted && ` ${t('challengeExecution.awaitingCompletionHint')}`}
             </p>
-            
+
             <button
               onClick={handleSubmitForReview}
               disabled={actionLoading || !allOperationsCompleted}
-              className="flex items-center gap-2 px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed mx-auto"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body font-bold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {actionLoading ? (
                 <RefreshCw className="w-6 h-6 animate-spin" />
               ) : (
-                <CheckCircle className="w-6 h-6" />
+                <Send className="w-6 h-6" />
               )}
               {t('challengeExecution.submitForReview')}
             </button>
@@ -524,83 +505,103 @@ export default function ChallengeExecution() {
         </div>
       )}
 
-      {/* Histórico de operações */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 text-green-400" />
-          {t('challengeExecution.operationsPerformed')} ({completedOperations.length})
-        </h2>
+      {/* ── Operations History ── */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+            <CheckCircle className="w-5 h-5 text-[#EC0000]" />
+          </div>
+          <h2 className="font-headline text-lg font-bold text-gray-900 dark:text-white">
+            {t('challengeExecution.operationsPerformed')}
+          </h2>
+          <span className="font-mono text-sm font-bold text-[#EC0000]">
+            ({completedOperations.length})
+          </span>
+        </div>
 
         {completedOperations.length === 0 ? (
-          <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-white/10 p-8 text-center">
-            <Target className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-            <p className="text-gray-400">{t('challengeExecution.noOperationsYet')}</p>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+              <Target className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+            </div>
+            <p className="font-body text-gray-400 dark:text-gray-500">{t('challengeExecution.noOperationsYet')}</p>
           </div>
         ) : (
-          <div className="grid gap-3">
-            {completedOperations.map((op, index) => (
-              <motion.div
+          <div className="space-y-3">
+            {completedOperations.map((op) => (
+              <div
                 key={op.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className={`bg-white/5 backdrop-blur-xl rounded-xl border p-4 ${
-                  op.has_error ? 'border-red-500/30 bg-red-500/10' : 'border-white/10'
+                className={`rounded-xl border p-4 transition-colors ${
+                  op.has_error
+                    ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-500/20'
+                    : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${
-                      op.has_error ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-mono font-bold text-sm ${
+                      op.has_error
+                        ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400'
+                        : 'bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400'
                     }`}>
                       {op.operation_number}
                     </div>
                     <div>
-                      <p className="font-semibold text-white">{op.operation_reference}</p>
-                      <p className="text-sm text-gray-400">
+                      <p className="font-body font-semibold text-gray-900 dark:text-white">{op.operation_reference}</p>
+                      <p className="font-body text-xs text-gray-400 dark:text-gray-500">
                         {new Date(op.started_at).toLocaleString()}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <p className="font-mono font-bold text-white">
+                      <p className="font-mono font-bold text-gray-900 dark:text-white">
                         {formatTime(op.duration_seconds || 0)}
                       </p>
-                      <p className="text-xs text-gray-400">{t('challengeExecution.duration')}</p>
+                      <p className="font-body text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">{t('challengeExecution.duration')}</p>
                     </div>
                     {op.has_error ? (
-                      <AlertCircle className="w-6 h-6 text-red-400" />
+                      <div className="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-500/20 flex items-center justify-center">
+                        <AlertCircle className="w-5 h-5 text-red-500" />
+                      </div>
                     ) : op.is_approved !== undefined ? (
-                      <CheckCircle className={`w-6 h-6 ${op.is_approved ? 'text-green-400' : 'text-yellow-400'}`} />
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                        op.is_approved
+                          ? 'bg-green-100 dark:bg-green-500/20'
+                          : 'bg-yellow-100 dark:bg-yellow-500/20'
+                      }`}>
+                        <CheckCircle className={`w-5 h-5 ${op.is_approved ? 'text-green-600 dark:text-green-400' : 'text-yellow-500 dark:text-yellow-400'}`} />
+                      </div>
                     ) : (
-                      <Clock className="w-6 h-6 text-gray-400" />
+                      <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                        <Clock className="w-5 h-5 text-gray-400" />
+                      </div>
                     )}
                   </div>
                 </div>
-                
-                {/* Mostrar erros detalhados */}
+
+                {/* Errors Detail */}
                 {op.has_error && op.errors && op.errors.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-red-500/20">
-                    <p className="text-xs text-red-400 font-semibold uppercase tracking-wide mb-2">
+                  <div className="mt-4 pt-4 border-t border-red-200 dark:border-red-500/20">
+                    <p className="font-body text-xs text-red-600 dark:text-red-400 font-bold uppercase tracking-wider mb-2">
                       {t('challengeExecution.errorsIdentified')} ({op.errors.length}):
                     </p>
                     <div className="space-y-2">
                       {op.errors.map((err) => (
-                        <div 
-                          key={err.id} 
-                          className="flex items-start gap-3 p-2 bg-red-500/10 rounded-lg"
+                        <div
+                          key={err.id}
+                          className="flex items-start gap-3 p-2.5 bg-white dark:bg-gray-900 rounded-lg border border-red-100 dark:border-red-500/10"
                         >
-                          <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${
-                            err.error_type === 'METODOLOGIA' ? 'bg-orange-500/20 text-orange-400' :
-                            err.error_type === 'CONHECIMENTO' ? 'bg-blue-500/20 text-blue-400' :
-                            err.error_type === 'DETALHE' ? 'bg-yellow-500/20 text-yellow-400' :
-                            'bg-purple-500/20 text-purple-400'
+                          <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider shrink-0 ${
+                            err.error_type === 'METODOLOGIA' ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400' :
+                            err.error_type === 'CONHECIMENTO' ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400' :
+                            err.error_type === 'DETALHE' ? 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400' :
+                            'bg-purple-100 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400'
                           }`}>
                             {err.error_type}
                           </span>
                           {err.description && (
-                            <span className="text-sm text-gray-300 flex-1">
+                            <span className="font-body text-sm text-gray-600 dark:text-gray-300 flex-1">
                               {err.description}
                             </span>
                           )}
@@ -609,7 +610,7 @@ export default function ChallengeExecution() {
                     </div>
                   </div>
                 )}
-              </motion.div>
+              </div>
             ))}
           </div>
         )}

@@ -36,7 +36,8 @@
     "allBanks": "All Banks",
     "backToCourse": "Back to Course",
     "you": "You",
-    "noResults": "No results found"
+    "noResults": "No results found",
+    "noDescription": "No description"
   },
   "auth": {
     "login": "Login",
@@ -174,6 +175,10 @@
       "rememberedPassword": "Remember your password?",
       "errorResetting": "Error resetting password",
       "passwordsDontMatch": "Passwords do not match"
+    },
+    "sso": {
+      "loginWithMicrosoft": "Sign in with Microsoft",
+      "authenticating": "Authenticating..."
     }
   },
   "navigation": {
@@ -257,7 +262,49 @@
     "typeMethodology": "Methodology",
     "typeFunctionality": "Functionality",
     "capsulaCount_one": "active capsule",
-    "capsulaCount_other": "active capsules"
+    "capsulaCount_other": "active capsules",
+    "modalBadge": "Training Capsule",
+    "editTitle": "Edit Capsule",
+    "fieldChallengeType": "Challenge Type",
+    "kpiOps": "Volume",
+    "kpiTime": "Min",
+    "submissions": "submissions",
+    "maxErrors": "Max errors",
+    "diffEasy": "Easy",
+    "diffMedium": "Medium",
+    "diffHard": "Hard",
+    "challengeTypeComplete": "Complete",
+    "challengeTypeSummary": "Summary",
+    "kpiModeAuto": "Auto",
+    "kpiModeManual": "Manual"
+  },
+  "sideBySide": {
+    "title": "Side by Side Plans",
+    "subtitle": "In-person follow-up with collaborators",
+    "newPlan": "New Plan",
+    "loadError": "Error loading plans.",
+    "requiredFields": "Collaborator and Observation Date are required.",
+    "createError": "Error creating plan.",
+    "emptyTitle": "No Side by Side plans registered.",
+    "emptySubtitle": "Click \"New Plan\" to create the first one.",
+    "responsible": "Responsible",
+    "deadline": "Deadline",
+    "deadlineLabel": "Deadline",
+    "createTitle": "New Side by Side Plan",
+    "collaborator": "Collaborator",
+    "select": "Select",
+    "observationDate": "Observation Date",
+    "observationNotes": "Observation Notes",
+    "expectedResult": "Expected Result",
+    "cancel": "Cancel",
+    "createButton": "Create Plan",
+    "status": {
+      "DRAFT": "Draft",
+      "PENDING": "Pending",
+      "IN_PROGRESS": "In Progress",
+      "DONE": "Completed",
+      "CONCLUIDO": "Completed"
+    }
   },
   "feedback": {
     "surveysTitle": "Releaser Feedback",
@@ -298,6 +345,7 @@
   "feedbackDashboard": {
     "title": "Feedback Dashboard",
     "subtitle": "Sentiment summary and intervention alerts",
+    "fetchError": "Error loading feedback dashboard",
     "totalResponses": "Total Responses",
     "positive": "Positive",
     "neutral": "Neutral",
@@ -335,16 +383,22 @@
     "noMpuData": "no MPU data",
     "quickAccess": "Quick access",
     "viewTrainingReport": "View Training report",
-    "viewTutoriaReport": "View Tutoring report"
+    "viewTutoriaReport": "View Tutoring report",
+    "chamados": "Open Tickets",
+    "openChamados": "open or in progress",
+    "criticalAlert": "{{count}} critical errors recorded — urgent review required"
   },
   "roles": {
     "ADMIN": "Administrator",
-    "TRAINER": "Liberator / Trainer",
-    "TRAINEE": "Recorder (Trainee)",
-    "STUDENT": "Recorder",
-    "MANAGER": "Coordinator",
-    "GESTOR": "Manager",
-    "trainer": "Liberator / Trainer"
+    "DIRETOR": "Director",
+    "GERENTE": "Manager",
+    "CHEFE_EQUIPE": "Team Leader",
+    "FORMADOR": "Trainer",
+    "USUARIO": "User",
+    "TUTOR": "Tutor",
+    "LIBERADOR": "Liberator",
+    "REFERENTE": "Referent",
+    "trainer": "Trainer"
   },
   "dashboard": {
     "student": {
@@ -496,7 +550,8 @@
     "descRequired": "Description is required",
     "descTooShort": "Description must be at least 10 characters",
     "multipleSelect": "select multiple",
-    "services": "Services"
+    "services": "Services",
+    "banks": "Banks"
   },
   "trainingPlans": {
     "selectStudent": "Select Student",
@@ -1075,13 +1130,16 @@
     "allProducts": "All Services",
     "allBanks": "All Banks",
     "groupByProduct": "Group by Service",
-    "activeFilters": "Active filters"
+    "activeFilters": "Active filters",
+    "products": "Services",
+    "selectMultiple": "select multiple",
+    "services": "Services"
   },
   "usersPage": {
     "loading": "Loading...",
     "admin": "Administrator",
     "trainer": "Liberator / Trainer",
-    "trainee": "Recorder (Trainee)",
+    "trainee": "Trainee",
     "student": "Recorder",
     "teamLeader": "Coordinator",
     "pending": "Pending",
@@ -1133,10 +1191,13 @@
     "editUser": "Edit User",
     "confirmDeactivation": "Confirm Deactivation",
     "confirmReactivation": "Confirm Reactivation",
-    "trainee": "Trainee",
     "trainerRole": "Trainer",
     "roleReadOnly": "not editable",
     "additionalCapabilities": "Additional capabilities",
+    "permissions": "Permissions",
+    "portalFormacoes": "Training Portal",
+    "portalTutoria": "Tutoring Portal",
+    "management": "Management",
     "tutor": "Tutor",
     "tutorDesc": "Can supervise and guide team members",
     "trainerDesc": "Can create courses and evaluate trainees",
@@ -1396,18 +1457,68 @@
         "live": "Live",
         "typing": "Typing…",
         "incoming": [
-          { "sender": "Carlos M.", "avatar": "CM", "text": "The same error again? Doesn't anyone check this?", "time": "2 min ago" },
-          { "sender": "Ana Director", "avatar": "AD", "text": "The client called to complain. I need answers.", "time": "5 min ago" },
-          { "sender": "Luis Ops", "avatar": "LO", "text": "Who trained the new hire? That's 3 errors today.", "time": "8 min ago" },
-          { "sender": "Marta S.", "avatar": "MS", "text": "Yesterday's report is still missing.", "time": "12 min ago" },
-          { "sender": "Regional Dir.", "avatar": "RD", "text": "This cannot happen again. I want solutions.", "time": "15 min ago" }
+          {
+            "sender": "Carlos M.",
+            "avatar": "CM",
+            "text": "The same error again? Doesn't anyone check this?",
+            "time": "2 min ago"
+          },
+          {
+            "sender": "Ana Director",
+            "avatar": "AD",
+            "text": "The client called to complain. I need answers.",
+            "time": "5 min ago"
+          },
+          {
+            "sender": "Luis Ops",
+            "avatar": "LO",
+            "text": "Who trained the new hire? That's 3 errors today.",
+            "time": "8 min ago"
+          },
+          {
+            "sender": "Marta S.",
+            "avatar": "MS",
+            "text": "Yesterday's report is still missing.",
+            "time": "12 min ago"
+          },
+          {
+            "sender": "Regional Dir.",
+            "avatar": "RD",
+            "text": "This cannot happen again. I want solutions.",
+            "time": "15 min ago"
+          }
         ],
         "outgoing": [
-          { "sender": "TradeDataHub", "avatar": "✓", "text": "Error logged. Action plan created automatically.", "time": "Now" },
-          { "sender": "TradeDataHub", "avatar": "✓", "text": "Client managed. Active follow-up in the system.", "time": "Now" },
-          { "sender": "TradeDataHub", "avatar": "✓", "text": "New hire productive in 3 days with digital onboarding.", "time": "Now" },
-          { "sender": "TradeDataHub", "avatar": "✓", "text": "Report updated in real time. Zero incidents this month.", "time": "Now" },
-          { "sender": "TradeDataHub", "avatar": "✓", "text": "Recurring errors dropped 74%. Data on the dashboard.", "time": "Now" }
+          {
+            "sender": "TradeDataHub",
+            "avatar": "✓",
+            "text": "Error logged. Action plan created automatically.",
+            "time": "Now"
+          },
+          {
+            "sender": "TradeDataHub",
+            "avatar": "✓",
+            "text": "Client managed. Active follow-up in the system.",
+            "time": "Now"
+          },
+          {
+            "sender": "TradeDataHub",
+            "avatar": "✓",
+            "text": "New hire productive in 3 days with digital onboarding.",
+            "time": "Now"
+          },
+          {
+            "sender": "TradeDataHub",
+            "avatar": "✓",
+            "text": "Report updated in real time. Zero incidents this month.",
+            "time": "Now"
+          },
+          {
+            "sender": "TradeDataHub",
+            "avatar": "✓",
+            "text": "Recurring errors dropped 74%. Data on the dashboard.",
+            "time": "Now"
+          }
         ]
       }
     },
@@ -2219,7 +2330,8 @@
     "approvedSubmissions": "Approved",
     "recentActivity": "Recent Activity",
     "quickActions": "Quick Actions",
-    "viewPlans": "View Plans"
+    "viewPlans": "View Plans",
+    "products": "Services"
   },
   "ratingModal": {
     "title": "Rate",
@@ -2280,7 +2392,10 @@
     "unknownChallenge": "Unknown challenge",
     "unknownTrainer": "Unknown trainer",
     "unknownPlan": "Unknown plan",
-    "unknownItem": "Unknown item"
+    "unknownItem": "Unknown item",
+    "fetchDashboardError": "Error loading ratings dashboard",
+    "fetchError": "Error loading ratings",
+    "fetchSummaryError": "Error loading ratings summary"
   },
   "insights": {
     "title": "Reports & Insights",
@@ -2608,6 +2723,8 @@
     "teamDescPlaceholder": "Team description, area of activity...",
     "teamSector": "Sector / Department",
     "noSector": "No sector",
+    "teamOrg": "Organisation",
+    "noOrg": "No organisation",
     "fieldRequired": "Required field",
     "selectedCount": "selected",
     "management": "Management",
@@ -2617,7 +2734,13 @@
     "errorMasterData": "Error Master Data",
     "orgHierarchy": "Org Hierarchy",
     "trainerValidation": "Pending Validations",
-    "tutoriaConfig": "Tutoria"
+    "tutoriaConfig": "Tutoria",
+    "searchUsers": "Search users...",
+    "removeMember": "Remove member",
+    "addMemberLabel": "Add member",
+    "allUsersAssigned": "No users available",
+    "noResults": "No results",
+    "teamMembersSection": "Team Members"
   },
   "tutoriaDetail": {
     "severity": {
@@ -2627,12 +2750,19 @@
       "CRITICA": "Critical"
     },
     "status": {
+      "REGISTERED": "Registered",
+      "ANALYSIS": "Under Review",
       "ABERTO": "Open",
       "EM_ANALISE": "Under Review",
       "PLANO_CRIADO": "Plan Created",
       "EM_EXECUCAO": "In Progress",
       "CONCLUIDO": "Completed",
-      "VERIFICADO": "Verified"
+      "VERIFICADO": "Verified",
+      "PENDING_TUTOR_REVIEW": "Tutor Review",
+      "PENDING_CHIEF_APPROVAL": "Pending Approval",
+      "APPROVED": "Approved",
+      "CANCELLED": "Cancelled",
+      "RESOLVED": "Resolved"
     },
     "planStatus": {
       "RASCUNHO": "Draft",
@@ -2695,7 +2825,7 @@
     "noComments": "No comments",
     "anonymous": "Anonymous",
     "addComment": "Write a comment...",
-    "errorLabel": "Error",
+    "errorLabel": "Incident",
     "planLabel": "Plan",
     "refs": "References",
     "tabRegisto": "Record",
@@ -2730,31 +2860,36 @@
     "cancelledBy": "Cancelled by"
   },
   "tutoriaErrors": {
-    "loadError": "Error loading errors",
-    "title": "Error Management",
-    "myTitle": "My Errors",
-    "errorCount": "{{count}} error(s) found",
-    "registerError": "Register Error",
+    "loadError": "Error loading incidents",
+    "title": "Incident Management",
+    "myTitle": "My Incidents",
+    "errorCount": "{{count}} incident(s) found",
+    "registerError": "Register Incident",
     "searchPlaceholder": "Search by description, tutee or category...",
     "filters": "Filters",
-    "allSeverities": "All Severities",
+    "allImpacts": "All Impacts",
     "allRecurrence": "All Recurrence",
     "recurrent": "Recurrent",
     "noRecurrence": "Non-Recurrent",
     "clearFilters": "Clear Filters",
-    "noErrors": "No errors registered",
-    "noFilterResults": "No errors match the filters",
-    "registerFirst": "Register First Error",
-    "errorTutorado": "Error / Tutee",
+    "noErrors": "No incidents registered",
+    "noFilterResults": "No incidents match the filters",
+    "registerFirst": "Register First Incident",
+    "errorTutorado": "Incident / Tutee",
     "category": "Category",
     "status": "Status",
-    "severity": "Severity",
+    "impact": "Impact",
     "plans": "Plans",
     "time": "time",
-    "ofErrors": "of {{total}} error(s)",
-    "newError": "New Error",
+    "ofErrors": "of {{total}} incident(s)",
+    "newError": "New Incident",
     "recurrenceLabel": "Attention:",
-    "recurrenceWarning": "Errors marked with the recurrence icon occurred more than once for the same tutee and category. From the 3rd time onwards the alert is red."
+    "recurrenceWarning": "Incidents marked with the recurrence icon occurred more than once for the same tutee and category. From the 3rd time onwards the alert is red.",
+    "headerLabel": "Tutoring",
+    "overdue": "Overdue",
+    "overdueWarning": "{{count}} incident(s) exceeded the monthly closing deadline (1st business day of the following month).",
+    "analysisTitle": "Incident Analysis",
+    "tutorReviewTitle": "Tutor Review"
   },
   "registerError": {
     "recurrencePuntual": "One-time",
@@ -2840,7 +2975,7 @@
     "redirecting": "Redirecting…",
     "portalLabel": "Tutoring",
     "pageTitle": "Action Plan",
-    "errorLabel": "Error",
+    "errorLabel": "Incident",
     "errorUnderAnalysis": "Error under analysis",
     "rootCauseTitle": "Root Cause Analysis",
     "rootCauseSubtitle": "5 Whys technique — ask \"why\" repeatedly until you find the root cause",
@@ -3039,8 +3174,11 @@
     "defaultTitle": "Action Plan #{{id}}",
     "deadline": "Deadline",
     "actionsProgress": "{{completed}}/{{total}} actions",
-    "errorLabel": "Error",
+    "errorLabel": "Incident",
     "status": {
+      "OPEN": "Open",
+      "IN_PROGRESS": "In Progress",
+      "DONE": "Completed",
       "RASCUNHO": "Draft",
       "AGUARDANDO_APROVACAO": "Pending Approval",
       "APROVADO": "Approved",
@@ -3345,7 +3483,7 @@
     "priority": "Priority",
     "supportUrlPlaceholder": "https://…",
     "supportLabelPlaceholder": "View support material",
-    "roleFilterPlaceholder": "ADMIN,TRAINER (empty = all)",
+    "roleFilterPlaceholder": "ADMIN,FORMADOR (empty = all)",
     "roleFilterHint": "Leave empty for all or separate by comma",
     "priorityHint": "Lower number = higher priority",
     "cancel": "Cancel",
@@ -3391,24 +3529,30 @@
     "noProduct": "— No product —",
     "managerLabel": "Manager (team leader)",
     "noManagerOption": "— No manager —",
-    "noManagersFound": "No user with MANAGER role found",
+    "noManagersFound": "No user with GERENTE role found",
     "saving": "Saving…",
     "save": "Save",
     "cancel": "Cancel",
     "nameRequired": "Name is required",
     "saveError": "Error saving",
-    "confirmRemoveMember": "Remove this member from the team?"
+    "confirmRemoveMember": "Remove this member from the team?",
+    "departmentLabel": "Department",
+    "noDepartment": "— No department —",
+    "noDepartmentsFound": "No departments configured in Master Data",
+    "membersSection": "Team Members",
+    "editMembers": "Edit / Members",
+    "clickEditToManage": "Click ✏ to edit the team and manage members"
   },
   "adminPortalTutoria": {
     "loading": "Loading dashboard…",
-    "headerLabel": "Error Management Portal",
+    "headerLabel": "Incident Management Portal",
     "myPanel": "My Panel",
     "dashboard": "Dashboard",
-    "studentSubtitle": "Your errors and assigned action plans",
+    "studentSubtitle": "Your incidents and assigned action plans",
     "adminSubtitle": "Overview of the entire operation",
     "trainerSubtitle": "Your team of tutees overview",
-    "registerError": "Register Error",
-    "totalErrors": "Total Errors",
+    "registerError": "Register Incident",
+    "totalErrors": "Total Incidents",
     "openErrors": "{{count}} open",
     "recurrent": "Recurrent",
     "sameTypeRepeated": "same type repeated",
@@ -3417,20 +3561,26 @@
     "completedPlans": "Completed Plans",
     "overdueCount": "{{count}} overdue",
     "noOverdue": "no overdue",
-    "myRecentErrors": "My Recent Errors",
-    "recentErrors": "Recent Errors",
+    "myRecentErrors": "My Recent Incidents",
+    "recentErrors": "Recent Incidents",
     "viewAll": "View all",
-    "noErrorsRegistered": "No errors registered",
+    "noErrorsRegistered": "No incidents registered",
     "recurrenceCount": "{{count}}th time",
     "myPlans": "My Plans",
     "recentPlans": "Recent Plans",
     "noPlanCreated": "No action plan created",
     "planFallback": "Plan #{{id}}",
     "actionsCompleted": "{{completed}}/{{total}} actions completed",
-    "errorsBySeverity": "Errors by Severity",
+    "errorsBySeverity": "Incidents by Severity",
+    "impactByAnalysis": "Analysis by Impact",
+    "noImpactData": "No incidents with defined impact",
+    "impact": {
+      "ALTA": "High",
+      "BAIXA": "Low"
+    },
     "planStatuses": "Plan Statuses",
     "overdueWarning": "{{count}} plan(s) overdue",
-    "viewAllErrors": "View all Errors",
+    "viewAllErrors": "View all Incidents",
     "viewPlans": "View Plans",
     "studentCtaTitle": "You have plans in execution that need your attention",
     "studentCtaSub": "Submit evidence to complete your actions",
@@ -3447,14 +3597,6 @@
       "EM_EXECUCAO": "In Execution",
       "CONCLUIDO": "Completed",
       "VERIFICADO": "Verified"
-    },
-    "planStatus": {
-      "RASCUNHO": "Draft",
-      "AGUARDANDO_APROVACAO": "Awaiting Approval",
-      "APROVADO": "Approved",
-      "EM_EXECUCAO": "In Execution",
-      "CONCLUIDO": "Completed",
-      "DEVOLVIDO": "Returned"
     }
   },
   "orgHierarchy": {
@@ -3548,7 +3690,12 @@
     "errMethodology": "Methodology",
     "errKnowledge": "Knowledge",
     "errDetail": "Detail",
-    "errProcedure": "Procedure"
+    "errProcedure": "Procedure",
+    "errorsByTypologyHint": "Error typology in challenge submissions",
+    "noErrors": "No errors recorded",
+    "noPlans": "No plan data",
+    "monthlyTrend": "Monthly Trend",
+    "topCourses": "Courses by Enrollments"
   },
   "relIncidents": {
     "accessRestricted": "Access restricted",
@@ -3639,12 +3786,12 @@
     "plans": "Plans",
     "noMemberFound": "No member found",
     "roles": {
-      "STUDENT": "Student",
-      "TRAINEE": "Trainee",
-      "TRAINER": "Trainer",
-      "MANAGER": "Manager",
       "ADMIN": "Admin",
-      "GESTOR": "Manager"
+      "DIRETOR": "Director",
+      "GERENTE": "Manager",
+      "CHEFE_EQUIPE": "Team Leader",
+      "FORMADOR": "Trainer",
+      "USUARIO": "User"
     }
   },
   "relTeams": {
@@ -3657,7 +3804,9 @@
     "product": "Product",
     "manager": "Manager",
     "noTeamFound": "No team found",
-    "rate": "Rate"
+    "noErrors": "No errors recorded",
+    "rate": "Rate",
+    "internalErrors": "Internal Errors"
   },
   "relTutoria": {
     "portalTitle": "Tutoring Portal",
@@ -3685,7 +3834,13 @@
     "planPending": "Pending",
     "planInProgress": "In Progress",
     "planCompleted": "Completed",
-    "planDelayed": "Delayed"
+    "planDelayed": "Delayed",
+    "byCategory": "Errors by Category",
+    "byTrainer": "By Tutor",
+    "monthlyTrend": "Monthly Error Trend",
+    "category": "Category",
+    "trainer": "Tutor",
+    "avgDays": "Avg. Days"
   },
   "chamadosSidebar": {
     "kanban": "Kanban Board"

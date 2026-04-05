@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+import { STORAGE_KEYS } from '../constants/storageKeys';
 
 interface SidebarState {
   collapsed: boolean;
@@ -21,7 +22,7 @@ export const useSidebarStore = create<SidebarState>()(
       closeMobile: () => set({ mobileOpen: false }),
     }),
     {
-      name: 'sidebar-prefs',
+      name: STORAGE_KEYS.SIDEBAR,
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({ collapsed: s.collapsed }),
     },

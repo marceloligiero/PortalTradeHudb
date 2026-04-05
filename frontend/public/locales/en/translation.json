@@ -128,6 +128,10 @@
       "rememberedPassword": "Remember your password?",
       "errorResetting": "Error resetting password",
       "passwordsDontMatch": "Passwords do not match"
+    },
+    "sso": {
+      "loginWithMicrosoft": "Sign in with Microsoft",
+      "authenticating": "Authenticating..."
     }
   },
   "navigation": {

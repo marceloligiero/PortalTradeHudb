@@ -3,6 +3,7 @@ import {
   Filter, Loader2, AlertTriangle, ChevronDown,
   Calendar, X, FileSpreadsheet, Search, RefreshCw,
 } from 'lucide-react';
+import { KpiCard } from '../../components/reports';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import api from '../../lib/axios';
@@ -23,6 +24,7 @@ interface Incident {
   final_client: string | null;
   amount: number | null;
   currency: string | null;
+  impact_level: string | null;
   impact_name: string | null;
   origin_name: string | null;
   clasificacion: string | null;
@@ -113,7 +115,7 @@ export default function IncidentsReport() {
   // Filter state
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [impactId, setImpactId] = useState('');
+  const [impactLevel, setImpactLevel] = useState('');
   const [originId, setOriginId] = useState('');
   const [bankId, setBankId] = useState('');
   const [departmentId, setDepartmentId] = useState('');
@@ -123,15 +125,10 @@ export default function IncidentsReport() {
   const [recurrence, setRecurrence] = useState('');
   const [searchText, setSearchText] = useState('');
 
-  // Load filters on mount, then default to "Alto" impact
+  // Load filter options on mount
   useEffect(() => {
     api.get('/relatorios/incidents/filters')
-      .then(r => {
-        const f: Filters = r.data;
-        setFilters(f);
-        const alto = f.impacts?.find((i: FilterOption) => i.name.toLowerCase() === 'alto');
-        if (alto) setImpactId(String(alto.id));
-      })
+      .then(r => setFilters(r.data))
       .catch(() => {});
   }, []);
 
@@ -141,7 +138,7 @@ export default function IncidentsReport() {
     const params = new URLSearchParams();
     if (dateFrom) params.set('date_from', dateFrom);
     if (dateTo) params.set('date_to', dateTo);
-    if (impactId) params.set('impact_id', impactId);
+    if (impactLevel) params.set('impact_level', impactLevel);
     if (originId) params.set('origin_id', originId);
     if (bankId) params.set('bank_id', bankId);
     if (departmentId) params.set('department_id', departmentId);
@@ -178,8 +175,7 @@ export default function IncidentsReport() {
   // Clear filters
   const clearFilters = () => {
     setDateFrom(''); setDateTo('');
-    const alto = filters?.impacts?.find(i => i.name.toLowerCase() === 'alto');
-    setImpactId(alto ? String(alto.id) : '');
+    setImpactLevel('');
     setOriginId('');
     setBankId(''); setDepartmentId('');
     setDetectedById(''); setCategoryId('');
@@ -187,7 +183,7 @@ export default function IncidentsReport() {
     setSearchText('');
   };
 
-  const hasActiveFilters = dateFrom || dateTo || impactId || originId || bankId || departmentId || detectedById || categoryId || productId || recurrence;
+  const hasActiveFilters = dateFrom || dateTo || impactLevel || originId || bankId || departmentId || detectedById || categoryId || productId || recurrence;
 
   // Excel Export — headers always in Spanish (regulatory requirement)
   const ES_EXCEL_HEADERS = {
@@ -228,7 +224,7 @@ export default function IncidentsReport() {
       [ES_EXCEL_HEADERS.classification]: i.clasificacion || '',
       [ES_EXCEL_HEADERS.origin]: i.origin_name || '',
       [ES_EXCEL_HEADERS.errorTypology]: i.category_name || '',
-      [ES_EXCEL_HEADERS.impact]: i.impact_name || '',
+      [ES_EXCEL_HEADERS.impact]: i.impact_level === 'ALTA' ? 'Alto' : i.impact_level === 'BAIXA' ? 'Baixo' : i.impact_name || '',
       [ES_EXCEL_HEADERS.recurrence]: ({ SI: 'Sí', NO: 'No', PERIODICA: 'Periódica', FIRST: 'Primera Vez', RECURRENT: 'Recurrente', SYSTEMIC: 'Sistémico' } as Record<string, string>)[i.recurrence_type ?? ''] ?? i.recurrence_type ?? '',
       [ES_EXCEL_HEADERS.detectedBy]: i.detected_by_name || '',
       [ES_EXCEL_HEADERS.description]: i.description || '',
@@ -252,8 +248,8 @@ export default function IncidentsReport() {
     XLSX.writeFile(wb, `Formulario_unico_Trade_Incidencias_${today}.xlsx`);
   };
 
-  // Count high impact
-  const highImpactCount = filtered.filter(i => (i.impact_name || '').toLowerCase() === 'alto').length;
+  // Count high impact — use impact_level field (always populated)
+  const highImpactCount = filtered.filter(i => i.impact_level === 'ALTA').length;
 
   // Access denied
   if (!canView) {
@@ -364,7 +360,15 @@ export default function IncidentsReport() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-gray-500 dark:text-gray-400">{t('relIncidents.impact')}</label>
-                <SelectFilter value={impactId} onChange={setImpactId} options={filters.impacts} placeholder={t('relIncidents.all')} />
+                <div className="relative">
+                  <select value={impactLevel} onChange={e => setImpactLevel(e.target.value)}
+                    className="w-full appearance-none px-3 py-2 pr-8 rounded-xl border text-sm outline-none transition-all bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#EC0000]/30">
+                    <option value="">{t('relIncidents.all')}</option>
+                    <option value="ALTA">Alto</option>
+                    <option value="BAIXA">Baixo</option>
+                  </select>
+                  <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                </div>
               </div>
               <div>
                 <label className="text-xs font-semibold uppercase tracking-wider mb-1.5 block text-gray-500 dark:text-gray-400">{t('relIncidents.origin')}</label>
@@ -414,19 +418,24 @@ export default function IncidentsReport() {
       {/* ── KPI Summary ────────────────────────────────────────────────────── */}
       {!loading && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { label: t('relIncidents.totalIncidents'), value: filtered.length, boxCls: 'bg-blue-50 dark:bg-blue-900/20', textCls: 'text-blue-600 dark:text-blue-400' },
-            { label: t('relIncidents.highImpactLabel'), value: highImpactCount, boxCls: 'bg-red-50 dark:bg-red-900/20', textCls: 'text-[#EC0000]' },
-            { label: t('relIncidents.lowImpact'), value: filtered.filter(i => (i.impact_name || '').toLowerCase() === 'baixo').length, boxCls: 'bg-emerald-50 dark:bg-emerald-900/20', textCls: 'text-emerald-600 dark:text-emerald-400' },
-            { label: t('relIncidents.recurrentLabel'), value: filtered.filter(i => i.recurrence_type === 'RECURRENT' || i.recurrence_type === 'SYSTEMIC').length, boxCls: 'bg-amber-50 dark:bg-amber-900/20', textCls: 'text-amber-600 dark:text-amber-400' },
-          ].map(kpi => (
-            <div key={kpi.label} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-4 flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${kpi.boxCls}`}>
-                <span className={`text-sm font-mono font-bold ${kpi.textCls}`}>{kpi.value}</span>
-              </div>
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{kpi.label}</span>
-            </div>
-          ))}
+          <KpiCard index={0} icon={AlertTriangle}
+            label={t('relIncidents.totalIncidents')} value={filtered.length}
+            boxClass="bg-blue-50 dark:bg-blue-900/20" iconClass="text-blue-600 dark:text-blue-400"
+          />
+          <KpiCard index={1} icon={AlertTriangle}
+            label={t('relIncidents.highImpactLabel')} value={highImpactCount}
+            boxClass="bg-red-50 dark:bg-red-900/20" iconClass="text-[#EC0000]"
+          />
+          <KpiCard index={2} icon={AlertTriangle}
+            label={t('relIncidents.lowImpact')}
+            value={filtered.filter(i => i.impact_level === 'BAIXA').length}
+            boxClass="bg-emerald-50 dark:bg-emerald-900/20" iconClass="text-emerald-600 dark:text-emerald-400"
+          />
+          <KpiCard index={3} icon={RefreshCw}
+            label={t('relIncidents.recurrentLabel')}
+            value={filtered.filter(i => i.recurrence_type === 'RECURRENT' || i.recurrence_type === 'SYSTEMIC').length}
+            boxClass="bg-amber-50 dark:bg-amber-900/20" iconClass="text-amber-600 dark:text-amber-400"
+          />
         </div>
       )}
 

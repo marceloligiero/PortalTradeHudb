@@ -231,8 +231,8 @@ export default function RegisterInternalError() {
             {[
               { value: 'METHODOLOGY', label: t('registerInternalError.methodology'), active: 'border-blue-500 bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 ring-1 ring-blue-500/30' },
               { value: 'KNOWLEDGE', label: t('registerInternalError.knowledge'), active: 'border-purple-500 bg-purple-50 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 ring-1 ring-purple-500/30' },
-              { value: 'DETAIL', label: t('registerInternalError.detail'), active: 'border-amber-500 bg-amber-50 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30' },
-              { value: 'PROCEDURE', label: t('registerInternalError.procedure'), active: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30' },
+              { value: 'DETAIL', label: t('registerInternalError.detailLabel'), active: 'border-amber-500 bg-amber-50 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/30' },
+              { value: 'PROCEDURE', label: t('registerInternalError.procedureLabel'), active: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 ring-1 ring-emerald-500/30' },
             ].map(opt => {
               const isSelected = classifications.some(c => c.type === opt.value);
               return (
@@ -258,7 +258,7 @@ export default function RegisterInternalError() {
           {classifications.length > 0 && (
             <div className="space-y-3">
               {classifications.map((c, idx) => {
-                const labelMap: Record<string,string> = { METHODOLOGY: t('registerInternalError.methodology'), KNOWLEDGE: t('registerInternalError.knowledge'), DETAIL: t('registerInternalError.detail'), PROCEDURE: t('registerInternalError.procedure') };
+                const labelMap: Record<string,string> = { METHODOLOGY: t('registerInternalError.methodology'), KNOWLEDGE: t('registerInternalError.knowledge'), DETAIL: t('registerInternalError.detailLabel'), PROCEDURE: t('registerInternalError.procedureLabel') };
                 return (
                   <div key={c.type} className="p-3 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900">
                     <div className="flex items-center justify-between mb-2">

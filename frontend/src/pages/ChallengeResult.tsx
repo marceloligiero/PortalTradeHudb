@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, TrendingUp, Target, Clock, Award, Check, X, AlertTriangle, Star, RotateCcw } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Target, Clock, Check, X, AlertTriangle, Star, RotateCcw, Send } from 'lucide-react';
 import api from '../lib/axios';
 import { useAuthStore } from '../stores/authStore';
-import { useTheme } from '../contexts/ThemeContext';
 import { RatingModal } from '../components';
 
 interface OperationError {
@@ -63,7 +62,7 @@ interface ChallengeSubmissionDetail {
     time_limit_minutes: number;
     target_mpu: number;
     max_errors?: number;
-    target_kpi?: string;  // KPI sendo avaliado (deprecated)
+    target_kpi?: string;
     challenge_type?: string;
     kpi_mode?: 'AUTO' | 'MANUAL';
     use_volume_kpi?: boolean;
@@ -85,7 +84,7 @@ interface ChallengeSubmissionDetail {
     mpu: number;
   }>;
   operations?: ChallengeOperation[];
-  submission_errors?: SubmissionError[];  // Erros para SUMMARY
+  submission_errors?: SubmissionError[];
   errors_summary?: ErrorsSummary;
 }
 
@@ -96,7 +95,7 @@ const ChallengeResult: React.FC = () => {
   const searchParams = new URLSearchParams(window.location.search);
   const urlPlanId = searchParams.get('planId');
   const { user } = useAuthStore();
-  
+
   const [loading, setLoading] = useState(true);
   const [submission, setSubmission] = useState<ChallengeSubmissionDetail | null>(null);
   const [approving, setApproving] = useState(false);
@@ -104,10 +103,7 @@ const ChallengeResult: React.FC = () => {
   const [hasRated, setHasRated] = useState(false);
   const [isPlanFinalized, setIsPlanFinalized] = useState(false);
 
-  // Verificar se é formador/admin
-  const isTrainerOrAdmin = user?.role === 'ADMIN' || user?.role === 'TRAINER';
-
-  // Usar planId da URL ou da submission
+  const isTrainerOrAdmin = user?.is_admin || user?.is_formador;
   const planId = urlPlanId || (submission?.training_plan_id ? String(submission.training_plan_id) : null);
 
   useEffect(() => {
@@ -118,10 +114,9 @@ const ChallengeResult: React.FC = () => {
     try {
       const response = await api.get(`/api/challenges/submissions/${submissionId}`);
       setSubmission(response.data);
-      
+
       const effectivePlanId = urlPlanId || response.data?.training_plan_id;
-      
-      // Check if plan is finalized
+
       if (effectivePlanId) {
         try {
           const planResp = await api.get(`/api/training-plans/${effectivePlanId}/completion-status`);
@@ -129,13 +124,12 @@ const ChallengeResult: React.FC = () => {
         } catch (err) {
           console.log('Erro ao verificar status do plano');
         }
-        
-        // Check if user already rated this challenge (no contexto do plano de formação)
+
         if (response.data?.challenge_id) {
           try {
             const ratingResp = await api.get(`/api/ratings/check`, {
-              params: { 
-                rating_type: 'CHALLENGE', 
+              params: {
+                rating_type: 'CHALLENGE',
                 challenge_id: response.data.challenge_id,
                 training_plan_id: effectivePlanId
               }
@@ -157,14 +151,13 @@ const ChallengeResult: React.FC = () => {
     if (!submission) return;
     setApproving(true);
     try {
-      // Verificar se é MANUAL ou AUTO para escolher o endpoint correto
       const kpiMode = submission.challenge?.kpi_mode || 'AUTO';
-      const endpoint = kpiMode === 'MANUAL' 
+      const endpoint = kpiMode === 'MANUAL'
         ? `/api/challenges/submissions/${submissionId}/manual-finalize`
         : `/api/challenges/submissions/${submissionId}/finalize-review`;
-      
+
       await api.post(endpoint, { approve });
-      await loadSubmission(); // Recarregar dados
+      await loadSubmission();
     } catch (err: any) {
       console.error('Erro ao aprovar/reprovar:', err);
       alert(err.response?.data?.detail || t('challengeResult.approvalError'));
@@ -175,16 +168,16 @@ const ChallengeResult: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-red-50/20 to-gray-100 dark:from-gray-900 dark:via-red-900/20 dark:to-gray-900 flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-gray-300 dark:border-white/30 border-t-red-500 rounded-full animate-spin" />
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-[#EC0000]/20 border-t-[#EC0000] rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!submission) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-red-50/20 to-gray-100 dark:from-gray-900 dark:via-red-900/20 dark:to-gray-900 flex items-center justify-center">
-        <div className="text-gray-900 dark:text-white">{t('challengeResult.notFound')}</div>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="font-body text-gray-900 dark:text-white">{t('challengeResult.notFound')}</div>
       </div>
     );
   }
@@ -199,577 +192,535 @@ const ChallengeResult: React.FC = () => {
     });
   };
 
+  // Status badge config
+  const statusConfig: Record<string, { bg: string; border: string; text: string; icon: React.ReactNode; label: string }> = {
+    APPROVED: {
+      bg: 'bg-green-50 dark:bg-green-900/20',
+      border: 'border-green-200 dark:border-green-500/30',
+      text: 'text-green-600 dark:text-green-400',
+      icon: <Check className="w-5 h-5" />,
+      label: t('challengeResult.approved'),
+    },
+    REJECTED: {
+      bg: 'bg-red-50 dark:bg-red-900/20',
+      border: 'border-red-200 dark:border-red-500/30',
+      text: 'text-red-600 dark:text-red-400',
+      icon: <X className="w-5 h-5" />,
+      label: t('challengeResult.rejected'),
+    },
+    PENDING_REVIEW: {
+      bg: 'bg-yellow-50 dark:bg-yellow-900/20',
+      border: 'border-yellow-200 dark:border-yellow-500/30',
+      text: 'text-yellow-600 dark:text-yellow-400',
+      icon: <Clock className="w-5 h-5" />,
+      label: t('challengeResult.pendingReview'),
+    },
+  };
+
+  const currentStatus = statusConfig[submission.status || ''] || {
+    bg: 'bg-blue-50 dark:bg-blue-900/20',
+    border: 'border-blue-200 dark:border-blue-500/30',
+    text: 'text-blue-600 dark:text-blue-400',
+    icon: <Clock className="w-5 h-5" />,
+    label: t('challengeResult.inProgress'),
+  };
+
+  // Metric cards config
+  const metrics = [
+    {
+      icon: Target,
+      title: t('challengeResult.operationsVolume'),
+      desc: t('challengeResult.operationsVolumeDesc'),
+      value: submission.total_operations,
+      unit: '',
+      target: submission.challenge.operations_required,
+      targetLabel: t('challengeResult.ofRequired', { count: submission.challenge.operations_required }),
+      pct: Math.round((submission.total_operations / submission.challenge.operations_required) * 100),
+      ok: submission.total_operations >= submission.challenge.operations_required,
+      barColor: 'from-green-500 to-emerald-400',
+    },
+    {
+      icon: AlertTriangle,
+      title: t('challengeResult.operationsWithErrors'),
+      desc: t('challengeResult.operationsWithErrorsDesc'),
+      value: submission.errors_summary?.operations_with_errors ?? submission.errors_count ?? 0,
+      unit: '',
+      target: submission.errors_summary?.max_errors_allowed ?? submission.challenge.max_errors ?? 0,
+      targetLabel: `${t('challengeResult.maxAllowed')}: ${submission.errors_summary?.max_errors_allowed ?? submission.challenge.max_errors ?? 0}`,
+      pct: Math.min(Math.round(((submission.errors_summary?.operations_with_errors ?? submission.errors_count ?? 0) / Math.max(submission.errors_summary?.max_errors_allowed ?? submission.challenge.max_errors ?? 1, 1)) * 100), 100),
+      ok: (submission.errors_summary?.operations_with_errors ?? submission.errors_count ?? 0) <= (submission.errors_summary?.max_errors_allowed ?? submission.challenge.max_errors ?? 0),
+      barColor: 'from-red-500 to-orange-500',
+    },
+    {
+      icon: Clock,
+      title: t('challengeResult.totalTime'),
+      desc: t('challengeResult.totalTimeDesc'),
+      value: submission.total_time_minutes,
+      unit: 'min',
+      target: submission.challenge.time_limit_minutes,
+      targetLabel: `${t('challengeResult.timeLimit')}: ${submission.challenge.time_limit_minutes} ${t('challengeResult.minutes')}`,
+      pct: Math.min(Math.round((submission.total_time_minutes / submission.challenge.time_limit_minutes) * 100), 100),
+      ok: submission.total_time_minutes <= submission.challenge.time_limit_minutes,
+      barColor: 'from-blue-500 to-cyan-400',
+    },
+    {
+      icon: TrendingUp,
+      title: t('challengeResult.mpuTitle'),
+      desc: t('challengeResult.mpuDesc'),
+      value: (submission.calculated_mpu ?? 0).toFixed(2),
+      unit: 'min/op',
+      target: submission.challenge?.target_mpu ?? 0,
+      targetLabel: `${t('challengeResult.mpuTarget')}: ≤ ${(submission.challenge?.target_mpu ?? 0).toFixed(2)} min/op`,
+      pct: Math.min(Math.round(((submission.challenge?.target_mpu ?? 1) / Math.max(submission.calculated_mpu ?? 1, 0.01)) * 100), 100),
+      ok: (submission.calculated_mpu ?? 0) <= (submission.challenge?.target_mpu ?? 0),
+      barColor: 'from-yellow-500 to-amber-400',
+    },
+  ];
+
+  const errorTypeStyle = (type: string) => {
+    switch (type) {
+      case 'METHODOLOGY': return 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400';
+      case 'KNOWLEDGE': return 'bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400';
+      case 'DETAIL': return 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400';
+      case 'PROCEDURE': return 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400';
+      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400';
+    }
+  };
+
+  const errorTypeLabel = (type: string) => {
+    switch (type) {
+      case 'METHODOLOGY': return t('challengeResult.methodology');
+      case 'KNOWLEDGE': return t('challengeResult.knowledge');
+      case 'DETAIL': return t('challengeResult.detail');
+      case 'PROCEDURE': return t('challengeResult.procedure');
+      default: return type;
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-red-50/20 to-gray-100 dark:from-gray-900 dark:via-red-900/20 dark:to-gray-900 py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
+    <div className="space-y-6">
+      {/* ── Header Card ── */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="flex items-start gap-4">
           <button
             onClick={() => planId ? navigate(`/training-plans/${planId}`) : navigate(-1)}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors mb-4"
+            className="p-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-[#EC0000]/30 transition-colors shrink-0"
           >
-            <ArrowLeft className="w-5 h-5" />
-            {t('common.back')}
+            <ArrowLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
           </button>
-          
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-red-500 to-yellow-500 bg-clip-text text-transparent">
-                {t('challengeResult.title')}
-              </h1>
-              <p className="text-gray-500 dark:text-gray-400 mt-2">{submission.challenge.title}</p>
-              <p className="text-sm text-gray-500 mt-1">
-                {t('challengeResult.student')}: {submission.user.full_name}
-              </p>
-              {/* KPI e Tipo de Desafio */}
-              <div className="flex flex-wrap items-center gap-2 mt-3">
-                {submission.challenge.challenge_type && (
-                  <span className="px-3 py-1 bg-blue-500/20 border border-blue-500/30 rounded-full text-sm text-blue-400">
-                    {submission.challenge.challenge_type === 'SUMMARY' ? t('challengeResult.typeSummary') : t('challengeResult.typeComplete')}
-                  </span>
-                )}
-                {/* KPIs avaliados */}
-                <span className="text-gray-500 text-sm">{t('challengeResult.kpisEvaluated')}:</span>
-                {submission.challenge.use_volume_kpi && (
-                  <span className="px-3 py-1 bg-green-500/20 border border-green-500/30 rounded-lg text-xs text-green-400" title={t('challengeResult.volumeTooltip')}>
-                    📊 {t('challengeResult.volumeKpi')}
-                  </span>
-                )}
-                {submission.challenge.use_mpu_kpi && (
-                  <span className="px-3 py-1 bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-xs text-yellow-400" title={t('challengeResult.mpuTooltip')}>
-                    ⏱️ {t('challengeResult.mpuKpi')}
-                  </span>
-                )}
-                {submission.challenge.use_errors_kpi && (
-                  <span className="px-3 py-1 bg-red-500/20 border border-red-500/30 rounded-lg text-xs text-red-400" title={t('challengeResult.errorsTooltip')}>
-                    ⚠️ {t('challengeResult.errorsKpi')}
-                  </span>
-                )}
-              </div>
+
+          <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+            <Target className="w-6 h-6 text-[#EC0000]" />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <p className="font-body text-xs font-bold uppercase tracking-widest text-[#EC0000] mb-1">
+              {t('challengeResult.title')}
+            </p>
+            <h1 className="font-headline text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+              {submission.challenge.title}
+            </h1>
+            <p className="font-body text-sm text-gray-500 dark:text-gray-400 mt-1">
+              {t('challengeResult.student')}: {submission.user.full_name}
+            </p>
+
+            {/* KPI Badges */}
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              {submission.challenge.challenge_type && (
+                <span className="px-3 py-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-xs font-bold text-gray-600 dark:text-gray-300">
+                  {submission.challenge.challenge_type === 'SUMMARY' ? t('challengeResult.typeSummary') : t('challengeResult.typeComplete')}
+                </span>
+              )}
+              <span className="font-body text-xs text-gray-400 dark:text-gray-500">{t('challengeResult.kpisEvaluated')}:</span>
+              {submission.challenge.use_volume_kpi && (
+                <span className="px-2.5 py-1 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-500/30 rounded-lg text-xs font-bold text-green-600 dark:text-green-400">
+                  {t('challengeResult.volumeKpi')}
+                </span>
+              )}
+              {submission.challenge.use_mpu_kpi && (
+                <span className="px-2.5 py-1 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-500/30 rounded-lg text-xs font-bold text-yellow-600 dark:text-yellow-400">
+                  {t('challengeResult.mpuKpi')}
+                </span>
+              )}
+              {submission.challenge.use_errors_kpi && (
+                <span className="px-2.5 py-1 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 rounded-lg text-xs font-bold text-[#EC0000]">
+                  {t('challengeResult.errorsKpi')}
+                </span>
+              )}
             </div>
-            
-            {/* Status Badge */}
-            {submission.status === 'APPROVED' ? (
-              <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-green-100 dark:bg-green-500/10 border-2 border-green-300 dark:border-green-500/30">
-                <Check className="w-6 h-6 text-green-500" />
-                <span className="text-green-600 dark:text-green-500 font-bold text-lg">{t('challengeResult.approved')}</span>
-              </div>
-            ) : submission.status === 'REJECTED' ? (
-              <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-red-100 dark:bg-red-500/10 border-2 border-red-300 dark:border-red-500/30">
-                <X className="w-6 h-6 text-red-500" />
-                <span className="text-red-600 dark:text-red-500 font-bold text-lg">{t('challengeResult.rejected')}</span>
-              </div>
-            ) : submission.status === 'PENDING_REVIEW' ? (
-              <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-yellow-100 dark:bg-yellow-500/10 border-2 border-yellow-300 dark:border-yellow-500/30">
-                <Clock className="w-6 h-6 text-yellow-500" />
-                <span className="text-yellow-600 dark:text-yellow-500 font-bold text-lg">{t('challengeResult.pendingReview')}</span>
-              </div>
-            ) : (
-              <div className="px-6 py-3 rounded-lg flex items-center gap-2 bg-blue-100 dark:bg-blue-500/10 border-2 border-blue-300 dark:border-blue-500/30">
-                <Clock className="w-6 h-6 text-blue-500" />
-                <span className="text-blue-600 dark:text-blue-500 font-bold text-lg">{t('challengeResult.inProgress')}</span>
-              </div>
-            )}
+          </div>
+
+          {/* Status Badge */}
+          <div className={`px-4 py-2.5 rounded-xl flex items-center gap-2 border shrink-0 ${currentStatus.bg} ${currentStatus.border}`}>
+            <span className={currentStatus.text}>{currentStatus.icon}</span>
+            <span className={`font-body font-bold text-sm ${currentStatus.text}`}>{currentStatus.label}</span>
           </div>
         </div>
+      </div>
 
-        {/* Métricas Principais */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* Card Volume/Operações */}
-          <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 dark:from-green-500/10 dark:to-emerald-500/5 backdrop-blur-lg rounded-xl border border-green-200 dark:border-green-500/20 p-6">
+      {/* ── Metric Cards ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {metrics.map((m, i) => (
+          <div key={i} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-                  <Target className="w-6 h-6 text-green-400" />
+                <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+                  <m.icon className="w-6 h-6 text-[#EC0000]" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('challengeResult.operationsVolume')}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.operationsVolumeDesc')}</p>
+                  <h3 className="font-headline text-base font-bold text-gray-900 dark:text-white">{m.title}</h3>
+                  <p className="font-body text-xs text-gray-400 dark:text-gray-500">{m.desc}</p>
                 </div>
               </div>
-              <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                submission.total_operations >= submission.challenge.operations_required
-                  ? 'bg-green-500/20 text-green-400'
-                  : 'bg-red-500/20 text-red-400'
+              <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${
+                m.ok
+                  ? 'bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400'
+                  : 'bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400'
               }`}>
-                {submission.total_operations >= submission.challenge.operations_required ? t('challengeResult.targetReached') : t('challengeResult.belowTarget')}
-              </div>
+                {m.ok
+                  ? (i === 0 ? t('challengeResult.targetReached') : i === 1 ? t('challengeResult.withinLimit') : i === 2 ? t('challengeResult.onTime') : t('challengeResult.efficient'))
+                  : (i === 0 ? t('challengeResult.belowTarget') : i === 1 ? t('challengeResult.aboveLimit') : i === 2 ? t('challengeResult.timeExceeded') : t('challengeResult.aboveExpected'))
+                }
+              </span>
             </div>
-            <div className="flex items-end justify-between">
+            <div className="flex items-end justify-between mb-4">
               <div>
-                <p className="text-5xl font-bold text-gray-900 dark:text-white">{submission.total_operations}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('challengeResult.ofRequired', { count: submission.challenge.operations_required })}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-green-400">
-                  {Math.round((submission.total_operations / submission.challenge.operations_required) * 100)}%
+                <p className="font-mono text-4xl font-bold text-gray-900 dark:text-white">
+                  {m.value}<span className="font-body text-lg text-gray-400 dark:text-gray-500 ml-1">{m.unit}</span>
                 </p>
+                <p className="font-body text-sm text-gray-500 dark:text-gray-400 mt-1">{m.targetLabel}</p>
               </div>
+              {i !== 1 && (
+                <p className="font-mono text-xl font-bold text-gray-400 dark:text-gray-500">{m.pct}%</p>
+              )}
             </div>
-            <div className="mt-4 h-3 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
+            <div className="h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-green-500 to-emerald-400 transition-all"
-                style={{ width: `${Math.min((submission.total_operations / submission.challenge.operations_required) * 100, 100)}%` }}
+                className={`h-full rounded-full bg-gradient-to-r transition-all duration-500 ${m.ok ? m.barColor : 'from-red-500 to-orange-500'}`}
+                style={{ width: `${m.pct}%` }}
               />
             </div>
           </div>
+        ))}
+      </div>
 
-          {/* Card Erros */}
-          <div className="bg-gradient-to-br from-red-500/10 to-orange-500/5 dark:from-red-500/10 dark:to-orange-500/5 backdrop-blur-lg rounded-xl border border-red-200 dark:border-red-500/20 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-red-400" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('challengeResult.operationsWithErrors')}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.operationsWithErrorsDesc')}</p>
-                </div>
-              </div>
-              {(() => {
-                const errors = submission.errors_summary?.operations_with_errors ?? submission.errors_count ?? 0;
-                const maxErrors = submission.errors_summary?.max_errors_allowed ?? submission.challenge.max_errors ?? 0;
-                const isOk = errors <= maxErrors;
-                return (
-                  <div className={`px-3 py-1 rounded-full text-xs font-bold ${isOk ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                    {isOk ? t('challengeResult.withinLimit') : t('challengeResult.aboveLimit')}
+      {/* ── Parts Breakdown ── */}
+      {submission.submission_type === 'COMPLETE' && submission.parts.length > 0 && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+          <h2 className="font-headline text-xl font-bold text-gray-900 dark:text-white mb-4">{t('challengeResult.partsBreakdown')}</h2>
+          <div className="space-y-3">
+            {submission.parts.map((part) => (
+              <div key={part.id} className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 flex items-center justify-between border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
+                    <span className="font-mono font-bold text-[#EC0000]">#{part.part_number}</span>
                   </div>
-                );
-              })()}
-            </div>
-            <div className="flex items-end justify-between">
-              <div>
-                <p className="text-5xl font-bold text-gray-900 dark:text-white">
-                  {submission.errors_summary?.operations_with_errors ?? submission.errors_count ?? 0}
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  {t('challengeResult.maxAllowed')}: {submission.errors_summary?.max_errors_allowed ?? submission.challenge.max_errors ?? 0}
-                </p>
+                  <div>
+                    <p className="font-body font-semibold text-gray-900 dark:text-white">{t('challengeResult.part')} {part.part_number}</p>
+                    <p className="font-body text-sm text-gray-500 dark:text-gray-400">
+                      {part.operations_count} {t('challengeResult.operationsIn')} {(part.duration_minutes ?? 0).toFixed(1)} min
+                    </p>
+                    <p className="font-body text-xs text-gray-400 dark:text-gray-500">
+                      {formatDate(part.started_at)} - {formatDate(part.completed_at)}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-mono text-2xl font-bold text-[#EC0000]">{(part.mpu ?? 0).toFixed(2)}</p>
+                  <p className="font-body text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">min/op</p>
+                </div>
               </div>
-            </div>
-            {submission.errors_summary && (
-              <div className="mt-4 h-3 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all ${
-                    submission.errors_summary.operations_with_errors <= (submission.errors_summary.max_errors_allowed || 0)
-                      ? 'bg-gradient-to-r from-green-500 to-blue-500'
-                      : 'bg-gradient-to-r from-red-500 to-orange-500'
-                  }`}
-                  style={{
-                    width: `${Math.min((submission.errors_summary.operations_with_errors / Math.max(submission.errors_summary.max_errors_allowed, 1)) * 100, 100)}%`
-                  }}
-                />
-              </div>
-            )}
+            ))}
           </div>
+        </div>
+      )}
 
-          {/* Card Tempo */}
-          <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/5 dark:from-blue-500/10 dark:to-cyan-500/5 backdrop-blur-lg rounded-xl border border-blue-200 dark:border-blue-500/20 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-blue-400" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('challengeResult.totalTime')}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.totalTimeDesc')}</p>
-                </div>
-              </div>
-              <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                submission.total_time_minutes <= submission.challenge.time_limit_minutes
-                  ? 'bg-green-500/20 text-green-400'
-                  : 'bg-red-500/20 text-red-400'
-              }`}>
-                {submission.total_time_minutes <= submission.challenge.time_limit_minutes ? t('challengeResult.onTime') : t('challengeResult.timeExceeded')}
-              </div>
+      {/* ── Summary ── */}
+      {submission.submission_type === 'SUMMARY' && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+          <h2 className="font-headline text-xl font-bold text-gray-900 dark:text-white mb-4">{t('challengeResult.summary')}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <p className="font-body text-sm text-gray-400 dark:text-gray-500 mb-1">{t('challengeResult.started')}</p>
+              <p className="font-mono text-gray-900 dark:text-white">{formatDate(submission.started_at)}</p>
             </div>
-            <div className="flex items-end justify-between">
-              <div>
-                <p className="text-5xl font-bold text-gray-900 dark:text-white">{submission.total_time_minutes}<span className="text-xl text-gray-500 dark:text-gray-400 ml-1">min</span></p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('challengeResult.timeLimit')}: {submission.challenge.time_limit_minutes} {t('challengeResult.minutes')}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-blue-400">
-                  {Math.round((submission.total_time_minutes / submission.challenge.time_limit_minutes) * 100)}%
-                </p>
-              </div>
-            </div>
-            <div className="mt-4 h-3 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
-              <div
-                className={`h-full transition-all ${
-                  submission.total_time_minutes <= submission.challenge.time_limit_minutes
-                    ? 'bg-gradient-to-r from-blue-500 to-cyan-400'
-                    : 'bg-gradient-to-r from-red-500 to-orange-500'
-                }`}
-                style={{ width: `${Math.min((submission.total_time_minutes / submission.challenge.time_limit_minutes) * 100, 100)}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Card MPU */}
-          <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/5 dark:from-yellow-500/10 dark:to-amber-500/5 backdrop-blur-lg rounded-xl border border-yellow-200 dark:border-yellow-500/20 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-yellow-400" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('challengeResult.mpuTitle')}</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.mpuDesc')}</p>
-                </div>
-              </div>
-              <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                (submission.calculated_mpu ?? 0) <= (submission.challenge?.target_mpu ?? 0)
-                  ? 'bg-green-500/20 text-green-400'
-                  : 'bg-red-500/20 text-red-400'
-              }`}>
-                {(submission.calculated_mpu ?? 0) <= (submission.challenge?.target_mpu ?? 0) ? t('challengeResult.efficient') : t('challengeResult.aboveExpected')}
-              </div>
-            </div>
-            <div className="flex items-end justify-between">
-              <div>
-                <p className="text-5xl font-bold text-yellow-500 dark:text-yellow-400">{(submission.calculated_mpu ?? 0).toFixed(2)}<span className="text-xl text-gray-500 dark:text-gray-400 ml-1">min/op</span></p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('challengeResult.mpuTarget')}: ≤ {(submission.challenge?.target_mpu ?? 0).toFixed(2)} min/op ({t('challengeResult.lowerIsBetter')})</p>
-              </div>
-            </div>
-            <div className="mt-4 h-3 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
-              <div
-                className={`h-full transition-all ${
-                  (submission.calculated_mpu ?? 0) <= (submission.challenge?.target_mpu ?? 0)
-                    ? 'bg-gradient-to-r from-yellow-500 to-amber-400'
-                    : 'bg-gradient-to-r from-red-500 to-orange-500'
-                }`}
-                style={{ width: `${Math.min((submission.challenge?.target_mpu ?? 1) / Math.max(submission.calculated_mpu ?? 1, 0.01) * 100, 100)}%` }}
-              />
+            <div>
+              <p className="font-body text-sm text-gray-400 dark:text-gray-500 mb-1">{t('challengeResult.completed')}</p>
+              <p className="font-mono text-gray-900 dark:text-white">{formatDate(submission.completed_at)}</p>
             </div>
           </div>
         </div>
+      )}
 
-        {/* Detalhes por Tipo */}
-        {submission.submission_type === 'COMPLETE' && submission.parts.length > 0 && (
-          <div className="bg-white dark:bg-white/5 backdrop-blur-lg rounded-xl border border-gray-200 dark:border-white/10 p-6 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('challengeResult.partsBreakdown')}</h2>
+      {/* ── Errors Breakdown ── */}
+      {submission.errors_summary && submission.errors_summary.operations_with_errors > 0 && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-[#EC0000]" />
+            </div>
+            <h2 className="font-headline text-xl font-bold text-gray-900 dark:text-white">{t('challengeResult.errorsBreakdown')}</h2>
+          </div>
+
+          {/* Error Type Summary */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            {[
+              { value: submission.errors_summary.error_methodology, label: t('challengeResult.methodology'), color: 'text-red-600 dark:text-red-400' },
+              { value: submission.errors_summary.error_knowledge, label: t('challengeResult.knowledge'), color: 'text-orange-600 dark:text-orange-400' },
+              { value: submission.errors_summary.error_detail, label: t('challengeResult.detail'), color: 'text-yellow-600 dark:text-yellow-400' },
+              { value: submission.errors_summary.error_procedure, label: t('challengeResult.procedure'), color: 'text-blue-600 dark:text-blue-400' },
+            ].map((item, i) => (
+              <div key={i} className="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center border border-gray-200 dark:border-gray-700">
+                <p className={`font-mono text-2xl font-bold ${item.color}`}>{item.value}</p>
+                <p className="font-body text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider mt-1">{item.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Operations with errors (COMPLETE) */}
+          {submission.operations && submission.operations.filter(op => op.has_error).length > 0 && (
             <div className="space-y-3">
-              {submission.parts.map((part) => (
-                <div key={part.id} className="bg-gray-50 dark:bg-white/5 rounded-lg p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-red-500/10 rounded-lg flex items-center justify-center">
-                      <span className="text-red-500 font-bold">#{part.part_number}</span>
+              <h3 className="font-headline text-base font-bold text-gray-900 dark:text-white mb-3">{t('challengeResult.operationsWithErrorsList')}</h3>
+              {submission.operations.filter(op => op.has_error).map((operation) => (
+                <div key={operation.id} className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-500/20 rounded-xl p-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-red-100 dark:bg-red-500/20 rounded-lg flex items-center justify-center">
+                      <span className="font-mono font-bold text-sm text-red-600 dark:text-red-400">#{operation.operation_number}</span>
                     </div>
                     <div>
-                      <p className="text-gray-900 dark:text-white font-medium">{t('challengeResult.part')} {part.part_number}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {part.operations_count} {t('challengeResult.operationsIn')} {(part.duration_minutes ?? 0).toFixed(1)} min
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {formatDate(part.started_at)} - {formatDate(part.completed_at)}
-                      </p>
+                      <p className="font-body font-semibold text-gray-900 dark:text-white">{t('challengeResult.operation')} {operation.operation_number}</p>
+                      {operation.operation_reference && (
+                        <p className="font-body text-sm text-gray-400 dark:text-gray-500">Ref: {operation.operation_reference}</p>
+                      )}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-yellow-500">{(part.mpu ?? 0).toFixed(2)}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">min/op</p>
+                  {operation.errors && operation.errors.length > 0 && (
+                    <div className="ml-13 space-y-2 mt-3">
+                      {operation.errors.map((error, idx) => (
+                        <div key={idx} className="flex items-start gap-2 bg-white dark:bg-gray-900 rounded-lg p-2.5 border border-red-100 dark:border-red-500/10">
+                          <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider shrink-0 ${errorTypeStyle(error.error_type)}`}>
+                            {errorTypeLabel(error.error_type)}
+                          </span>
+                          <p className="font-body text-sm text-gray-600 dark:text-gray-300">{error.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Detailed errors (SUMMARY) */}
+          {submission.submission_errors && submission.submission_errors.length > 0 ? (
+            <div className="space-y-3">
+              <h3 className="font-headline text-base font-bold text-gray-900 dark:text-white mb-3">{t('challengeResult.registeredErrors')}</h3>
+              {submission.submission_errors.map((error, idx) => (
+                <div key={error.id} className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-500/20 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-red-100 dark:bg-red-500/20 rounded-lg flex items-center justify-center shrink-0">
+                      <span className="font-mono font-bold text-sm text-red-600 dark:text-red-400">#{idx + 1}</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${errorTypeStyle(error.error_type)}`}>
+                          {errorTypeLabel(error.error_type)}
+                        </span>
+                        {error.operation_reference && (
+                          <span className="font-body text-xs text-gray-400 dark:text-gray-500">
+                            {t('challengeResult.ref')}: {error.operation_reference}
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-body text-gray-600 dark:text-gray-300">{error.description}</p>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {submission.submission_type === 'SUMMARY' && (
-          <div className="bg-white dark:bg-white/5 backdrop-blur-lg rounded-xl border border-gray-200 dark:border-white/10 p-6 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('challengeResult.summary')}</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t('challengeResult.started')}</p>
-                <p className="text-gray-900 dark:text-white">{formatDate(submission.started_at)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{t('challengeResult.completed')}</p>
-                <p className="text-gray-900 dark:text-white">{formatDate(submission.completed_at)}</p>
-              </div>
+          ) : submission.submission_type === 'SUMMARY' && submission.errors_summary && submission.errors_summary.total_individual_errors > 0 ? (
+            <div className="bg-orange-50 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-500/20 rounded-xl p-4">
+              <p className="font-body text-sm text-orange-600 dark:text-orange-400">
+                <strong>{t('challengeResult.totalErrorsRegistered', { count: submission.errors_summary.total_individual_errors })}:</strong>
+              </p>
+              <ul className="mt-2 space-y-1 font-body text-gray-600 dark:text-gray-300 text-sm">
+                {submission.errors_summary.error_methodology > 0 && (
+                  <li>• {submission.errors_summary.error_methodology} {t('challengeResult.errorsOf')} {t('challengeResult.methodology')}</li>
+                )}
+                {submission.errors_summary.error_knowledge > 0 && (
+                  <li>• {submission.errors_summary.error_knowledge} {t('challengeResult.errorsOf')} {t('challengeResult.knowledge')}</li>
+                )}
+                {submission.errors_summary.error_detail > 0 && (
+                  <li>• {submission.errors_summary.error_detail} {t('challengeResult.errorsOf')} {t('challengeResult.detail')}</li>
+                )}
+                {submission.errors_summary.error_procedure > 0 && (
+                  <li>• {submission.errors_summary.error_procedure} {t('challengeResult.errorsOf')} {t('challengeResult.procedure')}</li>
+                )}
+              </ul>
+              <p className="font-body text-gray-400 dark:text-gray-500 text-xs mt-3">
+                {t('challengeResult.noDetailsAvailable')}
+              </p>
             </div>
-          </div>
-        )}
+          ) : null}
+        </div>
+      )}
 
-        {/* Detalhamento de Erros */}
-        {submission.errors_summary && submission.errors_summary.operations_with_errors > 0 && (
-          <div className="bg-white dark:bg-white/5 backdrop-blur-lg rounded-xl border border-gray-200 dark:border-white/10 p-6 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-              <AlertTriangle className="w-6 h-6 text-red-500" />
-              {t('challengeResult.errorsBreakdown')}
-            </h2>
-            
-            {/* Resumo por Tipo de Erro */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-red-400">{submission.errors_summary.error_methodology}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.methodology')}</p>
-              </div>
-              <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-orange-400">{submission.errors_summary.error_knowledge}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.knowledge')}</p>
-              </div>
-              <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-yellow-400">{submission.errors_summary.error_detail}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.detail')}</p>
-              </div>
-              <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-blue-400">{submission.errors_summary.error_procedure}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{t('challengeResult.procedure')}</p>
-              </div>
+      {/* ── Feedback ── */}
+      {submission.feedback && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+          <h2 className="font-headline text-xl font-bold text-gray-900 dark:text-white mb-4">{t('challengeResult.feedback')}</h2>
+          <p className="font-body text-gray-600 dark:text-gray-300">{submission.feedback}</p>
+        </div>
+      )}
+
+      {/* ── Trainer Approval (PENDING_REVIEW) ── */}
+      {isTrainerOrAdmin && submission.status === 'PENDING_REVIEW' && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border-2 border-yellow-200 dark:border-yellow-500/30 p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-yellow-50 dark:bg-yellow-900/20 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
             </div>
-            
-            {/* Lista de Operações com Erro (COMPLETE) */}
-            {submission.operations && submission.operations.filter(op => op.has_error).length > 0 && (
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{t('challengeResult.operationsWithErrorsList')}</h3>
-                {submission.operations.filter(op => op.has_error).map((operation) => (
-                  <div key={operation.id} className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
-                        <span className="text-red-400 font-bold text-sm">#{operation.operation_number}</span>
-                      </div>
-                      <div>
-                        <p className="text-gray-900 dark:text-white font-medium">{t('challengeResult.operation')} {operation.operation_number}</p>
-                        {operation.operation_reference && (
-                          <p className="text-sm text-gray-400">Ref: {operation.operation_reference}</p>
-                        )}
-                      </div>
-                    </div>
-                    {operation.errors && operation.errors.length > 0 && (
-                      <div className="ml-13 space-y-2 mt-3">
-                        {operation.errors.map((error, idx) => (
-                          <div key={idx} className="flex items-start gap-2 bg-gray-50 dark:bg-white/5 rounded p-2">
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                              error.error_type === 'METHODOLOGY' ? 'bg-red-500/20 text-red-400' :
-                              error.error_type === 'KNOWLEDGE' ? 'bg-orange-500/20 text-orange-400' :
-                              error.error_type === 'DETAIL' ? 'bg-yellow-500/20 text-yellow-400' :
-                              'bg-blue-500/20 text-blue-400'
-                            }`}>
-                              {error.error_type === 'METHODOLOGY' ? t('challengeResult.methodology') :
-                               error.error_type === 'KNOWLEDGE' ? t('challengeResult.knowledge') :
-                               error.error_type === 'DETAIL' ? t('challengeResult.detail') :
-                               error.error_type === 'PROCEDURE' ? t('challengeResult.procedure') : error.error_type}
-                            </span>
-                            <p className="text-gray-500 dark:text-gray-300 text-sm">{error.description}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Lista de Erros Detalhados (SUMMARY) */}
-            {submission.submission_errors && submission.submission_errors.length > 0 ? (
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{t('challengeResult.registeredErrors')}</h3>
-                {submission.submission_errors.map((error, idx) => (
-                  <div key={error.id} className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <span className="text-red-400 font-bold text-sm">#{idx + 1}</span>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                            error.error_type === 'METHODOLOGY' ? 'bg-red-500/20 text-red-400' :
-                            error.error_type === 'KNOWLEDGE' ? 'bg-orange-500/20 text-orange-400' :
-                            error.error_type === 'DETAIL' ? 'bg-yellow-500/20 text-yellow-400' :
-                            'bg-blue-500/20 text-blue-400'
-                          }`}>
-                            {error.error_type === 'METHODOLOGY' ? t('challengeResult.methodology') :
-                             error.error_type === 'KNOWLEDGE' ? t('challengeResult.knowledge') :
-                             error.error_type === 'DETAIL' ? t('challengeResult.detail') :
-                             error.error_type === 'PROCEDURE' ? t('challengeResult.procedure') : error.error_type}
-                          </span>
-                          {error.operation_reference && (
-                            <span className="text-xs text-gray-400">
-                              {t('challengeResult.ref')}: {error.operation_reference}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-gray-500 dark:text-gray-300">{error.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : submission.submission_type === 'SUMMARY' && submission.errors_summary && submission.errors_summary.total_individual_errors > 0 ? (
-              /* Mostrar resumo quando não há detalhes individuais mas há erros */
-              <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-4">
-                <p className="text-orange-400 text-sm">
-                  <strong>{t('challengeResult.totalErrorsRegistered', { count: submission.errors_summary.total_individual_errors })}:</strong>
-                </p>
-                <ul className="mt-2 space-y-1 text-gray-600 dark:text-gray-300 text-sm">
-                  {submission.errors_summary.error_methodology > 0 && (
-                    <li>• {submission.errors_summary.error_methodology} {t('challengeResult.errorsOf')} {t('challengeResult.methodology')}</li>
-                  )}
-                  {submission.errors_summary.error_knowledge > 0 && (
-                    <li>• {submission.errors_summary.error_knowledge} {t('challengeResult.errorsOf')} {t('challengeResult.knowledge')}</li>
-                  )}
-                  {submission.errors_summary.error_detail > 0 && (
-                    <li>• {submission.errors_summary.error_detail} {t('challengeResult.errorsOf')} {t('challengeResult.detail')}</li>
-                  )}
-                  {submission.errors_summary.error_procedure > 0 && (
-                    <li>• {submission.errors_summary.error_procedure} {t('challengeResult.errorsOf')} {t('challengeResult.procedure')}</li>
-                  )}
-                </ul>
-                <p className="text-gray-500 text-xs mt-3">
-                  {t('challengeResult.noDetailsAvailable')}
-                </p>
-              </div>
-            ) : null}
+            <h2 className="font-headline text-lg font-bold text-gray-900 dark:text-white">{t('challengeResult.awaitingDecision')}</h2>
           </div>
-        )}
+          {(submission.challenge as any)?.kpi_mode === 'AUTO' ? (
+            <>
+              <p className="font-body text-gray-500 dark:text-gray-400 mb-6">
+                {t('challengeResult.autoEvalDescription', 'A avaliação será calculada automaticamente com base nos KPIs configurados.')}
+              </p>
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={() => handleApproval(true)}
+                  disabled={approving}
+                  className="flex items-center gap-2 px-8 py-3 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body font-bold transition-colors disabled:opacity-50"
+                >
+                  <Send className="w-5 h-5" />
+                  {approving ? t('challengeResult.processing') : t('challengeResult.finalizeAuto', 'Finalizar Avaliação Automática')}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="font-body text-gray-500 dark:text-gray-400 mb-6">
+                {t('challengeResult.manualEvalDescription')}
+              </p>
+              <div className="flex gap-4 justify-center">
+                <button
+                  onClick={() => handleApproval(true)}
+                  disabled={approving}
+                  className="flex items-center gap-2 px-8 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-body font-bold transition-colors disabled:opacity-50"
+                >
+                  <Check className="w-5 h-5" />
+                  {approving ? t('challengeResult.processing') : t('challengeResult.approve')}
+                </button>
+                <button
+                  onClick={() => handleApproval(false)}
+                  disabled={approving}
+                  className="flex items-center gap-2 px-8 py-3 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body font-bold transition-colors disabled:opacity-50"
+                >
+                  <X className="w-5 h-5" />
+                  {approving ? t('challengeResult.processing') : t('challengeResult.reject')}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
-        {/* Feedback */}
-        {submission.feedback && (
-          <div className="bg-white dark:bg-white/5 backdrop-blur-lg rounded-xl border border-gray-200 dark:border-white/10 p-6 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">{t('challengeResult.feedback')}</h2>
-            <p className="text-gray-500 dark:text-gray-300">{submission.feedback}</p>
-          </div>
-        )}
-
-        {/* Botões de Aprovação (para formador em PENDING_REVIEW) */}
-        {isTrainerOrAdmin && submission.status === 'PENDING_REVIEW' && (
-          <div className="bg-yellow-100 dark:bg-yellow-500/10 border border-yellow-300 dark:border-yellow-500/20 rounded-xl p-6 mb-8">
-            <h2 className="text-xl font-bold text-yellow-600 dark:text-yellow-400 mb-4 flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              {t('challengeResult.awaitingDecision')}
-            </h2>
-            {(submission.challenge as any)?.kpi_mode === 'AUTO' ? (
-              <>
-                <p className="text-gray-500 dark:text-gray-300 mb-6">
-                  {t('challengeResult.autoEvalDescription', 'A avaliação será calculada automaticamente com base nos KPIs configurados.')}
-                </p>
-                <div className="flex gap-4 justify-center">
-                  <button
-                    onClick={() => handleApproval(true)}
-                    disabled={approving}
-                    className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50"
-                  >
-                    <Check className="w-5 h-5" />
-                    {approving ? t('challengeResult.processing') : t('challengeResult.finalizeAuto', 'Finalizar Avaliação Automática')}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="text-gray-500 dark:text-gray-300 mb-6">
-                  {t('challengeResult.manualEvalDescription')}
-                </p>
-                <div className="flex gap-4 justify-center">
-                  <button
-                    onClick={() => handleApproval(true)}
-                    disabled={approving}
-                    className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-all disabled:opacity-50"
-                  >
-                    <Check className="w-5 h-5" />
-                    {approving ? t('challengeResult.processing') : t('challengeResult.approve')}
-                  </button>
-                  <button
-                    onClick={() => handleApproval(false)}
-                    disabled={approving}
-                    className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all disabled:opacity-50"
-                  >
-                    <X className="w-5 h-5" />
-                    {approving ? t('challengeResult.processing') : t('challengeResult.reject')}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Botão de Nova Tentativa (para formador/admin quando reprovado) */}
-        {isTrainerOrAdmin && submission.status === 'REJECTED' && !(submission as any).is_retry_allowed && (
-          <div className="bg-orange-100 dark:bg-orange-500/10 border border-orange-300 dark:border-orange-500/20 rounded-xl p-6 mb-8">
-            <div className="flex items-center justify-between">
+      {/* ── Retry Button ── */}
+      {isTrainerOrAdmin && submission.status === 'REJECTED' && !(submission as any).is_retry_allowed && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-orange-200 dark:border-orange-500/20 p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-900/20 flex items-center justify-center">
+                <RotateCcw className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              </div>
               <div>
-                <h2 className="text-xl font-bold text-orange-600 dark:text-orange-400 mb-2 flex items-center gap-2">
-                  <RotateCcw className="w-5 h-5" />
+                <h2 className="font-headline text-base font-bold text-gray-900 dark:text-white">
                   {t('challengeResult.retryTitle', 'Liberar Nova Tentativa')}
                 </h2>
-                <p className="text-gray-500 dark:text-gray-400">
+                <p className="font-body text-sm text-gray-500 dark:text-gray-400">
                   {t('challengeResult.retryDescription', 'O formando foi reprovado. Pode liberar uma nova tentativa para que tente novamente.')}
                 </p>
               </div>
-              <button
-                onClick={async () => {
-                  if (!confirm(t('challengeResult.confirmRetry', 'Deseja liberar uma nova tentativa?'))) return;
-                  try {
-                    await api.post(`/api/challenges/submissions/${submissionId}/allow-retry`);
-                    alert(t('challengeResult.retrySuccess', 'Nova tentativa liberada com sucesso!'));
-                    await loadSubmission();
-                  } catch (err: any) {
-                    alert(err.response?.data?.detail || t('challengeResult.retryError', 'Erro ao liberar nova tentativa'));
-                  }
-                }}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg font-medium hover:from-orange-600 hover:to-amber-600 transition-all shadow-md"
-              >
-                <RotateCcw className="w-5 h-5" />
-                {t('challengeResult.allowRetry', 'Liberar Nova Tentativa')}
-              </button>
             </div>
+            <button
+              onClick={async () => {
+                if (!confirm(t('challengeResult.confirmRetry', 'Deseja liberar uma nova tentativa?'))) return;
+                try {
+                  await api.post(`/api/challenges/submissions/${submissionId}/allow-retry`);
+                  alert(t('challengeResult.retrySuccess', 'Nova tentativa liberada com sucesso!'));
+                  await loadSubmission();
+                } catch (err: any) {
+                  alert(err.response?.data?.detail || t('challengeResult.retryError', 'Erro ao liberar nova tentativa'));
+                }
+              }}
+              className="flex items-center gap-2 px-6 py-3 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body font-bold transition-colors shrink-0"
+            >
+              <RotateCcw className="w-5 h-5" />
+              {t('challengeResult.allowRetry', 'Liberar Nova Tentativa')}
+            </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {isTrainerOrAdmin && (submission as any).is_retry_allowed && (
-          <div className="bg-green-100 dark:bg-green-500/10 border border-green-300 dark:border-green-500/20 rounded-xl p-6 mb-8">
+      {isTrainerOrAdmin && (submission as any).is_retry_allowed && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-green-200 dark:border-green-500/20 p-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center">
+              <RotateCcw className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+            <span className="font-body font-semibold text-green-600 dark:text-green-400">
+              {t('challengeResult.retryAlreadyAllowed', 'Nova tentativa já foi liberada para o formando.')}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* ── Rating ── */}
+      {!isTrainerOrAdmin && submission.is_approved === true && planId && isPlanFinalized && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-amber-200 dark:border-amber-500/20 p-6">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <RotateCcw className="w-5 h-5 text-green-500" />
-              <span className="text-green-600 dark:text-green-400 font-medium">
-                {t('challengeResult.retryAlreadyAllowed', 'Nova tentativa já foi liberada para o formando.')}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Botão de Classificação (para formando com desafio aprovado e plano finalizado) */}
-        {!isTrainerOrAdmin && submission.is_approved === true && planId && isPlanFinalized && (
-          <div className="bg-gradient-to-r from-amber-100 to-yellow-100 dark:from-amber-500/10 dark:to-yellow-500/10 border border-amber-300 dark:border-amber-500/20 rounded-xl p-6 mb-8">
-            <div className="flex items-center justify-between">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
+                <Star className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              </div>
               <div>
-                <h2 className="text-xl font-bold text-amber-600 dark:text-amber-400 mb-2 flex items-center gap-2">
-                  <Star className="w-5 h-5" />
+                <h2 className="font-headline text-base font-bold text-gray-900 dark:text-white">
                   {t('challengeResult.rateChallenge')}
                 </h2>
-                <p className="text-gray-500 dark:text-gray-400">
+                <p className="font-body text-sm text-gray-500 dark:text-gray-400">
                   {hasRated ? t('challengeResult.thankYouRating') : t('challengeResult.ratingImportant')}
                 </p>
               </div>
-              {hasRated ? (
-                <div className="flex items-center gap-2 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg">
-                  <Star className="w-5 h-5 fill-amber-400 text-amber-400" />
-                  {t('challengeResult.challengeRated')}
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowRatingModal(true)}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg font-medium hover:from-amber-600 hover:to-yellow-600 transition-all shadow-md"
-                >
-                  <Star className="w-5 h-5" />
-                  {t('challengeResult.rateButton')}
-                </button>
-              )}
             </div>
+            {hasRated ? (
+              <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-xl font-body text-sm">
+                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                {t('challengeResult.challengeRated')}
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowRatingModal(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body font-bold transition-colors shrink-0"
+              >
+                <Star className="w-5 h-5" />
+                {t('challengeResult.rateButton')}
+              </button>
+            )}
           </div>
-        )}
-
-        {/* Ações */}
-        <div className="flex justify-center gap-4">
-          <button
-            onClick={() => planId ? navigate(`/training-plans/${planId}`) : navigate(-1)}
-            className="px-8 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all"
-          >
-            {t('common.back')}
-          </button>
         </div>
+      )}
+
+      {/* ── Back Button ── */}
+      <div className="flex justify-center">
+        <button
+          onClick={() => planId ? navigate(`/training-plans/${planId}`) : navigate(-1)}
+          className="px-8 py-3 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body font-bold transition-colors"
+        >
+          {t('common.back')}
+        </button>
       </div>
-      
+
       {/* Rating Modal */}
       {submission && planId && (
         <RatingModal

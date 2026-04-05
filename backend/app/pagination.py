@@ -5,14 +5,14 @@ serialization. Use a lightweight GenericModel here so `response_model`
 generics serialize correctly.
 """
 from typing import TypeVar, Generic, List, Tuple
-from pydantic import ConfigDict
-from pydantic.generics import GenericModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Query
+from app.constants import DEFAULT_PAGE, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 
 T = TypeVar('T')
 
 
-class PaginatedResponse(GenericModel, Generic[T]):
+class PaginatedResponse(BaseModel, Generic[T]):
     """Generic paginated response model compatible with pydantic v2"""
     model_config = ConfigDict(from_attributes=True)
 
@@ -23,14 +23,14 @@ class PaginatedResponse(GenericModel, Generic[T]):
     total_pages: int
 
 
-def paginate(query: Query, page: int = 1, page_size: int = 10) -> Tuple[list, int]:
+def paginate(query: Query, page: int = DEFAULT_PAGE, page_size: int = DEFAULT_PAGE_SIZE) -> Tuple[list, int]:
     """Paginate a SQLAlchemy query and return (items, total_count)."""
     if page < 1:
-        page = 1
+        page = DEFAULT_PAGE
     if page_size < 1:
-        page_size = 10
-    if page_size > 100:
-        page_size = 100
+        page_size = DEFAULT_PAGE_SIZE
+    if page_size > MAX_PAGE_SIZE:
+        page_size = MAX_PAGE_SIZE
 
     total = query.count()
     # SQL Server requires an ORDER BY when using OFFSET/LIMIT. If the query

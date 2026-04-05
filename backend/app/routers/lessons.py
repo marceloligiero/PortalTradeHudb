@@ -152,7 +152,7 @@ async def get_lesson_progress(
     target_user_id = user_id if user_id else current_user.id
     
     # Verificar permissões
-    if current_user.role == "TRAINEE" and target_user_id != current_user.id:
+    if current_user.is_usuario_basico and target_user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Sem permissão")
     
     # Buscar ou criar progresso
@@ -248,7 +248,7 @@ async def release_lesson(
     user_id: int,
     training_plan_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR"]))
 ):
     """
     Liberar uma aula para o formando assistir
@@ -258,7 +258,7 @@ async def release_lesson(
     # Validar que o aluno existe (TRAINEE, STUDENT ou TRAINER que está inscrito num plano)
     student = db.query(models.User).filter(
         models.User.id == user_id,
-        models.User.role.in_(["TRAINEE", "STUDENT", "TRAINER"])
+        models.User.role.in_(["USUARIO", "FORMADOR", "TRAINEE", "TRAINER"])
     ).first()
     
     if not student:
@@ -322,7 +322,7 @@ async def start_lesson(
     # Verificar quem pode iniciar a aula baseado no campo started_by
     lesson_started_by = lesson.started_by or "TRAINER"  # Default TRAINER
     
-    if current_user.role in ["TRAINEE", "STUDENT"]:
+    if current_user.is_usuario_basico:
         # Formando pode iniciar se started_by é TRAINEE
         if lesson_started_by != "TRAINEE":
             raise HTTPException(
@@ -330,7 +330,7 @@ async def start_lesson(
                 detail="Esta aula deve ser iniciada pelo formador."
             )
         user_id = current_user.id
-    elif current_user.role in ["TRAINER", "ADMIN"]:
+    elif current_user.is_formador or current_user.is_admin:
         # Formador pode iniciar se started_by é TRAINER
         if lesson_started_by != "TRAINER":
             raise HTTPException(
@@ -425,9 +425,9 @@ async def pause_lesson(
     lesson_started_by = lesson.started_by or "TRAINER"
     
     # Determinar user_id baseado no role e started_by
-    if current_user.role in ["TRAINEE", "STUDENT"]:
+    if current_user.is_usuario_basico:
         user_id = current_user.id
-    elif current_user.role in ["TRAINER", "ADMIN"]:
+    elif current_user.is_formador or current_user.is_admin:
         # Formador só pode pausar se started_by = TRAINER
         if lesson_started_by != "TRAINER":
             raise HTTPException(
@@ -533,9 +533,9 @@ async def resume_lesson(
     lesson_started_by = lesson.started_by or "TRAINER"
     
     # Determinar user_id baseado no role e started_by
-    if current_user.role in ["TRAINEE", "STUDENT"]:
+    if current_user.is_usuario_basico:
         user_id = current_user.id
-    elif current_user.role in ["TRAINER", "ADMIN"]:
+    elif current_user.is_formador or current_user.is_admin:
         # Formador só pode retomar se started_by = TRAINER
         if lesson_started_by != "TRAINER":
             raise HTTPException(
@@ -649,10 +649,10 @@ async def finish_lesson(
     lesson_started_by = lesson.started_by or "TRAINER"
     
     # Determinar user_id baseado no role e started_by
-    if current_user.role in ["TRAINEE", "STUDENT"]:
+    if current_user.is_usuario_basico:
         # Formando pode finalizar qualquer aula (tanto TRAINER quanto TRAINEE)
         user_id = current_user.id
-    elif current_user.role in ["TRAINER", "ADMIN"]:
+    elif current_user.is_formador or current_user.is_admin:
         # Formador só pode finalizar se started_by = TRAINER
         if lesson_started_by != "TRAINER":
             raise HTTPException(
@@ -756,7 +756,7 @@ async def approve_lesson(
     training_plan_id: Optional[int] = None,
     is_approved: bool = True,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR"]))
 ):
     """
     Formador aprova a aula finalizada pelo formando
@@ -879,7 +879,7 @@ async def confirm_lesson(
     Formando confirma que fez a aula terminada pelo formador
     Só pode confirmar aulas com status COMPLETED
     """
-    if current_user.role not in ["TRAINEE", "STUDENT"]:
+    if not current_user.is_usuario_basico:
         raise HTTPException(status_code=403, detail="Apenas formandos podem confirmar aulas")
     
     # Buscar progresso
@@ -928,7 +928,7 @@ async def list_my_lessons(
     Formando vê TODAS as suas aulas - tanto as que já têm progresso
     como as que estão em planos de formação atribuídos ao formando.
     """
-    if current_user.role not in ["TRAINEE", "STUDENT"]:
+    if not current_user.is_usuario_basico:
         raise HTTPException(status_code=403, detail="Apenas formandos podem acessar")
     
     # 1) Aulas com progresso (qualquer status)

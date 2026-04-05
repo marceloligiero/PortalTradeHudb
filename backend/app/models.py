@@ -9,23 +9,61 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     full_name = Column(String(255), nullable=False)
-    hashed_password = Column(String(255), nullable=False)
-    role = Column(String(50), nullable=False)  # TRAINEE, TRAINER, ADMIN, MANAGER, GESTOR
+    hashed_password = Column(String(255), nullable=True)   # NULL para utilizadores SSO
+    sso_provider    = Column(String(50),  nullable=True)   # ex: 'microsoft'
+    sso_id          = Column(String(255), nullable=True)   # object ID do provider
+    # role — categoria organizacional: ADMIN | DIRETOR | GERENTE | CHEFE_EQUIPE | FORMADOR | USUARIO
+    # Controlo de acesso real feito pelas flags abaixo, não por esta coluna.
+    role = Column(String(50), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    is_pending = Column(Boolean, default=False, nullable=False)  # For TRAINER validation by ADMIN
-    is_trainer = Column(Boolean, default=False, nullable=False)  # Can create/manage courses (Formador)
-    is_tutor = Column(Boolean, default=False, nullable=False)    # Can mentor in Tutoria (Tutor)
-    is_liberador = Column(Boolean, default=False, nullable=False) # Can release/approve operations (Liberador)
-    is_team_lead = Column(Boolean, default=False, nullable=False) # Chefe de equipa
-    is_referente = Column(Boolean, default=False, nullable=False) # Referente (representante do chefe)
-    validated_at = Column(DateTime(timezone=True), nullable=True)  # When trainer was approved
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    is_pending = Column(Boolean, default=False, nullable=False)
 
-    # Tutoria: FK para o tutor responsável (só para STUDENT/TRAINEE)
+    # ── Flags de permissão (fonte de verdade para controlo de acesso) ──────────
+    is_admin        = Column(Boolean, default=False, nullable=False)  # Acesso total ao sistema
+    is_diretor      = Column(Boolean, default=False, nullable=False)  # Lê todos os dados; sem edição destrutiva
+    is_gerente      = Column(Boolean, default=False, nullable=False)  # Gere área/equipas; relatórios completos
+    is_chefe_equipe = Column(Boolean, default=False, nullable=False)  # Gere equipa; vê dados da equipa
+    is_formador     = Column(Boolean, default=False, nullable=False)  # Cria/gere cursos e planos de formação
+    is_tutor        = Column(Boolean, default=False, nullable=False)  # Tutoria de erros operacionais
+    is_liberador    = Column(Boolean, default=False, nullable=False)  # Liberta/aprova operações
+    is_referente    = Column(Boolean, default=False, nullable=False)  # Representante do chefe de equipa
+
+    # Deprecated (mantidas para compatibilidade com dados legados — não usar em código novo)
+    is_trainer   = Column(Boolean, default=False, nullable=False)  # use is_formador
+    is_team_lead = Column(Boolean, default=False, nullable=False)  # use is_chefe_equipe
+
+    validated_at = Column(DateTime(timezone=True), nullable=True)
+    created_at   = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at   = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # FK para o tutor responsável
     tutor_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    # Equipa: FK para a equipa a que o utilizador pertence (exceto ADMIN)
-    team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
+    # FK para a equipa principal do utilizador
+    team_id  = Column(Integer, ForeignKey("teams.id"), nullable=True)
+
+    # ── Propriedades auxiliares ───────────────────────────────────────────────
+    @property
+    def can_see_all(self) -> bool:
+        """Vê todos os dados do sistema (sem filtro de scope)."""
+        return bool(self.is_admin or self.is_diretor)
+
+    @property
+    def can_manage_teams(self) -> bool:
+        """Pode gerir equipas e ver dados de equipa."""
+        return bool(self.is_admin or self.is_gerente or self.is_chefe_equipe)
+
+    @property
+    def is_gestor_or_above(self) -> bool:
+        """Gerente ou acima — acesso a relatórios de equipa."""
+        return bool(self.is_admin or self.is_diretor or self.is_gerente)
+
+    @property
+    def is_usuario_basico(self) -> bool:
+        """True se o utilizador não tem nenhuma flag de acesso especial (USUARIO simples)."""
+        return not any([
+            self.is_admin, self.is_diretor, self.is_gerente, self.is_chefe_equipe,
+            self.is_formador, self.is_tutor, self.is_liberador, self.is_referente,
+        ])
 
     # Relationships
     enrollments = relationship("Enrollment", back_populates="user")
@@ -46,6 +84,7 @@ class Team(Base):
     name = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     product_id = Column(Integer, ForeignKey("products.id"), nullable=True)  # legacy
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
     manager_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     node_id = Column(Integer, ForeignKey("org_nodes.id"), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
@@ -53,6 +92,7 @@ class Team(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     product = relationship("Product", foreign_keys=[product_id])
+    department = relationship("Department", foreign_keys=[department_id])
     manager = relationship("User", foreign_keys=[manager_id])
     members = relationship("User", foreign_keys="[User.team_id]", back_populates="team")
     # M2M relationships
@@ -535,7 +575,7 @@ class ErrorImpact(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), nullable=False, unique=True)
     description = Column(Text, nullable=True)
-    level = Column(String(10), nullable=True)          # ALTO | BAIXO
+    level = Column(String(10), nullable=True)          # ALTA | BAIXA
     image_url = Column(String(500), nullable=True)     # URL ou Base64 da imagem ilustrativa
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -653,7 +693,7 @@ class TutoriaError(Base):
     comentarios_reunion = Column(Text, nullable=True)                  # Comentarios vistos en la reunión
 
     # ── Análise ──
-    impact_level = Column(String(20), nullable=True)                   # ALTO | BAIXO
+    impact_level = Column(String(20), nullable=True)                   # ALTA | BAIXA
     impact_detail = Column(String(100), nullable=True)                # Sub-detalhe do impacto
     origin_detail = Column(String(100), nullable=True)                # Sub-detalhe da origem
     solution_confirmed = Column(Boolean, default=False, nullable=False)

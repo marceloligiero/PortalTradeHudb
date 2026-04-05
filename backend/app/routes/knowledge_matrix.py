@@ -118,7 +118,7 @@ async def get_knowledge_matrix(
     with proficiency levels, completion rates, MPU, error analysis, etc.
     Admin only.
     """
-    if current_user.role not in ("ADMIN", "MANAGER", "GESTOR"):
+    if not (current_user.is_gestor_or_above or current_user.is_chefe_equipe):
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # ============ COLUMNS: All active courses ============
@@ -186,7 +186,7 @@ async def get_knowledge_matrix(
     enrolled_ids_set = {row[0] for row in enrolled_student_ids}
     
     students = db.query(models.User).filter(
-        models.User.role.in_(["STUDENT", "TRAINEE"]),
+        models.User.role == "USUARIO",
         models.User.is_active == True,
         models.User.id.in_(enrolled_ids_set)
     ).all()

@@ -154,12 +154,54 @@ input:-webkit-autofill:active {
     --tooltip-bg: #ffffff;
     --axis-color: #9ca3af;
     --grid-color: #f3f4f6;
+
+    /* ── Reports Design System ────────────────────────────────────────── */
+    --rep-accent:         #EC0000;
+    --rep-accent-hover:   #CC0000;
+    --rep-accent-soft:    rgba(236, 0, 0, 0.08);
+    --rep-surface:        #ffffff;
+    --rep-surface-hover:  #f9fafb;
+    --rep-border:         #e5e7eb;
+    --rep-text:           #111827;
+    --rep-text-secondary: #6b7280;
+    --rep-text-muted:     #9ca3af;
+    --rep-positive:       #10b981;
+    --rep-negative:       #EC0000;
+    --rep-warning:        #f59e0b;
+    --rep-chart-1:        #EC0000;
+    --rep-chart-2:        #3b82f6;
+    --rep-chart-3:        #10b981;
+    --rep-chart-4:        #f59e0b;
+    --rep-chart-5:        #8b5cf6;
   }
   .dark {
     --tooltip-bg: #1a1a2e;
     --axis-color: #6b7280;
     --grid-color: rgba(255, 255, 255, 0.06);
+
+    /* ── Reports Design System (dark) ────────────────────────────────── */
+    --rep-surface:        #111827;
+    --rep-surface-hover:  #1f2937;
+    --rep-border:         #1f2937;
+    --rep-text:           #f9fafb;
+    --rep-text-secondary: #9ca3af;
+    --rep-text-muted:     #6b7280;
   }
+}
+
+/* ══ Reports — KPI card stagger entrance ══════════════════════════════ */
+@keyframes repCardIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.rep-card-enter {
+  animation: repCardIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--card-index, 0) * 60ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rep-card-enter { animation: none; }
 }
 
 @layer components {

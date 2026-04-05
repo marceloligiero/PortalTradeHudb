@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { 
-  BookOpen, 
-  CheckCircle, 
-  Clock, 
+import {
+  BookOpen,
+  CheckCircle,
+  Clock,
   Play,
   FileText,
   Video,
@@ -17,7 +16,6 @@ import {
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
-import { PremiumHeader, FloatingOrbs } from '../../components/premium';
 
 // Função para limpar HTML e extrair apenas texto
 const stripHtml = (html: string): string => {
@@ -94,14 +92,14 @@ export default function MyLessons() {
     if (lesson.status === 'COMPLETED') {
       if (lesson.student_confirmed) {
         return (
-          <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30">
+          <span className="px-3 py-1 rounded-full font-body text-xs font-bold bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
             <CheckCircle className="w-3 h-3 inline mr-1" />
             {t('myLessons.confirmed')}
           </span>
         );
       }
       return (
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+        <span className="px-3 py-1 rounded-full font-body text-xs font-bold bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
           <Check className="w-3 h-3 inline mr-1" />
           {t('myLessons.completed')}
         </span>
@@ -109,7 +107,7 @@ export default function MyLessons() {
     }
     if (lesson.status === 'PAUSED') {
       return (
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30">
+        <span className="px-3 py-1 rounded-full font-body text-xs font-bold bg-yellow-100 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">
           <Clock className="w-3 h-3 inline mr-1" />
           {t('myLessons.paused')}
         </span>
@@ -117,7 +115,7 @@ export default function MyLessons() {
     }
     if (lesson.status === 'IN_PROGRESS') {
       return (
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+        <span className="px-3 py-1 rounded-full font-body text-xs font-bold bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
           <Play className="w-3 h-3 inline mr-1" />
           {t('myLessons.inProgress')}
         </span>
@@ -125,7 +123,7 @@ export default function MyLessons() {
     }
     if (lesson.status === 'RELEASED') {
       return (
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+        <span className="px-3 py-1 rounded-full font-body text-xs font-bold bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
           <Play className="w-3 h-3 inline mr-1" />
           {t('myLessons.available')}
         </span>
@@ -133,7 +131,7 @@ export default function MyLessons() {
     }
     if (lesson.status === 'NOT_STARTED') {
       return (
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-gray-500/20 text-gray-600 dark:text-gray-400 border border-gray-500/30">
+        <span className="px-3 py-1 rounded-full font-body text-xs font-bold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
           <Clock className="w-3 h-3 inline mr-1" />
           {t('myLessons.pendingStatus')}
         </span>
@@ -145,11 +143,7 @@ export default function MyLessons() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full"
-        />
+        <div className="w-12 h-12 border-4 border-[#EC0000]/20 border-t-[#EC0000] rounded-full animate-spin mx-auto" />
       </div>
     );
   }
@@ -160,92 +154,71 @@ export default function MyLessons() {
   const pendingConfirmation = completedLessons.filter(l => !l.student_confirmed);
 
   return (
-    <div className="space-y-6">
-      <PremiumHeader
-        icon={BookOpen}
-        title={t('myLessons.title')}
-        subtitle={t('myLessons.subtitle')}
-        badge={t('navigation.courses')}
-        iconColor="from-blue-500 to-purple-500"
-      />
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header card */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center shrink-0">
+            <BookOpen className="w-6 h-6 text-[#EC0000]" />
+          </div>
+          <div>
+            <p className="font-body text-xs font-bold uppercase tracking-widest text-[#EC0000] mb-1">
+              {t('navigation.courses')}
+            </p>
+            <h1 className="font-headline text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+              {t('myLessons.title')}
+            </h1>
+            <p className="font-body text-gray-500 dark:text-gray-400 mt-1 max-w-xl text-sm">
+              {t('myLessons.subtitle')}
+            </p>
+          </div>
+        </div>
 
-      {/* Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm dark:shadow-none">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        {/* Stats bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+          {[
+            { icon: BookOpen, value: lessons.length, label: t('myLessons.totalLessons') },
+            { icon: Clock, value: pendingLessons.length, label: t('myLessons.pendingCount') },
+            { icon: CheckCircle, value: completedLessons.length, label: t('myLessons.lessonsCompleted') },
+            { icon: AlertCircle, value: pendingConfirmation.length, label: t('myLessons.awaitingConfirmation') },
+          ].map((stat, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <stat.icon className="w-5 h-5 text-[#EC0000] shrink-0" />
+              <div>
+                <p className="font-mono text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+                <p className="font-body text-[11px] text-gray-400 dark:text-gray-500 uppercase tracking-wider">{stat.label}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{lessons.length}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t('myLessons.totalLessons')}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm dark:shadow-none">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gray-500/20 rounded-lg">
-              <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{pendingLessons.length}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t('myLessons.pendingCount')}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm dark:shadow-none">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-500/20 rounded-lg">
-              <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{completedLessons.length}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t('myLessons.lessonsCompleted')}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm dark:shadow-none">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-yellow-500/20 rounded-lg">
-              <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{pendingConfirmation.length}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t('myLessons.awaitingConfirmation')}</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
       {/* Aulas pendentes de confirmação */}
       {pendingConfirmation.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-yellow-400" />
+          <h2 className="font-headline text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-yellow-500" />
             {t('myLessons.awaitingConfirmation')}
           </h2>
           <div className="grid gap-4">
-            {pendingConfirmation.map((lesson, index) => (
-              <motion.div
+            {pendingConfirmation.map((lesson) => (
+              <div
                 key={lesson.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="relative overflow-hidden bg-yellow-500/10 backdrop-blur-xl rounded-2xl border border-yellow-500/30"
+                className="bg-yellow-50 dark:bg-yellow-900/10 rounded-2xl border border-yellow-300 dark:border-yellow-800"
               >
                 <div className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                        <h3 className="font-headline text-lg font-bold text-gray-900 dark:text-white">
                           {lesson.lesson_title}
                         </h3>
                         {getStatusBadge(lesson)}
                       </div>
                       {lesson.lesson_description && (
-                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{stripHtml(lesson.lesson_description)}</p>
+                        <p className="font-body text-gray-500 dark:text-gray-400 text-sm mb-3 line-clamp-2">{stripHtml(lesson.lesson_description)}</p>
                       )}
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                      <div className="flex flex-wrap items-center gap-4 font-body text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
                           {lesson.accumulated_seconds ? formatTime(lesson.accumulated_seconds) : (lesson.actual_time_minutes || lesson.estimated_minutes) + ' min'} / {lesson.estimated_minutes} min
@@ -259,25 +232,25 @@ export default function MyLessons() {
                       {/* Info: confirmação e aprovação */}
                       <div className="flex flex-wrap items-center gap-3 mt-2">
                         {lesson.student_confirmed && (
-                          <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 bg-green-500/10 px-2 py-1 rounded-full">
+                          <span className="flex items-center gap-1 font-body text-xs text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/20 px-2 py-1 rounded-full">
                             <User className="w-3 h-3" />
                             {t('myLessons.confirmedByStudent')}
                           </span>
                         )}
                         {lesson.is_approved && lesson.finished_by_name && (
-                          <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-1 rounded-full">
+                          <span className="flex items-center gap-1 font-body text-xs text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 px-2 py-1 rounded-full">
                             <Shield className="w-3 h-3" />
                             {t('myLessons.approvedBy')} {lesson.finished_by_name}
                           </span>
                         )}
                         {lesson.started_by === 'TRAINER' && (
-                          <span className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-1 rounded-full">
+                          <span className="flex items-center gap-1 font-body text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
                             <User className="w-3 h-3" />
                             {t('myLessons.startedByTrainer')}
                           </span>
                         )}
                       </div>
-                      
+
                       {/* Materiais */}
                       {(lesson.materials_url || lesson.video_url) && (
                         <div className="flex gap-3 mt-4">
@@ -286,7 +259,7 @@ export default function MyLessons() {
                               href={lesson.materials_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-sm text-gray-700 dark:text-gray-300 transition-colors"
+                              className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl font-body text-sm text-gray-700 dark:text-gray-300 transition-colors"
                             >
                               <FileText className="w-4 h-4" />
                               {t('myLessons.material')}
@@ -297,7 +270,7 @@ export default function MyLessons() {
                               href={lesson.video_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-sm text-gray-700 dark:text-gray-300 transition-colors"
+                              className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl font-body text-sm text-gray-700 dark:text-gray-300 transition-colors"
                             >
                               <Video className="w-4 h-4" />
                               {t('myLessons.video')}
@@ -306,11 +279,11 @@ export default function MyLessons() {
                         </div>
                       )}
                     </div>
-                    
-                    <div className="flex items-center gap-3">
+
+                    <div className="flex items-center gap-3 ml-4">
                       <button
                         onClick={() => navigate(`/lessons/${lesson.lesson_id}/view`)}
-                        className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-600 dark:text-blue-400 rounded-lg font-medium transition-colors flex items-center gap-2 border border-blue-500/30"
+                        className="px-4 py-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-body font-medium text-sm transition-colors flex items-center gap-2 border border-gray-200 dark:border-gray-700"
                       >
                         <Eye className="w-4 h-4" />
                         {t('myLessons.viewLesson')}
@@ -318,24 +291,24 @@ export default function MyLessons() {
                       <button
                         onClick={() => handleConfirmLesson(lesson.lesson_id)}
                         disabled={confirmingId === lesson.lesson_id}
-                        className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-body font-bold text-sm transition-colors disabled:opacity-50 flex items-center gap-2"
                       >
-                      {confirmingId === lesson.lesson_id ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          {t('myLessons.confirming')}
-                        </>
-                      ) : (
-                        <>
-                          <Check className="w-4 h-4" />
-                          {t('myLessons.confirm')}
-                        </>
-                      )}
+                        {confirmingId === lesson.lesson_id ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            {t('myLessons.confirming')}
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4" />
+                            {t('myLessons.confirm')}
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -344,49 +317,46 @@ export default function MyLessons() {
       {/* Aulas pendentes (NOT_STARTED / RELEASED) */}
       {pendingLessons.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <h2 className="font-headline text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <Clock className="w-5 h-5 text-gray-400" />
             {t('myLessons.waitingLessons')}
           </h2>
           <div className="grid gap-4">
-            {pendingLessons.map((lesson, index) => (
-              <motion.div
+            {pendingLessons.map((lesson) => (
+              <div
                 key={`pending-${lesson.lesson_id}`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
                 onClick={() => {
                   const params = lesson.training_plan_id ? `?plan_id=${lesson.training_plan_id}` : '';
                   navigate(`/lessons/${lesson.lesson_id}/view${params}`);
                 }}
-                className="relative overflow-hidden bg-gray-500/10 backdrop-blur-xl rounded-2xl border border-gray-500/30 cursor-pointer hover:bg-gray-500/20 transition-colors"
+                className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-[#EC0000]/30 transition-colors cursor-pointer"
               >
                 <div className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                        <h3 className="font-headline text-lg font-bold text-gray-900 dark:text-white">
                           {lesson.lesson_title}
                         </h3>
                         {getStatusBadge(lesson)}
                       </div>
                       {lesson.lesson_description && (
-                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{stripHtml(lesson.lesson_description)}</p>
+                        <p className="font-body text-gray-500 dark:text-gray-400 text-sm mb-3 line-clamp-2">{stripHtml(lesson.lesson_description)}</p>
                       )}
-                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center gap-4 font-body text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
                           {t('myLessons.estimatedTime')}: {lesson.estimated_minutes} min
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-2 text-gray-400 dark:text-gray-500 ml-4">
                       <Eye className="w-5 h-5" />
-                      <span className="text-sm font-medium">{t('myLessons.open')}</span>
+                      <span className="font-body text-sm font-medium">{t('myLessons.open')}</span>
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -395,36 +365,33 @@ export default function MyLessons() {
       {/* Aulas em progresso */}
       {activeLessons.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <Play className="w-5 h-5 text-blue-400" />
+          <h2 className="font-headline text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <Play className="w-5 h-5 text-blue-500" />
             {t('myLessons.pendingLessons')}
           </h2>
           <div className="grid gap-4">
-            {activeLessons.map((lesson, index) => (
-              <motion.div
+            {activeLessons.map((lesson) => (
+              <div
                 key={lesson.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
                 onClick={() => {
                   const params = lesson.training_plan_id ? `?plan_id=${lesson.training_plan_id}` : '';
                   navigate(`/lessons/${lesson.lesson_id}/view${params}`);
                 }}
-                className="relative overflow-hidden bg-blue-500/10 backdrop-blur-xl rounded-2xl border border-blue-500/30 cursor-pointer hover:bg-blue-500/20 transition-colors"
+                className="bg-blue-50 dark:bg-blue-900/10 rounded-2xl border border-blue-300 dark:border-blue-800 hover:border-blue-400 dark:hover:border-blue-700 transition-colors cursor-pointer"
               >
                 <div className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                        <h3 className="font-headline text-lg font-bold text-gray-900 dark:text-white">
                           {lesson.lesson_title}
                         </h3>
                         {getStatusBadge(lesson)}
                       </div>
                       {lesson.lesson_description && (
-                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-2">{stripHtml(lesson.lesson_description)}</p>
+                        <p className="font-body text-gray-500 dark:text-gray-400 text-sm mb-3 line-clamp-2">{stripHtml(lesson.lesson_description)}</p>
                       )}
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                      <div className="flex flex-wrap items-center gap-4 font-body text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
                           {lesson.accumulated_seconds ? formatTime(lesson.accumulated_seconds) : '0:00'} / {lesson.estimated_minutes} min
@@ -437,20 +404,20 @@ export default function MyLessons() {
                       </div>
                       {lesson.started_by === 'TRAINER' && (
                         <div className="flex items-center gap-2 mt-2">
-                          <span className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-1 rounded-full">
+                          <span className="flex items-center gap-1 font-body text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
                             <User className="w-3 h-3" />
                             {t('myLessons.startedByTrainer')}
                           </span>
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                    <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 ml-4">
                       <Eye className="w-5 h-5" />
-                      <span className="text-sm font-medium">{t('myLessons.continue')}</span>
+                      <span className="font-body text-sm font-medium">{t('myLessons.continue')}</span>
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -459,29 +426,26 @@ export default function MyLessons() {
       {/* Aulas confirmadas */}
       {completedLessons.filter(l => l.student_confirmed).length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-400" />
+          <h2 className="font-headline text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <CheckCircle className="w-5 h-5 text-green-500" />
             {t('myLessons.history')}
           </h2>
           <div className="grid gap-4">
-            {completedLessons.filter(l => l.student_confirmed).map((lesson, index) => (
-              <motion.div
+            {completedLessons.filter(l => l.student_confirmed).map((lesson) => (
+              <div
                 key={lesson.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="relative overflow-hidden bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm dark:shadow-none"
+                className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800"
               >
                 <div className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                        <h3 className="font-headline text-lg font-bold text-gray-900 dark:text-white">
                           {lesson.lesson_title}
                         </h3>
                         {getStatusBadge(lesson)}
                       </div>
-                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                      <div className="flex flex-wrap items-center gap-4 font-body text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
                           {lesson.accumulated_seconds ? formatTime(lesson.accumulated_seconds) : (lesson.actual_time_minutes || lesson.estimated_minutes) + ' min'} / {lesson.estimated_minutes} min
@@ -500,31 +464,31 @@ export default function MyLessons() {
                       {/* Info: confirmação e aprovação */}
                       <div className="flex flex-wrap items-center gap-3 mt-2">
                         {lesson.student_confirmed && (
-                          <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 bg-green-500/10 px-2 py-1 rounded-full">
+                          <span className="flex items-center gap-1 font-body text-xs text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/20 px-2 py-1 rounded-full">
                             <User className="w-3 h-3" />
                             {t('myLessons.confirmedByStudent')}
                           </span>
                         )}
                         {lesson.is_approved && lesson.finished_by_name && (
-                          <span className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2 py-1 rounded-full">
+                          <span className="flex items-center gap-1 font-body text-xs text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20 px-2 py-1 rounded-full">
                             <Shield className="w-3 h-3" />
                             {t('myLessons.approvedBy')} {lesson.finished_by_name}
                           </span>
                         )}
                         {lesson.started_by === 'TRAINER' && (
-                          <span className="flex items-center gap-1 text-xs text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-1 rounded-full">
+                          <span className="flex items-center gap-1 font-body text-xs text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">
                             <User className="w-3 h-3" />
                             {t('myLessons.startedByTrainer')}
                           </span>
                         )}
                       </div>
                     </div>
-                    
+
                     {/* Materiais */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 ml-4">
                       <button
                         onClick={() => navigate(`/lessons/${lesson.lesson_id}/view`)}
-                        className="p-2 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg text-blue-600 dark:text-blue-400 transition-colors"
+                        className="p-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
                         title={t('myLessons.viewLesson')}
                       >
                         <Eye className="w-5 h-5" />
@@ -534,7 +498,7 @@ export default function MyLessons() {
                           href={lesson.materials_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-gray-700 dark:text-gray-300 transition-colors"
+                          className="p-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
                           title={t('myLessons.material')}
                         >
                           <FileText className="w-5 h-5" />
@@ -545,7 +509,7 @@ export default function MyLessons() {
                           href={lesson.video_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-2 bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-gray-700 dark:text-gray-300 transition-colors"
+                          className="p-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl text-gray-600 dark:text-gray-400 transition-colors"
                           title={t('myLessons.video')}
                         >
                           <Video className="w-5 h-5" />
@@ -554,27 +518,22 @@ export default function MyLessons() {
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
       )}
 
       {lessons.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden bg-white dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-12 text-center shadow-sm dark:shadow-none"
-        >
-          <FloatingOrbs variant="subtle" />
-          <BookOpen className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-12 text-center">
+          <BookOpen className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+          <h3 className="font-headline text-xl font-bold text-gray-900 dark:text-white mb-2">
             {t('myLessons.noLessons')}
           </h3>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="font-body text-gray-500 dark:text-gray-400">
             {t('myLessons.noLessonsDesc')}
           </p>
-        </motion.div>
+        </div>
       )}
     </div>
   );

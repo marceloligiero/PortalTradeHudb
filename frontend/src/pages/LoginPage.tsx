@@ -133,6 +133,30 @@ export default function LoginPage() {
               <div className="flex-1 h-px bg-gray-200 dark:bg-white/[0.06]" />
             </motion.div>
 
+            {/* SSO Microsoft */}
+            <motion.button
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.52 }}
+              type="button"
+              onClick={() => { window.location.href = `${import.meta.env.VITE_API_URL}/auth/microsoft/login`; }}
+              className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border border-gray-200 dark:border-white/[0.08] text-sm font-body font-semibold text-gray-600 dark:text-white/60 hover:text-gray-800 dark:hover:text-white/80 hover:bg-gray-50 dark:hover:bg-white/[0.03] hover:border-gray-300 dark:hover:border-white/[0.18] transition-all duration-300 cursor-pointer">
+              {/* Microsoft logo (SVG inline) */}
+              <svg width="18" height="18" viewBox="0 0 21 21" aria-hidden="true">
+                <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+              </svg>
+              <span>{t('auth.sso.loginWithMicrosoft')}</span>
+            </motion.button>
+
+            {/* Separador */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.54 }}
+              className="flex items-center gap-4 my-4">
+              <div className="flex-1 h-px bg-gray-200 dark:bg-white/[0.06]" />
+              <span className="text-[11px] font-body text-gray-400 dark:text-white/30 font-medium uppercase tracking-wider">{t('common.or')}</span>
+              <div className="flex-1 h-px bg-gray-200 dark:bg-white/[0.06]" />
+            </motion.div>
+
             {/* Register link */}
             <motion.button initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55 }}
               type="button" onClick={() => navigate('/register')}

@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, AlertTriangle, Users, ThumbsUp, ThumbsDown, Minus, ArrowLeft, Loader2 } from 'lucide-react';
+import { BarChart3, AlertTriangle, Users, ThumbsUp, ThumbsDown, Minus, ArrowLeft } from 'lucide-react';
 import axios from '../../lib/axios';
-import { useTheme } from '../../contexts/ThemeContext';
 import { useTranslation } from 'react-i18next';
 
 interface SentimentCounts {
@@ -37,30 +36,38 @@ interface DashboardData {
 
 export default function FeedbackDashboard() {
   const { t } = useTranslation();
-  const { isDark } = useTheme();
   const navigate = useNavigate();
 
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     axios.get('/api/feedback/dashboard')
       .then(r => setData(r.data))
-      .catch(() => {})
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
 
-  // Suppress unused isDark lint warning — used implicitly via Tailwind dark: classes on document root
-  void isDark;
-
   const cardBase =
-    'rounded-xl border p-5 flex flex-col gap-1 ' +
-    'bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700';
+    'rounded-2xl border p-5 flex flex-col gap-1 ' +
+    'bg-white border-gray-200 dark:bg-gray-900 dark:border-gray-800';
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-[#EC0000]" />
+        <div className="border-4 border-[#EC0000]/20 border-t-[#EC0000] rounded-full animate-spin w-8 h-8" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 text-center">
+          <AlertTriangle className="w-8 h-8 text-[#EC0000] mx-auto mb-2" />
+          <p className="font-body text-sm text-gray-500 dark:text-gray-400">{t('feedbackDashboard.fetchError', 'Erro ao carregar dashboard')}</p>
+        </div>
       </div>
     );
   }
@@ -103,10 +110,10 @@ export default function FeedbackDashboard() {
           {t('common.back', 'Voltar')}
         </button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="font-headline text-2xl font-bold text-gray-900 dark:text-white">
             {t('feedbackDashboard.title', 'Dashboard de Feedback')}
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          <p className="font-body text-sm text-gray-500 dark:text-gray-400 mt-0.5">
             {t('feedbackDashboard.subtitle', 'Resumo de sentimentos e alertas de intervenção')}
           </p>
         </div>
@@ -120,40 +127,40 @@ export default function FeedbackDashboard() {
             <BarChart3 className="w-4 h-4" />
             {t('feedbackDashboard.totalResponses', 'Total Respostas')}
           </div>
-          <span className="text-3xl font-bold text-gray-900 dark:text-white">
+          <span className="font-mono text-3xl font-bold text-gray-900 dark:text-white">
             {total_responses}
           </span>
         </div>
 
         {/* Positive */}
         <div className={cardBase + ' border-l-4 border-l-emerald-500'}>
-          <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-semibold uppercase tracking-wide mb-1">
+          <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 text-xs font-body font-bold uppercase tracking-wide mb-1">
             <ThumbsUp className="w-4 h-4" />
             {t('feedbackDashboard.positive', 'Positivo')}
           </div>
-          <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+          <span className="font-mono text-3xl font-bold text-emerald-600 dark:text-emerald-400">
             {sentiment_counts.POSITIVE}
           </span>
         </div>
 
         {/* Neutral */}
         <div className={cardBase + ' border-l-4 border-l-amber-400'}>
-          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs font-semibold uppercase tracking-wide mb-1">
+          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs font-body font-bold uppercase tracking-wide mb-1">
             <Minus className="w-4 h-4" />
             {t('feedbackDashboard.neutral', 'Neutro')}
           </div>
-          <span className="text-3xl font-bold text-amber-600 dark:text-amber-400">
+          <span className="font-mono text-3xl font-bold text-amber-600 dark:text-amber-400">
             {sentiment_counts.NEUTRAL}
           </span>
         </div>
 
         {/* Negative */}
         <div className={cardBase + ' border-l-4 border-l-[#EC0000]'}>
-          <div className="flex items-center gap-2 text-[#EC0000] dark:text-red-400 text-xs font-semibold uppercase tracking-wide mb-1">
+          <div className="flex items-center gap-2 text-[#EC0000] dark:text-red-400 text-xs font-body font-bold uppercase tracking-wide mb-1">
             <ThumbsDown className="w-4 h-4" />
             {t('feedbackDashboard.negative', 'Negativo')}
           </div>
-          <span className="text-3xl font-bold text-[#EC0000] dark:text-red-400">
+          <span className="font-mono text-3xl font-bold text-[#EC0000] dark:text-red-400">
             {sentiment_counts.NEGATIVE}
           </span>
         </div>
@@ -174,7 +181,7 @@ export default function FeedbackDashboard() {
         </div>
 
         {intervention_alerts.length === 0 ? (
-          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 text-center text-sm text-gray-400 dark:text-gray-500">
+          <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-6 text-center text-sm font-body text-gray-400 dark:text-gray-500">
             {t('feedbackDashboard.noAlerts', 'Sem alertas de intervenção')}
           </div>
         ) : (
@@ -182,7 +189,7 @@ export default function FeedbackDashboard() {
             {intervention_alerts.map(alert => (
               <li
                 key={alert.response_id}
-                className="rounded-xl border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/10 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                className="rounded-2xl border border-red-200 dark:border-red-900/40 bg-red-50 dark:bg-red-900/10 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-gray-800 dark:text-gray-200">
@@ -219,7 +226,7 @@ export default function FeedbackDashboard() {
           </h2>
         </div>
 
-        <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
           {grabador_scores.length === 0 ? (
             <div className="p-6 text-center text-sm text-gray-400 dark:text-gray-500">
               {t('feedbackDashboard.noScores', 'Sem dados de gravadores')}
@@ -264,21 +271,21 @@ export default function FeedbackDashboard() {
                               <div
                                 className="bg-emerald-500 h-full transition-all"
                                 style={{ width: `${pctPos}%` }}
-                                title={`Positivo: ${g.positive}`}
+                                title={`${t('feedbackDashboard.positive', 'Positivo')}: ${g.positive}`}
                               />
                             )}
                             {pctNeu > 0 && (
                               <div
                                 className="bg-amber-400 h-full transition-all"
                                 style={{ width: `${pctNeu}%` }}
-                                title={`Neutro: ${g.neutral}`}
+                                title={`${t('feedbackDashboard.neutral', 'Neutro')}: ${g.neutral}`}
                               />
                             )}
                             {pctNeg > 0 && (
                               <div
                                 className="bg-[#EC0000] h-full transition-all"
                                 style={{ width: `${pctNeg}%` }}
-                                title={`Negativo: ${g.negative}`}
+                                title={`${t('feedbackDashboard.negative', 'Negativo')}: ${g.negative}`}
                               />
                             )}
                           </div>

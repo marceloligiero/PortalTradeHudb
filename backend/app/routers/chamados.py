@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
 
@@ -42,6 +42,8 @@ class CommentCreate(BaseModel):
     content: str = Field(..., min_length=1)
 
 class CommentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     chamado_id: int
     author_id: int
@@ -49,10 +51,9 @@ class CommentOut(BaseModel):
     content: str
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 class ChamadoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     title: str
     description: str
@@ -70,9 +71,6 @@ class ChamadoOut(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
     comments: List[CommentOut] = []
-
-    class Config:
-        from_attributes = True
 
 # ─── Helpers ──────────────────────────────────────────────────
 

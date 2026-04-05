@@ -39,8 +39,8 @@ export default function TrainingPlanCard({ plan }: PlanCardProps) {
   const progress = plan?.progress_percentage || 0;
 
   const getPlanRoute = () => {
-    if (user?.role === 'ADMIN') return `/admin/training-plan/${plan?.id}`;
-    if (user?.role === 'TRAINER') return `/trainer/training-plan/${plan?.id}`;
+    if (user?.is_admin) return `/admin/training-plan/${plan?.id}`;
+    if (user?.is_formador) return `/trainer/training-plan/${plan?.id}`;
     return `/training-plan/${plan?.id}`;
   };
 

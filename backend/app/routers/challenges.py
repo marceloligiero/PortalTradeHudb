@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from pydantic import BaseModel
 from .. import models, schemas
 from fastapi import Body
 from ..database import get_db
-from ..auth import get_current_user, require_role, is_trainer_user
+from ..auth import get_current_user, require_role
 
 router = APIRouter(prefix="/api/challenges", tags=["challenges"])
 
@@ -135,12 +135,12 @@ def calculate_kpi_approval(
     
     return is_approved, kpi_details
 
-# ===== ADMIN/TRAINER: Criar Desafio =====
+# ===== ADMIN/TRAINER/TUTOR: Criar Desafio =====
 @router.post("/", response_model=schemas.Challenge, status_code=status.HTTP_201_CREATED)
 async def create_challenge(
     challenge: schemas.ChallengeCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR", "TUTOR"]))
 ):
     """
     Criar novo desafio (Admin ou Formador)
@@ -211,7 +211,7 @@ async def get_challenge(
 async def get_eligible_students(
     challenge_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR", "TUTOR"]))
 ):
     """Return students assigned to training plans that include the course of this challenge.
     TRAINERs will only see students from their own plans.
@@ -233,7 +233,7 @@ async def get_eligible_students(
     student_ids = set()
     for plan in plans:
         # If trainer, skip plans not owned by trainer
-        if is_trainer_user(current_user) and plan.trainer_id != current_user.id:
+        if current_user.is_formador and plan.trainer_id != current_user.id:
             continue
 
         # Usar student_id diretamente do plano (1 aluno por plano)
@@ -245,7 +245,7 @@ async def get_eligible_students(
 
     students = db.query(models.User).filter(
         models.User.id.in_(list(student_ids)),
-        models.User.role == 'TRAINEE',
+        models.User.role == 'USUARIO',
         models.User.is_active == True
     ).all()
 
@@ -290,7 +290,7 @@ async def get_eligible_students_debug(
 
     students = db.query(models.User).filter(
         models.User.id.in_(list(student_ids)),
-        models.User.role == 'TRAINEE',
+        models.User.role == 'USUARIO',
         models.User.is_active == True
     ).all()
 
@@ -310,7 +310,7 @@ async def update_challenge(
     challenge_id: int,
     challenge_update: schemas.ChallengeUpdate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR", "TUTOR"]))
 ):
     """Atualizar desafio existente (Admin ou Formador)"""
     db_challenge = db.query(models.Challenge).filter(
@@ -338,7 +338,7 @@ async def release_challenge(
     challenge_id: int,
     release_data: schemas.ChallengeRelease = None,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR", "TUTOR"]))
 ):
     """
     Liberar ou bloquear desafio para formandos
@@ -378,7 +378,7 @@ async def list_released_challenges(
     Listar desafios liberados para o formando atual
     Verifica na tabela challenge_releases se o desafio foi liberado para este estudante
     """
-    if current_user.role not in ["TRAINEE", "STUDENT"]:
+    if not current_user.is_usuario_basico:
         raise HTTPException(status_code=403, detail="Apenas formandos podem acessar")
     
     # Buscar desafios liberados para este estudante
@@ -415,7 +415,7 @@ async def release_challenge_for_student(
     student_id: int,
     training_plan_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR", "TUTOR"]))
 ):
     """
     Formador/Admin libera um desafio para um estudante específico
@@ -431,7 +431,7 @@ async def release_challenge_for_student(
     # Validar estudante existe (TRAINEE ou TRAINER inscrito como formando)
     student = db.query(models.User).filter(
         models.User.id == student_id,
-        models.User.role.in_(["TRAINEE", "STUDENT", "TRAINER"])
+        models.User.role.in_(["USUARIO", "FORMADOR", "TRAINEE", "TRAINER"])
     ).first()
     
     if not student:
@@ -483,7 +483,7 @@ async def check_challenge_released(
 async def submit_challenge_summary(
     submission: schemas.ChallengeSubmissionSummary,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR", "TUTOR"]))
 ):
     """
     Submeter desafio tipo SUMMARY (resumido)
@@ -507,59 +507,60 @@ async def submit_challenge_summary(
     # Validar estudante existe
     student = db.query(models.User).filter(
         models.User.id == submission.user_id,
-        models.User.role == "TRAINEE"
+        models.User.role == "USUARIO"
     ).first()
     
     if not student:
         raise HTTPException(status_code=404, detail="Estudante não encontrado")
 
-    # Verificar se o estudante está atribuído a algum plano que contenha o curso do desafio
-    plans_with_course = db.query(models.TrainingPlan).join(models.TrainingPlanCourse).filter(
-        models.TrainingPlanCourse.course_id == challenge.course_id
-    ).all()
+    # ── Bypass para cápsulas (managed_by_tutor) ──
+    _course = db.query(models.Course).filter(models.Course.id == challenge.course_id).first()
+    if _course and getattr(_course, 'managed_by_tutor', False):
+        # Cápsulas: apenas tutorados do tutor que criou a cápsula
+        if student.tutor_id != _course.created_by:
+            raise HTTPException(status_code=403, detail="Estudante não é tutorado do tutor desta cápsula")
+        assignment_found = True
+    else:
+        # Verificar se o estudante está atribuído a algum plano que contenha o curso do desafio
+        plans_with_course = db.query(models.TrainingPlan).join(models.TrainingPlanCourse).filter(
+            models.TrainingPlanCourse.course_id == challenge.course_id
+        ).all()
 
-    if not plans_with_course:
-        # Se o curso não está em nenhum plano, rejeitamos por segurança
-        raise HTTPException(status_code=400, detail="Curso do desafio não está associado a nenhum plano de formação")
+        if not plans_with_course:
+            raise HTTPException(status_code=400, detail="Curso do desafio não está associado a nenhum plano de formação")
 
-    # Verificar se existe pelo menos um plano onde o estudante esteja atribuído
-    assignment_found = False
-    for plan in plans_with_course:
-        # Verificar via TrainingPlanAssignment (novo modelo N:N)
-        assignment = db.query(models.TrainingPlanAssignment).filter(
-            models.TrainingPlanAssignment.training_plan_id == plan.id,
-            models.TrainingPlanAssignment.user_id == submission.user_id
-        ).first()
-        
-        if assignment:
-            # Se o aplicador for TRAINER, garantir que o plan pertence ao trainer atual
-            if is_trainer_user(current_user):
-                # Check legacy trainer_id OR training_plan_trainers N:N
-                is_plan_trainer = (plan.trainer_id == current_user.id)
-                if not is_plan_trainer:
-                    is_plan_trainer = db.query(models.TrainingPlanTrainer).filter(
-                        models.TrainingPlanTrainer.training_plan_id == plan.id,
-                        models.TrainingPlanTrainer.trainer_id == current_user.id
-                    ).first() is not None
-                if not is_plan_trainer:
-                    continue
-            assignment_found = True
-            break
-        
-        # Fallback: verificar student_id legacy no plano
-        if plan.student_id == submission.user_id:
-            # Se o aplicador for TRAINER, garantir que o plan pertence ao trainer atual
-            if is_trainer_user(current_user):
-                is_plan_trainer = (plan.trainer_id == current_user.id)
-                if not is_plan_trainer:
-                    is_plan_trainer = db.query(models.TrainingPlanTrainer).filter(
-                        models.TrainingPlanTrainer.training_plan_id == plan.id,
-                        models.TrainingPlanTrainer.trainer_id == current_user.id
-                    ).first() is not None
-                if not is_plan_trainer:
-                    continue
-            assignment_found = True
-            break
+        assignment_found = False
+        for plan in plans_with_course:
+            assignment = db.query(models.TrainingPlanAssignment).filter(
+                models.TrainingPlanAssignment.training_plan_id == plan.id,
+                models.TrainingPlanAssignment.user_id == submission.user_id
+            ).first()
+
+            if assignment:
+                if current_user.is_formador:
+                    is_plan_trainer = (plan.trainer_id == current_user.id)
+                    if not is_plan_trainer:
+                        is_plan_trainer = db.query(models.TrainingPlanTrainer).filter(
+                            models.TrainingPlanTrainer.training_plan_id == plan.id,
+                            models.TrainingPlanTrainer.trainer_id == current_user.id
+                        ).first() is not None
+                    if not is_plan_trainer:
+                        continue
+                assignment_found = True
+                break
+
+            if plan.student_id == submission.user_id:
+                if current_user.is_formador:
+                    is_plan_trainer = (plan.trainer_id == current_user.id)
+                    if not is_plan_trainer:
+                        is_plan_trainer = db.query(models.TrainingPlanTrainer).filter(
+                            models.TrainingPlanTrainer.training_plan_id == plan.id,
+                            models.TrainingPlanTrainer.trainer_id == current_user.id
+                        ).first() is not None
+                    if not is_plan_trainer:
+                        continue
+                assignment_found = True
+                break
 
     if not assignment_found:
         raise HTTPException(status_code=403, detail="Estudante não está atribuído a um plano que contenha este curso ou sem permissão para aplicar")
@@ -656,7 +657,7 @@ async def start_challenge_complete_self(
     training_plan_id = body.get('training_plan_id') if body else None
     
     # Verificar se é formando
-    if current_user.role not in ["TRAINEE", "STUDENT"]:
+    if not current_user.is_usuario_basico:
         raise HTTPException(status_code=403, detail="Apenas formandos podem iniciar desafios desta forma")
     
     # Validar challenge
@@ -674,25 +675,33 @@ async def start_challenge_complete_self(
         )
     
     # Verificar se o formando está atribuído a um plano que contenha o curso do desafio
-    # Usar TrainingPlanAssignment para verificar atribuição (novo modelo N:N)
-    plans_with_course = db.query(models.TrainingPlan).join(
-        models.TrainingPlanCourse
-    ).join(
-        models.TrainingPlanAssignment
-    ).filter(
-        models.TrainingPlanCourse.course_id == challenge.course_id,
-        models.TrainingPlanAssignment.user_id == current_user.id
-    ).all()
-    
-    # Fallback: também verificar student_id legacy
-    if not plans_with_course:
-        plans_with_course = db.query(models.TrainingPlan).join(models.TrainingPlanCourse).filter(
+    # Bypass para cápsulas de tutoria: apenas tutorados do criador podem executar
+    _course = db.query(models.Course).filter(models.Course.id == challenge.course_id).first()
+    if _course and getattr(_course, 'managed_by_tutor', False):
+        if current_user.tutor_id != _course.created_by:
+            raise HTTPException(status_code=403, detail="Não é tutorado do tutor desta cápsula")
+        training_plan_id = None
+        plans_with_course = []
+    else:
+        # Usar TrainingPlanAssignment para verificar atribuição (novo modelo N:N)
+        plans_with_course = db.query(models.TrainingPlan).join(
+            models.TrainingPlanCourse
+        ).join(
+            models.TrainingPlanAssignment
+        ).filter(
             models.TrainingPlanCourse.course_id == challenge.course_id,
-            models.TrainingPlan.student_id == current_user.id
+            models.TrainingPlanAssignment.user_id == current_user.id
         ).all()
-    
-    if not plans_with_course:
-        raise HTTPException(status_code=403, detail="Não está atribuído a um plano que contenha este desafio")
+
+        # Fallback: também verificar student_id legacy
+        if not plans_with_course:
+            plans_with_course = db.query(models.TrainingPlan).join(models.TrainingPlanCourse).filter(
+                models.TrainingPlanCourse.course_id == challenge.course_id,
+                models.TrainingPlan.student_id == current_user.id
+            ).all()
+
+        if not plans_with_course:
+            raise HTTPException(status_code=403, detail="Não está atribuído a um plano que contenha este desafio")
     
     # Auto-detect training_plan_id se não fornecido
     if not training_plan_id and plans_with_course:
@@ -746,7 +755,7 @@ async def start_challenge_complete(
     challenge_id: int,
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR", "TUTOR"]))
 ):
     """
     Iniciar desafio tipo COMPLETE
@@ -769,54 +778,61 @@ async def start_challenge_complete(
     # Validar estudante
     student = db.query(models.User).filter(
         models.User.id == user_id,
-        models.User.role == "TRAINEE"
+        models.User.role == "USUARIO"
     ).first()
     
     if not student:
         raise HTTPException(status_code=404, detail="Estudante não encontrado")
 
     # Verificar se o estudante está atribuído a algum plano que contenha o curso do desafio
-    plans_with_course = db.query(models.TrainingPlan).join(models.TrainingPlanCourse).filter(
-        models.TrainingPlanCourse.course_id == challenge.course_id
-    ).all()
+    # Bypass para cápsulas de tutoria: apenas tutorados do criador
+    _course = db.query(models.Course).filter(models.Course.id == challenge.course_id).first()
+    if _course and getattr(_course, 'managed_by_tutor', False):
+        if student.tutor_id != _course.created_by:
+            raise HTTPException(status_code=403, detail="Estudante não é tutorado do tutor desta cápsula")
+        assignment_found = True
+    else:
+        plans_with_course = db.query(models.TrainingPlan).join(models.TrainingPlanCourse).filter(
+            models.TrainingPlanCourse.course_id == challenge.course_id
+        ).all()
 
-    if not plans_with_course:
-        raise HTTPException(status_code=400, detail="Curso do desafio não está associado a nenhum plano de formação")
+        if not plans_with_course:
+            raise HTTPException(status_code=400, detail="Curso do desafio não está associado a nenhum plano de formação")
 
-    assignment_found = False
-    for plan in plans_with_course:
-        # Check via TrainingPlanAssignment (new N:N model)
-        assignment = db.query(models.TrainingPlanAssignment).filter(
-            models.TrainingPlanAssignment.training_plan_id == plan.id,
-            models.TrainingPlanAssignment.user_id == user_id
-        ).first()
-        
-        if assignment:
-            if is_trainer_user(current_user):
-                is_plan_trainer = (plan.trainer_id == current_user.id)
-                if not is_plan_trainer:
-                    is_plan_trainer = db.query(models.TrainingPlanTrainer).filter(
-                        models.TrainingPlanTrainer.training_plan_id == plan.id,
-                        models.TrainingPlanTrainer.trainer_id == current_user.id
-                    ).first() is not None
-                if not is_plan_trainer:
-                    continue
-            assignment_found = True
-            break
+        assignment_found = False
+        for plan in plans_with_course:
+            # Check via TrainingPlanAssignment (new N:N model)
+            assignment = db.query(models.TrainingPlanAssignment).filter(
+                models.TrainingPlanAssignment.training_plan_id == plan.id,
+                models.TrainingPlanAssignment.user_id == user_id
+            ).first()
 
-        # Fallback: student_id legacy
-        if plan.student_id == user_id:
-            if is_trainer_user(current_user):
-                is_plan_trainer = (plan.trainer_id == current_user.id)
-                if not is_plan_trainer:
-                    is_plan_trainer = db.query(models.TrainingPlanTrainer).filter(
-                        models.TrainingPlanTrainer.training_plan_id == plan.id,
-                        models.TrainingPlanTrainer.trainer_id == current_user.id
-                    ).first() is not None
-                if not is_plan_trainer:
-                    continue
-            assignment_found = True
-            break
+            if assignment:
+                if current_user.is_formador:
+                    is_plan_trainer = (plan.trainer_id == current_user.id)
+                    if not is_plan_trainer:
+                        is_plan_trainer = db.query(models.TrainingPlanTrainer).filter(
+                            models.TrainingPlanTrainer.training_plan_id == plan.id,
+                            models.TrainingPlanTrainer.trainer_id == current_user.id
+                        ).first() is not None
+                    if not is_plan_trainer:
+                        continue
+                assignment_found = True
+                break
+
+            # Fallback: student_id legacy
+            if plan.student_id == user_id:
+                if current_user.is_formador:
+                    is_plan_trainer = (plan.trainer_id == current_user.id)
+                    if not is_plan_trainer:
+                        is_plan_trainer = db.query(models.TrainingPlanTrainer).filter(
+                            models.TrainingPlanTrainer.training_plan_id == plan.id,
+                            models.TrainingPlanTrainer.trainer_id == current_user.id
+                        ).first() is not None
+                    if not is_plan_trainer:
+                        continue
+                assignment_found = True
+                break
 
     if not assignment_found:
         raise HTTPException(status_code=403, detail="Estudante não está atribuído a um plano que contenha este curso ou sem permissão para aplicar")
@@ -866,7 +882,7 @@ async def add_challenge_part(
     submission_id: int,
     part: schemas.ChallengePartCreate,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR", "TUTOR"]))
 ):
     """
     Adicionar uma parte individual ao desafio COMPLETE
@@ -914,7 +930,7 @@ async def finish_challenge_complete(
     submission_id: int,
     finish_input: schemas.ChallengeFinishInput = Body(default=None),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR", "TUTOR"]))
 ):
     """
     Finalizar desafio COMPLETE
@@ -1086,7 +1102,7 @@ async def list_challenge_submissions(
     )
     
     # Se é formando, só pode ver suas próprias submissions
-    if current_user.role in ["TRAINEE", "STUDENT"]:
+    if current_user.is_usuario_basico:
         query = query.filter(models.ChallengeSubmission.user_id == current_user.id)
     else:
         # Formador pode filtrar por user_id
@@ -1125,7 +1141,7 @@ async def list_challenge_submissions(
 @router.get("/pending-review/list", response_model=List[schemas.ChallengeSubmissionDetail])
 async def list_pending_review_submissions(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER", "MANAGER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR", "GERENTE", "TUTOR"]))
 ):
     """
     Listar todas as submissions pendentes de revisão
@@ -1230,7 +1246,7 @@ async def get_submission_detail(
         raise HTTPException(status_code=404, detail="Submission não encontrada")
     
     # Formando só pode ver suas próprias submissions
-    if current_user.role in ["TRAINEE", "STUDENT"]:
+    if current_user.is_usuario_basico:
         if submission.user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Sem permissão para ver esta submission")
     
@@ -1434,7 +1450,7 @@ async def start_operation(
         raise HTTPException(status_code=400, detail="Submission já foi finalizada")
     
     # Verificar se é o formando da submission ou formador/admin
-    if current_user.role in ["TRAINEE", "STUDENT"]:
+    if current_user.is_usuario_basico:
         if submission.user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Sem permissão")
     
@@ -1510,7 +1526,7 @@ async def finish_operation(
         models.ChallengeSubmission.id == operation.submission_id
     ).first()
     
-    if current_user.role in ["TRAINEE", "STUDENT"]:
+    if current_user.is_usuario_basico:
         if submission.user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Sem permissão")
     
@@ -1587,7 +1603,7 @@ async def submit_for_review(
         raise HTTPException(status_code=404, detail="Submission não encontrada")
     
     # Verificar permissão - formando só pode submeter sua própria
-    if current_user.role in ["TRAINEE", "STUDENT"]:
+    if current_user.is_usuario_basico:
         if submission.user_id != current_user.id:
             raise HTTPException(status_code=403, detail="Sem permissão")
     
@@ -1647,7 +1663,7 @@ async def classify_operation(
     operation_id: int,
     classification: schemas.ChallengeOperationFinish,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR", "TUTOR"]))
 ):
     """
     Formador classifica uma operação indicando se tem erro e os detalhes dos erros
@@ -1825,7 +1841,7 @@ async def list_my_submissions(
     Listar todas as submissions do formando atual
     Inclui desafios em andamento e finalizados
     """
-    if current_user.role not in ["TRAINEE", "STUDENT"]:
+    if not current_user.is_usuario_basico:
         raise HTTPException(status_code=403, detail="Apenas formandos podem acessar")
     
     submissions = db.query(models.ChallengeSubmission).filter(
@@ -1881,7 +1897,7 @@ async def finalize_submission_review(
     submission_id: int,
     approve: bool = True,  # True = Aprovar, False = Reprovar (decisão manual do formador)
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR", "TUTOR"]))
 ):
     """
     Finalizar a revisão de uma submission.
@@ -1911,8 +1927,8 @@ async def finalize_submission_review(
         submission.status = "APPROVED" if approve else "REJECTED"
         submission.reviewed_by = current_user.id
         if not submission.completed_at:
-            submission.completed_at = datetime.utcnow()
-        submission.updated_at = datetime.utcnow()
+            submission.completed_at = datetime.now(timezone.utc)
+        submission.updated_at = datetime.now(timezone.utc)
         
         db.commit()
         db.refresh(submission)
@@ -2051,8 +2067,8 @@ async def finalize_submission_review(
     submission.reviewed_by = current_user.id
     # Garantir que completed_at seja definido
     if not submission.completed_at:
-        submission.completed_at = datetime.utcnow()
-    submission.updated_at = datetime.utcnow()
+        submission.completed_at = datetime.now(timezone.utc)
+    submission.updated_at = datetime.now(timezone.utc)
     
     db.commit()
     db.refresh(submission)
@@ -2085,7 +2101,7 @@ async def allow_submission_retry(
     submission_id: int,
     notes: Optional[str] = Body(default=None, embed=True),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR", "TUTOR"]))
 ):
     """
     Formador habilita nova tentativa para um formando reprovado.
@@ -2144,7 +2160,7 @@ async def start_submission_retry(
         raise HTTPException(status_code=404, detail="Submission não encontrada")
     
     # Verificar se é o formando da submission
-    if current_user.role in ["TRAINEE", "STUDENT"] and original.user_id != current_user.id:
+    if current_user.is_usuario_basico and original.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Sem permissão")
     
     # Verificar se retry foi habilitado
@@ -2207,7 +2223,7 @@ async def manual_finalize_submission(
     approve: bool = Body(..., embed=True),
     notes: Optional[str] = Body(default=None, embed=True),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR", "TUTOR"]))
 ):
     """
     Formador finaliza manualmente um desafio quando kpi_mode=MANUAL.
@@ -2350,7 +2366,7 @@ async def finalize_summary_submission(
     total_time_minutes: float = Body(..., embed=True),
     errors_count: int = Body(0, embed=True),
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["ADMIN", "TRAINER"]))
+    current_user: models.User = Depends(require_role(["ADMIN", "FORMADOR", "TUTOR"]))
 ):
     """
     Formador finaliza uma submission SUMMARY (útil para retry ou submissions em progresso).

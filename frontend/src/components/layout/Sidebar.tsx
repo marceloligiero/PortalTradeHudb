@@ -11,9 +11,9 @@ export default function Sidebar() {
   const { t } = useTranslation();
   const effectiveRole = getEffectiveRole(user);
 
-  const isStudentRole = effectiveRole === 'STUDENT' || effectiveRole === 'TRAINEE';
-  const isTrainer = effectiveRole === 'TRAINER';
-  const isAdmin = effectiveRole === 'ADMIN';
+  const isStudentRole = effectiveRole === 'USUARIO' || effectiveRole === 'CHEFE_EQUIPE';
+  const isTrainer = effectiveRole === 'FORMADOR';
+  const isAdmin = effectiveRole === 'ADMIN' || effectiveRole === 'DIRETOR';
 
   return (
     <>
@@ -44,7 +44,7 @@ export default function Sidebar() {
       )}
 
       {/* Admin / Manager — core */}
-      {(isAdmin || effectiveRole === 'MANAGER') && (
+      {(isAdmin || effectiveRole === 'GERENTE') && (
         <>
           <SidebarLink to="/courses" icon={BookOpen} label={t('navigation.courses')} />
           <SidebarLink to="/training-plans" icon={GraduationCap} label={t('navigation.trainingPlans')} />

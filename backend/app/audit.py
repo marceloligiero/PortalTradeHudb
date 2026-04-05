@@ -1,6 +1,6 @@
 """Audit logging system for tracking critical actions"""
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import Column, Integer, String, DateTime, Text
 from app.database import Base
@@ -26,7 +26,7 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
     
     id = Column(Integer, primary_key=True, index=True)
-    timestamp = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     user_id = Column(Integer, nullable=True)
     user_email = Column(String(255), nullable=True)
     action = Column(String(100), nullable=False)

@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, GraduationCap, Shield, Users, UserCircle, AlertTriangle,
-  BarChart3, Brain, Star, Award, BookMarked,
+  BarChart3, Brain, Star, BookMarked,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
@@ -11,10 +11,10 @@ function RelatoriosSidebar() {
   const { t } = useTranslation();
   const { user } = useAuthStore();
 
-  const isAdmin   = user?.role === 'ADMIN' || user?.role === 'GESTOR';
-  const isManager = user?.role === 'MANAGER';
-  const isTutor   = (user as any)?.is_tutor;
-  const isChefe   = (user as any)?.is_team_lead;
+  const isAdmin   = user?.is_admin || user?.is_diretor;
+  const isManager = user?.is_gerente || user?.is_chefe_equipe;
+  const isTutor   = user?.is_tutor;
+  const isChefe   = user?.is_chefe_equipe;
 
   return (
     <>
@@ -33,7 +33,6 @@ function RelatoriosSidebar() {
       {(isAdmin || isManager) && (
         <>
           <SidebarSection label={t('navigation.analyticsSection', 'Análise')} />
-          <SidebarLink to="/relatorios/reports" icon={Award} label={t('navigation.reports')} />
           <SidebarLink to="/relatorios/advanced-reports" icon={BarChart3} label={t('navigation.advancedReports')} />
           <SidebarLink to="/relatorios/knowledge-matrix" icon={Brain} label={t('navigation.knowledgeMatrix')} />
           <SidebarLink to="/relatorios/ratings" icon={Star} label={t('navigation.ratings')} />
@@ -46,9 +45,9 @@ function RelatoriosSidebar() {
       {(isAdmin || isManager || isTutor || isChefe) && (
         <>
           <SidebarSection label={t('tutoriaLayout.pageTitle', 'Tutoria')} />
-          <SidebarLink to="/tutoria/report" icon={BarChart3} label={t('tutoriaSidebar.report')} />
+          <SidebarLink to="/relatorios/tutoria-report" icon={BarChart3} label={t('tutoriaSidebar.report')} />
           {(isAdmin || isTutor) && (
-            <SidebarLink to="/tutoria/feedback/dashboard" icon={BookMarked} label={t('tutoriaSidebar.feedbackDashboard', 'Dashboard Feedback')} />
+            <SidebarLink to="/relatorios/feedback-dashboard" icon={BookMarked} label={t('tutoriaSidebar.feedbackDashboard', 'Dashboard Feedback')} />
           )}
         </>
       )}

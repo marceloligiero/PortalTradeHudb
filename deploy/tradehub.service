@@ -1,0 +1,68 @@
+# ════════════════════════════════════════════════════════════════════════════
+# deploy/tradehub.service — systemd unit para o backend FastAPI
+#
+# Instalação:
+#   sudo cp deploy/tradehub.service /etc/systemd/system/tradehub.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable tradehub
+#   sudo systemctl start tradehub
+#
+# Logs:
+#   sudo journalctl -u tradehub -f
+#   sudo journalctl -u tradehub --since "1 hour ago"
+# ════════════════════════════════════════════════════════════════════════════
+
+[Unit]
+Description=PortalTradeHub — FastAPI Backend
+Documentation=https://github.com/yourorg/PortalTradeDataHub
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+# ── Utilizador dedicado (criado pelo install.sh) ───────────────────────────
+User=tradehub
+Group=tradehub
+
+# ── Directório de trabalho = raiz do projecto ──────────────────────────────
+WorkingDirectory=/opt/tradehub/backend
+
+# ── Executável — venv do projecto ─────────────────────────────────────────
+ExecStart=/opt/tradehub/backend/.venv/bin/uvicorn main:app \
+    --host 127.0.0.1 \
+    --port 8000 \
+    --workers 4 \
+    --log-level info \
+    --access-log \
+    --proxy-headers \
+    --forwarded-allow-ips="127.0.0.1"
+
+# ── Restart automático ─────────────────────────────────────────────────────
+Restart=on-failure
+RestartSec=5s
+StartLimitIntervalSec=60s
+StartLimitBurst=3
+
+# ── Variáveis de ambiente ──────────────────────────────────────────────────
+# .env é lido pelo pydantic-settings; não duplicar aqui
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+
+# ── Limites de segurança ───────────────────────────────────────────────────
+# Isola o processo do sistema operativo
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/tradehub /var/log/tradehub
+ProtectHome=true
+
+# ── Limites de recursos ────────────────────────────────────────────────────
+LimitNOFILE=65536
+TimeoutStopSec=30
+
+# ── Logs ──────────────────────────────────────────────────────────────────
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tradehub
+
+[Install]
+WantedBy=multi-user.target

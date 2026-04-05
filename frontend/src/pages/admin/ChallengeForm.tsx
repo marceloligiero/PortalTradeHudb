@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, Save, Target, Clock, TrendingUp, AlertCircle,
@@ -7,6 +7,7 @@ import {
   Minus, Plus
 } from 'lucide-react';
 import api from '../../lib/axios';
+import { NAVIGATE_AFTER_SAVE_MS } from '../../constants/timings';
 
 interface ChallengeFormData {
   title: string;
@@ -36,6 +37,9 @@ export default function ChallengeForm() {
   const navigate = useNavigate();
   const { courseId, challengeId } = useParams<{ courseId: string; challengeId: string }>();
   const isEditing = !!challengeId;
+  const location = useLocation();
+  const isTutoriaContext = location.pathname.startsWith('/tutoria');
+  const backUrl = isTutoriaContext ? '/tutoria/capsulas' : `/courses/${courseId}`;
 
   const [saving, setSaving] = useState(false);
   const [loadingData, setLoadingData] = useState(isEditing);
@@ -133,7 +137,7 @@ export default function ChallengeForm() {
         await api.post('/api/challenges/', { ...form, course_id: parseInt(courseId || '0') });
       }
       setSuccess(true);
-      setTimeout(() => navigate(`/courses/${courseId}`), 1500);
+      setTimeout(() => navigate(backUrl), NAVIGATE_AFTER_SAVE_MS);
     } catch (err: any) {
       console.error('Error saving challenge:', err);
       setErrors({ submit: err.response?.data?.detail || t('messages.error') });
@@ -197,7 +201,7 @@ export default function ChallengeForm() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate(`/courses/${courseId}`)}
+            onClick={() => navigate(backUrl)}
             className="p-2 rounded-xl text-neutral-500 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -212,7 +216,7 @@ export default function ChallengeForm() {
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#EC0000] hover:bg-[#CC0000] text-white font-semibold text-sm rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {saving ? t('messages.saving') : isEditing ? t('common.save', 'Guardar') : t('challenges.createChallenge')}
+          {saving ? t('common.saving') : isEditing ? t('common.save', 'Guardar') : t('challenges.createChallenge')}
         </button>
       </div>
 

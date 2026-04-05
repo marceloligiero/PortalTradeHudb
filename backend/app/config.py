@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 
 
@@ -25,15 +25,25 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: str = ""
     SMTP_FROM_NAME: str = "TradeHub Formações"
     SMTP_TLS: bool = True
-    
+
+    # Resend email service
+    RESEND_API_URL: str = "https://api.resend.com/emails"
+    RESEND_FROM_EMAIL: str = ""
+
     # Frontend URL for password reset links
     FRONTEND_URL: str = "http://localhost"
+
+    # ── SSO Microsoft (Entra ID) — opcionais; SSO desactivado se vazios ───
+    MICROSOFT_CLIENT_ID:     str = ""
+    MICROSOFT_TENANT_ID:     str = "common"
+    MICROSOFT_CLIENT_SECRET: str = ""
+    MICROSOFT_REDIRECT_URI:  str = ""
     
-    class Config:
-        # Ensure we always load the backend .env regardless of cwd
-        env_file = str(Path(__file__).resolve().parents[1] / ".env")
-        case_sensitive = True
-        extra = "ignore"  # Allow extra env vars not defined in Settings
+    model_config = SettingsConfigDict(
+        env_file=str(Path(__file__).resolve().parents[1] / ".env"),
+        case_sensitive=True,
+        extra="ignore",
+    )
 
 
 settings = Settings()

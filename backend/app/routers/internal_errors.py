@@ -1,7 +1,7 @@
 """
 Rotas para Erros Internos — Censos, registo de erros internos, fichas de aprendizagem
 """
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -21,14 +21,14 @@ router = APIRouter(prefix="/api/internal-errors", tags=["internal-errors"])
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def _is_tutor_or_admin(user: User) -> bool:
-    return user.role == "ADMIN" or getattr(user, "is_tutor", False)
+    return user.is_admin or user.is_diretor or getattr(user, "is_tutor", False)
 
 def _require_tutor_or_admin(user: User):
     if not _is_tutor_or_admin(user):
         raise HTTPException(403, "Apenas tutores e admins")
 
 def _is_liberador(user: User) -> bool:
-    return getattr(user, "is_liberador", False) or user.role == "ADMIN"
+    return getattr(user, "is_liberador", False) or user.is_admin
 
 def _require_liberador(user: User):
     if not _is_liberador(user):
@@ -242,7 +242,7 @@ def update_senso(
     senso = db.get(Senso, senso_id)
     if not senso:
         raise HTTPException(404, "Censo não encontrado")
-    for k, v in body.dict(exclude_unset=True).items():
+    for k, v in body.model_dump(exclude_unset=True).items():
         setattr(senso, k, v)
     db.commit()
     db.refresh(senso)
@@ -282,9 +282,9 @@ def list_internal_errors(
         q = q.filter(InternalError.status == status)
 
     # ── Data scoping ──────────────────────────────────────────────────────────
-    if current_user.role in ("ADMIN", "GESTOR") or _is_tutor_or_admin(current_user):
+    if current_user.can_see_all or _is_tutor_or_admin(current_user):
         pass  # vê tudo
-    elif current_user.role == "MANAGER" or getattr(current_user, "is_team_lead", False):
+    elif current_user.is_gerente or current_user.is_chefe_equipe:
         # Chefe de equipa → erros dos gravadores da sua equipa
         visible_ids = get_visible_user_ids(db, current_user)
         if visible_ids:
@@ -422,7 +422,7 @@ def update_internal_error(
     if not error or not error.is_active:
         raise HTTPException(404, "Erro não encontrado")
 
-    data = body.dict(exclude_unset=True)
+    data = body.model_dump(exclude_unset=True)
     classifications_data = data.pop("classifications", None)
 
     # Gravador can only update 5 whys and peso_gravador
@@ -614,7 +614,7 @@ def mark_sheet_read(
     if sheet.tutorado_id != current_user.id:
         raise HTTPException(403, "Apenas o tutorado pode marcar como lida")
     sheet.is_read = True
-    sheet.read_at = datetime.utcnow()
+    sheet.read_at = datetime.now(timezone.utc)
     db.commit()
     return {"ok": True}
 

@@ -4,10 +4,11 @@ import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, Save, Building2, Package, Check,
   AlertCircle, GraduationCap, TrendingUp, Shield, Star,
-  CheckCircle2, Loader2, BookOpen, Layers,
+  CheckCircle2, Loader2, BookOpen,
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { getTranslatedProductName } from '../../utils/productTranslation';
+import { NAVIGATE_AFTER_SAVE_MS } from '../../constants/timings';
 
 interface Bank { id: number; code: string; name: string; country: string }
 interface Product { id: number; code: string; name: string; description: string }
@@ -16,12 +17,6 @@ const LEVELS = [
   { value: 'BEGINNER',     icon: TrendingUp, label: 'admin.levelBeginner',     desc: 'admin.levelBeginnerDesc',     color: 'text-orange-600 dark:text-orange-400',   bg: 'bg-orange-50 dark:bg-orange-900/20',   border: 'border-orange-300 dark:border-orange-700',   selBorder: 'border-orange-500' },
   { value: 'INTERMEDIATE', icon: Shield,     label: 'admin.levelIntermediate', desc: 'admin.levelIntermediateDesc', color: 'text-amber-600 dark:text-amber-400',     bg: 'bg-amber-50 dark:bg-amber-900/20',     border: 'border-amber-300 dark:border-amber-700',     selBorder: 'border-amber-500' },
   { value: 'EXPERT',       icon: Star,       label: 'admin.levelExpert',       desc: 'admin.levelExpertDesc',       color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-300 dark:border-emerald-700', selBorder: 'border-emerald-500' },
-] as const;
-
-const COURSE_TYPES = [
-  { value: 'CURSO',                   labelKey: 'admin.courseTypeCurso',                   desc: 'admin.courseTypeCursoDesc',                   icon: BookOpen },
-  { value: 'CAPSULA_METODOLOGIA',     labelKey: 'admin.courseTypeCapsulaMetodologia',      desc: 'admin.courseTypeCapsulaMetodologiaDesc',      icon: Layers },
-  { value: 'CAPSULA_FUNCIONALIDADE',  labelKey: 'admin.courseTypeCapsulaFuncionalidade',   desc: 'admin.courseTypeCapsulaFuncionalidadeDesc',   icon: Package },
 ] as const;
 
 const inputCls = (err?: string) =>
@@ -127,7 +122,7 @@ export default function CourseForm() {
         await api.post('/api/admin/courses', payload);
       }
       setSuccess(true);
-      setTimeout(() => navigate(isEditing ? `/courses/${courseId}` : '/courses'), 1500);
+      setTimeout(() => navigate(isEditing ? `/courses/${courseId}` : '/courses'), NAVIGATE_AFTER_SAVE_MS);
     } catch (err) {
       console.error('Error saving course:', err);
       setErrors({ submit: t('messages.error') });
@@ -189,7 +184,7 @@ export default function CourseForm() {
           className="flex items-center gap-2 px-5 py-2.5 bg-[#EC0000] hover:bg-[#CC0000] text-white font-bold text-sm rounded-xl transition-colors disabled:opacity-50"
         >
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {saving ? t('messages.saving') : isEditing ? t('common.save', 'Guardar') : t('admin.createCourse')}
+          {saving ? t('common.saving') : isEditing ? t('common.save', 'Guardar') : t('admin.createCourse')}
         </button>
       </div>
 
@@ -280,45 +275,6 @@ export default function CourseForm() {
             </div>
           </div>
 
-          {/* Course type */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5">
-            <SectionHeader icon={Layers} label={t('admin.courseType', 'Tipo de Curso')} />
-            <div className="space-y-2">
-              {COURSE_TYPES.map(ct => {
-                const sel = form.course_type === ct.value;
-                const Icon = ct.icon;
-                return (
-                  <label
-                    key={ct.value}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border-2 cursor-pointer transition-colors ${
-                      sel
-                        ? 'border-[#EC0000] bg-red-50 dark:bg-red-900/10'
-                        : 'border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="course_type"
-                      value={ct.value}
-                      checked={sel}
-                      onChange={() => set('course_type', ct.value)}
-                      className="sr-only"
-                    />
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${sel ? 'bg-[#EC0000] text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500'}`}>
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-semibold ${sel ? 'text-[#EC0000]' : 'text-gray-700 dark:text-gray-300'}`}>{t(ct.labelKey)}</p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">{t(ct.desc, '')}</p>
-                    </div>
-                    <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${sel ? 'border-[#EC0000]' : 'border-gray-300 dark:border-gray-600'}`}>
-                      {sel && <div className="w-2 h-2 rounded-full bg-[#EC0000]" />}
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
         </div>
 
         {/* ── RIGHT: Banks + Products ── */}

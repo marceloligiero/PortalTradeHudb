@@ -3,7 +3,7 @@
 > Sistema integrado de gestão de formações, tutoria, relatórios e suporte para equipas de Trade Finance — Santander.
 
 **Stack:** FastAPI (Python 3.13) · React 18 · Tailwind CSS · MySQL 8.0 · Docker Compose
-**Testes:** 341 testes pytest · Design System Santander (`#EC0000`)
+**Testes:** 451 testes pytest · Design System Santander (`#EC0000`)
 **i18n:** Português · Espanhol · Inglês
 
 ---
@@ -35,7 +35,7 @@ O **PortalTradeHub** é uma plataforma interna para a equipa de Trade Finance do
 | 1 | **Formações** | Gestão completa de cursos, lições, desafios práticos e planos de formação individuais com cronometragem de operações (MPU) e emissão de certificados |
 | 2 | **Tutoria** | Registo, análise e resolução de erros operacionais com ciclo completo de 6 estados, planos de acção, fichas de aprendizagem e treino side-by-side |
 | 3 | **Relatórios** | Dashboards analíticos em tempo real por equipa, formador, estudante e portal — com exportação de incidentes |
-| 4 | **Dados Mestres** | CRUD centralizado de bancos, produtos, equipas, utilizadores, hierarquia organizacional e todos os dados de referência do sistema |
+| 4 | **Dados Mestres** | CRUD centralizado de bancos, produtos, equipas, utilizadores e todos os dados de referência do sistema |
 | 5 | **Chamados** | Kanban de suporte interno (bugs e melhorias) com comentários, anexos, atribuição de responsável e notas de andamento |
 
 ---
@@ -161,13 +161,6 @@ PENDENTE → EM_ANALISE → AGUARDA_PLANOS → EM_EXECUCAO → VERIFICACAO → R
 - Aprovar → activa conta completa
 - Rejeitar → remove acesso
 
-#### Hierarquia organizacional (`/master-data/org-hierarchy`)
-- Visualização em **árvore interactiva** (expansível, drag-and-drop para mover nós)
-- Visualização em **organograma visual** (CSS-based, color-coded por nível)
-- CRUD completo de nós hierárquicos com prevenção de ciclos
-- Atribuição de membros a cada nó
-- Log de auditoria de todas as alterações
-
 ---
 
 ### 5. Portal de Chamados (`/chamados`)
@@ -239,7 +232,7 @@ Disponível em todos os portais autenticados (widget flutuante).
 | Dados Mestres | ✅ Full | 📖 Read | ❌ | ❌ | ❌ |
 | Chamados | ✅ Gestão | 🏢 Equipa | 🔒 Próprios | 🔒 Próprios | 🔒 Próprios |
 
-> Documentação completa: [`docs/ROLES_AND_PERMISSIONS.md`](docs/ROLES_AND_PERMISSIONS.md)
+> Documentação completa de permissões disponível nos manuais do sistema.
 
 ---
 
@@ -263,10 +256,9 @@ Disponível em todos os portais autenticados (widget flutuante).
 │           FastAPI (Python 3.13) — porta 8000          │
 │                                                       │
 │  Routers:                                             │
-│  ├── /api/auth           Autenticação JWT (PyJWT)     │
+│  ├── /api/auth           Autenticação JWT + SSO MSAL  │
 │  ├── /api/admin          Utilizadores, Master Data    │
 │  ├── /api/teams          Equipas e membros            │
-│  ├── /api/org            Hierarquia organizacional    │
 │  ├── /api/trainer        Cursos, lições, desafios     │
 │  ├── /api/lessons        Progresso de lições          │
 │  ├── /api/challenges     Submissões, revisões         │
@@ -292,7 +284,7 @@ Disponível em todos os portais autenticados (widget flutuante).
                          │ SQLAlchemy 2.0 + PyMySQL
 ┌────────────────────────▼────────────────────────────┐
 │               MySQL 8.0 — porta 3307 (DEV)            │
-│               ~40 tabelas, migrações V001–V005         │
+│               ~40 tabelas, migrações V001–V013        │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -311,8 +303,9 @@ Disponível em todos os portais autenticados (widget flutuante).
 | reportlab | 4.0.9 | Geração de PDFs |
 | anthropic | 0.84.0 | Chatbot Claude AI |
 | slowapi | 0.1.9 | Rate limiting |
+| msal | 1.31.0 | SSO Microsoft (Entra ID / Azure AD) |
 | pandas | 2.3.3 | Analytics / ETL |
-| pytest | 7.4.3 | Testes (341 testes) |
+| pytest | 7.4.3 | Testes (451 testes) |
 
 **Frontend (Node.js)**
 
@@ -490,6 +483,10 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 | `SMTP_FROM_EMAIL` | — | Endereço remetente |
 | `SMTP_TLS` | `true` | Usar TLS |
 | `ANTHROPIC_API_KEY` | — | API key Claude (chatbot) |
+| `MICROSOFT_CLIENT_ID` | — | **SSO** — Application ID do Azure App Registration |
+| `MICROSOFT_TENANT_ID` | `common` | **SSO** — Tenant ID do Azure AD (ou `common` para multi-tenant) |
+| `MICROSOFT_CLIENT_SECRET` | — | **SSO** — Client Secret gerado no Azure Portal |
+| `MICROSOFT_REDIRECT_URI` | — | **SSO** — URI de callback; ex: `https://portaltradedatahub/api/auth/microsoft/callback` |
 
 ### `.env` (raiz — Docker)
 
@@ -511,18 +508,27 @@ MySQL 8.0 com **migrações automáticas** aplicadas no arranque do backend (`ap
 
 | Migração | Descrição |
 |----------|-----------|
-| `V001__initial_schema.sql` | Schema inicial: users, teams, courses, lessons, challenges, training_plans, certificates |
-| `V002__tutoria_and_chamados.sql` | Tutoria (erros, planos, comentários, notificações), Chamados, FAQs |
+| `V001__initial_unified_schema.sql` | Schema inicial: users, teams, courses, lessons, challenges, training_plans, certificates, tutoria, chamados, FAQs |
+| `V002__dw_star_schema.sql` | Data Warehouse star schema (DW facts + dimensions) |
 | `V003__capsulas_side_by_side_feedback.sql` | Cápsulas de aprendizagem, side-by-side, surveys de feedback, erros internos, censos |
-| `V004__org_hierarchy.sql` | Hierarquia organizacional (org_nodes, org_node_members, org_node_audit) |
-| `V005__org_hierarchy_and_team_managers.sql` | Dados reais da estrutura Santander + ligação teams→org_nodes |
+| `V004__org_hierarchy.sql` | Hierarquia organizacional (tabelas legacy — funcionalidade removida da UI) |
+| `V005__org_hierarchy_and_team_managers.sql` | Dados iniciais da estrutura Santander (legacy) |
+| `V006__side_by_side_nullable_error.sql` | Tornar error_id nullable em side-by-side plans |
+| `V007__reset_org_hierarchy.sql` | Reset de dados da hierarquia organizacional |
+| `V008__org_node_member_role.sql` | Campo role em org_node_members |
+| `V009__fix_collation_dw_tables.sql` | Normalizar collations DW para utf8mb4_unicode_ci |
+| `V010__fix_bank_data.sql` | Corrigir dados de bancos |
+| `V011__team_department.sql` | Campo departamento em equipas |
+| `V012__normalize_impact_levels.sql` | Normalizar níveis de impacto |
+| `V013__unify_roles_and_flags.sql` | Unificar roles e flags de utilizadores |
+| `V014__add_sso_fields.sql` | Campos SSO (`sso_provider`, `sso_id`) na tabela users; `hashed_password` nullable para contas SSO |
 
 ### Entidades principais (ERD simplificado)
 
 ```
-User ──< TeamMember >── Team ──── node_id ──> OrgNode
- │                                                │
- ├──< Course >──< Lesson                 org_node_members
+User ──< TeamMember >── Team
+ │
+ ├──< Course >──< Lesson
  │           └──< Challenge
  │
  ├──< TrainingPlan >──< Course (N:M)
@@ -551,12 +557,14 @@ Todos os endpoints protegidos requerem header `Authorization: Bearer <token>`.
 
 | Método | Rota | Auth | Descrição |
 |--------|------|------|-----------|
-| `POST` | `/api/auth/login` | — | Login; retorna JWT + perfil |
+| `POST` | `/api/auth/login` | — | Login local (email + password); retorna JWT + perfil |
 | `POST` | `/api/auth/register` | — | Registo; roles TRAINEE/MANAGER/TRAINER |
 | `GET` | `/api/auth/me` | Bearer | Perfil do utilizador autenticado |
 | `POST` | `/api/auth/forgot-password` | — | Solicitar reset de senha (rate: 3/min) |
 | `POST` | `/api/auth/reset-password` | — | Confirmar reset com token |
 | `GET` | `/api/auth/validate-reset-token/{token}` | — | Validar token de reset |
+| `GET` | `/api/auth/microsoft/login` | — | **SSO** — Inicia fluxo OAuth2 Microsoft; redireciona para Azure AD |
+| `GET` | `/api/auth/microsoft/callback` | — | **SSO** — Callback Azure AD; emite JWT PTH e redireciona para `/auth/callback?token=` |
 
 ### Utilizadores e validação
 
@@ -660,9 +668,6 @@ Todos os endpoints protegidos requerem header `Authorization: Bearer <token>`.
 | `GET/POST/PUT/DELETE` | `/api/admin/products` | ADMIN | Produtos |
 | `GET/POST/PATCH/DELETE` | `/api/teams` | ADMIN | Equipas e membros |
 | `GET/POST/PUT/DELETE` | `/api/admin/master/*` | ADMIN | Impactos, origens, departamentos, etc. |
-| `GET/POST/PUT/DELETE` | `/api/org/nodes` | ADMIN | Hierarquia organizacional |
-| `GET` | `/api/org/tree` | Bearer | Árvore hierárquica completa |
-| `GET` | `/api/org/audit` | ADMIN | Log de auditoria |
 
 ### Chatbot e público
 
@@ -681,7 +686,7 @@ Todos os endpoints protegidos requerem header `Authorization: Bearer <token>`.
 ```bash
 # Na pasta backend/, com .venv activo
 
-# Todos os testes (341 testes)
+# Todos os testes (451 testes)
 pytest tests/ -v
 
 # Suite principal (todos os portais)
@@ -740,7 +745,7 @@ npx playwright show-report
 ```
 git push main
    │
-   ├─► CI (ci.yml) ─────────────► lint + type-check + 341 testes pytest
+   ├─► CI (ci.yml) ─────────────► lint + type-check + 451 testes pytest
    │
    ├─► Build (build-and-push.yml) ► Docker build → GHCR (ghcr.io/...)
    │
@@ -822,7 +827,7 @@ PortalTradeHub/
 │       ├── migrate.py             # Sistema de migrações automáticas (Flyway-style)
 │       ├── schemas/               # Pydantic schemas por módulo
 │       ├── routes/                # Routers: admin, trainer, student, certificates, ratings...
-│       └── routers/               # Routers: tutoria, chamados, teams, org, feedback, dw...
+│       └── routers/               # Routers: tutoria, chamados, teams, feedback, dw...
 │
 ├── backend/tests/
 │   ├── test_all_portals.py        # Suite principal (todos os portais)
@@ -832,7 +837,7 @@ PortalTradeHub/
 │   ├── src/
 │   │   ├── App.tsx                # Routing React Router v6 (role-based routes)
 │   │   ├── pages/
-│   │   │   ├── admin/             # ADMIN/GESTOR: Dashboard, Cursos, MasterData, OrgHierarchy...
+│   │   │   ├── admin/             # ADMIN/GESTOR: Dashboard, Cursos, MasterData, Users...
 │   │   │   ├── student/           # STUDENT/TRAINEE: Dashboard, Cursos, Desafios, Planos...
 │   │   │   ├── trainer/           # TRAINER: Dashboard, Cursos, Alunos, Submissões...
 │   │   │   ├── tutoria/           # Portal Tutoria: Erros, Planos, SideBySide, Capsulas...
@@ -853,14 +858,16 @@ PortalTradeHub/
 │   └── package.json
 │
 ├── database/
-│   └── migrations/                # V001 → V005 SQL migrations
+│   └── migrations/                # V001 → V013 SQL migrations
 │
 ├── docs/
-│   ├── ROLES_AND_PERMISSIONS.md   # Permissões detalhadas por role e flag
-│   ├── FLUXOGRAMAS_OPERACOES.md   # 21 fluxogramas Mermaid (todos os fluxos)
-│   ├── TECHNICAL_AUDIT.md         # Auditoria técnica completa
-│   ├── SECURITY_AUDIT.md          # OWASP Top 10, GDPR, ISO 27001
-│   └── qa/                        # Checklists QA por role (ADMIN, MANAGER, TRAINER...)
+│   ├── Arquitetura_Tecnica_PTH_TDH.docx  # Arquitectura técnica completa
+│   ├── Referencia_API_PTH_TDH.docx       # Referência de ~150 endpoints REST
+│   ├── Modelo_Dados_PTH_TDH.docx         # Modelo de dados OLTP + DW
+│   ├── Manual_PTH.docx                   # Manual utilizador — PortalTradeHub
+│   ├── Manual_TDH.docx                   # Manual utilizador — Trade Data Hub
+│   ├── Apresentacao_Executiva_PTH_TDH.pptx # Apresentação executiva 15 slides
+│   └── Fluxogramas_Operacionais_PTH.docx # 21 fluxogramas operacionais
 │
 ├── docker-compose.yml             # Dev + Prod (profiles)
 ├── Makefile                       # Atalhos: make up / make logs / make shell
@@ -875,17 +882,13 @@ PortalTradeHub/
 
 | Documento | Descrição |
 |-----------|-----------|
-| [`docs/ROLES_AND_PERMISSIONS.md`](docs/ROLES_AND_PERMISSIONS.md) | Todas as permissões por role, flag e portal com endpoints |
-| [`docs/FLUXOGRAMAS_OPERACOES.md`](docs/FLUXOGRAMAS_OPERACOES.md) | 21 fluxogramas Mermaid — passo a passo de cada operação |
-| [`docs/TECHNICAL_AUDIT.md`](docs/TECHNICAL_AUDIT.md) | Auditoria técnica: componentes, integrações, estado do código |
-| [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md) | Auditoria OWASP Top 10:2025 + GDPR + ISO 27001 |
-| [`docs/qa/README.md`](docs/qa/README.md) | Índice dos checklists de QA por role |
-| [`docs/qa/QA_ADMIN.md`](docs/qa/QA_ADMIN.md) | Checklist de testes para ADMIN |
-| [`docs/qa/QA_MANAGER.md`](docs/qa/QA_MANAGER.md) | Checklist de testes para MANAGER |
-| [`docs/qa/QA_TRAINER.md`](docs/qa/QA_TRAINER.md) | Checklist de testes para TRAINER |
-| [`docs/qa/QA_STUDENT.md`](docs/qa/QA_STUDENT.md) | Checklist de testes para STUDENT/TRAINEE |
-| [`docs/qa/QA_TUTOR.md`](docs/qa/QA_TUTOR.md) | Checklist de testes para is_tutor |
-| [`docs/qa/QA_REFERENTE.md`](docs/qa/QA_REFERENTE.md) | Checklist de testes para is_referente/is_liberador |
+| [`docs/Arquitetura_Tecnica_PTH_TDH.docx`](docs/Arquitetura_Tecnica_PTH_TDH.docx) | Arquitectura técnica completa — stack, DW, segurança, ADRs, deploy |
+| [`docs/Referencia_API_PTH_TDH.docx`](docs/Referencia_API_PTH_TDH.docx) | Referência de todos os ~150 endpoints REST (A4 landscape, método+rota+roles) |
+| [`docs/Modelo_Dados_PTH_TDH.docx`](docs/Modelo_Dados_PTH_TDH.docx) | Modelo de dados — todas as tabelas OLTP e DW star schema com colunas e tipos |
+| [`docs/Manual_PTH.docx`](docs/Manual_PTH.docx) | Manual do utilizador — PortalTradeHub (pt-PT) |
+| [`docs/Manual_TDH.docx`](docs/Manual_TDH.docx) | Manual do utilizador — Trade Data Hub / Relatórios e Dados Mestres (pt-PT) |
+| [`docs/Apresentacao_Executiva_PTH_TDH.pptx`](docs/Apresentacao_Executiva_PTH_TDH.pptx) | Apresentação executiva de 15 slides — Santander design, para audiência de gestão |
+| [`docs/Fluxogramas_Operacionais_PTH.docx`](docs/Fluxogramas_Operacionais_PTH.docx) | 21 fluxogramas operacionais com passo a passo, decisões e endpoints por fluxo |
 
 ---
 

@@ -5,7 +5,6 @@ from typing import List
 from datetime import datetime
 from app.database import get_db
 from app import models, schemas, auth
-from app.auth import is_trainer_user
 
 router = APIRouter()
 
@@ -186,7 +185,7 @@ async def list_training_plans(
         # Load plans according to role
         if current_user.role == "ADMIN":
             plans = db.query(models.TrainingPlan).all()
-        elif is_trainer_user(current_user):
+        elif current_user.is_formador:
             # Buscar planos onde é formador primário OU secundário
             trainer_assignments = db.query(models.TrainingPlanTrainer).filter(
                 models.TrainingPlanTrainer.trainer_id == current_user.id
@@ -294,7 +293,7 @@ async def list_training_plans(
             total_hours = round(total_minutes / 60)
             
             # Calcular status do plano - per student for TRAINEE users
-            if current_user.role in ["TRAINEE", "STUDENT"]:
+            if current_user.is_usuario_basico:
                 plan_status = calculate_plan_status(db, plan, student_id=current_user.id)
             else:
                 plan_status = calculate_plan_status(db, plan)
@@ -419,7 +418,7 @@ async def create_training_plan(
     logger.info(f"Creating training plan - User: {current_user.email}, Role: {current_user.role}")
     
     # Verificar role manualmente
-    if current_user.role != "ADMIN" and not is_trainer_user(current_user):
+    if not current_user.is_admin and not current_user.is_formador:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions"
@@ -441,7 +440,7 @@ async def create_training_plan(
     for tid in trainer_ids:
         trainer = db.query(models.User).filter(
             models.User.id == tid,
-            or_(models.User.role == "TRAINER", models.User.is_trainer == True),
+            models.User.is_formador == True,
             models.User.is_pending == False
         ).first()
         
@@ -572,7 +571,7 @@ async def create_training_plan(
         for sid in all_student_ids:
             student = db.query(models.User).filter(
                 models.User.id == sid,
-                models.User.role.in_(["TRAINEE", "TRAINER"])
+                models.User.role.in_(["USUARIO", "FORMADOR", "TRAINEE", "TRAINER"])
             ).first()
             if student:
                 assignment = models.TrainingPlanAssignment(
@@ -676,7 +675,7 @@ async def get_training_plan(
             db.refresh(plan)
 
     # Verificar permissões
-    if current_user.role == "TRAINEE":
+    if current_user.is_usuario_basico:
         # Verificar se o formando está atribuído (por assignment OU por student_id)
         assignment = db.query(models.TrainingPlanAssignment).filter(
             models.TrainingPlanAssignment.training_plan_id == plan_id,
@@ -685,7 +684,7 @@ async def get_training_plan(
         is_student = plan.student_id == current_user.id
         if not assignment and not is_student:
             raise HTTPException(status_code=403, detail="Not authorized to access this training plan")
-    elif is_trainer_user(current_user):
+    elif current_user.is_formador:
         # Verificar se é formador (primário ou secundário) deste plano
         is_primary_trainer = plan.trainer_id == current_user.id
         trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
@@ -785,7 +784,7 @@ async def get_training_plan(
                     status_str = None
 
         # For TRAINEE users, override status with per-student calculation
-        if current_user.role in ["TRAINEE", "STUDENT"]:
+        if current_user.is_usuario_basico:
             student_plan_status = calculate_plan_status(db, plan, student_id=current_user.id)
             status_str = student_plan_status["status"]
             if student_plan_status["days_remaining"] is not None:
@@ -894,7 +893,7 @@ async def get_training_plan(
 async def update_training_plan(
     plan_id: int,
     plan_update: schemas.TrainingPlanUpdate,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """
@@ -910,7 +909,7 @@ async def update_training_plan(
         raise HTTPException(status_code=404, detail="Training plan not found")
     
     # Verificar permissões - TRAINER só pode atualizar se for formador do plano
-    if is_trainer_user(current_user):
+    if current_user.is_formador:
         is_primary_trainer = db_plan.trainer_id == current_user.id
         trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
             models.TrainingPlanTrainer.training_plan_id == plan_id,
@@ -923,7 +922,7 @@ async def update_training_plan(
             )
     
     # Atualizar campos
-    update_data = plan_update.dict(exclude_unset=True)
+    update_data = plan_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         if key not in ["course_ids", "trainer_ids"]:
             setattr(db_plan, key, value)
@@ -955,7 +954,7 @@ async def update_training_plan(
         for idx, trainer_id in enumerate(plan_update.trainer_ids):
             trainer = db.query(models.User).filter(
                 models.User.id == trainer_id,
-                or_(models.User.role == "TRAINER", models.User.is_trainer == True)
+                models.User.is_formador == True
             ).first()
             if trainer:
                 plan_trainer = models.TrainingPlanTrainer(
@@ -1071,7 +1070,7 @@ async def update_training_plan(
 @router.delete("/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_training_plan(
     plan_id: int,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """
@@ -1087,15 +1086,36 @@ async def delete_training_plan(
         raise HTTPException(status_code=404, detail="Training plan not found")
     
     # Verificar permissões
-    if is_trainer_user(current_user) and db_plan.trainer_id != current_user.id:
+    if current_user.is_formador and db_plan.trainer_id != current_user.id:
         raise HTTPException(
             status_code=403,
             detail="Not authorized to delete this training plan"
         )
-    
-    db.delete(db_plan)
-    db.commit()
-    
+
+    # Remover registos dependentes antes de excluir
+    from sqlalchemy.exc import IntegrityError as SAIntegrityError
+    try:
+        # Remover enrollments/assignments
+        db.query(models.TrainingPlanAssignment).filter(
+            models.TrainingPlanAssignment.training_plan_id == plan_id
+        ).delete()
+        # Remover cursos do plano
+        db.query(models.TrainingPlanCourse).filter(
+            models.TrainingPlanCourse.training_plan_id == plan_id
+        ).delete()
+        # Remover certificados associados
+        db.query(models.Certificate).filter(
+            models.Certificate.training_plan_id == plan_id
+        ).delete()
+        db.delete(db_plan)
+        db.commit()
+    except SAIntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Não é possível excluir este plano. Existem registos associados."
+        )
+
     return None
 
 # ============== STUDENT ASSIGNMENTS ==============
@@ -1104,7 +1124,7 @@ async def delete_training_plan(
 async def assign_student_to_plan(
     plan_id: int,
     assignment: schemas.AssignStudentToPlan,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """
@@ -1120,7 +1140,7 @@ async def assign_student_to_plan(
         raise HTTPException(status_code=400, detail="Não é possível inscrever formandos num plano finalizado")
     
     # Verificar permissões do TRAINER
-    if is_trainer_user(current_user):
+    if current_user.is_formador:
         is_trainer = plan.trainer_id == current_user.id
         trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
             models.TrainingPlanTrainer.training_plan_id == plan_id,
@@ -1135,7 +1155,7 @@ async def assign_student_to_plan(
     # Verificar se o formando existe (pode ser TRAINEE ou TRAINER que é aluno neste plano)
     student = db.query(models.User).filter(
         models.User.id == assignment.student_id,
-        models.User.role.in_(["TRAINEE", "TRAINER"])
+        models.User.role.in_(["USUARIO", "FORMADOR", "TRAINEE", "TRAINER"])
     ).first()
     
     if not student:
@@ -1233,7 +1253,7 @@ async def assign_student_to_plan(
 async def unassign_student_from_plan(
     plan_id: int,
     student_id: int,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """
@@ -1244,7 +1264,7 @@ async def unassign_student_from_plan(
     if not plan:
         raise HTTPException(status_code=404, detail="Training plan not found")
     
-    if is_trainer_user(current_user) and plan.trainer_id != current_user.id:
+    if current_user.is_formador and plan.trainer_id != current_user.id:
         raise HTTPException(
             status_code=403,
             detail="Not authorized to unassign students from this training plan"
@@ -1295,7 +1315,7 @@ async def unassign_student_from_plan(
 async def add_trainer_to_plan(
     plan_id: int,
     data: dict,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """
@@ -1316,7 +1336,7 @@ async def add_trainer_to_plan(
         raise HTTPException(status_code=400, detail="Não é possível adicionar formadores a um plano finalizado")
     
     # Verificar permissões
-    if is_trainer_user(current_user):
+    if current_user.is_formador:
         is_plan_trainer = plan.trainer_id == current_user.id
         trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
             models.TrainingPlanTrainer.training_plan_id == plan_id,
@@ -1325,10 +1345,10 @@ async def add_trainer_to_plan(
         if not is_plan_trainer and not trainer_assignment:
             raise HTTPException(status_code=403, detail="Sem permissão para adicionar formadores a este plano")
     
-    # Verificar se o formador existe
+    # Verificar se o formador existe (usa is_formador como flag — mesma lógica do endpoint /api/admin/trainers)
     trainer = db.query(models.User).filter(
         models.User.id == trainer_id,
-        models.User.role.in_(["TRAINER", "ADMIN"]),
+        models.User.is_formador == True,
         models.User.is_active == True
     ).first()
     if not trainer:
@@ -1381,7 +1401,7 @@ async def add_trainer_to_plan(
 async def remove_trainer_from_plan(
     plan_id: int,
     trainer_id: int,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """
@@ -1392,13 +1412,14 @@ async def remove_trainer_from_plan(
         raise HTTPException(status_code=404, detail="Plano não encontrado")
     
     # Verificar permissões
-    if is_trainer_user(current_user):
+    if current_user.is_formador:
         if plan.trainer_id != current_user.id:
             raise HTTPException(status_code=403, detail="Apenas o formador principal ou admin pode remover formadores")
     
     # Não pode remover formadores depois do plano iniciar
     from datetime import date as date_type
-    if plan.start_date and plan.start_date <= date_type.today():
+    start = plan.start_date.date() if hasattr(plan.start_date, 'date') else plan.start_date
+    if start and start <= date_type.today():
         raise HTTPException(status_code=400, detail="Não é possível remover formadores após o início do plano de formação")
     
     # Não pode remover o trainer_id legacy do plano
@@ -1422,7 +1443,7 @@ async def remove_trainer_from_plan(
 @router.get("/{plan_id}/students", response_model=List[schemas.StudentAssignment])
 async def list_plan_students(
     plan_id: int,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """
@@ -1433,7 +1454,7 @@ async def list_plan_students(
         raise HTTPException(status_code=404, detail="Training plan not found")
     
     # Verificar permissões do TRAINER
-    if is_trainer_user(current_user):
+    if current_user.is_formador:
         is_trainer = plan.trainer_id == current_user.id
         trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
             models.TrainingPlanTrainer.training_plan_id == plan_id,
@@ -1489,7 +1510,7 @@ async def list_plan_students(
 async def assign_multiple_students_to_plan(
     plan_id: int,
     data: schemas.AssignMultipleStudentsToPlan,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """
@@ -1500,7 +1521,7 @@ async def assign_multiple_students_to_plan(
         raise HTTPException(status_code=404, detail="Training plan not found")
     
     # Verificar permissões
-    if is_trainer_user(current_user):
+    if current_user.is_formador:
         is_trainer = plan.trainer_id == current_user.id
         trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
             models.TrainingPlanTrainer.training_plan_id == plan_id,
@@ -1554,7 +1575,7 @@ async def assign_multiple_students_to_plan(
         # Verify student exists
         student = db.query(models.User).filter(
             models.User.id == sid,
-            models.User.role.in_(["TRAINEE", "TRAINER"])
+            models.User.role.in_(["USUARIO", "FORMADOR", "TRAINEE", "TRAINER"])
         ).first()
         if not student:
             skipped.append({"student_id": sid, "reason": "not_found"})
@@ -1606,7 +1627,7 @@ async def update_enrollment(
     plan_id: int,
     enrollment_id: int,
     data: schemas.EnrollmentUpdate,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """
@@ -1659,14 +1680,14 @@ async def update_enrollment(
 
 @router.get("/trainers", response_model=List[schemas.UserBasic])
 async def list_trainers(
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """
     Listar formadores validados disponíveis para atribuição
     """
     trainers = db.query(models.User).filter(
-        or_(models.User.role == "TRAINER", models.User.is_trainer == True),
+        models.User.is_formador == True,
         models.User.is_pending == False,
         models.User.is_active == True
     ).all()
@@ -1809,13 +1830,13 @@ async def get_plan_completion_status(
     # Determinar o student_id target
     target_student = student_id
     if not target_student:
-        if current_user.role in ["TRAINEE", "STUDENT"]:
+        if current_user.is_usuario_basico:
             target_student = current_user.id
         else:
             target_student = plan.student_id
     
     # Verificar permissões
-    if current_user.role != "ADMIN" and not is_trainer_user(current_user) and current_user.id != target_student:
+    if not current_user.is_admin and not current_user.is_formador and current_user.id != target_student:
         raise HTTPException(status_code=403, detail="Sem permissão")
     
     completion_status = check_plan_completion(db, plan, student_id=target_student)
@@ -1868,7 +1889,7 @@ async def get_plan_completion_status(
 async def finalize_training_plan(
     plan_id: int,
     student_id: int = None,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """
@@ -1884,7 +1905,7 @@ async def finalize_training_plan(
         raise HTTPException(status_code=404, detail="Plano não encontrado")
     
     # Verificar se formador é responsável pelo plano
-    if is_trainer_user(current_user):
+    if current_user.is_formador:
         is_trainer = plan.trainer_id == current_user.id
         trainer_assignment = db.query(models.TrainingPlanTrainer).filter(
             models.TrainingPlanTrainer.training_plan_id == plan_id,

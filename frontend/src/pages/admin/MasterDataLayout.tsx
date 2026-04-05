@@ -1,6 +1,6 @@
 import {
   Building2, Package, Users, FolderTree, MessageCircle,
-  Zap, Globe, Eye, Building, Activity, AlertTriangle, UserCog, Network, UserCheck,
+  Zap, Globe, Eye, Building, Activity, AlertTriangle, UserCog, UserCheck,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
@@ -35,7 +35,6 @@ function MasterDataSidebar() {
       <SidebarSection label={t('masterData.management')} />
       <SidebarLink to="/master-data/users" icon={UserCog} label={t('masterData.users')} />
       <SidebarLink to="/master-data/trainer-validation" icon={UserCheck} label={t('masterData.trainerValidation')} />
-      <SidebarLink to="/master-data/org-hierarchy" icon={Network} label={t('masterData.orgHierarchy')} />
     </>
   );
 }
@@ -49,7 +48,7 @@ export default function MasterDataLayout() {
       title={t('masterData.portalTitle')}
       fallbackTitle={t('masterData.portalTitleFallback')}
       sidebarContent={<MasterDataSidebar />}
-      guard={() => user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'GESTOR'}
+      guard={() => user?.is_admin || user?.is_gerente || user?.is_diretor}
       animateOnRouteChange
     />
   );

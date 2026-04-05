@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { STORAGE_KEYS } from '../constants/storageKeys';
 
 type ThemeMode = 'dark' | 'light';
 
@@ -13,7 +14,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeMode>(() => {
-    const saved = localStorage.getItem('theme');
+    const saved = localStorage.getItem(STORAGE_KEYS.THEME);
     if (saved === 'dark' || saved === 'light') return saved;
     return 'dark'; // Default to dark mode
   });
@@ -21,7 +22,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const isDark = theme === 'dark';
 
   useEffect(() => {
-    localStorage.setItem('theme', theme);
+    localStorage.setItem(STORAGE_KEYS.THEME, theme);
     // Update document class for global styling
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');

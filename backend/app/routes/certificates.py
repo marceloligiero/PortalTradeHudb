@@ -945,7 +945,7 @@ def generate_simple_pdf(
     (cores âmbar/dourado, sem MPU)
     """
     try:
-        from fpdf import FPDF
+        from fpdf import FPDF, XPos, YPos
         
         # Cores âmbar
         AMBER_800 = (146, 64, 14)
@@ -973,41 +973,41 @@ def generate_simple_pdf(
         pdf.set_y(25)
         pdf.set_font('Helvetica', '', 12)
         pdf.set_text_color(*AMBER_500)
-        pdf.cell(0, 8, chr(9830) + '  ' + chr(9830) + '  ' + chr(9830), align='C', ln=True)
+        pdf.cell(0, 8, '*  *  *', align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
         pdf.set_font('Helvetica', 'B', 36)
         pdf.set_text_color(*AMBER_800)
-        pdf.cell(0, 15, 'CERTIFICADO', align='C', ln=True)
+        pdf.cell(0, 15, 'CERTIFICADO', align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
         pdf.set_font('Helvetica', '', 16)
         pdf.set_text_color(*AMBER_600)
-        pdf.cell(0, 10, 'de Conclusao', align='C', ln=True)
+        pdf.cell(0, 10, 'de Conclusao', align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
         pdf.set_text_color(*AMBER_600)
-        pdf.cell(0, 8, chr(9733) + '  ' + chr(9733) + '  ' + chr(9733), align='C', ln=True)
+        pdf.cell(0, 8, '*  *  *', align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
         pdf.ln(10)
         
         # Certificamos que
         pdf.set_text_color(*GRAY_600)
         pdf.set_font('Helvetica', '', 14)
-        pdf.cell(0, 10, 'Certificamos que', align='C', ln=True)
+        pdf.cell(0, 10, 'Certificamos que', align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
         # Nome do aluno
         pdf.set_font('Helvetica', 'B', 28)
         pdf.set_text_color(*GRAY_800)
-        pdf.cell(0, 15, student_name, align='C', ln=True)
+        pdf.cell(0, 15, student_name, align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
         pdf.ln(5)
         
         # Texto (SEM MPU)
         pdf.set_font('Helvetica', '', 13)
         pdf.set_text_color(*GRAY_600)
-        pdf.cell(0, 8, 'concluiu com exito o plano de formacao', align='C', ln=True)
+        pdf.cell(0, 8, 'concluiu com exito o plano de formacao', align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
         pdf.set_font('Helvetica', 'B', 18)
         pdf.set_text_color(*AMBER_700)
-        pdf.cell(0, 12, f'"{training_plan_title}"', align='C', ln=True)
+        pdf.cell(0, 12, f'"{training_plan_title}"', align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
         course_word = "curso" if courses_completed == 1 else "cursos"
         pdf.set_font('Helvetica', '', 12)
@@ -1068,7 +1068,7 @@ def generate_simple_pdf(
         pdf.set_xy(130, sig_y)
         pdf.set_font('Helvetica', 'B', 14)
         pdf.set_text_color(*GREEN_600)
-        pdf.cell(40, 15, chr(10003) + ' VALIDO', align='C')
+        pdf.cell(40, 15, '[OK] VALIDO', align='C')
         
         # Plataforma
         pdf.set_xy(180, sig_y)
@@ -1088,10 +1088,10 @@ def generate_simple_pdf(
         pdf.set_y(180)
         pdf.set_font('Helvetica', '', 10)
         pdf.set_text_color(*GRAY_600)
-        pdf.cell(0, 5, 'Certificado No:', align='C', ln=True)
+        pdf.cell(0, 5, 'Certificado No:', align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.set_font('Courier', 'B', 12)
         pdf.set_text_color(*AMBER_700)
-        pdf.cell(0, 6, certificate_number, align='C', ln=True)
+        pdf.cell(0, 6, certificate_number, align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
         # ===== PÁGINA 2: ANEXO COM DETALHES =====
         if courses:
@@ -1100,11 +1100,11 @@ def generate_simple_pdf(
             # Cabeçalho
             pdf.set_font('Helvetica', 'B', 20)
             pdf.set_text_color(*AMBER_800)
-            pdf.cell(0, 12, 'ANEXO AO CERTIFICADO', align='C', ln=True)
+            pdf.cell(0, 12, 'ANEXO AO CERTIFICADO', align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             
             pdf.set_font('Courier', 'B', 11)
             pdf.set_text_color(*AMBER_700)
-            pdf.cell(0, 8, f'Certificado No: {certificate_number}', align='C', ln=True)
+            pdf.cell(0, 8, f'Certificado No: {certificate_number}', align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             
             pdf.set_draw_color(*AMBER_500)
             pdf.line(20, pdf.get_y(), 277, pdf.get_y())
@@ -1112,7 +1112,7 @@ def generate_simple_pdf(
             
             pdf.set_font('Helvetica', 'B', 16)
             pdf.set_text_color(*AMBER_700)
-            pdf.cell(0, 10, 'Detalhes da Formacao', align='L', ln=True)
+            pdf.cell(0, 10, 'Detalhes da Formacao', align='L', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             pdf.ln(5)
             
             for idx, course in enumerate(courses, 1):
@@ -1133,22 +1133,22 @@ def generate_simple_pdf(
                 pdf.set_fill_color(220, 252, 231)  # GREEN_100
                 pdf.set_text_color(*GREEN_600)
                 pdf.set_font('Helvetica', 'B', 10)
-                pdf.cell(50, 10, chr(10003) + ' Concluido', border=1, align='C', fill=True, ln=True)
+                pdf.cell(50, 10, '[OK] Concluido', border=1, align='C', fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 
                 # Detalhes (SEM MPU)
                 pdf.set_text_color(*GRAY_600)
                 pdf.set_font('Helvetica', '', 11)
                 pdf.cell(15, 8, '', border=0)
-                pdf.cell(250, 8, f'{lessons_count} Aulas Completadas', border=0, ln=True)
+                pdf.cell(250, 8, f'{lessons_count} Aulas Completadas', border=0, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 
                 if challenges:
                     pdf.cell(15, 8, '', border=0)
                     pdf.set_font('Helvetica', 'B', 11)
-                    pdf.cell(250, 8, f'{len(challenges)} Desafios Aprovados:', border=0, ln=True)
+                    pdf.cell(250, 8, f'{len(challenges)} Desafios Aprovados:', border=0, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                     pdf.set_font('Helvetica', '', 10)
                     for ch in challenges:
                         pdf.cell(25, 6, '', border=0)
-                        pdf.cell(240, 6, f'{chr(10003)} {ch["title"]} - Aprovado', border=0, ln=True)
+                        pdf.cell(240, 6, f'[OK] {ch["title"]} - Aprovado', border=0, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 
                 pdf.ln(5)
             

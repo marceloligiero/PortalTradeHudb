@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   BookOpen,
@@ -80,9 +80,12 @@ export default function CourseDetail() {
   const { courseId } = useParams<{ courseId: string }>();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
   const isAdmin = user?.role === 'ADMIN';
-  const isStudent = user?.role === 'STUDENT' || user?.role === 'TRAINEE';
+  const isStudent = !(user?.is_formador || user?.is_admin || user?.is_tutor);
+  const isTutoriaContext = location.pathname.startsWith('/tutoria');
+  const coursePrefix = isTutoriaContext ? `/tutoria/capsulas/${courseId}` : `/courses/${courseId}`;
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +106,7 @@ export default function CourseDetail() {
       setCourse(response.data);
     } catch (err: any) {
       console.error('Error fetching course:', err);
-      setError(err.response?.data?.detail || t('common.error'));
+      setError(err.response?.data?.detail || t('messages.error'));
     } finally {
       setLoading(false);
     }
@@ -223,7 +226,7 @@ export default function CourseDetail() {
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-10 h-10 text-[#EC0000] mx-auto mb-3" />
-          <p className="text-gray-900 dark:text-white font-medium mb-1">{t('common.error')}</p>
+          <p className="text-gray-900 dark:text-white font-medium mb-1">{t('messages.error')}</p>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{error || t('common.notFound', 'Não encontrado')}</p>
           <button onClick={() => navigate('/courses')} className="text-sm text-[#EC0000] hover:underline">
             {t('common.goBack')}
@@ -245,14 +248,14 @@ export default function CourseDetail() {
       {/* ══════════════════════════════════════════════════
           COURSE HEADER
          ══════════════════════════════════════════════════ */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800">
         <div className="p-5 sm:p-6">
 
           {/* Top bar: back + actions */}
           <div className="flex items-center justify-between mb-5">
             <button
               onClick={() => navigate('/courses')}
-              className="inline-flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              className="inline-flex items-center gap-1.5 font-body text-sm text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               {t('common.back')}
@@ -261,7 +264,7 @@ export default function CourseDetail() {
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => navigate(`/courses/${course.id}/edit`)}
-                  className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   title={t('common.edit')}
                 >
                   <Edit3 className="w-4 h-4" />
@@ -287,19 +290,19 @@ export default function CourseDetail() {
               {/* Tag row */}
               <div className="flex flex-wrap items-center gap-1.5 mb-2">
                 {banks.map(b => (
-                  <span key={b.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded text-[11px] font-medium">
+                  <span key={b.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded font-body text-[11px] font-medium">
                     <Building2 className="w-3 h-3" />
                     {b.name}
                   </span>
                 ))}
                 {products.map(p => (
-                  <span key={p.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded text-[11px] font-medium">
+                  <span key={p.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded font-body text-[11px] font-medium">
                     <Package className="w-3 h-3" />
                     {getTranslatedProductName(t, p.code, p.name)}
                   </span>
                 ))}
                 {course.level && (
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold ${lvl.cls}`}>
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded font-body text-[11px] font-semibold ${lvl.cls}`}>
                     {lvl.icon}
                     {lvl.label}
                   </span>
@@ -307,17 +310,17 @@ export default function CourseDetail() {
               </div>
 
               {/* Title */}
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight">
+              <h1 className="font-headline text-xl sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight">
                 {course.title}
               </h1>
               {course.description && (
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-2xl line-clamp-2">
+                <p className="mt-1 font-body text-sm text-gray-500 dark:text-gray-400 max-w-2xl line-clamp-2">
                   {course.description}
                 </p>
               )}
 
               {/* Metadata row */}
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-gray-400 dark:text-gray-500">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 font-body text-xs text-gray-400 dark:text-gray-500">
                 {course.trainer_name && (
                   <span className="flex items-center gap-1">
                     <GraduationCap className="w-3.5 h-3.5" />
@@ -355,8 +358,8 @@ export default function CourseDetail() {
           <div className="flex items-center gap-3 flex-1 p-3.5 bg-green-50 dark:bg-green-500/10 rounded-xl border border-green-100 dark:border-green-500/20">
             <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
             <div className="min-w-0">
-              <p className="text-sm font-medium text-green-700 dark:text-green-400">{t('courses.enrolled', 'Inscrito')}</p>
-              <p className="text-[11px] text-green-600 dark:text-green-500 truncate">{t('courses.enrolledDescription', 'Acesso a aulas e desafios')}</p>
+              <p className="font-body text-sm font-medium text-green-700 dark:text-green-400">{t('courses.enrolled', 'Inscrito')}</p>
+              <p className="font-body text-[11px] text-green-600 dark:text-green-500 truncate">{t('courses.enrolledDescription', 'Acesso a aulas e desafios')}</p>
             </div>
           </div>
 
@@ -368,8 +371,8 @@ export default function CourseDetail() {
             >
               <GraduationCap className="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-purple-700 dark:text-purple-400">{t('courses.trainingPlan', 'Plano de Formação')}</p>
-                <p className="text-[11px] text-purple-600 dark:text-purple-500 truncate">{course.training_plan.title}</p>
+                <p className="font-body text-sm font-medium text-purple-700 dark:text-purple-400">{t('courses.trainingPlan', 'Plano de Formação')}</p>
+                <p className="font-body text-[11px] text-purple-600 dark:text-purple-500 truncate">{course.training_plan.title}</p>
               </div>
               <ChevronRight className="w-4 h-4 text-purple-400 flex-shrink-0" />
             </button>
@@ -380,7 +383,7 @@ export default function CourseDetail() {
             <div className="flex items-center gap-3 flex-1 p-3.5 bg-amber-50 dark:bg-amber-500/10 rounded-xl border border-amber-100 dark:border-amber-500/20">
               <Star className={`w-5 h-5 flex-shrink-0 ${hasCourseRating ? 'text-amber-500 fill-amber-500' : 'text-amber-600 dark:text-amber-400'}`} />
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                <p className="font-body text-sm font-medium text-amber-700 dark:text-amber-400">
                   {hasCourseRating ? t('courses.courseRated', 'Classificado') : t('courses.rateCourse', 'Classificar Curso')}
                 </p>
               </div>
@@ -407,14 +410,14 @@ export default function CourseDetail() {
         {/* ── LESSONS (left, 3/5) ─────────────────────── */}
         <section className="lg:col-span-3">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
+            <h2 className="font-body text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
               <FileText className="w-4 h-4 text-[#EC0000]" />
               {t('admin.lessons')}
               <span className="text-gray-400 dark:text-gray-500 font-normal normal-case">({lessonCount})</span>
             </h2>
             {!isStudent && (
               <button
-                onClick={() => navigate(`/courses/${course.id}/lessons/new`)}
+                onClick={() => navigate(`${coursePrefix}/lessons/new`)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#EC0000] hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -424,12 +427,12 @@ export default function CourseDetail() {
           </div>
 
           {lessonCount === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-10 text-center">
+            <div className="bg-white dark:bg-gray-900 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-10 text-center">
               <FileText className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.noLessonsYet')}</p>
+              <p className="font-body text-sm text-gray-500 dark:text-gray-400">{t('admin.noLessonsYet')}</p>
               {!isStudent && (
                 <button
-                  onClick={() => navigate(`/courses/${course.id}/lessons/new`)}
+                  onClick={() => navigate(`${coursePrefix}/lessons/new`)}
                   className="mt-3 text-xs text-[#EC0000] hover:underline inline-flex items-center gap-1"
                 >
                   <Plus className="w-3 h-3" />
@@ -438,11 +441,11 @@ export default function CourseDetail() {
               )}
             </div>
           ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700/50">
+            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden divide-y divide-gray-100 dark:divide-gray-700/50">
               {course.lessons.map((lesson, i) => (
                 <div
                   key={lesson.id}
-                  onClick={() => !isStudent && navigate(`/courses/${course.id}/lessons/${lesson.id}`)}
+                  onClick={() => !isStudent && navigate(`${coursePrefix}/lessons/${lesson.id}`)}
                   className={`flex items-center gap-3 px-4 py-3.5 ${!isStudent ? 'hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer' : ''} transition-colors`}
                 >
                   {/* Index bubble */}
@@ -452,9 +455,9 @@ export default function CourseDetail() {
 
                   {/* Text */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{lesson.title}</p>
+                    <p className="font-body text-sm font-medium text-gray-900 dark:text-white truncate">{lesson.title}</p>
                     {lesson.description && (
-                      <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{lesson.description}</p>
+                      <p className="font-body text-xs text-gray-400 dark:text-gray-500 truncate">{lesson.description}</p>
                     )}
                   </div>
 
@@ -483,14 +486,14 @@ export default function CourseDetail() {
         {/* ── CHALLENGES (right, 2/5) ──────────────────── */}
         <section className="lg:col-span-2">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
-              <Target className="w-4 h-4 text-purple-500" />
+            <h2 className="font-body text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
+              <Target className="w-4 h-4 text-[#EC0000]" />
               {t('admin.challenges')}
               <span className="text-gray-400 dark:text-gray-500 font-normal normal-case">({challengeCount})</span>
             </h2>
             {!isStudent && (
               <button
-                onClick={() => navigate(`/courses/${course.id}/challenges/new`)}
+                onClick={() => navigate(`${coursePrefix}/challenges/new`)}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#EC0000] hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -500,12 +503,12 @@ export default function CourseDetail() {
           </div>
 
           {challengeCount === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-10 text-center">
+            <div className="bg-white dark:bg-gray-900 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-10 text-center">
               <Target className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.noChallengesYet')}</p>
+              <p className="font-body text-sm text-gray-500 dark:text-gray-400">{t('admin.noChallengesYet')}</p>
               {!isStudent && (
                 <button
-                  onClick={() => navigate(`/courses/${course.id}/challenges/new`)}
+                  onClick={() => navigate(`${coursePrefix}/challenges/new`)}
                   className="mt-3 text-xs text-[#EC0000] hover:underline inline-flex items-center gap-1"
                 >
                   <Plus className="w-3 h-3" />
@@ -518,14 +521,14 @@ export default function CourseDetail() {
               {course.challenges.map(ch => (
                 <div
                   key={ch.id}
-                  onClick={() => !isStudent && navigate(`/courses/${course.id}/challenges/${ch.id}`)}
-                  className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 transition-all ${!isStudent ? 'hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-sm cursor-pointer' : ''}`}
+                  onClick={() => !isStudent && navigate(`${coursePrefix}/challenges/${ch.id}`)}
+                  className={`bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 transition-all ${!isStudent ? 'hover:border-gray-300 dark:hover:border-gray-500 hover:shadow-sm cursor-pointer' : ''}`}
                 >
                   {/* Header row */}
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <Target className="w-4 h-4 text-purple-500 dark:text-purple-400 flex-shrink-0" />
-                      <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">{ch.title}</h4>
+                      <Target className="w-4 h-4 text-[#EC0000] flex-shrink-0" />
+                      <h4 className="font-body text-sm font-medium text-gray-900 dark:text-white truncate">{ch.title}</h4>
                     </div>
                     <span className={`ml-2 px-2 py-0.5 rounded text-[10px] font-semibold uppercase flex-shrink-0 ${difficultyStyle(ch.difficulty)}`}>
                       {difficultyLabel(ch.difficulty)}
@@ -533,7 +536,7 @@ export default function CourseDetail() {
                   </div>
 
                   {ch.description && (
-                    <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-2 mb-3">{ch.description}</p>
+                  <p className="font-body text-xs text-gray-400 dark:text-gray-500 line-clamp-2 mb-3">{ch.description}</p>
                   )}
 
                   {/* Footer */}

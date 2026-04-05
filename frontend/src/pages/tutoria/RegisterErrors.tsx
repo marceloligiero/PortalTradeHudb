@@ -92,8 +92,8 @@ function TextareaField({ value, onChange, placeholder = '', rows = 4 }: {
 // ─── GAP 2 & 3 Constants ──────────────────────────────────────────────────────
 
 const IMPACT_DETAIL_OPTIONS: Record<string, string[]> = {
-  BAIXO: ['Imagen', 'Retraso Operativo'],
-  ALTO:  ['Económico', 'Regulatorio', 'Reputacional (Imagen)', 'GDPR (Protección de Datos)'],
+  BAIXA: ['Imagen', 'Retraso Operativo'],
+  ALTA:  ['Económico', 'Regulatorio', 'Reputacional (Imagen)', 'GDPR (Protección de Datos)'],
 };
 
 const ORIGIN_DETAIL_OPTIONS: Record<string, string[]> = {
@@ -154,7 +154,6 @@ export default function RegisterErrors() {
   const [productId, setProduct]         = useState('');
   const [description, setDescription]   = useState('');
   const [recurrenceType, setRecurrence] = useState('');
-  const [severity, setSeverity]         = useState('MEDIA');
 
   // ── Lists ─────────────────────────────────────────────────────────────────
   const [allUsers, setAllUsers]     = useState<UserItem[]>([]);
@@ -179,12 +178,6 @@ export default function RegisterErrors() {
     { value: 'SYSTEMIC',  label: t('registerError.recurrenceSystemic') },
   ];
 
-  const severityOptions = [
-    { value: 'BAIXA',   label: t('registerError.severityLow') },
-    { value: 'MEDIA',   label: t('registerError.severityMedium') },
-    { value: 'ALTA',    label: t('registerError.severityHigh') },
-    { value: 'CRITICA', label: t('registerError.severityCritical') },
-  ];
 
   // ── Motivos do Erro ───────────────────────────────────────────────────────
   interface Motivo { id: number; typology: string; description: string; references: string[] }
@@ -275,7 +268,7 @@ export default function RegisterErrors() {
   useEffect(() => { setImpactDetail(''); }, [impactId]);
   useEffect(() => { setOriginDetail(''); }, [originId]);
 
-  const isManager = user?.role === 'ADMIN' || user?.role === 'MANAGER' || (user as any)?.is_tutor || (user as any)?.is_team_lead || (user as any)?.is_referente;
+  const isManager = user?.is_admin || user?.is_gerente || user?.is_tutor || user?.is_chefe_equipe || user?.is_referente;
   const canSave = description.trim() && dateOccurrence && bankId && office.trim() && departmentId;
 
   const impactLevelStr = impacts.find(i => String(i.id) === impactId)?.level || '';
@@ -299,7 +292,7 @@ export default function RegisterErrors() {
         tutorado_id:     tutoradoId ? Number(tutoradoId) : null,
         category_id:     categoryId  ? Number(categoryId) : null,
         product_id:      productId   ? Number(productId)  : null,
-        severity,
+
         date_detection:  dateDetection || null,
         date_solution:   dateSolution  || null,
         bank_id:         bankId        ? Number(bankId)        : null,
@@ -611,15 +604,6 @@ export default function RegisterErrors() {
                 value={recurrenceType}
                 onChange={setRecurrence}
                 options={recurrenceOptions}
-                placeholder={t('registerError.select')}
-              />
-            </div>
-            <div>
-              <FieldLabel icon={AlertTriangle}>{t('registerError.severity')}</FieldLabel>
-              <SelectField
-                value={severity}
-                onChange={setSeverity}
-                options={severityOptions}
                 placeholder={t('registerError.select')}
               />
             </div>

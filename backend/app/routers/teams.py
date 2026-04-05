@@ -3,12 +3,12 @@ Gestão de Equipas — CRUD + atribuição de membros
 Roles: ADMIN gere tudo; MANAGER vê a sua equipa; outros não acedem.
 """
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from typing import Optional, List
+from pydantic import BaseModel, ConfigDict
+from typing import Annotated, Optional, List
 from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.auth import get_current_user
-from app.models import User, Team, Product, TeamMember, TeamService
+from app.models import User, Team, Product, TeamMember, TeamService, Department
 
 router = APIRouter()
 
@@ -16,12 +16,24 @@ router = APIRouter()
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _require_admin(user: User):
-    if user.role != "ADMIN":
+    if not user.is_admin:
         raise HTTPException(status_code=403, detail="Apenas administradores podem gerir equipas")
 
 def _require_admin_or_manager(user: User):
-    if user.role not in ("ADMIN", "MANAGER", "GESTOR"):
+    if not user.can_manage_teams:
         raise HTTPException(status_code=403, detail="Acesso restrito")
+
+# FastAPI dependency versions — declared as Depends so auth runs before body validation
+def _admin_dep(current_user: User = Depends(get_current_user)) -> User:
+    _require_admin(current_user)
+    return current_user
+
+def _manager_dep(current_user: User = Depends(get_current_user)) -> User:
+    _require_admin_or_manager(current_user)
+    return current_user
+
+AdminUser = Annotated[User, Depends(_admin_dep)]
+ManagerUser = Annotated[User, Depends(_manager_dep)]
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -30,12 +42,14 @@ class TeamCreate(BaseModel):
     name: str
     description: Optional[str] = None
     product_id: Optional[int] = None
+    department_id: Optional[int] = None
     manager_id: Optional[int] = None
 
 class TeamUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     product_id: Optional[int] = None
+    department_id: Optional[int] = None
     manager_id: Optional[int] = None
     is_active: Optional[bool] = None
 
@@ -51,23 +65,25 @@ class MemberBrief(BaseModel):
     team_role: Optional[str] = None
 
 class TeamOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     description: Optional[str]
     product_id: Optional[int]
     product_name: Optional[str]
+    department_id: Optional[int]
+    department_name: Optional[str]
     manager_id: Optional[int]
     manager_name: Optional[str]
-    node_id: Optional[int] = None
     members_count: int
     is_active: bool
     services: List[ServiceBrief] = []
     team_members: List[MemberBrief] = []
 
-    class Config:
-        from_attributes = True
-
 class UserBrief(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     full_name: str
     email: str
@@ -75,9 +91,6 @@ class UserBrief(BaseModel):
     is_active: bool
     team_id: Optional[int]
     team_name: Optional[str]
-
-    class Config:
-        from_attributes = True
 
 
 def _team_out(team: Team, db: Session) -> dict:
@@ -99,9 +112,10 @@ def _team_out(team: Team, db: Session) -> dict:
         "description": team.description,
         "product_id": team.product_id,
         "product_name": team.product.name if team.product else None,
+        "department_id": team.department_id,
+        "department_name": team.department.name if team.department else None,
         "manager_id": team.manager_id,
         "manager_name": team.manager.full_name if team.manager else None,
-        "node_id": team.node_id,
         "members_count": members_count,
         "is_active": team.is_active,
         "services": services,
@@ -113,15 +127,15 @@ def _team_out(team: Team, db: Session) -> dict:
 
 @router.get("/teams", response_model=List[TeamOut])
 def list_teams(
-    current_user: User = Depends(get_current_user),
+    current_user: ManagerUser,
     db: Session = Depends(get_db),
 ):
-    _require_admin_or_manager(current_user)
     q = db.query(Team).options(
         joinedload(Team.team_services).joinedload(TeamService.product),
         joinedload(Team.team_members).joinedload(TeamMember.user),
         joinedload(Team.manager),
         joinedload(Team.product),
+        joinedload(Team.department),
     )
     # MANAGER can view all teams (read-only), only ADMIN can modify
     teams = q.order_by(Team.name).all()
@@ -130,15 +144,15 @@ def list_teams(
 
 @router.post("/teams", response_model=TeamOut, status_code=201)
 def create_team(
+    current_user: AdminUser,
     body: TeamCreate,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _require_admin(current_user)
     if body.manager_id:
         mgr = db.query(User).filter(User.id == body.manager_id).first()
-        if not mgr or mgr.role != "MANAGER":
-            raise HTTPException(status_code=400, detail="O manager deve ter o role MANAGER")
+        qualifies = mgr and (mgr.is_chefe_equipe or getattr(mgr, 'is_team_lead', False) or mgr.role in ('MANAGER', 'CHEFE_EQUIPE'))
+        if not qualifies:
+            raise HTTPException(status_code=400, detail="O chefe de equipa deve ter a flag 'Chefe de Equipa' activa")
     team = Team(**body.model_dump())
     db.add(team)
     db.commit()
@@ -149,33 +163,30 @@ def create_team(
 @router.get("/teams/{team_id}", response_model=TeamOut)
 def get_team(
     team_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: ManagerUser,
     db: Session = Depends(get_db),
 ):
-    _require_admin_or_manager(current_user)
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Equipa não encontrada")
-    if current_user.role == "MANAGER" and team.manager_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Acesso negado")
     return _team_out(team, db)
 
 
 @router.patch("/teams/{team_id}", response_model=TeamOut)
 def update_team(
     team_id: int,
+    current_user: AdminUser,
     body: TeamUpdate,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _require_admin(current_user)
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Equipa não encontrada")
     if body.manager_id is not None:
         mgr = db.query(User).filter(User.id == body.manager_id).first()
-        if not mgr or mgr.role != "MANAGER":
-            raise HTTPException(status_code=400, detail="O manager deve ter o role MANAGER")
+        qualifies = mgr and (mgr.is_chefe_equipe or getattr(mgr, 'is_team_lead', False) or mgr.role in ('MANAGER', 'CHEFE_EQUIPE'))
+        if not qualifies:
+            raise HTTPException(status_code=400, detail="O chefe de equipa deve ter a flag 'Chefe de Equipa' activa")
     for field, value in body.model_dump(exclude_none=True).items():
         setattr(team, field, value)
     db.commit()
@@ -186,15 +197,12 @@ def update_team(
 @router.get("/teams/{team_id}/members", response_model=List[UserBrief])
 def list_members(
     team_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: ManagerUser,
     db: Session = Depends(get_db),
 ):
-    _require_admin_or_manager(current_user)
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Equipa não encontrada")
-    if current_user.role == "MANAGER" and team.manager_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Acesso negado")
     tms = db.query(TeamMember).filter(TeamMember.team_id == team_id).all()
     result = []
     for tm in tms:
@@ -211,12 +219,11 @@ def list_members(
 @router.post("/teams/{team_id}/members", status_code=200)
 def assign_member(
     team_id: int,
+    current_user: AdminUser,
     body: dict,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Atribuir utilizador a equipa (M2M). Body: {"user_id": int}"""
-    _require_admin(current_user)
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Equipa não encontrada")
@@ -240,10 +247,9 @@ def assign_member(
 def remove_member(
     team_id: int,
     user_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: AdminUser,
     db: Session = Depends(get_db),
 ):
-    _require_admin(current_user)
     tm = db.query(TeamMember).filter(
         TeamMember.team_id == team_id, TeamMember.user_id == user_id
     ).first()
@@ -257,11 +263,10 @@ def remove_member(
 @router.delete("/teams/{team_id}", status_code=200)
 def delete_team(
     team_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: AdminUser,
     db: Session = Depends(get_db),
 ):
     """Eliminar equipa e remover vínculos."""
-    _require_admin(current_user)
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Equipa não encontrada")
@@ -277,14 +282,13 @@ def delete_team(
 
 @router.get("/users/unassigned", response_model=List[UserBrief])
 def list_unassigned(
-    current_user: User = Depends(get_current_user),
+    current_user: ManagerUser,
     db: Session = Depends(get_db),
 ):
-    """Utilizadores disponíveis para atribuição. ADMIN only."""
-    _require_admin(current_user)
+    """Utilizadores disponíveis para atribuição. ADMIN/GERENTE/CHEFE_EQUIPE."""
     users = (
         db.query(User)
-        .filter(User.role != "ADMIN", User.is_active == True)
+        .filter(User.is_admin == False, User.is_active == True)
         .order_by(User.full_name)
         .all()
     )
@@ -298,10 +302,9 @@ def list_unassigned(
 @router.get("/teams/{team_id}/services")
 def list_team_services(
     team_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: ManagerUser,
     db: Session = Depends(get_db),
 ):
-    _require_admin_or_manager(current_user)
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Equipa não encontrada")
@@ -314,12 +317,11 @@ def list_team_services(
 @router.post("/teams/{team_id}/services", status_code=200)
 def add_team_service(
     team_id: int,
+    current_user: AdminUser,
     body: dict,
-    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Vincular serviço/produto a equipa. Body: {"product_id": int}"""
-    _require_admin(current_user)
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Equipa não encontrada")
@@ -343,10 +345,9 @@ def add_team_service(
 def remove_team_service(
     team_id: int,
     product_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: AdminUser,
     db: Session = Depends(get_db),
 ):
-    _require_admin(current_user)
     ts = db.query(TeamService).filter(
         TeamService.team_id == team_id, TeamService.product_id == product_id
     ).first()

@@ -15,12 +15,13 @@ interface PendingTrainer {
   full_name: string;
   role: string;
   is_pending: boolean;
-  is_trainer?: boolean;
+  is_formador?: boolean;
   is_tutor?: boolean;
   is_liberador?: boolean;
-  is_team_lead?: boolean;
+  is_chefe_equipe?: boolean;
   is_referente?: boolean;
-  is_gestor?: boolean;
+  is_diretor?: boolean;
+  is_gerente?: boolean;
   created_at?: string;
 }
 
@@ -119,12 +120,12 @@ const TrainerValidation = () => {
 
   const getRoleBadges = (trainer: PendingTrainer) => {
     const badges: { label: string; icon: typeof BookOpen; color: string }[] = [];
-    if (trainer.is_trainer) badges.push({ label: t('auth.roles.trainer', 'Formador'), icon: BookOpen, color: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20' });
+    if (trainer.is_formador) badges.push({ label: t('auth.roles.trainer', 'Formador'), icon: BookOpen, color: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20' });
     if (trainer.is_tutor) badges.push({ label: t('auth.roles.tutor', 'Tutor'), icon: Award, color: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' });
     if (trainer.is_liberador) badges.push({ label: t('auth.roles.releaser', 'Liberador'), icon: KeyRound, color: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border-cyan-200 dark:border-cyan-500/20' });
-    if (trainer.role === 'MANAGER' || trainer.is_team_lead) badges.push({ label: t('auth.roles.teamLead', 'Chefe de Equipa'), icon: Crown, color: 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/20' });
+    if (trainer.is_gerente || trainer.is_chefe_equipe) badges.push({ label: t('auth.roles.teamLead', 'Chefe de Equipa'), icon: Crown, color: 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/20' });
     if (trainer.is_referente) badges.push({ label: t('auth.roles.referente', 'Referente'), icon: UserCheck, color: 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20' });
-    if (trainer.role === 'GESTOR') badges.push({ label: t('auth.roles.gestor', 'Gestor'), icon: Eye, color: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-700' });
+    if (trainer.is_diretor) badges.push({ label: t('auth.roles.gestor', 'Diretor'), icon: Eye, color: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-700' });
     return badges;
   };
 

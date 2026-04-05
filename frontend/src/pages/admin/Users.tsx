@@ -28,7 +28,9 @@ import {
   Timer,
   Target,
   KeyRound,
-  Loader2
+  Loader2,
+  Building2,
+  Star
 } from 'lucide-react';
 
 const USERS_PAGE_SIZE = 20;
@@ -39,14 +41,17 @@ interface User {
   id: number;
   email: string;
   full_name: string;
-  role: 'TRAINEE' | 'TRAINER' | 'ADMIN' | 'MANAGER';
+  role: 'USUARIO' | 'FORMADOR' | 'ADMIN' | 'GERENTE' | 'CHEFE_EQUIPE' | 'DIRETOR';
   is_active: boolean;
   is_pending: boolean;
-  is_trainer: boolean;
+  is_formador: boolean;
   is_tutor: boolean;
   is_liberador: boolean;
-  is_team_lead: boolean;
+  is_chefe_equipe: boolean;
   is_referente: boolean;
+  is_gerente: boolean;
+  is_diretor: boolean;
+  is_admin: boolean;
   created_at: string;
 }
 
@@ -143,10 +148,10 @@ const UserDetailsContent = ({ user, onClose, t }: { user: UserDetails | null; on
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{user.full_name}</h3>
           <p className="text-gray-500 dark:text-gray-400">{user.email}</p>
           <div className="flex items-center gap-2 mt-1">
-            {user.role !== 'TRAINEE' && (
+            {user.role !== 'USUARIO' && (
               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                 user.role === 'ADMIN' ? 'bg-purple-500/20 text-purple-300' :
-                user.role === 'TRAINER' ? 'bg-blue-500/20 text-blue-300' :
+                user.role === 'FORMADOR' ? 'bg-blue-500/20 text-blue-300' :
                 'bg-orange-500/20 text-orange-300'
               }`}>
                 {getRoleLabel(user.role)}
@@ -224,13 +229,15 @@ const EditUserContent = ({ user, onSave, onClose, saving, t }: { user: User | nu
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
-    role: 'TRAINEE' as 'TRAINEE' | 'TRAINER' | 'ADMIN' | 'MANAGER',
+    role: 'USUARIO' as 'USUARIO' | 'FORMADOR' | 'GERENTE' | 'CHEFE_EQUIPE' | 'DIRETOR' | 'ADMIN',
     is_active: true,
-    is_trainer: false,
+    is_formador: false,
     is_tutor: false,
     is_liberador: false,
-    is_team_lead: false,
+    is_chefe_equipe: false,
     is_referente: false,
+    is_gerente: false,
+    is_diretor: false,
   });
 
   useEffect(() => {
@@ -240,11 +247,13 @@ const EditUserContent = ({ user, onSave, onClose, saving, t }: { user: User | nu
         email: user.email,
         role: user.role,
         is_active: user.is_active,
-        is_trainer: user.is_trainer ?? false,
+        is_formador: user.is_formador ?? false,
         is_tutor: user.is_tutor ?? false,
         is_liberador: user.is_liberador ?? false,
-        is_team_lead: user.is_team_lead ?? false,
+        is_chefe_equipe: user.is_chefe_equipe ?? false,
         is_referente: user.is_referente ?? false,
+        is_gerente: user.is_gerente ?? false,
+        is_diretor: user.is_diretor ?? false,
       });
     }
   }, [user]);
@@ -253,7 +262,9 @@ const EditUserContent = ({ user, onSave, onClose, saving, t }: { user: User | nu
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    // Exclude role from payload — backend derives it from flags
+    const { role, ...payload } = formData;
+    onSave(payload);
   };
 
   return (
@@ -282,35 +293,26 @@ const EditUserContent = ({ user, onSave, onClose, saving, t }: { user: User | nu
         />
       </div>
 
-      {/* Role */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{t('usersPage.role', 'Perfil')}</label>
-        {(formData.role === 'ADMIN' || formData.role === 'MANAGER') ? (
-          <div className="w-full px-4 py-3 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-500 dark:text-gray-400 text-sm cursor-not-allowed">
-            {formData.role === 'ADMIN' ? t('usersPage.admin') : t('usersPage.teamLeader')}
-            <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">({t('usersPage.roleReadOnly', 'não editável')})</span>
-          </div>
-        ) : (
-          <select
-            value={formData.role}
-            onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
-            className="w-full px-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-900 dark:text-white focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20 transition-all outline-none appearance-none cursor-pointer text-sm"
-          >
-            <option value="TRAINEE">{t('usersPage.trainee', 'Formando')}</option>
-            <option value="TRAINER">{t('usersPage.trainerRole', 'Formador (perfil)')}</option>
-          </select>
-        )}
-      </div>
+      {/* Admin badge (read-only) */}
+      {formData.role === 'ADMIN' && (
+        <div className="flex items-center gap-2 px-4 py-3 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl">
+          <Shield className="w-4 h-4 text-[#EC0000]" />
+          <span className="text-sm font-medium text-gray-900 dark:text-white">{t('usersPage.admin', 'Administrador')}</span>
+          <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">({t('usersPage.roleReadOnly', 'não editável')})</span>
+        </div>
+      )}
 
-      {/* Competências adicionais */}
+      {/* Permissões */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t('usersPage.additionalCapabilities', 'Competências adicionais')}</label>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{t('usersPage.permissions', 'Permissões')}</label>
         <div className="space-y-2">
+          {/* --- Portal Formações --- */}
+          <p className="text-xs font-bold uppercase tracking-widest text-[#EC0000] pt-1">{t('usersPage.portalFormacoes', 'Portal Formações')}</p>
           <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:border-blue-500/30 transition-all">
             <input
               type="checkbox"
-              checked={formData.is_trainer}
-              onChange={(e) => setFormData({ ...formData, is_trainer: e.target.checked })}
+              checked={formData.is_formador}
+              onChange={(e) => setFormData({ ...formData, is_formador: e.target.checked })}
               className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
             <Briefcase className="w-4 h-4 text-blue-400" />
@@ -319,6 +321,9 @@ const EditUserContent = ({ user, onSave, onClose, saving, t }: { user: User | nu
               <p className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.trainerDesc', 'Pode criar cursos e avaliar formandos')}</p>
             </div>
           </label>
+
+          {/* --- Portal Tutoria --- */}
+          <p className="text-xs font-bold uppercase tracking-widest text-[#EC0000] pt-3">{t('usersPage.portalTutoria', 'Portal Tutoria')}</p>
           <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:border-emerald-500/30 transition-all">
             <input
               type="checkbox"
@@ -330,19 +335,6 @@ const EditUserContent = ({ user, onSave, onClose, saving, t }: { user: User | nu
             <div>
               <span className="text-sm font-medium text-gray-900 dark:text-white">{t('usersPage.tutor', 'Tutor')}</span>
               <p className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.tutorDesc', 'Pode supervisionar e orientar colaboradores')}</p>
-            </div>
-          </label>
-          <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:border-orange-500/30 transition-all">
-            <input
-              type="checkbox"
-              checked={formData.is_team_lead}
-              onChange={(e) => setFormData({ ...formData, is_team_lead: e.target.checked })}
-              className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
-            />
-            <Crown className="w-4 h-4 text-orange-400" />
-            <div>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">{t('usersPage.teamLeader', 'Chefe de Equipa')}</span>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.teamLeaderDesc', 'Pode gerir equipas e aprovar planos')}</p>
             </div>
           </label>
           <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:border-purple-500/30 transition-all">
@@ -369,6 +361,48 @@ const EditUserContent = ({ user, onSave, onClose, saving, t }: { user: User | nu
             <div>
               <span className="text-sm font-medium text-gray-900 dark:text-white">{t('usersPage.liberador', 'Liberador')}</span>
               <p className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.liberadorDesc', 'Pode aprovar operações e registar erros internos')}</p>
+            </div>
+          </label>
+
+          {/* --- Gestão --- */}
+          <p className="text-xs font-bold uppercase tracking-widest text-[#EC0000] pt-3">{t('usersPage.management', 'Gestão')}</p>
+          <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:border-orange-500/30 transition-all">
+            <input
+              type="checkbox"
+              checked={formData.is_chefe_equipe}
+              onChange={(e) => setFormData({ ...formData, is_chefe_equipe: e.target.checked })}
+              className="w-4 h-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+            />
+            <Crown className="w-4 h-4 text-orange-400" />
+            <div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">{t('usersPage.teamLeader', 'Chefe de Equipa')}</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.teamLeaderDesc', 'Pode gerir equipas e aprovar planos')}</p>
+            </div>
+          </label>
+          <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:border-amber-500/30 transition-all">
+            <input
+              type="checkbox"
+              checked={formData.is_gerente}
+              onChange={(e) => setFormData({ ...formData, is_gerente: e.target.checked })}
+              className="w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+            />
+            <Building2 className="w-4 h-4 text-amber-400" />
+            <div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">{t('usersPage.gerente', 'Gerente')}</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.gerenteDesc', 'Gestão transversal de formações e tutoria')}</p>
+            </div>
+          </label>
+          <label className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 cursor-pointer hover:border-rose-500/30 transition-all">
+            <input
+              type="checkbox"
+              checked={formData.is_diretor}
+              onChange={(e) => setFormData({ ...formData, is_diretor: e.target.checked })}
+              className="w-4 h-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500"
+            />
+            <Star className="w-4 h-4 text-rose-400" />
+            <div>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">{t('usersPage.diretor', 'Diretor')}</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('usersPage.diretorDesc', 'Acesso total a formações e tutoria')}</p>
             </div>
           </label>
         </div>
@@ -557,25 +591,28 @@ const UserRow = ({ user, onApprove, onReject, onView, onEdit, onDeactivate, onRe
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user.full_name}</span>
 
-              {/* Role badges — only for non-TRAINEE roles */}
-              {user.role === 'ADMIN' && (
+              {/* Role badges */}
+              {user.is_admin && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800">
                   <Shield className="w-2.5 h-2.5" />{t('usersPage.admin')}
                 </span>
               )}
-              {user.role === 'MANAGER' && (
+              {user.is_diretor && !user.is_admin && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                  <Shield className="w-2.5 h-2.5" />{t('roles.DIRETOR', 'Diretor')}
+                </span>
+              )}
+              {user.is_gerente && !user.is_admin && !user.is_diretor && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800">
-                  <Crown className="w-2.5 h-2.5" />{t('usersPage.teamLeader')}
+                  <Crown className="w-2.5 h-2.5" />{t('roles.GERENTE', 'Gerente')}
                 </span>
               )}
-              {user.role === 'TRAINER' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-                  <Briefcase className="w-2.5 h-2.5" />{t('usersPage.trainer', 'Formador')}
+              {user.is_chefe_equipe && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                  <Crown className="w-2.5 h-2.5" />{t('usersPage.teamLeader', 'Chefe de Equipa')}
                 </span>
               )}
-
-              {/* Capability badges */}
-              {user.is_trainer && user.role !== 'TRAINER' && (
+              {user.is_formador && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
                   <Briefcase className="w-2.5 h-2.5" />{t('usersPage.trainer', 'Formador')}
                 </span>
@@ -588,11 +625,6 @@ const UserRow = ({ user, onApprove, onReject, onView, onEdit, onDeactivate, onRe
               {user.is_liberador && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800">
                   <KeyRound className="w-2.5 h-2.5" />{t('usersPage.liberador', 'Liberador')}
-                </span>
-              )}
-              {user.is_team_lead && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
-                  <Crown className="w-2.5 h-2.5" />{t('usersPage.teamLeader', 'Chefe de Equipa')}
                 </span>
               )}
               {user.is_referente && (
@@ -618,7 +650,7 @@ const UserRow = ({ user, onApprove, onReject, onView, onEdit, onDeactivate, onRe
 
         {/* Actions */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {user.is_pending && (user.is_trainer || user.is_tutor || user.is_liberador || user.role === 'MANAGER') ? (
+          {user.is_pending && (user.is_formador || user.is_tutor || user.is_liberador || user.is_gerente || user.is_chefe_equipe) ? (
             writable && (
               <>
                 <button
@@ -837,7 +869,7 @@ export default function UsersPage() {
     total: users.length,
     active: users.filter(u => u.is_active && !u.is_pending).length,
     pending: users.filter(u => u.is_pending).length,
-    trainers: users.filter(u => u.is_trainer || u.role === 'TRAINER').length
+    trainers: users.filter(u => u.is_formador).length
   };
 
   return (

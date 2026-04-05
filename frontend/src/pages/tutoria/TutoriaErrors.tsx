@@ -22,7 +22,7 @@ interface TutoriaError {
   created_by_name?: string;
   category_id?: number;
   category_name?: string;
-  severity: string;
+  impact_level?: string;
   status: string;
   is_recurrent: boolean;
   recurrence_count: number;
@@ -35,45 +35,55 @@ interface TutoriaError {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const STATUS_ORDER = ['ABERTO', 'EM_ANALISE', 'PLANO_CRIADO', 'EM_EXECUCAO', 'CONCLUIDO', 'VERIFICADO'];
+const STATUS_ORDER = ['REGISTERED', 'ANALYSIS', 'ABERTO', 'EM_ANALISE', 'PLANO_CRIADO', 'EM_EXECUCAO', 'CONCLUIDO', 'VERIFICADO', 'PENDING_TUTOR_REVIEW', 'PENDING_CHIEF_APPROVAL', 'APPROVED', 'CANCELLED', 'RESOLVED'];
 
-function severityClsDark(s: string) {
+function impactClsDark(s: string) {
   const m: Record<string, string> = {
     BAIXA: 'bg-green-500/15 text-green-400 border-green-500/20',
-    MEDIA: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20',
-    ALTA: 'bg-orange-500/15 text-orange-400 border-orange-500/20',
-    CRITICA: 'bg-red-500/15 text-red-400 border-red-500/20',
+    ALTA:  'bg-red-500/15 text-red-400 border-red-500/20',
   };
   return m[s] || 'bg-gray-500/15 text-gray-400 border-gray-500/20';
 }
-function severityClsLight(s: string) {
+function impactClsLight(s: string) {
   const m: Record<string, string> = {
     BAIXA: 'bg-green-50 text-green-700 border-green-200',
-    MEDIA: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    ALTA: 'bg-orange-50 text-orange-700 border-orange-200',
-    CRITICA: 'bg-red-50 text-red-700 border-red-200',
+    ALTA:  'bg-red-50 text-red-700 border-red-200',
   };
   return m[s] || 'bg-gray-100 text-gray-600 border-gray-200';
 }
 function statusClsDark(s: string) {
   const m: Record<string, string> = {
-    ABERTO: 'bg-red-500/15 text-red-400 border-red-500/20',
-    EM_ANALISE: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/20',
-    PLANO_CRIADO: 'bg-blue-500/15 text-blue-400 border-blue-500/20',
-    EM_EXECUCAO: 'bg-orange-500/15 text-orange-400 border-orange-500/20',
-    CONCLUIDO: 'bg-green-500/15 text-green-400 border-green-500/20',
-    VERIFICADO: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
+    REGISTERED:             'bg-gray-500/15 text-gray-400 border-gray-500/20',
+    ANALYSIS:               'bg-yellow-500/15 text-yellow-400 border-yellow-500/20',
+    ABERTO:                 'bg-red-500/15 text-red-400 border-red-500/20',
+    EM_ANALISE:             'bg-yellow-500/15 text-yellow-400 border-yellow-500/20',
+    PLANO_CRIADO:           'bg-blue-500/15 text-blue-400 border-blue-500/20',
+    EM_EXECUCAO:            'bg-orange-500/15 text-orange-400 border-orange-500/20',
+    CONCLUIDO:              'bg-green-500/15 text-green-400 border-green-500/20',
+    VERIFICADO:             'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
+    PENDING_TUTOR_REVIEW:   'bg-purple-500/15 text-purple-400 border-purple-500/20',
+    PENDING_CHIEF_APPROVAL: 'bg-amber-500/15 text-amber-400 border-amber-500/20',
+    APPROVED:               'bg-teal-500/15 text-teal-400 border-teal-500/20',
+    CANCELLED:              'bg-gray-500/15 text-gray-500 border-gray-500/20',
+    RESOLVED:               'bg-emerald-500 text-white border-emerald-500',
   };
   return m[s] || 'bg-gray-500/15 text-gray-400 border-gray-500/20';
 }
 function statusClsLight(s: string) {
   const m: Record<string, string> = {
-    ABERTO: 'bg-red-50 text-red-700 border-red-200',
-    EM_ANALISE: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    PLANO_CRIADO: 'bg-blue-50 text-blue-700 border-blue-200',
-    EM_EXECUCAO: 'bg-orange-50 text-orange-700 border-orange-200',
-    CONCLUIDO: 'bg-green-50 text-green-700 border-green-200',
-    VERIFICADO: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    REGISTERED:             'bg-gray-100 text-gray-600 border-gray-200',
+    ANALYSIS:               'bg-yellow-50 text-yellow-700 border-yellow-200',
+    ABERTO:                 'bg-red-50 text-red-700 border-red-200',
+    EM_ANALISE:             'bg-yellow-50 text-yellow-700 border-yellow-200',
+    PLANO_CRIADO:           'bg-blue-50 text-blue-700 border-blue-200',
+    EM_EXECUCAO:            'bg-orange-50 text-orange-700 border-orange-200',
+    CONCLUIDO:              'bg-green-50 text-green-700 border-green-200',
+    VERIFICADO:             'bg-emerald-50 text-emerald-700 border-emerald-200',
+    PENDING_TUTOR_REVIEW:   'bg-purple-50 text-purple-700 border-purple-200',
+    PENDING_CHIEF_APPROVAL: 'bg-amber-50 text-amber-700 border-amber-200',
+    APPROVED:               'bg-teal-50 text-teal-700 border-teal-200',
+    CANCELLED:              'bg-gray-100 text-gray-500 border-gray-200',
+    RESOLVED:               'bg-emerald-500 text-white border-emerald-500',
   };
   return m[s] || 'bg-gray-100 text-gray-600 border-gray-200';
 }
@@ -92,29 +102,34 @@ export default function TutoriaErrors() {
   const isTutorReviewView = location.pathname.endsWith('/tutor-review');
   const isMyErrorsView = location.pathname.endsWith('/my-errors');
 
-  const SEVERITY_LABEL: Record<string, string> = {
-    BAIXA: t('tutoriaDetail.severity.BAIXA'),
-    MEDIA: t('tutoriaDetail.severity.MEDIA'),
-    ALTA: t('tutoriaDetail.severity.ALTA'),
-    CRITICA: t('tutoriaDetail.severity.CRITICA'),
+  const IMPACT_LABEL: Record<string, string> = {
+    BAIXA: t('adminPortalTutoria.impact.BAIXA'),
+    ALTA:  t('adminPortalTutoria.impact.ALTA'),
   };
   const STATUS_LABEL: Record<string, string> = {
-    ABERTO: t('tutoriaDetail.status.ABERTO'),
-    EM_ANALISE: t('tutoriaDetail.status.EM_ANALISE'),
-    PLANO_CRIADO: t('tutoriaDetail.status.PLANO_CRIADO'),
-    EM_EXECUCAO: t('tutoriaDetail.status.EM_EXECUCAO'),
-    CONCLUIDO: t('tutoriaDetail.status.CONCLUIDO'),
-    VERIFICADO: t('tutoriaDetail.status.VERIFICADO'),
+    REGISTERED:             t('tutoriaDetail.status.REGISTERED'),
+    ANALYSIS:               t('tutoriaDetail.status.ANALYSIS'),
+    ABERTO:                 t('tutoriaDetail.status.ABERTO'),
+    EM_ANALISE:             t('tutoriaDetail.status.EM_ANALISE'),
+    PLANO_CRIADO:           t('tutoriaDetail.status.PLANO_CRIADO'),
+    EM_EXECUCAO:            t('tutoriaDetail.status.EM_EXECUCAO'),
+    CONCLUIDO:              t('tutoriaDetail.status.CONCLUIDO'),
+    VERIFICADO:             t('tutoriaDetail.status.VERIFICADO'),
+    PENDING_TUTOR_REVIEW:   t('tutoriaDetail.status.PENDING_TUTOR_REVIEW'),
+    PENDING_CHIEF_APPROVAL: t('tutoriaDetail.status.PENDING_CHIEF_APPROVAL'),
+    APPROVED:               t('tutoriaDetail.status.APPROVED'),
+    CANCELLED:              t('tutoriaDetail.status.CANCELLED'),
+    RESOLVED:               t('tutoriaDetail.status.RESOLVED'),
   };
 
-  const isManager = user?.role === 'ADMIN' || user?.role === 'TRAINER';
+  const isManager = user?.is_admin || user?.is_diretor || user?.is_gerente || user?.is_tutor;
 
   const [errors, setErrors] = useState<TutoriaError[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
 
   const [search, setSearch] = useState('');
-  const [filterSeverity, setFilterSeverity] = useState('');
+  const [filterImpact, setFilterImpact] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterRecurrent, setFilterRecurrent] = useState('');
 
@@ -141,7 +156,7 @@ export default function TutoriaErrors() {
     // View-specific status filter
     if (isAnalysisView && !ANALYSIS_STATUSES.includes(e.status)) return false;
     if (isTutorReviewView && !TUTOR_REVIEW_STATUSES.includes(e.status)) return false;
-    if (filterSeverity && e.severity !== filterSeverity) return false;
+    if (filterImpact && e.impact_level !== filterImpact) return false;
     if (filterStatus && e.status !== filterStatus) return false;
     if (filterRecurrent === 'yes' && !e.is_recurrent) return false;
     if (filterRecurrent === 'no' && e.is_recurrent) return false;
@@ -184,10 +199,10 @@ export default function TutoriaErrors() {
               <AlertTriangle className="w-8 h-8 text-white" />
             </motion.div>
             <div>
-              <span className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-red-400' : 'text-red-500'}`}>Tutoria</span>
+              <span className={`text-sm font-bold uppercase tracking-widest ${isDark ? 'text-red-400' : 'text-red-500'}`}>{t('tutoriaErrors.headerLabel')}</span>
               <h1 className={`text-4xl font-black ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {isAnalysisView ? t('tutoriaErrors.analysisTitle', 'Análise de Incidências')
-                  : isTutorReviewView ? t('tutoriaErrors.tutorReviewTitle', 'Revisão Tutor')
+                {isAnalysisView ? t('tutoriaErrors.analysisTitle')
+                  : isTutorReviewView ? t('tutoriaErrors.tutorReviewTitle')
                   : isMyErrorsView ? t('tutoriaErrors.myTitle')
                   : isManager ? t('tutoriaErrors.title') : t('tutoriaErrors.myTitle')}
               </h1>
@@ -254,7 +269,7 @@ export default function TutoriaErrors() {
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all ${
-              showFilters || filterSeverity || filterRecurrent
+              showFilters || filterImpact || filterRecurrent
                 ? 'bg-red-500 border-red-500 text-white'
                 : isDark ? 'bg-white/[0.04] border-white/10 text-gray-400' : 'bg-white border-gray-200 text-gray-600'
             }`}
@@ -271,9 +286,9 @@ export default function TutoriaErrors() {
               className={`grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 rounded-2xl border ${isDark ? 'bg-white/[0.02] border-white/8' : 'bg-gray-50 border-gray-200'}`}
             >
               <div className="relative">
-                <select value={filterSeverity} onChange={e => setFilterSeverity(e.target.value)} className={selectCls} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>
-                  <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('tutoriaErrors.allSeverities')}</option>
-                  {['CRITICA', 'ALTA', 'MEDIA', 'BAIXA'].map(s => <option key={s} value={s} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{SEVERITY_LABEL[s]}</option>)}
+                <select value={filterImpact} onChange={e => setFilterImpact(e.target.value)} className={selectCls} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>
+                  <option value="" style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{t('tutoriaErrors.allImpacts')}</option>
+                  {['ALTA', 'BAIXA'].map(s => <option key={s} value={s} style={{ backgroundColor: isDark ? '#0f0f14' : undefined }}>{IMPACT_LABEL[s]}</option>)}
                 </select>
                 <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
               </div>
@@ -286,7 +301,7 @@ export default function TutoriaErrors() {
                 <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-400" />
               </div>
               <button
-                onClick={() => { setFilterSeverity(''); setFilterStatus(''); setFilterRecurrent(''); setSearch(''); }}
+                onClick={() => { setFilterImpact(''); setFilterStatus(''); setFilterRecurrent(''); setSearch(''); }}
                 className={`flex items-center justify-center gap-1.5 text-xs font-semibold rounded-xl border transition-all ${isDark ? 'border-white/10 text-gray-500 hover:text-white' : 'border-gray-200 text-gray-400 hover:text-gray-900'}`}
               >
                 <XCircle className="w-3.5 h-3.5" /> {t('tutoriaErrors.clearFilters')}
@@ -300,7 +315,7 @@ export default function TutoriaErrors() {
       {errors.filter(e => e.is_overdue).length > 0 && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium mb-4">
           <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          {errors.filter(e => e.is_overdue).length} incidência(s) ultrapassaram o prazo de fecho mensal (1º dia útil do mês seguinte).
+          {t('tutoriaErrors.overdueWarning', { count: errors.filter(e => e.is_overdue).length })}
         </div>
       )}
 
@@ -346,7 +361,7 @@ export default function TutoriaErrors() {
             <span>{t('tutoriaErrors.errorTutorado')}</span>
             <span>{t('tutoriaErrors.category')}</span>
             <span>{t('tutoriaErrors.status')}</span>
-            <span>{t('tutoriaErrors.severity')}</span>
+            <span>{t('tutoriaErrors.impact')}</span>
             <span>{t('tutoriaErrors.plans')}</span>
             <span />
           </div>
@@ -383,7 +398,7 @@ export default function TutoriaErrors() {
                       )}
                       {e.is_overdue && (
                         <span className="flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/20 dark:bg-red-500/15 dark:text-red-400">
-                          <Clock className="w-3 h-3" /> Em Atraso
+                          <Clock className="w-3 h-3" /> {t('tutoriaErrors.overdue')}
                         </span>
                       )}
                     </div>
@@ -403,9 +418,9 @@ export default function TutoriaErrors() {
                     {STATUS_LABEL[e.status] ?? e.status}
                   </span>
 
-                  {/* Severity */}
-                  <span className={`text-[10px] font-bold px-2 py-1 rounded-lg border text-center ${isDark ? severityClsDark(e.severity) : severityClsLight(e.severity)}`}>
-                    {SEVERITY_LABEL[e.severity] ?? e.severity}
+                  {/* Impact */}
+                  <span className={`text-[10px] font-bold px-2 py-1 rounded-lg border text-center ${isDark ? impactClsDark(e.impact_level ?? '') : impactClsLight(e.impact_level ?? '')}`}>
+                    {e.impact_level ? (IMPACT_LABEL[e.impact_level] ?? e.impact_level) : '—'}
                   </span>
 
                   {/* Plans count */}

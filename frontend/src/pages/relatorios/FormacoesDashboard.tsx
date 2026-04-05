@@ -6,6 +6,7 @@ import {
 import { AreaChart, BarChart, DonutChart, BarList, Legend } from '@tremor/react';
 import { useTranslation } from 'react-i18next';
 import api from '../../lib/axios';
+import { KpiCard, ChartCard } from '../../components/reports';
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
 
@@ -35,42 +36,6 @@ interface CourseRow {
 /* ─── Constants ──────────────────────────────────────────────────────────── */
 
 const MONTH_NAMES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-
-/* ─── KPI Card ────────────────────────────────────────────────────────────── */
-
-function KpiCard({ icon: Icon, label, value, sub, boxClass, iconClass }: {
-  icon: any; label: string; value: string | number; sub?: string;
-  boxClass: string; iconClass: string;
-}) {
-  return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 flex gap-4">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${boxClass}`}>
-        <Icon className={`w-5 h-5 ${iconClass}`} />
-      </div>
-      <div>
-        <p className="text-xl font-mono font-bold text-gray-900 dark:text-white">{value}</p>
-        <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-        {sub && <p className="text-xs mt-0.5 text-gray-400 dark:text-gray-500">{sub}</p>}
-      </div>
-    </div>
-  );
-}
-
-/* ─── Card Shell ──────────────────────────────────────────────────────────── */
-
-function ChartCard({ title, icon: Icon, children, className = '' }: {
-  title: string; icon?: any; children: React.ReactNode; className?: string;
-}) {
-  return (
-    <div className={`bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6 ${className}`}>
-      <p className="text-sm font-headline font-bold mb-4 flex items-center gap-2 text-gray-900 dark:text-white">
-        {Icon && <Icon className="w-4 h-4 text-[#EC0000]" />}
-        {title}
-      </p>
-      {children}
-    </div>
-  );
-}
 
 /* ─── Main ────────────────────────────────────────────────────────────────── */
 
@@ -156,35 +121,35 @@ export default function FormacoesDashboard() {
 
       {/* ── KPIs ──────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <KpiCard
+        <KpiCard index={0}
           icon={BookOpen} label={t('relFormacoes.enrollments')}
           value={data.total_enrollments}
           sub={t('relFormacoes.completedSub', { count: data.completed_enrollments })}
           boxClass="bg-blue-50 dark:bg-blue-900/20" iconClass="text-blue-600 dark:text-blue-400"
         />
-        <KpiCard
+        <KpiCard index={1}
           icon={CheckCircle2} label={t('relFormacoes.completionRate')}
           value={`${data.completion_rate}%`}
           boxClass="bg-emerald-50 dark:bg-emerald-900/20" iconClass="text-emerald-600 dark:text-emerald-400"
         />
-        <KpiCard
+        <KpiCard index={2}
           icon={Target} label={t('relFormacoes.approvalRate')}
           value={`${data.approval_rate}%`}
           sub={t('relFormacoes.submissionsSub', { approved: data.approved_submissions, total: data.total_submissions })}
           boxClass="bg-purple-50 dark:bg-purple-900/20" iconClass="text-purple-600 dark:text-purple-400"
         />
-        <KpiCard
+        <KpiCard index={3}
           icon={Clock} label={t('relFormacoes.studyHours')}
           value={`${data.total_study_hours}h`}
           boxClass="bg-amber-50 dark:bg-amber-900/20" iconClass="text-amber-600 dark:text-amber-400"
         />
-        <KpiCard
+        <KpiCard index={4}
           icon={GraduationCap} label={t('relFormacoes.avgMpu')}
           value={data.avg_mpu > 0 ? `${data.avg_mpu}` : '—'}
           sub={data.avg_mpu > 0 ? t('relFormacoes.minPerOperation') : undefined}
           boxClass="bg-[#EC0000]/10" iconClass="text-[#EC0000]"
         />
-        <KpiCard
+        <KpiCard index={5}
           icon={Award} label={t('relFormacoes.certificates')}
           value={data.total_certificates}
           boxClass="bg-yellow-50 dark:bg-yellow-900/20" iconClass="text-yellow-600 dark:text-yellow-400"
@@ -193,14 +158,18 @@ export default function FormacoesDashboard() {
 
       {/* ── Monthly Trend — AreaChart (Tremor) ────────────────────────────── */}
       {monthlyChartData.length > 0 && (
-        <ChartCard title={`${t('relFormacoes.monthlyTrend', 'Evolução Mensal')} — ${currentYear}`} icon={TrendingUp}>
+        <ChartCard
+          index={6}
+          title={`${t('relFormacoes.monthlyTrend', 'Evolução Mensal')} — ${currentYear}`}
+          icon={TrendingUp}
+        >
           <AreaChart
             className="h-52"
             data={monthlyChartData}
             index="name"
             categories={['Matrículas', 'Concluídas']}
             colors={['blue', 'emerald']}
-            valueFormatter={(v) => `${v}`}
+            valueFormatter={(v: number) => `${v}`}
             showLegend
             showAnimation
             showGridLines={false}
@@ -212,8 +181,7 @@ export default function FormacoesDashboard() {
       {/* ── Charts Row ────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* Plan status — BarChart (Tremor) */}
-        <ChartCard title={t('relFormacoes.plansByStatus')}>
+        <ChartCard index={7} title={t('relFormacoes.plansByStatus')}>
           {planChartData.every(d => d.Planos === 0) ? (
             <div className="flex items-center justify-center h-48 text-sm text-gray-400 dark:text-gray-600">
               {t('relFormacoes.noPlans', 'Sem dados de planos')}
@@ -228,14 +196,16 @@ export default function FormacoesDashboard() {
               showLegend={false}
               showAnimation
               showGridLines={false}
-              valueFormatter={(v) => `${v}`}
+              valueFormatter={(v: number) => `${v}`}
             />
           )}
         </ChartCard>
 
-        {/* Error breakdown — DonutChart (Tremor) */}
         {errData.length > 0 ? (
-          <ChartCard title={t('relFormacoes.errorsByTypology')} icon={AlertCircle}>
+          <ChartCard index={8} title={t('relFormacoes.errorsByTypology')} icon={AlertCircle}>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
+              {t('relFormacoes.errorsByTypologyHint', 'Tipologia de erros nas submissões de desafios')}
+            </p>
             <div className="flex items-center gap-6">
               <DonutChart
                 className="h-48 w-48 flex-shrink-0"
@@ -254,7 +224,7 @@ export default function FormacoesDashboard() {
             </div>
           </ChartCard>
         ) : (
-          <ChartCard title={t('relFormacoes.errorsByTypology')} icon={AlertCircle}>
+          <ChartCard index={8} title={t('relFormacoes.errorsByTypology')} icon={AlertCircle}>
             <div className="flex items-center justify-center h-48 text-sm text-gray-400 dark:text-gray-600">
               {t('relFormacoes.noErrors', 'Sem erros registados')}
             </div>
@@ -264,11 +234,11 @@ export default function FormacoesDashboard() {
 
       {/* ── Top Courses — BarList (Tremor) ───────────────────────────────── */}
       {courseBarList.length > 0 && (
-        <ChartCard title={t('relFormacoes.topCourses', 'Cursos por Matrículas')} icon={GraduationCap}>
+        <ChartCard index={9} title={t('relFormacoes.topCourses', 'Cursos por Matrículas')} icon={GraduationCap}>
           <BarList
             data={courseBarList}
             color="red"
-            valueFormatter={(v) => `${v} mat.`}
+            valueFormatter={(v: number) => `${v} mat.`}
             className="mt-1"
           />
         </ChartCard>

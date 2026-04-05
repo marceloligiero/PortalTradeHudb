@@ -1,7 +1,8 @@
 from sqlalchemy import create_engine, text, event
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.config import settings
+from app.constants import DB_POOL_SIZE, DB_MAX_OVERFLOW, DB_POOL_RECYCLE_SECONDS
 import warnings
 from sqlalchemy import exc as sa_exc
 
@@ -11,10 +12,10 @@ warnings.filterwarnings('ignore', category=sa_exc.SAWarning, message='.*Unrecogn
 # Create engine with connection pool optimized for performance
 _engine_kwargs = {
     "echo": False,
-    "pool_size": 10,
-    "max_overflow": 20,
+    "pool_size": DB_POOL_SIZE,
+    "max_overflow": DB_MAX_OVERFLOW,
     "pool_pre_ping": True,
-    "pool_recycle": 3600,
+    "pool_recycle": DB_POOL_RECYCLE_SECONDS,
 }
 
 _is_mysql = settings.DATABASE_URL.startswith("mysql")

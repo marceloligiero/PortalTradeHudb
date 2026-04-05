@@ -7,6 +7,7 @@ import { useAuthStore } from '../../stores/authStore';
 import api from '../../lib/axios';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { KpiCard } from '../../components/reports';
 
 interface OverviewData {
   total_users: number;
@@ -20,26 +21,6 @@ interface OverviewData {
   avg_mpu: number;
 }
 
-// ─── KPI Card ─────────────────────────────────────────────────────────────────
-
-function KpiCard({ icon: Icon, label, value, sub, boxClass, iconClass }: {
-  icon: any; label: string; value: string | number; sub?: string;
-  boxClass: string; iconClass: string;
-}) {
-  return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 flex gap-4 items-start hover:border-[#EC0000]/30 transition-colors">
-      <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${boxClass}`}>
-        <Icon className={`w-5 h-5 ${iconClass}`} />
-      </div>
-      <div className="min-w-0">
-        <p className="text-2xl font-bold font-mono text-gray-900 dark:text-white">{value}</p>
-        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{label}</p>
-        {sub && <p className="text-xs mt-0.5 text-gray-400 dark:text-gray-500">{sub}</p>}
-      </div>
-    </div>
-  );
-}
-
 // ─── Module Navigation Card ────────────────────────────────────────────────────
 
 function ModuleCard({ to, icon: Icon, title, description, stat, statLabel, boxClass, iconClass }: {
@@ -49,7 +30,7 @@ function ModuleCard({ to, icon: Icon, title, description, stat, statLabel, boxCl
   return (
     <Link
       to={to}
-      className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 hover:border-[#EC0000]/30 hover:shadow-sm transition-all flex flex-col"
+      className="group rep-card-enter bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 hover:border-[#EC0000]/30 hover:shadow-sm transition-all flex flex-col"
     >
       <div className="flex items-start justify-between mb-3">
         <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${boxClass}`}>
@@ -75,13 +56,23 @@ export default function RelatoriosOverview() {
   const { user } = useAuthStore();
   const { t } = useTranslation();
   const [data, setData] = useState<OverviewData | null>(null);
+  const [chamadosOpen, setChamadosOpen] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/relatorios/overview')
-      .then(r => setData(r.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    Promise.allSettled([
+      api.get('/relatorios/overview'),
+      api.get('/dw/chamados/by-status'),
+    ]).then(([ovRes, chamRes]) => {
+      if (ovRes.status === 'fulfilled') setData(ovRes.value.data);
+      if (chamRes.status === 'fulfilled') {
+        const arr: { status: string; count: number }[] = Array.isArray(chamRes.value.data) ? chamRes.value.data : [];
+        const open = arr
+          .filter(d => d.status === 'ABERTO' || d.status === 'EM_ANDAMENTO')
+          .reduce((s, d) => s + d.count, 0);
+        setChamadosOpen(open);
+      }
+    }).finally(() => setLoading(false));
   }, []);
 
   if (loading) {
@@ -95,14 +86,15 @@ export default function RelatoriosOverview() {
 
   const roleLabel: Record<string, string> = {
     ADMIN: t('overview.roleAdmin'),
-    MANAGER: t('overview.roleManager'),
-    TRAINER: t('overview.roleTrainer'),
-    STUDENT: t('overview.roleStudent'),
-    TRAINEE: t('overview.roleStudent'),
+    DIRETOR: t('overview.roleAdmin'),
+    GERENTE: t('overview.roleManager'),
+    CHEFE_EQUIPE: t('overview.roleManager'),
+    FORMADOR: t('overview.roleTrainer'),
+    USUARIO: t('overview.roleStudent'),
   };
 
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'GESTOR';
-  const isManager = user?.role === 'MANAGER';
+  const isAdmin = user?.is_admin || user?.is_diretor;
+  const isManager = user?.is_gerente || user?.is_chefe_equipe;
 
   return (
     <div className="space-y-6">
@@ -114,7 +106,7 @@ export default function RelatoriosOverview() {
         </div>
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-[#EC0000]">
-            {roleLabel[user?.role || 'STUDENT']}
+            {roleLabel[user?.role || 'USUARIO']}
           </p>
           <h1 className="text-2xl font-headline font-bold text-gray-900 dark:text-white">
             {t('overview.title')}
@@ -125,9 +117,20 @@ export default function RelatoriosOverview() {
         </div>
       </div>
 
+      {/* ── Alert Banner ─────────────────────────────────────────────────── */}
+      {data.critical_errors > 0 && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-4 flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-[#EC0000] flex-shrink-0" />
+          <p className="text-sm font-body text-red-700 dark:text-red-300">
+            {t('overview.criticalAlert', { count: data.critical_errors })}
+          </p>
+        </div>
+      )}
+
       {/* ── KPIs ──────────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <KpiCard
+          index={0}
           icon={Users}
           label={t('overview.users')}
           value={data.total_users}
@@ -136,6 +139,7 @@ export default function RelatoriosOverview() {
           iconClass="text-blue-600 dark:text-blue-400"
         />
         <KpiCard
+          index={1}
           icon={ClipboardList}
           label={t('overview.trainingPlans')}
           value={data.total_plans}
@@ -144,6 +148,7 @@ export default function RelatoriosOverview() {
           iconClass="text-emerald-600 dark:text-emerald-400"
         />
         <KpiCard
+          index={2}
           icon={AlertTriangle}
           label={t('overview.registeredErrors')}
           value={data.total_errors}
@@ -164,6 +169,7 @@ export default function RelatoriosOverview() {
           }
         />
         <KpiCard
+          index={3}
           icon={BookOpen}
           label={t('overview.pendingPlans')}
           value={data.pending_action_plans}
@@ -171,6 +177,7 @@ export default function RelatoriosOverview() {
           iconClass="text-purple-600 dark:text-purple-400"
         />
         <KpiCard
+          index={4}
           icon={Award}
           label={t('overview.certificates')}
           value={data.total_certificates}
@@ -178,12 +185,22 @@ export default function RelatoriosOverview() {
           iconClass="text-yellow-600 dark:text-yellow-400"
         />
         <KpiCard
+          index={5}
           icon={TrendingUp}
           label={t('overview.avgMpu')}
           value={data.avg_mpu > 0 ? `${data.avg_mpu}` : '—'}
           sub={data.avg_mpu > 0 ? t('overview.mpuUnit') : t('overview.noMpuData')}
           boxClass="bg-teal-50 dark:bg-teal-900/20"
           iconClass="text-teal-600 dark:text-teal-400"
+        />
+        <KpiCard
+          index={6}
+          icon={Ticket}
+          label={t('overview.chamados')}
+          value={chamadosOpen}
+          sub={t('overview.openChamados')}
+          boxClass="bg-orange-50 dark:bg-orange-900/20"
+          iconClass="text-orange-600 dark:text-orange-400"
         />
       </div>
 

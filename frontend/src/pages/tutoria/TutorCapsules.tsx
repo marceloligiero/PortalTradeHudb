@@ -1,86 +1,213 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Plus, BookOpen, Loader2, Trash2, X, Save, GraduationCap, AlertCircle,
+  Plus, Zap, Loader2, Trash2, X, Save, AlertCircle,
+  Clock, Target, BarChart2, CheckSquare, Pencil,
 } from 'lucide-react';
 import axios from '../../lib/axios';
-import { useTheme } from '../../contexts/ThemeContext';
 
-interface Capsula {
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface CapsuleChallenge {
   id: number;
+  course_id: number;
   title: string;
   description?: string;
-  level: string;
-  course_type: string;
-  managed_by_tutor: boolean;
+  difficulty: string;
+  challenge_type: string;
+  operations_required: number;
+  time_limit_minutes: number;
+  target_mpu: number;
+  max_errors: number;
+  use_volume_kpi: boolean;
+  use_mpu_kpi: boolean;
+  use_errors_kpi: boolean;
+  kpi_mode: string;
+  allow_retry: boolean;
   is_active: boolean;
+  is_released: boolean;
+  course_type: string;
+  level: string | null;
+  started_by: string;
+  submissions_count: number;
   created_at: string;
 }
 
-const COURSE_TYPE_LABEL: Record<string, string> = {
-  CAPSULA_METODOLOGIA: 'Metodologia',
-  CAPSULA_FUNCIONALIDADE: 'Funcionalidade',
+interface ChallengeFormData {
+  title: string;
+  description: string;
+  course_type: string;
+  level: string;
+  started_by: string;
+  difficulty: string;
+  challenge_type: string;
+  operations_required: number;
+  time_limit_minutes: number;
+  target_mpu: number;
+  max_errors: number;
+  use_volume_kpi: boolean;
+  use_mpu_kpi: boolean;
+  use_errors_kpi: boolean;
+  kpi_mode: string;
+  allow_retry: boolean;
+}
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const EMPTY_FORM: ChallengeFormData = {
+  title: '',
+  description: '',
+  course_type: 'CAPSULA_METODOLOGIA',
+  level: 'BEGINNER',
+  started_by: 'TRAINEE',
+  difficulty: 'medium',
+  challenge_type: 'COMPLETE',
+  operations_required: 100,
+  time_limit_minutes: 60,
+  target_mpu: 0.6,
+  max_errors: 0,
+  use_volume_kpi: true,
+  use_mpu_kpi: true,
+  use_errors_kpi: true,
+  kpi_mode: 'AUTO',
+  allow_retry: false,
 };
 
-const LEVEL_LABEL: Record<string, string> = {
-  BEGINNER: 'Básico',
-  INTERMEDIATE: 'Intermédio',
-  ADVANCED: 'Avançado',
-};
-
-const LEVEL_BADGE: Record<string, string> = {
-  BEGINNER: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  INTERMEDIATE: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-  ADVANCED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+const DIFFICULTY_BADGE: Record<string, string> = {
+  easy:   'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  medium: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  hard:   'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
 const TYPE_BADGE: Record<string, string> = {
-  CAPSULA_METODOLOGIA: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  CAPSULA_METODOLOGIA:   'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   CAPSULA_FUNCIONALIDADE: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
 };
 
 function formatDate(iso: string) {
   if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleDateString('pt-PT', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-    });
-  } catch {
-    return iso;
-  }
+  try { return new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
+  catch { return iso; }
 }
+
+function recalcMpu(ops: number, time: number) {
+  return ops > 0 && time > 0 ? parseFloat((time / ops).toFixed(2)) : 0;
+}
+
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
+function KpiToggle({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!value)}
+      className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold border transition-all
+        ${value
+          ? 'border-[#EC0000] bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/50'
+          : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800'}`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function FormField({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        {label}{required && <span className="text-[#EC0000] ml-0.5">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+const inputCls = `w-full rounded-xl px-3.5 py-2.5 text-sm border outline-none transition-colors
+  bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600
+  text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500
+  focus:border-[#EC0000] focus:ring-1 focus:ring-[#EC0000]/20`;
+
+const selectCls = `w-full rounded-xl px-3.5 py-2.5 text-sm border outline-none transition-colors
+  bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600
+  text-gray-900 dark:text-white
+  focus:border-[#EC0000] focus:ring-1 focus:ring-[#EC0000]/20`;
+
+// ── Main component ─────────────────────────────────────────────────────────────
 
 export default function TutorCapsules() {
   const { t } = useTranslation();
-  const { isDark } = useTheme();
+  const navigate = useNavigate();
 
-  const [capsulas, setCapsulas] = useState<Capsula[]>([]);
+  const [capsules, setCapsules] = useState<CapsuleChallenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    level: 'BEGINNER',
-    course_type: 'CAPSULA_METODOLOGIA',
-    started_by: 'TRAINEE',
-  });
+  const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState<ChallengeFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
 
+  const setF = <K extends keyof ChallengeFormData>(key: K, val: ChallengeFormData[K]) =>
+    setForm(prev => ({ ...prev, [key]: val }));
+
+  const handleOpsOrTime = (field: 'operations_required' | 'time_limit_minutes', value: number) => {
+    const next = { ...form, [field]: value };
+    next.target_mpu = recalcMpu(next.operations_required, next.time_limit_minutes);
+    setForm(next);
+  };
+
+  // ── Load ───────────────────────────────────────────────────────────────────
+
   const load = () => {
     setLoading(true);
     setError(null);
-    axios.get('/api/tutoria/capsulas')
-      .then(r => setCapsulas(Array.isArray(r.data) ? r.data : []))
+    axios.get('/api/tutoria/capsulas-challenges')
+      .then(r => setCapsules(Array.isArray(r.data) ? r.data : []))
       .catch(() => setError(t('tutorCapsules.loadError', 'Erro ao carregar cápsulas.')))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, []);
 
-  const handleCreate = async () => {
+  // ── Open create / edit ────────────────────────────────────────────────────
+
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setFormError(null);
+    setShowModal(true);
+  };
+
+  const openEdit = (c: CapsuleChallenge, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingId(c.id);
+    setForm({
+      title: c.title,
+      description: c.description || '',
+      course_type: c.course_type,
+      level: c.level || 'BEGINNER',
+      started_by: c.started_by || 'TRAINEE',
+      difficulty: c.difficulty,
+      challenge_type: c.challenge_type,
+      operations_required: c.operations_required,
+      time_limit_minutes: c.time_limit_minutes,
+      target_mpu: c.target_mpu,
+      max_errors: c.max_errors,
+      use_volume_kpi: c.use_volume_kpi,
+      use_mpu_kpi: c.use_mpu_kpi,
+      use_errors_kpi: c.use_errors_kpi,
+      kpi_mode: c.kpi_mode,
+      allow_retry: c.allow_retry,
+    });
+    setFormError(null);
+    setShowModal(true);
+  };
+
+  // ── Save ──────────────────────────────────────────────────────────────────
+
+  const handleSave = async () => {
     if (!form.title.trim()) {
       setFormError(t('tutorCapsules.titleRequired', 'O título é obrigatório.'));
       return;
@@ -88,332 +215,367 @@ export default function TutorCapsules() {
     setSaving(true);
     setFormError(null);
     try {
-      await axios.post('/api/tutoria/capsulas', {
+      const payload = {
+        ...form,
         title: form.title.trim(),
         description: form.description.trim() || null,
-        level: form.level,
-        course_type: form.course_type,
-        started_by: form.started_by,
-      });
-      setForm({ title: '', description: '', level: 'BEGINNER', course_type: 'CAPSULA_METODOLOGIA', started_by: 'TRAINEE' });
-      setShowCreate(false);
+      };
+      if (editingId) {
+        await axios.put(`/api/tutoria/capsulas-challenges/${editingId}`, payload);
+      } else {
+        await axios.post('/api/tutoria/capsulas-challenges', payload);
+      }
+      setShowModal(false);
       load();
     } catch (err: any) {
-      const msg = err?.response?.data?.detail || t('tutorCapsules.saveError', 'Erro ao guardar cápsula.');
-      setFormError(msg);
+      setFormError(err?.response?.data?.detail || t('tutorCapsules.saveError', 'Erro ao guardar.'));
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id: number, title: string) => {
-    const confirmed = window.confirm(
-      t('tutorCapsules.confirmDelete', 'Desactivar a cápsula "{{title}}"?', { title })
-    );
-    if (!confirmed) return;
-    setDeleting(id);
+  // ── Delete ────────────────────────────────────────────────────────────────
+
+  const handleDelete = async (c: CapsuleChallenge, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm(t('tutorCapsules.confirmDelete', 'Desactivar a cápsula "{{title}}"?', { title: c.title }))) return;
+    setDeleting(c.id);
     try {
-      await axios.delete(`/api/tutoria/capsulas/${id}`);
+      await axios.delete(`/api/tutoria/capsulas-challenges/${c.id}`);
       load();
-    } catch { /* ignore */ } finally {
-      setDeleting(null);
-    }
+    } catch { /* ignore */ }
+    finally { setDeleting(null); }
   };
 
-  const handleCloseCreate = () => {
-    setShowCreate(false);
-    setFormError(null);
-    setForm({ title: '', description: '', level: 'BEGINNER', course_type: 'CAPSULA_METODOLOGIA', started_by: 'TRAINEE' });
-  };
+  // ── Card ──────────────────────────────────────────────────────────────────
 
-  // ── Card component ─────────────────────────────────────────────────────────
-  const CapsulaCard = ({ c }: { c: Capsula }) => (
+  const CapsuleCard = ({ c }: { c: CapsuleChallenge }) => (
     <article
-      className={`
-        rounded-2xl border p-4 sm:p-5 shadow-sm flex flex-col gap-3 transition-shadow hover:shadow-md
-        ${isDark
-          ? 'bg-gray-800 border-gray-700'
-          : 'bg-white border-gray-200'}
-      `}
+      onClick={() => navigate(`/tutoria/capsulas/${c.course_id}/challenges/${c.id}`)}
+      className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm flex flex-col gap-3 hover:shadow-md hover:border-[#EC0000]/30 dark:hover:border-[#EC0000]/30 transition-all cursor-pointer"
     >
-      {/* Header row */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <span
-            className={`
-              flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl
-              ${isDark ? 'bg-red-900/30' : 'bg-red-50'}
-            `}
-          >
-            <GraduationCap size={18} className="text-[#EC0000]" />
-          </span>
-          <h3
-            className={`
-              font-headline font-semibold text-sm sm:text-base truncate
-              ${isDark ? 'text-white' : 'text-gray-900'}
-            `}
-            title={c.title}
-          >
-            {c.title}
-          </h3>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+            <Zap className="w-5 h-5 text-[#EC0000]" />
+          </div>
+          <div className="min-w-0">
+            <h3 className="font-headline font-semibold text-sm text-gray-900 dark:text-white truncate" title={c.title}>
+              {c.title}
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {formatDate(c.created_at)}
+            </p>
+          </div>
         </div>
 
-        {/* Delete button */}
-        <button
-          onClick={() => handleDelete(c.id, c.title)}
-          disabled={deleting === c.id}
-          aria-label={t('tutorCapsules.deactivate', 'Desactivar')}
-          className={`
-            flex-shrink-0 p-1.5 rounded-lg transition-colors
-            ${isDark
-              ? 'text-gray-400 hover:text-red-400 hover:bg-red-900/20 disabled:opacity-40'
-              : 'text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-40'}
-          `}
-        >
-          {deleting === c.id
-            ? <Loader2 size={16} className="animate-spin" />
-            : <Trash2 size={16} />}
-        </button>
+        {/* Actions */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            onClick={(e) => openEdit(c, e)}
+            aria-label={t('common.edit', 'Editar')}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            <Pencil size={14} />
+          </button>
+          <button
+            onClick={(e) => handleDelete(c, e)}
+            disabled={deleting === c.id}
+            aria-label={t('tutorCapsules.deactivate', 'Desactivar')}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40 transition-colors"
+          >
+            {deleting === c.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+          </button>
+        </div>
       </div>
 
       {/* Description */}
       {c.description && (
-        <p className={`text-sm leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+        <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed line-clamp-2">
           {c.description}
         </p>
       )}
 
-      {/* Badges */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${TYPE_BADGE[c.course_type] ?? TYPE_BADGE.CAPSULA_METODOLOGIA}`}>
-          {COURSE_TYPE_LABEL[c.course_type] ?? c.course_type}
+      {/* Badges row */}
+      <div className="flex flex-wrap gap-1.5">
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${TYPE_BADGE[c.course_type] ?? TYPE_BADGE.CAPSULA_METODOLOGIA}`}>
+          {c.course_type === 'CAPSULA_METODOLOGIA'
+            ? t('tutorCapsules.typeMethodology', 'Metodologia')
+            : t('tutorCapsules.typeFunctionality', 'Funcionalidade')}
         </span>
-        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${LEVEL_BADGE[c.level] ?? LEVEL_BADGE.BEGINNER}`}>
-          {LEVEL_LABEL[c.level] ?? c.level}
+        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${DIFFICULTY_BADGE[c.difficulty] ?? DIFFICULTY_BADGE.medium}`}>
+          {c.difficulty === 'easy' ? t('tutorCapsules.diffEasy', 'Fácil')
+            : c.difficulty === 'hard' ? t('tutorCapsules.diffHard', 'Difícil')
+            : t('tutorCapsules.diffMedium', 'Médio')}
+        </span>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+          {c.challenge_type === 'COMPLETE'
+            ? t('tutorCapsules.challengeTypeComplete', 'Completo')
+            : c.challenge_type === 'SUMMARY'
+            ? t('tutorCapsules.challengeTypeSummary', 'Resumo')
+            : c.challenge_type}
         </span>
       </div>
 
+      {/* KPI row */}
+      <div className="grid grid-cols-3 gap-2 pt-1 border-t border-gray-100 dark:border-gray-800">
+        <div className="flex flex-col items-center gap-0.5">
+          <div className="flex items-center gap-1 text-gray-400">
+            <BarChart2 size={11} />
+            <span className="text-[10px]">{t('tutorCapsules.kpiOps', 'Ops')}</span>
+          </div>
+          <span className="font-mono text-xs font-bold text-gray-900 dark:text-white">{c.operations_required}</span>
+        </div>
+        <div className="flex flex-col items-center gap-0.5">
+          <div className="flex items-center gap-1 text-gray-400">
+            <Clock size={11} />
+            <span className="text-[10px]">{t('tutorCapsules.kpiTime', 'Min')}</span>
+          </div>
+          <span className="font-mono text-xs font-bold text-gray-900 dark:text-white">{c.time_limit_minutes}</span>
+        </div>
+        <div className="flex flex-col items-center gap-0.5">
+          <div className="flex items-center gap-1 text-gray-400">
+            <Target size={11} />
+            <span className="text-[10px]">MPU</span>
+          </div>
+          <span className="font-mono text-xs font-bold text-gray-900 dark:text-white">{c.target_mpu}</span>
+        </div>
+      </div>
+
       {/* Footer */}
-      <p className={`text-xs mt-auto ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-        {t('tutorCapsules.createdAt', 'Criada em')} {formatDate(c.created_at)}
-      </p>
+      <div className="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500">
+        <div className="flex items-center gap-1">
+          <CheckSquare size={11} />
+          <span>{c.submissions_count} {t('tutorCapsules.submissions', 'submissões')}</span>
+        </div>
+        {c.max_errors > 0 && (
+          <span>{t('tutorCapsules.maxErrors', 'Erros max')}: {c.max_errors}</span>
+        )}
+      </div>
     </article>
   );
 
-  // ── Create modal/panel ─────────────────────────────────────────────────────
-  const CreatePanel = () => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={handleCloseCreate}
-      />
+  // ── Modal ─────────────────────────────────────────────────────────────────
 
-      {/* Panel */}
-      <div
-        className={`
-          relative w-full max-w-md rounded-2xl shadow-xl p-6 flex flex-col gap-5
-          ${isDark ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}
-        `}
-      >
-        {/* Panel header */}
-        <div className="flex items-center justify-between">
-          <h2 className={`font-headline font-semibold text-lg ${isDark ? 'text-white' : 'text-gray-900'}`}>
-            {t('tutorCapsules.createTitle', 'Nova Cápsula Formativa')}
-          </h2>
+  const Modal = () => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowModal(false)} />
+
+      <div className="relative w-full max-w-xl bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 flex flex-col max-h-[90vh] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+          <div>
+            <p className="font-body text-[10px] font-bold uppercase tracking-widest text-[#EC0000]">
+              {t('tutorCapsules.modalBadge', 'Cápsula Formativa')}
+            </p>
+            <h2 className="font-headline font-bold text-lg text-gray-900 dark:text-white mt-0.5">
+              {editingId
+                ? t('tutorCapsules.editTitle', 'Editar Cápsula')
+                : t('tutorCapsules.createTitle', 'Nova Cápsula')}
+            </h2>
+          </div>
           <button
-            onClick={handleCloseCreate}
-            className={`p-1.5 rounded-lg transition-colors ${isDark ? 'text-gray-400 hover:text-white hover:bg-gray-700' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'}`}
-            aria-label={t('common.cancel', 'Cancelar')}
+            onClick={() => setShowModal(false)}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            aria-label={t('common.close', 'Fechar')}
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Form error */}
-        {formError && (
-          <div className="flex items-center gap-2 rounded-xl p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
-            <AlertCircle size={16} className="flex-shrink-0" />
-            <span>{formError}</span>
+        {/* Scrollable body */}
+        <div className="overflow-y-auto p-6 flex flex-col gap-5">
+          {formError && (
+            <div className="flex items-center gap-2 rounded-xl p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
+              <AlertCircle size={16} className="flex-shrink-0" />
+              <span>{formError}</span>
+            </div>
+          )}
+
+          {/* Title */}
+          <FormField label={t('tutorCapsules.fieldTitle', 'Título')} required>
+            <input
+              type="text"
+              value={form.title}
+              onChange={e => setF('title', e.target.value)}
+              placeholder={t('tutorCapsules.titlePlaceholder', 'Ex: Fundamentos Cambiais')}
+              className={inputCls}
+              autoFocus
+            />
+          </FormField>
+
+          {/* Description */}
+          <FormField label={`${t('tutorCapsules.fieldDescription', 'Descrição')} (${t('common.optional', 'opcional')})`}>
+            <textarea
+              value={form.description}
+              onChange={e => setF('description', e.target.value)}
+              placeholder={t('tutorCapsules.descriptionPlaceholder', 'Breve descrição do conteúdo...')}
+              rows={2}
+              className={inputCls + ' resize-none'}
+            />
+          </FormField>
+
+          {/* Type + Level */}
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label={t('tutorCapsules.fieldType', 'Tipo de Cápsula')}>
+              <select value={form.course_type} onChange={e => setF('course_type', e.target.value)} className={selectCls}>
+                <option value="CAPSULA_METODOLOGIA">{t('tutorCapsules.typeMethodology', 'Metodologia')}</option>
+                <option value="CAPSULA_FUNCIONALIDADE">{t('tutorCapsules.typeFunctionality', 'Funcionalidade')}</option>
+              </select>
+            </FormField>
+            <FormField label={t('tutorCapsules.fieldLevel', 'Nível')}>
+              <select value={form.level} onChange={e => setF('level', e.target.value)} className={selectCls}>
+                <option value="BEGINNER">{t('tutorCapsules.levelBasic', 'Básico')}</option>
+                <option value="INTERMEDIATE">{t('tutorCapsules.levelIntermediate', 'Intermédio')}</option>
+                <option value="ADVANCED">{t('tutorCapsules.levelAdvanced', 'Avançado')}</option>
+              </select>
+            </FormField>
           </div>
-        )}
 
-        {/* Título */}
-        <div className="flex flex-col gap-1.5">
-          <label className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-            {t('tutorCapsules.fieldTitle', 'Título')}
-            <span className="text-[#EC0000] ml-0.5">*</span>
-          </label>
-          <input
-            type="text"
-            value={form.title}
-            onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-            placeholder={t('tutorCapsules.titlePlaceholder', 'Ex: Fundamentos de Análise Técnica')}
-            className={`
-              w-full rounded-xl px-3.5 py-2.5 text-sm border outline-none transition-colors
-              focus:border-[#EC0000] focus:ring-1 focus:ring-[#EC0000]/20
-              ${isDark
-                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500'
-                : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'}
-            `}
-            autoFocus
-          />
-        </div>
+          {/* Difficulty + Challenge type */}
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label={t('challenges.difficulty', 'Dificuldade')}>
+              <select value={form.difficulty} onChange={e => setF('difficulty', e.target.value)} className={selectCls}>
+                <option value="easy">{t('challenges.difficultyEasy', 'Fácil')}</option>
+                <option value="medium">{t('challenges.difficultyMedium', 'Médio')}</option>
+                <option value="hard">{t('challenges.difficultyHard', 'Difícil')}</option>
+              </select>
+            </FormField>
+            <FormField label={t('tutorCapsules.fieldChallengeType', 'Tipo de Desafio')}>
+              <select value={form.challenge_type} onChange={e => setF('challenge_type', e.target.value)} className={selectCls}>
+                <option value="COMPLETE">{t('tutorCapsules.challengeTypeComplete', 'Completo')}</option>
+                <option value="SUMMARY">{t('tutorCapsules.challengeTypeSummary', 'Resumo')}</option>
+              </select>
+            </FormField>
+          </div>
 
-        {/* Descrição */}
-        <div className="flex flex-col gap-1.5">
-          <label className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-            {t('tutorCapsules.fieldDescription', 'Descrição')}
-            <span className={`text-xs ml-1 font-normal ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-              ({t('common.optional', 'opcional')})
-            </span>
-          </label>
-          <textarea
-            value={form.description}
-            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            placeholder={t('tutorCapsules.descriptionPlaceholder', 'Breve descrição do conteúdo...')}
-            rows={3}
-            className={`
-              w-full rounded-xl px-3.5 py-2.5 text-sm border outline-none transition-colors resize-none
-              focus:border-[#EC0000] focus:ring-1 focus:ring-[#EC0000]/20
-              ${isDark
-                ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-500'
-                : 'bg-gray-50 border-gray-300 text-gray-900 placeholder-gray-400'}
-            `}
-          />
-        </div>
+          {/* Ops + Time */}
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label={t('challenges.operationsRequired', 'Operações')}>
+              <input
+                type="number"
+                min={1}
+                value={form.operations_required}
+                onChange={e => handleOpsOrTime('operations_required', Number(e.target.value))}
+                className={inputCls}
+              />
+            </FormField>
+            <FormField label={t('challenges.timeLimit', 'Tempo (min)')}>
+              <input
+                type="number"
+                min={1}
+                value={form.time_limit_minutes}
+                onChange={e => handleOpsOrTime('time_limit_minutes', Number(e.target.value))}
+                className={inputCls}
+              />
+            </FormField>
+          </div>
 
-        {/* Nível + Tipo — side by side on sm+ */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Nível */}
-          <div className="flex flex-col gap-1.5">
-            <label className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-              {t('tutorCapsules.fieldLevel', 'Nível')}
+          {/* MPU + Max errors */}
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label={t('challenges.targetMpu', 'MPU alvo (min/op)')}>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={form.target_mpu}
+                onChange={e => setF('target_mpu', Number(e.target.value))}
+                className={inputCls}
+              />
+            </FormField>
+            <FormField label={t('challenges.maxErrors', 'Máx. erros')}>
+              <input
+                type="number"
+                min={0}
+                value={form.max_errors}
+                onChange={e => setF('max_errors', Number(e.target.value))}
+                className={inputCls}
+              />
+            </FormField>
+          </div>
+
+          {/* KPI toggles */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t('challenges.kpiConfig', 'KPIs activos')}
             </label>
-            <select
-              value={form.level}
-              onChange={e => setForm(f => ({ ...f, level: e.target.value }))}
-              className={`
-                w-full rounded-xl px-3.5 py-2.5 text-sm border outline-none transition-colors
-                focus:border-[#EC0000] focus:ring-1 focus:ring-[#EC0000]/20
-                ${isDark
-                  ? 'bg-gray-700 border-gray-600 text-white'
-                  : 'bg-gray-50 border-gray-300 text-gray-900'}
-              `}
-            >
-              <option value="BEGINNER">{t('tutorCapsules.levelBasic', 'Básico')}</option>
-              <option value="INTERMEDIATE">{t('tutorCapsules.levelIntermediate', 'Intermédio')}</option>
-              <option value="ADVANCED">{t('tutorCapsules.levelAdvanced', 'Avançado')}</option>
-            </select>
+            <div className="flex gap-2">
+              <KpiToggle label={t('tutorCapsules.kpiOps', 'Volume')} value={form.use_volume_kpi} onChange={v => setF('use_volume_kpi', v)} />
+              <KpiToggle label="MPU" value={form.use_mpu_kpi} onChange={v => setF('use_mpu_kpi', v)} />
+              <KpiToggle label={t('challenges.maxErrors', 'Erros')} value={form.use_errors_kpi} onChange={v => setF('use_errors_kpi', v)} />
+            </div>
           </div>
 
-          {/* Tipo */}
-          <div className="flex flex-col gap-1.5">
-            <label className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-              {t('tutorCapsules.fieldType', 'Tipo')}
-            </label>
-            <select
-              value={form.course_type}
-              onChange={e => setForm(f => ({ ...f, course_type: e.target.value }))}
-              className={`
-                w-full rounded-xl px-3.5 py-2.5 text-sm border outline-none transition-colors
-                focus:border-[#EC0000] focus:ring-1 focus:ring-[#EC0000]/20
-                ${isDark
-                  ? 'bg-gray-700 border-gray-600 text-white'
-                  : 'bg-gray-50 border-gray-300 text-gray-900'}
-              `}
-            >
-              <option value="CAPSULA_METODOLOGIA">{t('tutorCapsules.typeMethodology', 'Metodologia')}</option>
-              <option value="CAPSULA_FUNCIONALIDADE">{t('tutorCapsules.typeFunctionality', 'Funcionalidade')}</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Tipo de Início */}
-        <div className="flex flex-col gap-1.5">
-          <label className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-            {t('tutorCapsules.fieldStartedBy', 'Tipo de Início')}
-          </label>
-          <div className="flex gap-3">
-            {[
-              { value: 'TRAINEE', label: t('tutorCapsules.startedByTrainee', 'Vídeo (iniciado pelo utilizador)') },
-              { value: 'TRAINER', label: t('tutorCapsules.startedByTrainer', 'Cápsula (iniciada pelo Tutor)') },
-            ].map(opt => (
+          {/* KPI mode + allow retry */}
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label={t('challenges.kpiMode', 'Modo KPI')}>
+              <select value={form.kpi_mode} onChange={e => setF('kpi_mode', e.target.value)} className={selectCls}>
+                <option value="AUTO">{t('tutorCapsules.kpiModeAuto', 'Auto')}</option>
+                <option value="MANUAL">{t('tutorCapsules.kpiModeManual', 'Manual')}</option>
+              </select>
+            </FormField>
+            <FormField label={t('challenges.allowRetry', 'Permitir retry')}>
               <button
-                key={opt.value}
                 type="button"
-                onClick={() => setForm(f => ({ ...f, started_by: opt.value }))}
-                className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium border transition-all ${
-                  form.started_by === opt.value
+                onClick={() => setF('allow_retry', !form.allow_retry)}
+                className={`w-full py-2.5 px-3.5 rounded-xl text-sm font-medium border transition-all
+                  ${form.allow_retry
                     ? 'border-[#EC0000] bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/50'
-                    : 'border-gray-200 text-gray-600 dark:border-white/10 dark:text-gray-400'
-                }`}
+                    : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700'}`}
               >
-                {opt.label}
+                {form.allow_retry ? t('common.yes', 'Sim') : t('common.no', 'Não')}
               </button>
-            ))}
+            </FormField>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pt-1">
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex-shrink-0">
           <button
-            type="button"
-            onClick={handleCloseCreate}
-            className={`
-              px-4 py-2.5 rounded-xl text-sm font-medium transition-colors
-              ${isDark
-                ? 'text-gray-300 hover:bg-gray-700'
-                : 'text-gray-600 hover:bg-gray-100'}
-            `}
+            onClick={() => setShowModal(false)}
+            className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             {t('common.cancel', 'Cancelar')}
           </button>
           <button
-            type="button"
-            onClick={handleCreate}
+            onClick={handleSave}
             disabled={saving || !form.title.trim()}
-            className="
-              flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white
-              bg-[#EC0000] hover:bg-[#CC0000] disabled:opacity-50 disabled:cursor-not-allowed
-              transition-colors
-            "
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#EC0000] hover:bg-[#CC0000] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {saving
               ? <><Loader2 size={15} className="animate-spin" />{t('common.saving', 'A guardar...')}</>
-              : <><Save size={15} />{t('tutorCapsules.createButton', 'Criar Cápsula')}</>}
+              : <><Save size={15} />{editingId ? t('common.save', 'Guardar') : t('tutorCapsules.createButton', 'Criar Cápsula')}</>}
           </button>
         </div>
       </div>
     </div>
   );
 
-  // ── Main render ────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-6">
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className={`font-headline font-bold text-xl sm:text-2xl ${isDark ? 'text-white' : 'text-gray-900'}`}>
+          <h1 className="font-headline font-bold text-xl sm:text-2xl text-gray-900 dark:text-white">
             {t('tutorCapsules.pageTitle', 'Cápsulas Formativas')}
           </h1>
-          <p className={`text-sm mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-            {t('tutorCapsules.pageSubtitle', 'Gerir cápsulas de formação para os tutorados')}
+          <p className="text-sm mt-0.5 text-gray-500 dark:text-gray-400">
+            {t('tutorCapsules.pageSubtitle', 'Desafios especiais para os tutorados')}
           </p>
         </div>
         <button
-          onClick={() => setShowCreate(true)}
-          className="
-            flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white
-            bg-[#EC0000] hover:bg-[#CC0000] transition-colors self-start sm:self-auto
-          "
+          onClick={openCreate}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#EC0000] hover:bg-[#CC0000] transition-colors self-start sm:self-auto"
         >
           <Plus size={16} />
           {t('tutorCapsules.newCapsule', 'Nova Cápsula')}
         </button>
       </div>
 
-      {/* Global error */}
+      {/* Error */}
       {error && (
         <div className="flex items-center gap-2 rounded-xl p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
           <AlertCircle size={16} className="flex-shrink-0" />
@@ -421,20 +583,19 @@ export default function TutorCapsules() {
         </div>
       )}
 
-      {/* Loading state */}
+      {/* Loading */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 size={32} className="animate-spin text-[#EC0000]" />
         </div>
-      ) : capsulas.length === 0 ? (
+      ) : capsules.length === 0 ? (
         /* Empty state */
-        <div className={`
-          flex flex-col items-center justify-center gap-4 py-20 rounded-2xl border border-dashed
-          ${isDark ? 'border-gray-700 text-gray-500' : 'border-gray-300 text-gray-400'}
-        `}>
-          <BookOpen size={48} className="opacity-40" />
+        <div className="flex flex-col items-center justify-center gap-4 py-20 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 text-gray-400 dark:text-gray-500">
+          <div className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+            <Zap size={28} className="text-[#EC0000] opacity-60" />
+          </div>
           <div className="text-center">
-            <p className={`font-medium text-base ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+            <p className="font-medium text-base text-gray-600 dark:text-gray-300">
               {t('tutorCapsules.emptyTitle', 'Nenhuma cápsula criada')}
             </p>
             <p className="text-sm mt-1">
@@ -442,34 +603,31 @@ export default function TutorCapsules() {
             </p>
           </div>
           <button
-            onClick={() => setShowCreate(true)}
-            className="
-              flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white
-              bg-[#EC0000] hover:bg-[#CC0000] transition-colors mt-2
-            "
+            onClick={openCreate}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-[#EC0000] hover:bg-[#CC0000] transition-colors mt-2"
           >
             <Plus size={15} />
             {t('tutorCapsules.newCapsule', 'Nova Cápsula')}
           </button>
         </div>
       ) : (
-        /* Grid of cards */
+        /* Grid */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {capsulas.map(c => <CapsulaCard key={c.id} c={c} />)}
+          {capsules.map(c => <CapsuleCard key={c.id} c={c} />)}
         </div>
       )}
 
       {/* Counter */}
-      {!loading && capsulas.length > 0 && (
-        <p className={`text-xs text-right ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
-          {capsulas.length} {capsulas.length === 1
+      {!loading && capsules.length > 0 && (
+        <p className="text-xs text-right text-gray-400 dark:text-gray-600">
+          {capsules.length} {capsules.length === 1
             ? t('tutorCapsules.capsulaCount_one', 'cápsula activa')
             : t('tutorCapsules.capsulaCount_other', 'cápsulas activas')}
         </p>
       )}
 
-      {/* Create modal */}
-      {showCreate && <CreatePanel />}
+      {/* Modal */}
+      {showModal && <Modal />}
     </div>
   );
 }

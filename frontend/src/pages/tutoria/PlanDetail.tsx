@@ -152,8 +152,8 @@ export default function PlanDetail() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const isManager = user?.role === 'ADMIN' || user?.role === 'TRAINER';
-  const isAdmin   = user?.role === 'ADMIN';
+  const isManager = user?.is_admin || user?.is_diretor || user?.is_gerente || user?.is_tutor;
+  const isAdmin   = user?.is_admin;
   const isStudent = !isManager;
 
   const [plan, setPlan] = useState<Plan | null>(null);

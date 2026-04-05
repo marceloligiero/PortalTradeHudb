@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api/student/reports", tags=["student-reports"])
 @router.get("/dashboard")
 async def get_student_dashboard(
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(require_role(["TRAINEE"]))
+    current_user: models.User = Depends(require_role(["TRAINEE", "USUARIO", "CHEFE_EQUIPE"]))
 ):
     """
     Retorna dados completos do dashboard de relatórios do formando

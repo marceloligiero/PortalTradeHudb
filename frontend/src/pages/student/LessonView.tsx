@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText,
   ArrowLeft,
@@ -27,6 +26,8 @@ import {
 import api from '../../lib/axios';
 import DOMPurify from 'dompurify';
 import { RatingModal } from '../../components';
+import { STORAGE_KEYS } from '../../constants/storageKeys';
+import { CHARS_PER_PAGE } from '../../constants/pagination';
 
 interface Lesson {
   id: number;
@@ -56,7 +57,6 @@ interface LessonProgress {
 }
 
 // Characters per page for pagination
-const CHARS_PER_PAGE = 2500;
 
 export default function LessonView() {
   const { lessonId } = useParams<{ lessonId: string }>();
@@ -146,7 +146,7 @@ export default function LessonView() {
   useEffect(() => {
     if (lessonId) {
       // Load visited pages
-      const saved = localStorage.getItem(`lesson_${lessonId}_visited`);
+      const saved = localStorage.getItem(STORAGE_KEYS.lesson.visited(lessonId));
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
@@ -157,7 +157,7 @@ export default function LessonView() {
       }
       
       // Load last page (to resume from where stopped)
-      const lastPage = localStorage.getItem(`lesson_${lessonId}_lastPage`);
+      const lastPage = localStorage.getItem(STORAGE_KEYS.lesson.lastPage(lessonId));
       if (lastPage) {
         const pageNum = parseInt(lastPage, 10);
         if (!isNaN(pageNum) && pageNum > 0) {
@@ -176,9 +176,9 @@ export default function LessonView() {
       const newSet = new Set(prev);
       newSet.add(page);
       if (lessonId) {
-        localStorage.setItem(`lesson_${lessonId}_visited`, JSON.stringify(Array.from(newSet)));
+        localStorage.setItem(STORAGE_KEYS.lesson.visited(lessonId), JSON.stringify(Array.from(newSet)));
         // Save last page for resuming
-        localStorage.setItem(`lesson_${lessonId}_lastPage`, page.toString());
+        localStorage.setItem(STORAGE_KEYS.lesson.lastPage(lessonId), page.toString());
       }
       return newSet;
     });
@@ -277,7 +277,7 @@ export default function LessonView() {
       }
       
       // Save locally
-      localStorage.setItem(`lesson_${lessonId}_finished`, 'true');
+      localStorage.setItem(STORAGE_KEYS.lesson.finished(lessonId), 'true');
       setIsFinished(true);
       
       // Show rating modal instead of navigating immediately
@@ -398,7 +398,7 @@ export default function LessonView() {
       }
     } catch (err: any) {
       console.error('Error fetching lesson:', err);
-      setError(err.response?.data?.detail || t('common.error'));
+      setError(err.response?.data?.detail || t('messages.error'));
     } finally {
       setLoading(false);
     }
@@ -467,8 +467,8 @@ export default function LessonView() {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500 dark:text-gray-400">{t('common.loading')}</p>
+          <div className="w-16 h-16 border-4 border-[#EC0000]/20 border-t-[#EC0000] rounded-full animate-spin mx-auto mb-4" />
+          <p className="font-body text-gray-500 dark:text-gray-400">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -479,11 +479,11 @@ export default function LessonView() {
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{t('common.error')}</h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-4">{error || t('lessonView.moduleNotFound')}</p>
+          <h2 className="font-headline text-xl font-bold text-gray-900 dark:text-white mb-2">{t('messages.error')}</h2>
+          <p className="font-body text-gray-500 dark:text-gray-400 mb-4">{error || t('lessonView.moduleNotFound')}</p>
           <button
             onClick={handleGoBack}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            className="px-6 py-3 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body font-bold transition-colors"
           >
             {t('common.goBack')}
           </button>
@@ -494,98 +494,69 @@ export default function LessonView() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden bg-gradient-to-r from-green-900 via-green-800 to-green-900 rounded-2xl"
-      >
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `linear-gradient(rgba(34, 197, 94, 0.3) 1px, transparent 1px),
-                             linear-gradient(90deg, rgba(34, 197, 94, 0.3) 1px, transparent 1px)`,
-            backgroundSize: '40px 40px'
-          }} />
-        </div>
-        
-        <div className="absolute top-0 right-0 w-96 h-96 bg-green-600/20 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-green-500/10 rounded-full blur-2xl" />
-        
-        <div className="relative p-8">
-          {/* Back Button */}
+      {/* Header Card */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+        <div className="flex items-center gap-4 mb-4">
           <button
             onClick={handleGoBack}
-            className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors mb-6"
+            className="p-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors"
           >
-            <ArrowLeft className="w-5 h-5" />
-            <span>{t('common.goBack')}</span>
+            <ArrowLeft className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
+          <div className="w-12 h-12 rounded-xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+            <FileText className="w-6 h-6 text-[#EC0000]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`px-2.5 py-0.5 rounded-lg text-xs font-bold ${getLessonTypeColor(lesson.lesson_type)}`}>
+                {getLessonTypeLabel(lesson.lesson_type)}
+              </span>
+              <span className="font-body text-xs font-bold uppercase tracking-widest text-[#EC0000]">
+                {t('admin.lesson')} #{(lesson.order_index || 0) + 1}
+              </span>
+            </div>
+            <h1 className="font-headline text-2xl font-bold text-gray-900 dark:text-white truncate">{lesson.title}</h1>
+            <p className="font-body text-sm text-gray-500 dark:text-gray-400 truncate">{lesson.description}</p>
+          </div>
+        </div>
 
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-6">
-              <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/30">
-                <FileText className="w-10 h-10 text-white" />
+        {/* Stats Bar */}
+        <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+                <Clock className="w-4 h-4 text-[#EC0000]" />
               </div>
               <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getLessonTypeColor(lesson.lesson_type)}`}>
-                    {getLessonTypeLabel(lesson.lesson_type)}
-                  </span>
-                  <span className="px-3 py-1 bg-white/10 text-white rounded-full text-sm">
-                    {t('admin.lesson')} #{(lesson.order_index || 0) + 1}
-                  </span>
-                </div>
-                <h1 className="text-3xl font-bold text-white mb-2">{lesson.title}</h1>
-                <p className="text-gray-300 max-w-2xl">{lesson.description}</p>
+                <p className="font-mono text-xl font-bold text-gray-900 dark:text-white">{lesson.estimated_minutes || 0}<span className="font-body text-sm text-gray-500 dark:text-gray-400 ml-1">min</span></p>
+                <p className="font-body text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('admin.estimatedMinutes')}</p>
               </div>
             </div>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-2 gap-4 mt-8">
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                  <Clock className="w-5 h-5 text-blue-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">{lesson.estimated_minutes || 0}</p>
-                  <p className="text-sm text-gray-400">{t('admin.estimatedMinutes')}</p>
-                </div>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+                <BookOpen className="w-4 h-4 text-[#EC0000]" />
               </div>
-            </div>
-            <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                  <BookOpen className="w-5 h-5 text-purple-400" />
-                </div>
-                <div>
-                  <p className="text-lg font-semibold text-white">{lesson.course_title || 'Curso'}</p>
-                  <p className="text-sm text-gray-400">{t('admin.course')}</p>
-                </div>
+              <div>
+                <p className="font-headline text-sm font-bold text-gray-900 dark:text-white truncate">{lesson.course_title || 'Curso'}</p>
+                <p className="font-body text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">{t('admin.course')}</p>
               </div>
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           {/* Lesson Content with Pagination */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
-          >
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
             {/* Header with Progress */}
-            <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+            <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t('admin.lessonContent')}</h3>
+                <h3 className="font-headline text-lg font-bold text-gray-900 dark:text-white">{t('admin.lessonContent')}</h3>
                 {totalPages > 1 && (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                    <span className="font-body text-sm text-gray-500 dark:text-gray-400">
                       {t('lessonView.pageOf', { current: currentPage, total: totalPages })}
                     </span>
                     {allPagesVisited && (
@@ -607,10 +578,10 @@ export default function LessonView() {
                       onClick={() => goToPage(page)}
                       className={`relative w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium transition-all ${
                         currentPage === page
-                          ? 'bg-red-600 text-white shadow-lg shadow-red-200 dark:shadow-red-900/30'
+                          ? 'bg-[#EC0000] text-white shadow-lg shadow-red-200 dark:shadow-red-900/30'
                           : visitedPages.has(page)
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 border border-green-200 dark:border-green-500/30'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                       }`}
                     >
                       {visitedPages.has(page) && currentPage !== page ? (
@@ -627,17 +598,10 @@ export default function LessonView() {
             {/* Content Area */}
             <div className="p-6">
               {lesson.content ? (
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentPage}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3 }}
+                <div
                     className="prose prose-slate dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-p:leading-relaxed prose-ul:list-disc prose-ol:list-decimal prose-li:text-gray-700 dark:prose-li:text-gray-300 prose-blockquote:border-l-4 prose-blockquote:border-gray-300 dark:prose-blockquote:border-gray-600 prose-blockquote:pl-4 prose-blockquote:italic prose-a:text-red-600 prose-a:underline prose-code:bg-gray-100 dark:prose-code:bg-gray-700 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-900 prose-pre:text-gray-100 min-h-[300px]"
                     dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contentPages[currentPage - 1] || '') }}
                   />
-                </AnimatePresence>
               ) : (
                 <p className="text-gray-500 italic">{t('admin.noContentYet')}</p>
               )}
@@ -645,15 +609,15 @@ export default function LessonView() {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+              <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
                 <div className="flex items-center justify-between">
                   <button
                     onClick={() => goToPage(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-body font-medium transition-all ${
                       currentPage === 1
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                        : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 hover:border-gray-300'
+                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                        : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:border-[#EC0000]/30'
                     }`}
                   >
                     <ChevronLeft className="w-4 h-4" />
@@ -662,14 +626,13 @@ export default function LessonView() {
 
                   {/* Progress Bar */}
                   <div className="flex-1 mx-4">
-                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(visitedPages.size / totalPages) * 100}%` }}
-                        className="h-full bg-gradient-to-r from-green-500 to-emerald-500"
+                    <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-[#EC0000] to-[#CC0000] transition-all duration-500"
+                        style={{ width: `${(visitedPages.size / totalPages) * 100}%` }}
                       />
                     </div>
-                    <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    <p className="text-center text-xs font-body text-gray-500 dark:text-gray-400 mt-1">
                       {t('lessonView.pagesVisited', { visited: visitedPages.size, total: totalPages, percent: Math.round((visitedPages.size / totalPages) * 100) })}
                     </p>
                   </div>
@@ -679,10 +642,10 @@ export default function LessonView() {
                     <button
                       onClick={handleFinishLesson}
                       disabled={finishLoading || isFinished}
-                      className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all ${
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-body font-bold transition-all ${
                         isFinished
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 cursor-default'
-                          : 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-200 dark:shadow-green-900/30'
+                          ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/30 cursor-default'
+                          : 'bg-[#EC0000] hover:bg-[#CC0000] text-white'
                       }`}
                     >
                       {finishLoading ? (
@@ -695,7 +658,7 @@ export default function LessonView() {
                       {isFinished ? t('lessonView.moduleCompleted') : t('lessonView.finishModule')}
                     </button>
                   ) : allPagesVisited && currentPage === totalPages && isFinished ? (
-                    <div className="flex items-center gap-2 px-5 py-2.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg font-medium">
+                    <div className="flex items-center gap-2 px-5 py-2.5 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-xl font-body font-bold border border-green-200 dark:border-green-500/30">
                       <CheckCircle2 className="w-4 h-4" />
                       {t('lessonView.moduleCompleted')}
                     </div>
@@ -703,10 +666,10 @@ export default function LessonView() {
                     <button
                       onClick={() => goToPage(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl font-body font-bold transition-all ${
                         currentPage === totalPages
-                          ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                          : 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-200 dark:shadow-red-900/30'
+                          ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                          : 'bg-[#EC0000] text-white hover:bg-[#CC0000]'
                       }`}
                     >
                       {t('lessonView.next')}
@@ -719,12 +682,12 @@ export default function LessonView() {
             
             {/* Botão de finalizar para aulas com 1 página apenas */}
             {totalPages <= 1 && (canFinish || canFinishTrainee) && !isFinished && (
-              <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+              <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
                 <div className="flex items-center justify-center">
                   <button
                     onClick={handleFinishLesson}
                     disabled={finishLoading}
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 dark:shadow-green-900/30 disabled:opacity-50"
+                    className="flex items-center gap-2 px-6 py-3 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body font-bold transition-colors disabled:opacity-50"
                   >
                     {finishLoading ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -739,39 +702,35 @@ export default function LessonView() {
             
             {/* Indicador de aula concluída para aulas com 1 página */}
             {totalPages <= 1 && isFinished && (
-              <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                <div className="flex items-center justify-center gap-2 px-6 py-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg font-medium">
+              <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
+                <div className="flex items-center justify-center gap-2 px-6 py-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-xl font-body font-bold border border-green-200 dark:border-green-500/30">
                   <CheckCircle2 className="w-5 h-5" />
                   {t('lessonView.moduleCompleted')}
                 </div>
               </div>
             )}
-          </motion.div>
+          </div>
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Status da Aula - sempre visível */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl border border-purple-100 dark:border-purple-800/30 p-6"
-          >
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                lessonProgress?.status === 'COMPLETED' ? 'bg-green-500' :
-                lessonProgress?.status === 'IN_PROGRESS' ? 'bg-blue-500' :
-                lessonProgress?.status === 'PAUSED' ? 'bg-yellow-500' :
-                'bg-gray-400'
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                lessonProgress?.status === 'COMPLETED' ? 'bg-green-50 dark:bg-green-900/20' :
+                lessonProgress?.status === 'IN_PROGRESS' ? 'bg-red-50 dark:bg-red-900/20' :
+                lessonProgress?.status === 'PAUSED' ? 'bg-yellow-50 dark:bg-yellow-900/20' :
+                'bg-gray-100 dark:bg-gray-800'
               }`}>
-                {lessonProgress?.status === 'COMPLETED' ? <CheckCircle2 className="w-5 h-5 text-white" /> :
-                 lessonProgress?.status === 'IN_PROGRESS' ? <Play className="w-5 h-5 text-white" /> :
-                 lessonProgress?.status === 'PAUSED' ? <Clock className="w-5 h-5 text-white" /> :
-                 <Clock className="w-5 h-5 text-white" />}
+                {lessonProgress?.status === 'COMPLETED' ? <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" /> :
+                 lessonProgress?.status === 'IN_PROGRESS' ? <Play className="w-5 h-5 text-[#EC0000]" /> :
+                 lessonProgress?.status === 'PAUSED' ? <Clock className="w-5 h-5 text-yellow-600 dark:text-yellow-400" /> :
+                 <Clock className="w-5 h-5 text-gray-400 dark:text-gray-500" />}
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white">{t('lessonView.moduleStatus')}</h3>
-                <p className={`text-sm font-medium ${
+                <h3 className="font-headline font-bold text-gray-900 dark:text-white">{t('lessonView.moduleStatus')}</h3>
+                <p className={`font-body text-sm font-medium ${
                   lessonProgress?.status === 'COMPLETED' && lessonProgress?.is_approved ? 'text-green-600 dark:text-green-400' :
                   lessonProgress?.status === 'COMPLETED' && lessonProgress?.student_confirmed ? 'text-amber-600 dark:text-amber-400' :
                   lessonProgress?.status === 'COMPLETED' ? 'text-blue-600 dark:text-blue-400' :
@@ -791,21 +750,21 @@ export default function LessonView() {
             
             {/* Timer ao vivo */}
             {(lessonProgress?.status === 'IN_PROGRESS' || lessonProgress?.status === 'PAUSED') && isTraineeStarted && (
-              <div className={`flex items-center justify-between gap-3 px-4 py-3 rounded-lg border ${
+              <div className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl border ${
                 lessonProgress?.status === 'PAUSED'
-                  ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800/30'
-                  : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800/30'
+                  ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-500/30'
+                  : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-500/30'
               }`}>
                 <div className="flex items-center gap-2">
                   <Timer className={`w-5 h-5 ${
-                    lessonProgress?.status === 'PAUSED' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'
+                    lessonProgress?.status === 'PAUSED' ? 'text-yellow-600 dark:text-yellow-400' : 'text-[#EC0000]'
                   }`} />
                   <div>
                     <p className={`text-lg font-mono font-bold ${
-                      lessonProgress?.status === 'PAUSED' ? 'text-yellow-700 dark:text-yellow-300' : 'text-blue-700 dark:text-blue-300'
+                      lessonProgress?.status === 'PAUSED' ? 'text-yellow-700 dark:text-yellow-300' : 'text-[#EC0000]'
                     }`}>{formatTime(liveElapsed)}</p>
                     {lesson?.estimated_duration && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                      <p className="text-xs font-body text-gray-500 dark:text-gray-400">
                         Estimado: {formatTime(lesson.estimated_duration * 60)}
                       </p>
                     )}
@@ -824,7 +783,7 @@ export default function LessonView() {
               <button
                 onClick={handleStartLesson}
                 disabled={startLoading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 dark:shadow-green-900/30 disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body font-bold transition-colors disabled:opacity-50"
               >
                 {startLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -839,7 +798,7 @@ export default function LessonView() {
               <button
                 onClick={handlePauseLesson}
                 disabled={pauseLoading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 text-white rounded-lg font-medium hover:from-yellow-600 hover:to-amber-600 transition-all shadow-lg shadow-yellow-200 dark:shadow-yellow-900/30 disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-500/30 text-yellow-700 dark:text-yellow-400 rounded-xl font-body font-bold hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-all disabled:opacity-50"
               >
                 {pauseLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -854,7 +813,7 @@ export default function LessonView() {
               <button
                 onClick={handleResumeLesson}
                 disabled={resumeLoading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 dark:shadow-green-900/30 disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body font-bold transition-colors disabled:opacity-50"
               >
                 {resumeLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -870,7 +829,7 @@ export default function LessonView() {
                 <button
                 onClick={handleFinishLesson}
                 disabled={finishLoading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-medium hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg shadow-green-200 dark:shadow-green-900/30 disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body font-bold transition-colors disabled:opacity-50"
               >
                 {finishLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -884,20 +843,20 @@ export default function LessonView() {
             {/* Aula concluída e aprovada */}
             {isFinished && lessonProgress?.is_approved && (
               <div className="space-y-3">
-                <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg font-medium border border-green-200 dark:border-green-800/30">
+                <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 rounded-xl font-body font-bold border border-green-200 dark:border-green-500/30">
                   <CheckCircle2 className="w-5 h-5" />
                   {t('lessonView.moduleApproved')}
                 </div>
                 {/* Rating only available when plan is finalized */}
                 {planId && isPlanFinalized && (hasRated ? (
-                  <div className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg font-medium border border-gray-200 dark:border-gray-600">
+                  <div className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-xl font-body font-bold border border-gray-200 dark:border-gray-700">
                     <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
                     {t('lessonView.lessonRated')}
                   </div>
                 ) : (
                   <button
                     onClick={() => setShowRatingModal(true)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-white rounded-lg font-medium hover:from-amber-600 hover:to-yellow-600 transition-all shadow-md"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-[#EC0000] hover:bg-[#CC0000] text-white rounded-xl font-body font-bold transition-colors"
                   >
                     <Star className="w-4 h-4" />
                     {t('lessonView.rateLesson')}
@@ -908,7 +867,7 @@ export default function LessonView() {
             
             {/* Aula confirmada pelo formando, aguardando aprovação do formador */}
             {isFinished && lessonProgress?.student_confirmed && !lessonProgress?.is_approved && (
-                <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg font-medium border border-amber-200 dark:border-amber-800/30">
+                <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl font-body font-bold border border-amber-200 dark:border-amber-500/30">
                 <Clock className="w-5 h-5" />
                 {t('lessonView.awaitingTrainerApproval')}
               </div>
@@ -917,7 +876,7 @@ export default function LessonView() {
             {/* Aula finalizada mas aguardando confirmação do formando - redirecionar para plano */}
             {isFinished && !lessonProgress?.student_confirmed && !lessonProgress?.is_approved && (
                 <div className="w-full flex flex-col gap-2">
-                <div className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg font-medium border border-blue-200 dark:border-blue-800/30">
+                <div className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-xl font-body font-bold border border-blue-200 dark:border-blue-500/30">
                   <CheckCircle2 className="w-5 h-5" />
                   {t('lessonView.moduleFinishedConfirmPlan')}
                 </div>
@@ -925,27 +884,23 @@ export default function LessonView() {
             )}
             
             {!canFinish && !canFinishTrainee && !isFinished && !canStart && !canPause && !canResume && lessonProgress?.status !== 'IN_PROGRESS' && (
-                <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg font-medium border border-amber-200 dark:border-amber-800/30 text-sm">
+                <div className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-xl font-body font-bold border border-amber-200 dark:border-amber-500/30 text-sm">
                 <Clock className="w-5 h-5" />
                 {lessonProgress?.status === 'PAUSED' ? t('lessonView.modulePausedByTrainer') : t('lessonView.awaitingTrainerStart')}
               </div>
             )}
-          </motion.div>
-          
+          </div>
+
           {/* Reading Progress */}
           {totalPages > 1 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30 p-6"
-            >
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <BookOpen className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 bg-red-50 dark:bg-red-900/20 rounded-xl flex items-center justify-center">
+                  <BookOpen className="w-5 h-5 text-[#EC0000]" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white">{t('lessonView.readingProgress')}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{t('lessonView.pagesCount', { visited: visitedPages.size, total: totalPages })}</p>
+                  <h3 className="font-headline font-bold text-gray-900 dark:text-white">{t('lessonView.readingProgress')}</h3>
+                  <p className="font-body text-sm text-gray-500 dark:text-gray-400">{t('lessonView.pagesCount', { visited: visitedPages.size, total: totalPages })}</p>
                 </div>
               </div>
               
@@ -954,7 +909,7 @@ export default function LessonView() {
                   <div
                     key={page}
                     className={`flex items-center gap-3 p-2 rounded-lg transition-colors cursor-pointer ${
-                      currentPage === page ? 'bg-blue-100 dark:bg-blue-900/30' : 'hover:bg-white/50 dark:hover:bg-white/5'
+                      currentPage === page ? 'bg-red-50 dark:bg-red-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
                     onClick={() => goToPage(page)}
                   >
@@ -965,11 +920,11 @@ export default function LessonView() {
                     }`}>
                       {visitedPages.has(page) ? <Check className="w-3 h-3" /> : page}
                     </div>
-                    <span className={`text-sm ${currentPage === page ? 'font-medium text-blue-700 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                    <span className={`font-body text-sm ${currentPage === page ? 'font-medium text-[#EC0000]' : 'text-gray-600 dark:text-gray-400'}`}>
                       {t('lessonView.page', { number: page })}
                     </span>
                     {currentPage === page && (
-                      <span className="ml-auto text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
+                      <span className="ml-auto text-xs bg-[#EC0000] text-white px-2 py-0.5 rounded-full font-body">
                         {t('lessonView.current')}
                       </span>
                     )}
@@ -979,49 +934,44 @@ export default function LessonView() {
 
               {allPagesVisited && (
                 <div className="mt-4">
-                  <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-800/30">
+                  <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-500/30">
                     <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
                       <CheckCircle2 className="w-5 h-5" />
-                      <span className="font-medium text-sm">{t('lessonView.readingComplete')}</span>
+                      <span className="font-body font-bold text-sm">{t('lessonView.readingComplete')}</span>
                     </div>
                   </div>
                 </div>
               )}
-            </motion.div>
+            </div>
           )}
 
           {/* Resources */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6"
-          >
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t('admin.resources')}</h3>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
+            <h3 className="font-headline text-lg font-bold text-gray-900 dark:text-white mb-4">{t('admin.resources')}</h3>
             <div className="space-y-3">
               {lesson.video_url ? (
                 <a
                   href={lesson.video_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors group"
+                  className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-xl transition-colors group border border-red-200 dark:border-red-500/30"
                 >
-                  <div className="w-10 h-10 bg-red-500 rounded-lg flex items-center justify-center">
-                    <Video className="w-5 h-5 text-white" />
+                  <div className="w-10 h-10 bg-red-50 dark:bg-red-900/20 rounded-xl flex items-center justify-center">
+                    <Video className="w-5 h-5 text-[#EC0000]" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900 dark:text-white">{t('admin.videoLesson')}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.clickToWatch')}</p>
+                    <p className="font-body font-bold text-gray-900 dark:text-white">{t('admin.videoLesson')}</p>
+                    <p className="font-body text-sm text-gray-500 dark:text-gray-400">{t('admin.clickToWatch')}</p>
                   </div>
-                  <Play className="w-5 h-5 text-red-500" />
+                  <Play className="w-5 h-5 text-[#EC0000]" />
                 </a>
               ) : (
-                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg opacity-50">
-                  <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-lg flex items-center justify-center">
-                    <Video className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl opacity-50 border border-gray-200 dark:border-gray-700">
+                  <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center">
+                    <Video className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-600 dark:text-gray-400">{t('admin.noVideo')}</p>
+                    <p className="font-body font-bold text-gray-600 dark:text-gray-400">{t('admin.noVideo')}</p>
                   </div>
                 </div>
               )}
@@ -1031,68 +981,65 @@ export default function LessonView() {
                   href={lesson.materials_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors group"
+                  className="flex items-center gap-3 p-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-xl transition-colors group border border-red-200 dark:border-red-500/30"
                 >
-                  <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                    <LinkIcon className="w-5 h-5 text-white" />
+                  <div className="w-10 h-10 bg-red-50 dark:bg-red-900/20 rounded-xl flex items-center justify-center">
+                    <LinkIcon className="w-5 h-5 text-[#EC0000]" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900 dark:text-white">{t('admin.materials')}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{t('admin.clickToAccess')}</p>
+                    <p className="font-body font-bold text-gray-900 dark:text-white">{t('admin.materials')}</p>
+                    <p className="font-body text-sm text-gray-500 dark:text-gray-400">{t('admin.clickToAccess')}</p>
                   </div>
                 </a>
               ) : (
-                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg opacity-50">
-                  <div className="w-10 h-10 bg-gray-300 dark:bg-gray-600 rounded-lg flex items-center justify-center">
-                    <LinkIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl opacity-50 border border-gray-200 dark:border-gray-700">
+                  <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center">
+                    <LinkIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-gray-600 dark:text-gray-400">{t('admin.noMaterials')}</p>
+                    <p className="font-body font-bold text-gray-600 dark:text-gray-400">{t('admin.noMaterials')}</p>
                   </div>
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
 
           {/* Status - apenas mostrar se há conteúdo ou recursos */}
           {(lesson.content || lesson.video_url || lesson.materials_url) && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-100 dark:border-green-800/30 p-6"
-            >
+            <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-6">
               <div className="flex items-center gap-3 mb-4">
-                <Sparkles className="w-5 h-5 text-green-500" />
-                <h3 className="font-semibold text-gray-900 dark:text-white">{t('admin.lessonStatus')}</h3>
+                <div className="w-10 h-10 bg-red-50 dark:bg-red-900/20 rounded-xl flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-[#EC0000]" />
+                </div>
+                <h3 className="font-headline font-bold text-gray-900 dark:text-white">{t('admin.lessonStatus')}</h3>
               </div>
               <div className="space-y-3">
                 {lesson.content && (
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">{t('admin.content')}</span>
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                    <span className="font-body text-gray-600 dark:text-gray-400">{t('admin.content')}</span>
+                    <span className="px-2 py-1 rounded-full text-xs font-body font-bold bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/30">
                       <CheckCircle2 className="w-4 h-4 inline mr-1" />{t('admin.complete')}
                     </span>
                   </div>
                 )}
                 {lesson.video_url && (
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">{t('admin.video')}</span>
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                    <span className="font-body text-gray-600 dark:text-gray-400">{t('admin.video')}</span>
+                    <span className="px-2 py-1 rounded-full text-xs font-body font-bold bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/30">
                       <CheckCircle2 className="w-4 h-4 inline mr-1" />{t('admin.added')}
                     </span>
                   </div>
                 )}
                 {lesson.materials_url && (
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">{t('admin.materials')}</span>
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                    <span className="font-body text-gray-600 dark:text-gray-400">{t('admin.materials')}</span>
+                    <span className="px-2 py-1 rounded-full text-xs font-body font-bold bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-500/30">
                       <CheckCircle2 className="w-4 h-4 inline mr-1" />{t('admin.added')}
                     </span>
                   </div>
                 )}
               </div>
-            </motion.div>
+            </div>
           )}
         </div>
       </div>

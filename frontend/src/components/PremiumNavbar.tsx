@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import {
   Globe, Sun, Moon, LogIn, UserPlus, ChevronDown, ArrowLeft,
 } from 'lucide-react';
+import { STORAGE_KEYS } from '../constants/storageKeys';
 
 /* ─── Language definitions ──────────────────────────────────────────── */
 const LANGS = [
@@ -112,7 +113,7 @@ export default function PremiumNavbar({
       onLangChange(code);
     } else {
       i18n.changeLanguage(code);
-      localStorage.setItem('language', code);
+      localStorage.setItem(STORAGE_KEYS.LANGUAGE, code);
     }
     setLangOpen(false);
   }, [i18n, onLangChange]);

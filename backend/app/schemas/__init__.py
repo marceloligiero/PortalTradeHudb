@@ -17,33 +17,50 @@ class UserUpdate(BaseModel):
     role: Optional[str] = None
     is_active: Optional[bool] = None
     is_pending: Optional[bool] = None
-    is_trainer: Optional[bool] = None
-    is_tutor: Optional[bool] = None
-    is_liberador: Optional[bool] = None
+    # Flags de permissão
+    is_admin:        Optional[bool] = None
+    is_diretor:      Optional[bool] = None
+    is_gerente:      Optional[bool] = None
+    is_chefe_equipe: Optional[bool] = None
+    is_formador:     Optional[bool] = None
+    is_tutor:        Optional[bool] = None
+    is_liberador:    Optional[bool] = None
+    is_referente:    Optional[bool] = None
+    # Deprecated aliases
+    is_trainer:   Optional[bool] = None
     is_team_lead: Optional[bool] = None
-    is_referente: Optional[bool] = None
 
 class UserRegister(BaseModel):
-    """Schema for user registration (email, password, role selection)"""
+    """Schema para registo de novo utilizador."""
     email: EmailStr
     password: str
     full_name: str
-    role: str = "TRAINEE"
-    is_trainer: bool = False
-    is_tutor: bool = False
-    is_liberador: bool = False
+    role: str = "USUARIO"
+    is_diretor:      bool = False
+    is_gerente:      bool = False
+    is_chefe_equipe: bool = False
+    is_formador:     bool = False
+    is_tutor:        bool = False
+    is_liberador:    bool = False
+    is_referente:    bool = False
+    # Deprecated aliases aceites durante transição
+    is_trainer:   bool = False
     is_team_lead: bool = False
-    is_referente: bool = False
 
 class User(UserBase):
     id: int
     is_active: bool
     is_pending: bool
-    is_trainer: bool = False
-    is_tutor: bool = False
-    is_liberador: bool = False
+    is_admin:        bool = False
+    is_diretor:      bool = False
+    is_gerente:      bool = False
+    is_chefe_equipe: bool = False
+    is_formador:     bool = False
+    is_tutor:        bool = False
+    is_liberador:    bool = False
+    is_referente:    bool = False
     created_at: datetime
-    
+
     model_config = {"from_attributes": True}
 
 class UserWithPendingStatus(User):

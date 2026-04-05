@@ -136,7 +136,7 @@ export const Ratings: React.FC = () => {
       const response = await api.get('/api/ratings/admin/dashboard');
       setDashboardData(response.data);
     } catch (err) {
-      setError('Erro ao carregar dashboard de avaliações');
+      setError(t('ratings.fetchDashboardError', 'Erro ao carregar dashboard de avaliações'));
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -152,7 +152,7 @@ export const Ratings: React.FC = () => {
       const response = await api.get(`/api/ratings/admin/all?${params}`);
       setRatings(response.data.ratings);
     } catch (err) {
-      setError('Erro ao carregar avaliações');
+      setError(t('ratings.fetchError', 'Erro ao carregar avaliações'));
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -168,7 +168,7 @@ export const Ratings: React.FC = () => {
       const response = await api.get(`/api/ratings/admin/summary?${params}`);
       setSummaries(response.data.summaries);
     } catch (err) {
-      setError('Erro ao carregar resumo de avaliações');
+      setError(t('ratings.fetchSummaryError', 'Erro ao carregar resumo de avaliações'));
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -236,7 +236,7 @@ export const Ratings: React.FC = () => {
         {/* Star Distribution */}
         <SectionCard icon={BarChart3} title={t('ratings.starDistribution')}>
           <div className="p-5 space-y-3">
-            {[5, 4, 3, 2, 1, 0].map((star) => {
+            {[5, 4, 3, 2, 1].map((star) => {
               const count = dashboardData.star_distribution[String(star)] || 0;
               const percentage = dashboardData.total_ratings > 0
                 ? (count / dashboardData.total_ratings) * 100
@@ -598,7 +598,7 @@ export const Ratings: React.FC = () => {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#EC0000]"></div>
+          <div className="border-4 border-[#EC0000]/20 border-t-[#EC0000] rounded-full animate-spin w-8 h-8" />
         </div>
       ) : (
         <div className="animate-in fade-in duration-300">

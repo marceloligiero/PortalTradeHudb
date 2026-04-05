@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Input, Alert } from '../components';
 import api from '../lib/axios';
 import PremiumNavbar from '../components/PremiumNavbar';
+import { STORAGE_KEYS } from '../constants/storageKeys';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -22,12 +23,12 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('theme');
+    const saved = localStorage.getItem(STORAGE_KEYS.THEME);
     return saved ? saved === 'dark' : true;
   });
 
   useEffect(() => {
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    localStorage.setItem(STORAGE_KEYS.THEME, isDark ? 'dark' : 'light');
   }, [isDark]);
 
   const toggleTheme = () => setIsDark(!isDark);

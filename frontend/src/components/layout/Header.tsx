@@ -6,6 +6,7 @@ import { useAuthStore, getEffectiveRole } from '../../stores/authStore';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSidebarStore } from '../../stores/sidebarStore';
 import axios from '../../lib/axios';
+import { NOTIFICATIONS_POLL_MS } from '../../constants/timings';
 
 const LANGUAGES = [
   { code: 'pt-PT', label: 'PT' },
@@ -17,7 +18,7 @@ const PORTAL_LINKS = [
   { key: 'home',       to: '/',            labelKey: 'navigation.formacoes',   match: (p: string) => !p.startsWith('/tutoria') && !p.startsWith('/relatorios') && !p.startsWith('/master-data') && !p.startsWith('/chamados') },
   { key: 'tutoria',    to: '/tutoria',     labelKey: 'navigation.tutoria',     match: (p: string) => p.startsWith('/tutoria') },
   { key: 'relatorios', to: '/relatorios',  labelKey: 'navigation.reports',     match: (p: string) => p.startsWith('/relatorios') },
-  { key: 'masterData', to: '/master-data', labelKey: 'navigation.masterData',  match: (p: string) => p.startsWith('/master-data'), roles: ['ADMIN', 'MANAGER', 'GESTOR'] },
+  { key: 'masterData', to: '/master-data', labelKey: 'navigation.masterData',  match: (p: string) => p.startsWith('/master-data'), roles: ['ADMIN', 'DIRETOR', 'GERENTE'] },
   { key: 'chamados',   to: '/chamados',    labelKey: 'navigation.chamados',    match: (p: string) => p.startsWith('/chamados') },
 ];
 
@@ -45,7 +46,7 @@ export default function Header() {
       } catch { /* ignore */ }
     };
     fetchUnread();
-    const iv = setInterval(fetchUnread, 30000);
+    const iv = setInterval(fetchUnread, NOTIFICATIONS_POLL_MS);
     return () => clearInterval(iv);
   }, [user]);
 

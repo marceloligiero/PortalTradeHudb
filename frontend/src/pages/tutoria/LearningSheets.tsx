@@ -169,7 +169,7 @@ export default function LearningSheets() {
       ) : filtered.length === 0 ? (
         <div className={`text-center py-20 rounded-2xl border ${isDark ? 'bg-white/[0.02] border-white/5' : 'bg-white border-gray-200'}`}>
           <FileText className={`w-12 h-12 mx-auto mb-3 ${isDark ? 'text-gray-600' : 'text-gray-300'}`} />
-          <p className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('learningSheets.empty')}</p>
+          <p className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{t('learningSheets.noErrors')}</p>
         </div>
       ) : (
         <div className="space-y-3">

@@ -3,6 +3,7 @@ import { initReactI18next } from 'react-i18next';
 import ptPT from './locales/pt-PT.json';
 import es from './locales/es.json';
 import en from './locales/en.json';
+import { STORAGE_KEYS } from '../constants/storageKeys';
 
 const resources = {
   'pt-PT': { translation: ptPT },
@@ -18,10 +19,10 @@ const getInitialLanguage = () => {
     return 'pt-PT';
   }
 
-  const saved = localStorage.getItem('language');
+  const saved = localStorage.getItem(STORAGE_KEYS.LANGUAGE);
   // Normalizar "pt" para "pt-PT"
   if (saved === 'pt') {
-    localStorage.setItem('language', 'pt-PT');
+    localStorage.setItem(STORAGE_KEYS.LANGUAGE, 'pt-PT');
     return 'pt-PT';
   }
   return saved && supportedLanguages.includes(saved as (typeof supportedLanguages)[number])

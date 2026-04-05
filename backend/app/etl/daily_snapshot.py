@@ -44,8 +44,8 @@ def load_daily_snapshot(db: Session, target_date: date | None = None):
             (SELECT COUNT(*) FROM users),
             (SELECT COUNT(*) FROM users WHERE is_active = 1),
             (SELECT COUNT(*) FROM users WHERE role = 'ADMIN'),
-            (SELECT COUNT(*) FROM users WHERE role = 'TRAINER'),
-            (SELECT COUNT(*) FROM users WHERE role IN ('STUDENT', 'TRAINEE')),
+            (SELECT COUNT(*) FROM users WHERE is_formador = 1),
+            (SELECT COUNT(*) FROM users WHERE role = 'USUARIO'),
             (SELECT COUNT(*) FROM users WHERE role = 'MANAGER'),
             -- Training
             (SELECT COUNT(*) FROM courses WHERE is_active = 1),

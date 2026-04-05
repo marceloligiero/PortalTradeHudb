@@ -224,7 +224,7 @@ export default function TrainingPlanForm() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
-                  {t('trainingPlan.description')}
+                  {t('trainingPlan.descriptionField')}
                 </label>
                 <textarea
                   required
@@ -506,7 +506,7 @@ export default function TrainingPlanForm() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 font-semibold text-gray-900 dark:text-white mb-1">
                         {student.full_name}
-                        {student.role === 'TRAINER' && (
+                        {student.is_formador && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300">
                             {t('roles.trainer')}
                           </span>

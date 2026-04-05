@@ -4,7 +4,7 @@ import {
   Building2, Package, Users, FolderTree, MessageCircle,
   Plus, Pencil, Trash2, X, CheckCircle2, XCircle, AlertTriangle,
   Search, Sparkles, Save, Loader2, Zap, Globe, Eye, Building, Activity,
-  ChevronRight, UserPlus, Link2, Unlink, User, Info, Crown,
+  ChevronRight, UserPlus, UserMinus, Link2, Unlink, User, Info, Crown,
 } from 'lucide-react';
 import api from '../../lib/axios';
 import { useAuthStore } from '../../stores/authStore';
@@ -21,7 +21,7 @@ interface Product {
 interface Team {
   id: number; name: string; description: string | null;
   product_id: number | null; manager_id: number | null;
-  node_id?: number | null;
+  node_id?: number | null;  // kept for backward compat, not displayed
   is_active: boolean; created_at: string;
   manager_name?: string | null;
   product_name?: string | null;
@@ -30,9 +30,6 @@ interface Team {
   members_count?: number;
   services?: { id: number; name: string | null }[];
   team_members?: { id: number; full_name: string; email: string; role: string; team_role?: string }[];
-}
-interface OrgNode {
-  id: number; name: string; parent_id: number | null; position: number;
 }
 interface ErrorCategory {
   id: number; name: string; description: string | null;
@@ -84,8 +81,8 @@ const TAB_CONFIG: Record<TabKey, { icon: any; titleKey: string }> = {
 };
 
 /* ─── Modal Shell ───────────────────────────────────────────────────── */
-function Modal({ open, onClose, title, children }: {
-  open: boolean; onClose: () => void; title: string; children: React.ReactNode;
+function Modal({ open, onClose, title, children, sizeClass = 'max-w-xl' }: {
+  open: boolean; onClose: () => void; title: string; children: React.ReactNode; sizeClass?: string;
 }) {
   if (!open) return null;
   return (
@@ -93,11 +90,11 @@ function Modal({ open, onClose, title, children }: {
       onClick={onClose}>
       <div
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-xl bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        className={`w-full ${sizeClass} bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]`}>
         {/* Red accent top bar */}
-        <div className="h-1 bg-gradient-to-r from-[#EC0000] to-[#CC0000]" />
+        <div className="h-1 bg-gradient-to-r from-[#EC0000] to-[#CC0000] flex-shrink-0" />
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-[#EC0000] flex items-center justify-center shadow-sm">
               <Sparkles className="w-4 h-4 text-white" />
@@ -108,7 +105,7 @@ function Modal({ open, onClose, title, children }: {
             <X className="w-4 h-4" />
           </button>
         </div>
-        <div className="px-6 py-5">{children}</div>
+        <div className="px-6 py-5 overflow-y-auto flex-1">{children}</div>
       </div>
     </div>
   );
@@ -212,7 +209,7 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
   /* ── Form data per tab ──────────────────────────────────────────── */
   const [bankForm, setBankForm] = useState({ name: '', country: 'PT', is_active: true });
   const [productForm, setProductForm] = useState({ code: '', name: '', description: '', is_active: true });
-  const [teamForm, setTeamForm] = useState({ name: '', description: '', service_ids: [] as number[], manager_id: '', node_id: '', is_active: true });
+  const [teamForm, setTeamForm] = useState({ name: '', description: '', service_ids: [] as number[], manager_id: '', department_id: '', is_active: true });
   const [teamFormErrors, setTeamFormErrors] = useState({ name: '', manager_id: '' });
   const [categoryForm, setCategoryForm] = useState({ name: '', description: '', parent_id: '', origin_id: '' });
   const [faqForm, setFaqForm] = useState({
@@ -224,7 +221,6 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
 
   /* ── Aux data ───────────────────────────────────────────────────── */
   const [managers, setManagers] = useState<{ id: number; full_name: string }[]>([]);
-  const [orgNodes, setOrgNodes] = useState<OrgNode[]>([]);
   const [auxBanks, setAuxBanks] = useState<{ id: number; name: string }[]>([]);
   const [auxDepts, setAuxDepts] = useState<{ id: number; name: string }[]>([]);
   const [auxActivities, setAuxActivities] = useState<{ id: number; name: string }[]>([]);
@@ -236,6 +232,12 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
   const [availableUsers, setAvailableUsers] = useState<{ id: number; full_name: string; email: string; role: string }[]>([]);
   const [addingMember, setAddingMember] = useState(false);
   const [addingService, setAddingService] = useState(false);
+
+  /* ── Team edit modal — member management ───────────────────────── */
+  const [editTeamMembers, setEditTeamMembers] = useState<{ id: number; full_name: string; email: string; role: string }[]>([]);
+  const [editTeamAvailableUsers, setEditTeamAvailableUsers] = useState<{ id: number; full_name: string; email: string; role: string }[]>([]);
+  const [loadingEditMembers, setLoadingEditMembers] = useState(false);
+  const [memberSearch, setMemberSearch] = useState('');
 
   /* ── Fetch ──────────────────────────────────────────────────────── */
   useEffect(() => { fetchTab(); }, [tab]);
@@ -265,12 +267,12 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
           try {
             const m = await api.get('/api/tutoria/team');
             const allUsers = Array.isArray(m.data) ? m.data : [];
-            setManagers(allUsers.filter((u: any) => u.role === 'MANAGER' || u.role === 'ADMIN'));
+            setManagers(allUsers.filter((u: any) => u.is_chefe_equipe || u.role === 'MANAGER' || u.role === 'CHEFE_EQUIPE'));
           } catch (e) { console.error('Failed to load managers for teams', e); }
           try {
-            const n = await api.get('/api/org/nodes');
-            setOrgNodes(Array.isArray(n.data) ? n.data : []);
-          } catch (e) { console.error('Failed to load org nodes', e); }
+            const d = await api.get('/api/admin/master/departments');
+            setAuxDepts(Array.isArray(d.data) ? d.data : []);
+          } catch (e) { console.error('Failed to load departments', e); }
           break;
         }
         case 'categories': {
@@ -322,7 +324,7 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
     switch (tab) {
       case 'banks': setBankForm({ name: '', country: 'PT', is_active: true }); break;
       case 'products': setProductForm({ code: '', name: '', description: '', is_active: true }); break;
-      case 'teams': setTeamForm({ name: '', description: '', service_ids: [], manager_id: '', node_id: '', is_active: true }); setTeamFormErrors({ name: '', manager_id: '' }); break;
+      case 'teams': setTeamForm({ name: '', description: '', service_ids: [], manager_id: '', department_id: '', is_active: true }); setTeamFormErrors({ name: '', manager_id: '' }); break;
       case 'categories': setCategoryForm({ name: '', description: '', parent_id: '', origin_id: '' }); break;
       case 'faqs': setFaqForm({ keywords_pt: '', keywords_es: '', keywords_en: '', answer_pt: '', answer_es: '', answer_en: '', support_url: '', support_label: '', role_filter: '', priority: 0 }); break;
       default: setLookupForm({ name: '', description: '', bank_id: '', department_id: '', activity_id: '', origin_id: '', level: '', image_url: '', is_active: true }); break;
@@ -336,7 +338,20 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
     switch (tab) {
       case 'banks': setBankForm({ name: item.name, country: item.country, is_active: item.is_active }); break;
       case 'products': setProductForm({ code: item.code, name: item.name, description: item.description || '', is_active: item.is_active }); break;
-      case 'teams': setTeamForm({ name: item.name, description: item.description || '', service_ids: (item.services || []).map((s: any) => s.id), manager_id: item.manager_id?.toString() || '', node_id: item.node_id?.toString() || '', is_active: item.is_active ?? true }); setTeamFormErrors({ name: '', manager_id: '' }); break;
+      case 'teams': setTeamForm({ name: item.name, description: item.description || '', service_ids: (item.services || []).map((s: any) => s.id), manager_id: item.manager_id?.toString() || '', department_id: item.department_id?.toString() || '', is_active: item.is_active ?? true }); setTeamFormErrors({ name: '', manager_id: '' });
+        // Load current members and available users for member management
+        setEditTeamMembers([]);
+        setEditTeamAvailableUsers([]);
+        setMemberSearch('');
+        setLoadingEditMembers(true);
+        Promise.allSettled([
+          api.get(`/api/teams/${item.id}/members`),
+          api.get('/api/users/unassigned'),
+        ]).then(([mr, ur]) => {
+          if (mr.status === 'fulfilled') setEditTeamMembers(mr.value.data);
+          if (ur.status === 'fulfilled') setEditTeamAvailableUsers(ur.value.data);
+        }).finally(() => setLoadingEditMembers(false));
+        break;
       case 'categories': setCategoryForm({ name: item.name, description: item.description || '', parent_id: item.parent_id?.toString() || '', origin_id: item.origin_id?.toString() || '' }); break;
       case 'faqs': setFaqForm({
         keywords_pt: item.keywords_pt || '', keywords_es: item.keywords_es || '', keywords_en: item.keywords_en || '',
@@ -381,6 +396,7 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
           }
           const payload: any = { name: teamForm.name.trim(), description: teamForm.description || null };
           if (teamForm.manager_id) payload.manager_id = parseInt(teamForm.manager_id);
+          payload.department_id = teamForm.department_id ? parseInt(teamForm.department_id) : null;
           let teamId = editItem?.id;
           if (editItem) {
             await api.patch(`/api/teams/${editItem.id}`, payload);
@@ -396,15 +412,6 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
               ...toRemove.map(pid => api.delete(`/api/teams/${teamId}/services/${pid}`)),
               ...toAdd.map(pid => api.post(`/api/teams/${teamId}/services`, { product_id: pid })),
             ]);
-            // Handle sector (org node) linking
-            const prevNodeId = editItem?.node_id;
-            const newNodeId = teamForm.node_id ? parseInt(teamForm.node_id) : null;
-            if (prevNodeId && prevNodeId !== newNodeId) {
-              try { await api.delete(`/api/org/nodes/${prevNodeId}/link-team/${teamId}`); } catch {}
-            }
-            if (newNodeId && newNodeId !== prevNodeId) {
-              try { await api.post(`/api/org/nodes/${newNodeId}/link-team/${teamId}`); } catch {}
-            }
           }
           break;
         }
@@ -468,6 +475,34 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
     } catch (e: any) {
       setDeleteError(e.response?.data?.detail || 'Erro ao eliminar');
     }
+  };
+
+  /* ── Member management in edit modal ────────────────────────────── */
+  const reloadEditMembers = async (teamId: number) => {
+    const [mr, ur] = await Promise.allSettled([
+      api.get(`/api/teams/${teamId}/members`),
+      api.get('/api/users/unassigned'),
+    ]);
+    if (mr.status === 'fulfilled') setEditTeamMembers(mr.value.data);
+    if (ur.status === 'fulfilled') setEditTeamAvailableUsers(ur.value.data);
+  };
+
+  const addEditMember = async (userId: number) => {
+    if (!editItem) return;
+    try {
+      await api.post(`/api/teams/${editItem.id}/members`, { user_id: userId });
+      await reloadEditMembers(editItem.id);
+      fetchTab();
+    } catch (e: any) { alert(e.response?.data?.detail || 'Erro ao adicionar membro'); }
+  };
+
+  const removeEditMember = async (userId: number) => {
+    if (!editItem) return;
+    try {
+      await api.delete(`/api/teams/${editItem.id}/members/${userId}`);
+      await reloadEditMembers(editItem.id);
+      fetchTab();
+    } catch (e: any) { alert(e.response?.data?.detail || 'Erro ao remover membro'); }
   };
 
   /* ── Filter ─────────────────────────────────────────────────────── */
@@ -659,6 +694,16 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
                                 <span className="text-xs text-gray-400 italic">{t('masterData.noChief', 'Sem chefe atribuído')}</span>
                               )}
                             </div>
+
+                            {/* Department */}
+                            {tm.department_name && (
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
+                                  <Building className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400" />
+                                </div>
+                                <span className="text-xs text-gray-700 dark:text-gray-300 font-medium truncate">{tm.department_name}</span>
+                              </div>
+                            )}
 
                             {/* Members */}
                             <div className="flex items-center gap-2.5">
@@ -858,7 +903,8 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
 
       {/* ── Form Modal ────────────────────────────────────────────────── */}
       <Modal open={showForm} onClose={() => setShowForm(false)}
-        title={editItem ? t('masterData.edit') : t('masterData.createNew')}>
+        title={editItem ? t('masterData.edit') : t('masterData.createNew')}
+        sizeClass={tab === 'teams' && editItem ? 'max-w-2xl' : 'max-w-xl'}>
         <div className="space-y-5">
 
           {/* BANK FORM */}
@@ -941,19 +987,21 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
                 </div>
               </div>
 
-              {/* Row 2: Sector */}
-              <Field label={t('masterData.teamSector', 'Sector / Departamento')}>
-                <select
-                  className={selectCls}
-                  value={teamForm.node_id}
-                  onChange={e => setTeamForm(p => ({ ...p, node_id: e.target.value }))}
-                >
-                  <option value="">— {t('masterData.noSector', 'Sem sector')} —</option>
-                  {orgNodes.map(n => (
-                    <option key={n.id} value={n.id}>{n.name}</option>
-                  ))}
-                </select>
-              </Field>
+              {/* Row 2: Department + Org Node */}
+              <div className="grid grid-cols-2 gap-3">
+                <Field label={t('masterData.department', 'Departamento')}>
+                  <select
+                    className={selectCls}
+                    value={teamForm.department_id}
+                    onChange={e => setTeamForm(p => ({ ...p, department_id: e.target.value }))}
+                  >
+                    <option value="">— {t('masterData.noDepartment', 'Sem departamento')} —</option>
+                    {auxDepts.filter(d => (d as any).is_active !== false).map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
 
               {/* Row 3: Description */}
               <Field label={t('masterData.description')}>
@@ -1002,6 +1050,100 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
                   })}
                 </div>
               </div>
+
+              {/* MEMBERS — only when editing */}
+              {editItem && (
+                <div className="border-t border-gray-200 dark:border-gray-800 pt-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5" />
+                      {t('masterData.teamMembers', 'Membros da Equipa')}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      {loadingEditMembers && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#EC0000]" />}
+                      {!loadingEditMembers && (
+                        <span className="text-[10px] font-bold text-[#EC0000] bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded-full">
+                          {editTeamMembers.length}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Current members */}
+                  {editTeamMembers.length > 0 ? (
+                    <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                      {editTeamMembers.map(m => (
+                        <div key={m.id} className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-6 h-6 rounded-lg bg-[#EC0000] flex items-center justify-center flex-shrink-0">
+                              <span className="text-[9px] font-bold text-white">{m.full_name[0].toUpperCase()}</span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-gray-900 dark:text-white truncate">{m.full_name}</p>
+                              <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{m.email}</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeEditMember(m.id)}
+                            className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-400 hover:text-red-600 transition-colors flex-shrink-0"
+                            title={t('masterData.removeMember', 'Remover membro')}
+                          >
+                            <UserMinus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    !loadingEditMembers && (
+                      <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-1">
+                        {t('masterData.noMembers', 'Sem membros')}
+                      </p>
+                    )
+                  )}
+
+                  {/* Add members — search + list */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-800">
+                      <Search className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                      <input
+                        type="text"
+                        value={memberSearch}
+                        onChange={e => setMemberSearch(e.target.value)}
+                        placeholder={t('masterData.searchUsers', 'Pesquisar utilizadores...')}
+                        className="flex-1 bg-transparent text-xs outline-none text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                      />
+                    </div>
+                    <div className="max-h-32 overflow-y-auto space-y-1">
+                      {editTeamAvailableUsers
+                        .filter(u => !editTeamMembers.some(m => m.id === u.id))
+                        .filter(u => !memberSearch || u.full_name.toLowerCase().includes(memberSearch.toLowerCase()) || u.email.toLowerCase().includes(memberSearch.toLowerCase()))
+                        .map(u => (
+                          <div key={u.id} className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-gray-800 dark:text-gray-300 truncate">{u.full_name}</p>
+                              <p className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{u.email}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => addEditMember(u.id)}
+                              className="p-1.5 rounded-lg bg-[#EC0000]/10 hover:bg-[#EC0000]/20 text-[#EC0000] transition-colors flex-shrink-0"
+                              title={t('masterData.addMember', 'Adicionar membro')}
+                            >
+                              <UserPlus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))
+                      }
+                      {editTeamAvailableUsers.filter(u => !editTeamMembers.some(m => m.id === u.id)).filter(u => !memberSearch || u.full_name.toLowerCase().includes(memberSearch.toLowerCase()) || u.email.toLowerCase().includes(memberSearch.toLowerCase())).length === 0 && !loadingEditMembers && (
+                        <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">
+                          {memberSearch ? t('masterData.noResults', 'Sem resultados') : t('masterData.allUsersAssigned', 'Sem utilizadores disponíveis')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1208,7 +1350,6 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
           isAdmin={isAdmin}
           availableUsers={availableUsers}
           products={products}
-          orgNodes={orgNodes}
           onClose={() => setSelectedTeam(null)}
           onEdit={() => { openEdit(selectedTeam); setSelectedTeam(null); }}
           onDelete={() => { openDelete(selectedTeam); setSelectedTeam(null); }}
@@ -1224,12 +1365,11 @@ export default function MasterDataPage({ tab = 'banks' as TabKey }: { tab?: TabK
 }
 
 /* ── Team Detail Panel ──────────────────────────────────────────────── */
-function TeamDetailPanel({ team, isAdmin, orgNodes, onClose, onEdit, onDelete }: {
+function TeamDetailPanel({ team, isAdmin, onClose, onEdit, onDelete }: {
   team: Team;
   isAdmin: boolean;
   availableUsers: any[];
   products: any[];
-  orgNodes: OrgNode[];
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -1241,7 +1381,6 @@ function TeamDetailPanel({ team, isAdmin, orgNodes, onClose, onEdit, onDelete }:
 }) {
   const { t } = useTranslation();
   const chief = team.manager_name || team.manager?.full_name;
-  const sector = team.node_id ? orgNodes.find(n => n.id === team.node_id) : null;
   const members = team.team_members || [];
   const services = team.services || [];
 
@@ -1280,12 +1419,6 @@ function TeamDetailPanel({ team, isAdmin, orgNodes, onClose, onEdit, onDelete }:
                     <span className="inline-flex items-center gap-1 text-[11px] text-gray-400 dark:text-gray-500">
                       <Package className="w-3 h-3" />
                       {services.length} {t('masterData.services', 'serviços')}
-                    </span>
-                  )}
-                  {sector && (
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full border border-blue-100 dark:border-blue-800/30">
-                      <Building className="w-3 h-3" />
-                      {sector.name}
                     </span>
                   )}
                 </div>

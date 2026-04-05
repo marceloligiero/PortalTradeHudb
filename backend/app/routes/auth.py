@@ -87,9 +87,15 @@ async def login(request: Request, db: Session = Depends(get_db)):
             "role": user.role,
             "is_active": user.is_active,
             "is_pending": user.is_pending,
-            "is_trainer": getattr(user, 'is_trainer', False),
-            "is_tutor": getattr(user, 'is_tutor', False),
-            "is_liberador": getattr(user, 'is_liberador', False),
+            # Flags de permissão
+            "is_admin":        getattr(user, 'is_admin', False),
+            "is_diretor":      getattr(user, 'is_diretor', False),
+            "is_gerente":      getattr(user, 'is_gerente', False),
+            "is_chefe_equipe": getattr(user, 'is_chefe_equipe', False),
+            "is_formador":     getattr(user, 'is_formador', False),
+            "is_tutor":        getattr(user, 'is_tutor', False),
+            "is_liberador":    getattr(user, 'is_liberador', False),
+            "is_referente":    getattr(user, 'is_referente', False),
         }
     }
 
@@ -107,13 +113,21 @@ async def register(
     - TRAINER/MANAGER accounts are marked as pending for admin validation.
     """
     try:
-        # Validate role
-        if user_in.role not in ["TRAINEE", "MANAGER", "GESTOR"]:
+        # Normalizar role legado para novo sistema
+        _ROLE_NORM = {
+            "TRAINEE": "USUARIO", "STUDENT": "USUARIO",
+            "TRAINER": "FORMADOR",
+            "MANAGER": "GERENTE", "GESTOR": "GERENTE",
+        }
+        user_in.role = _ROLE_NORM.get(user_in.role, user_in.role)
+
+        VALID_ROLES = {"USUARIO", "FORMADOR", "GERENTE", "CHEFE_EQUIPE", "DIRETOR", "ADMIN"}
+        if user_in.role not in VALID_ROLES:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Role must be 'TRAINEE', 'MANAGER' or 'GESTOR'"
+                detail="Role inválido. Aceites: USUARIO, FORMADOR, GERENTE, CHEFE_EQUIPE, DIRETOR"
             )
-        
+
         # Check if user already exists
         existing_user = db.query(models.User).filter(models.User.email == user_in.email).first()
         if existing_user:
@@ -121,34 +135,49 @@ async def register(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already registered"
             )
-        
+
         # Validate password strength
         validate_password_strength(user_in.password)
-        
+
         # Create new user
         hashed_password = auth.get_password_hash(user_in.password)
-        # Validate generated hash to avoid storing invalid hashes
         if not auth.is_valid_bcrypt_hash(hashed_password):
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error"
             )
-        
-        # Pending if MANAGER/GESTOR or has trainer/tutor/team_lead/referente capabilities
-        is_pending = user_in.role in ("MANAGER", "GESTOR") or user_in.is_trainer or user_in.is_tutor or user_in.is_liberador or user_in.is_team_lead or user_in.is_referente
+
+        # Definir flags conforme o role e as flags pedidas
+        is_admin        = user_in.role == "ADMIN"
+        is_diretor      = user_in.role == "DIRETOR"     or getattr(user_in, 'is_diretor', False)
+        is_gerente      = user_in.role == "GERENTE"     or getattr(user_in, 'is_gerente', False)
+        is_chefe_equipe = user_in.role == "CHEFE_EQUIPE" or getattr(user_in, 'is_chefe_equipe', False)
+        is_formador     = user_in.role == "FORMADOR"    or getattr(user_in, 'is_formador', False) or getattr(user_in, 'is_trainer', False)
+        is_tutor        = getattr(user_in, 'is_tutor', False)
+        is_liberador    = getattr(user_in, 'is_liberador', False)
+        is_referente    = getattr(user_in, 'is_referente', False)
+
+        # Requer validação do ADMIN se tiver acesso acima de USUARIO básico
+        is_pending = any([is_diretor, is_gerente, is_chefe_equipe, is_formador, is_tutor, is_liberador])
 
         db_user = models.User(
             email=user_in.email,
             full_name=user_in.full_name,
             hashed_password=hashed_password,
             role=user_in.role,
-            is_trainer=user_in.is_trainer,
-            is_tutor=user_in.is_tutor,
-            is_liberador=user_in.is_liberador,
-            is_team_lead=user_in.is_team_lead,
-            is_referente=user_in.is_referente,
+            is_admin=is_admin,
+            is_diretor=is_diretor,
+            is_gerente=is_gerente,
+            is_chefe_equipe=is_chefe_equipe,
+            is_formador=is_formador,
+            is_tutor=is_tutor,
+            is_liberador=is_liberador,
+            is_referente=is_referente,
+            # Deprecated — manter para compatibilidade com código legado ainda não migrado
+            is_trainer=is_formador,
+            is_team_lead=is_chefe_equipe,
             is_active=True,
-            is_pending=is_pending
+            is_pending=is_pending,
         )
         
         db.add(db_user)

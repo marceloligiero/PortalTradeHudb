@@ -203,8 +203,8 @@ export default function TrainingPlanDetail() {
   const [challengeRatings, setChallengeRatings] = useState<Record<number, boolean>>({});
   const [pendingRatingsCount, setPendingRatingsCount] = useState(0);
 
-  const isStudent = user?.role === 'STUDENT' || user?.role === 'TRAINEE';
-  const isTrainer = user?.role === 'TRAINER' || user?.role === 'ADMIN';
+  const isStudent = !(user?.is_formador || user?.is_admin);
+  const isTrainer = user?.is_formador || user?.is_admin;
 
   // Timer para atualizar tempo decorrido das aulas em progresso
   useEffect(() => {
@@ -834,6 +834,12 @@ export default function TrainingPlanDetail() {
                     : t('trainingPlanDetail.coursesCompletedProgress', { completed: completionStatus.completed_courses, total: completionStatus.total_courses })
                 }
               </p>
+              {completionStatus.is_finalized && completionStatus.finalized_at && (
+                <p className="font-body text-xs text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  {t('trainingPlanDetail.completedOn', 'Concluído em')}: {new Date(completionStatus.finalized_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </p>
+              )}
             </div>
 
             {/* Rating button for finalized plan - students only */}
@@ -1062,7 +1068,7 @@ export default function TrainingPlanDetail() {
                         if (!err._isAuthError) alert(err?.response?.data?.detail || 'Error removing trainer');
                       }
                     }}
-                    className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                    className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-lg transition-all"
                     title={t('trainingPlanDetail.removeTrainer', 'Remover formador')}
                   >
                     <Trash2 className="w-4 h-4" />
@@ -1221,7 +1227,7 @@ export default function TrainingPlanDetail() {
                       {student.full_name}
                     </span>
                     {selectedStudentId === student.id && (
-                      <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">
+                      <span className="text-xs bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded">
                         {t('trainingPlanDetail.viewing', 'A ver')}
                       </span>
                     )}
@@ -1230,7 +1236,7 @@ export default function TrainingPlanDetail() {
                     {student.email}
                   </div>
                   {student.is_delayed && (
-                    <span className="text-xs text-red-400 mt-1">
+                    <span className="text-xs text-red-600 dark:text-red-400 mt-1">
                       {t('trainingPlanDetail.delayed')}
                     </span>
                   )}
@@ -1239,21 +1245,21 @@ export default function TrainingPlanDetail() {
                   {/* Progress */}
                   <div className="text-center">
                     <div className={`text-lg font-bold ${
-                      student.progress_percentage >= 100 ? 'text-green-400' :
-                      student.progress_percentage > 0 ? 'text-blue-400' : 
+                      student.progress_percentage >= 100 ? 'text-green-600 dark:text-green-400' :
+                      student.progress_percentage > 0 ? 'text-blue-600 dark:text-blue-400' :
                       isDark ? 'text-gray-400' : 'text-gray-500'
                     }`}>
                       {Math.round(student.progress_percentage || 0)}%
                     </div>
-                    <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
                       {t('trainingPlanDetail.progress', 'Progresso')}
                     </div>
                   </div>
                   {/* Status badge */}
                   <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
-                    student.status === 'COMPLETED' ? 'bg-green-500/20 text-green-400' :
-                    student.status === 'IN_PROGRESS' ? 'bg-blue-500/20 text-blue-400' :
-                    student.status === 'DELAYED' ? 'bg-red-500/20 text-red-400' :
+                    student.status === 'COMPLETED' ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400' :
+                    student.status === 'IN_PROGRESS' ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400' :
+                    student.status === 'DELAYED' ? 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400' :
                     isDark ? 'bg-gray-500/20 text-gray-400' : 'bg-gray-100 text-gray-500'
                   }`}>
                     {student.status === 'COMPLETED' ? t('trainingPlanDetail.completed') :
@@ -1274,7 +1280,7 @@ export default function TrainingPlanDetail() {
                         if (!err._isAuthError) alert(err?.response?.data?.detail || 'Error removing student');
                       }
                     }}
-                    className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-all"
+                    className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-lg transition-all"
                     title={t('trainingPlanDetail.removeStudent', 'Remover formando')}
                   >
                     <UserMinus className="w-4 h-4" />
@@ -1321,7 +1327,7 @@ export default function TrainingPlanDetail() {
             <div className={`text-center py-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
               <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p>{t('trainingPlanDetail.noStudentsEnrolled', 'Nenhum formando inscrito')}</p>
-              <p className={`text-sm mt-1 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+              <p className={`text-sm mt-1 ${isDark ? 'text-gray-600' : 'text-gray-500'}`}>
                 {t('trainingPlanDetail.clickAddStudentToEnroll', 'Clique em "Inscrever Formando" para adicionar')}
               </p>
             </div>
@@ -1390,9 +1396,9 @@ export default function TrainingPlanDetail() {
                         <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{course.title}</h3>
                         {course.level && (() => {
                           const lc: Record<string, { icon: any; label: string; bg: string; text: string }> = {
-                            'BEGINNER': { icon: TrendingUp, label: t('admin.levelBeginner'), bg: 'bg-orange-500/20', text: 'text-orange-400' },
-                            'INTERMEDIATE': { icon: Shield, label: t('admin.levelIntermediate'), bg: 'bg-amber-500/20', text: 'text-amber-400' },
-                            'EXPERT': { icon: Star, label: t('admin.levelExpert'), bg: 'bg-emerald-500/20', text: 'text-emerald-400' },
+                            'BEGINNER': { icon: TrendingUp, label: t('admin.levelBeginner'), bg: 'bg-orange-100 dark:bg-orange-500/20', text: 'text-orange-700 dark:text-orange-400' },
+                            'INTERMEDIATE': { icon: Shield, label: t('admin.levelIntermediate'), bg: 'bg-amber-100 dark:bg-amber-500/20', text: 'text-amber-700 dark:text-amber-400' },
+                            'EXPERT': { icon: Star, label: t('admin.levelExpert'), bg: 'bg-emerald-100 dark:bg-emerald-500/20', text: 'text-emerald-700 dark:text-emerald-400' },
                           };
                           const lv = lc[course.level] || lc['BEGINNER'];
                           const LvIcon = lv.icon;
@@ -1407,14 +1413,14 @@ export default function TrainingPlanDetail() {
                           const courseStatus = getCourseCompletionStatus(course.id);
                           if (courseStatus?.is_complete) {
                             return (
-                              <span className="px-3 py-1 rounded-lg text-xs font-bold bg-green-500/20 text-green-400 flex items-center gap-1">
+                              <span className="px-3 py-1 rounded-lg text-xs font-bold bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3" />
                                 {t('trainingPlanDetail.courseComplete')}
                               </span>
                             );
                           } else if (courseStatus) {
                                 return (
-                              <span className="px-3 py-1 rounded-lg text-xs font-medium bg-yellow-500/20 text-yellow-400">
+                              <span className="px-3 py-1 rounded-lg text-xs font-medium bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400">
                                 {courseStatus.confirmed_lessons}/{courseStatus.total_lessons} módulos • {courseStatus.approved_challenges}/{courseStatus.total_challenges} desafios
                               </span>
                             );
@@ -1482,7 +1488,7 @@ export default function TrainingPlanDetail() {
                                       </span>
                                       <h5 className={isDark ? 'text-gray-500' : 'text-gray-400'}>{lesson.title}</h5>
                                     </div>
-                                    <p className={`text-xs mt-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`}>
+                                    <p className={`text-xs mt-2 ${isDark ? 'text-gray-600' : 'text-gray-500'}`}>
                                       🔒 {t('trainingPlanDetail.awaitingReleaseByTrainer')}
                                     </p>
                                   </li>
@@ -1524,7 +1530,7 @@ export default function TrainingPlanDetail() {
                                     {/* Info de liberação para formador */}
                                     {isTrainer && progress?.is_released && progress.status === 'RELEASED' && (
                                       <div className={`mt-3 p-3 rounded-lg ${isDark ? 'bg-blue-500/10' : 'bg-blue-50'}`}>
-                                        <p className="text-sm text-blue-400">
+                                        <p className="text-sm text-blue-600 dark:text-blue-400">
                                           ✓ {t('trainingPlanDetail.releasedBy', { name: progress.released_by || 'formador' })}
                                         </p>
                                         <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
@@ -1551,17 +1557,17 @@ export default function TrainingPlanDetail() {
                                             );
                                           })()}
                                           {progress.is_delayed && (
-                                            <span className="text-red-400 font-medium">{t('trainingPlanDetail.delayed')}</span>
+                                            <span className="text-red-600 dark:text-red-400 font-medium">{t('trainingPlanDetail.delayed')}</span>
                                           )}
                                         </div>
                                         {progress.student_confirmed && (
-                                          <div className="flex items-center gap-1 mt-2 text-green-400 text-xs">
+                                          <div className="flex items-center gap-1 mt-2 text-green-600 dark:text-green-400 text-xs">
                                             <CheckCircle2 className="w-3 h-3" />
                                             {t('trainingPlanDetail.confirmedByStudent')}
                                           </div>
                                         )}
                                         {progress.is_approved && (
-                                          <div className="flex items-center gap-1 mt-2 text-emerald-400 text-xs">
+                                          <div className="flex items-center gap-1 mt-2 text-emerald-600 dark:text-emerald-400 text-xs">
                                             <CheckCircle2 className="w-3 h-3" />
                                             {progress.finished_by 
                                               ? t('trainingPlanDetail.approvedByTrainerName', { name: progress.finished_by })
@@ -1640,7 +1646,7 @@ export default function TrainingPlanDetail() {
 
                                         {/* ===== AULAS CONTROLADAS PELO FORMADOR (started_by = TRAINER) ===== */}
                                         {lesson.started_by === 'TRAINER' && progress?.status === 'IN_PROGRESS' && (
-                                          <span className="text-sm text-blue-400 italic flex items-center gap-1">
+                                          <span className="text-sm text-blue-600 dark:text-blue-400 italic flex items-center gap-1">
                                             <Clock className="w-4 h-4" />
                                             {t('trainingPlanDetail.lessonInProgress')}
                                           </span>
@@ -1735,7 +1741,7 @@ export default function TrainingPlanDetail() {
                                               const elapsed = getElapsedSeconds(progress, lesson.id);
                                               const estimated = (lesson.estimated_minutes || 30) * 60;
                                               const isOverTime = elapsed > estimated;
-                                              const timeColor = isOverTime ? 'text-red-400' : 'text-green-400';
+                                              const timeColor = isOverTime ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400';
                                               return (
                                                 <div className={`flex items-center gap-2 text-sm ${timeColor}`}>
                                                   <Timer className="w-4 h-4" />
@@ -1770,7 +1776,7 @@ export default function TrainingPlanDetail() {
                                               const elapsed = progress.elapsed_seconds || 0;
                                               const estimated = (lesson.estimated_minutes || 30) * 60;
                                               const isOverTime = elapsed > estimated;
-                                              const timeColor = isOverTime ? 'text-red-400' : 'text-yellow-400';
+                                              const timeColor = isOverTime ? 'text-red-600 dark:text-red-400' : 'text-yellow-600 dark:text-yellow-400';
                                               return (
                                                 <div className={`flex items-center gap-2 text-sm ${timeColor}`}>
                                                   <Timer className="w-4 h-4" />
@@ -1805,7 +1811,7 @@ export default function TrainingPlanDetail() {
                                               const elapsed = getElapsedSeconds(progress, lesson.id);
                                               const estimated = (lesson.estimated_minutes || 30) * 60;
                                               const isOverTime = elapsed > estimated;
-                                              const timeColor = isOverTime ? 'text-red-400' : 'text-green-400';
+                                              const timeColor = isOverTime ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400';
                                               return (
                                                 <div className={`flex items-center gap-2 text-sm ${timeColor}`}>
                                                   <Timer className="w-4 h-4" />
@@ -1826,18 +1832,18 @@ export default function TrainingPlanDetail() {
 
                                         {/* Aula concluída mas aguardando confirmação do formando (apenas para aulas iniciadas pelo formando) */}
                                         {progress?.status === 'COMPLETED' && !progress.student_confirmed && !progress.is_approved && lesson.started_by !== 'TRAINER' && (
-                                          <div className="flex items-center gap-2 px-3 py-2 bg-blue-500/20 border border-blue-500/30 rounded-lg">
-                                            <Clock className="w-4 h-4 text-blue-400" />
-                                            <span className="text-sm text-blue-400 font-medium">{t('trainingPlanDetail.awaitingStudentConfirmation')}</span>
+                                          <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-500/20 border border-blue-200 dark:border-blue-500/30 rounded-lg">
+                                            <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                                            <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">{t('trainingPlanDetail.awaitingStudentConfirmation')}</span>
                                           </div>
                                         )}
 
                                         {/* Aula confirmada pelo formando ou aula iniciada pelo formador - mostrar Aprovar */}
                                         {progress?.status === 'COMPLETED' && !progress.is_approved && (progress.student_confirmed || lesson.started_by === 'TRAINER') && (
                                           <>
-                                            <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/20 border border-amber-500/30 rounded-lg">
-                                              <AlertCircle className="w-4 h-4 text-amber-400" />
-                                              <span className="text-sm text-amber-400 font-medium">{t('trainingPlanDetail.studentConfirmedAwaitingApproval')}</span>
+                                            <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-500/30 rounded-lg">
+                                              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                                              <span className="text-sm text-amber-600 dark:text-amber-400 font-medium">{t('trainingPlanDetail.studentConfirmedAwaitingApproval')}</span>
                                             </div>
                                             <button
                                               onClick={() => handleLessonAction(lesson.id, 'approve')}
@@ -1850,20 +1856,6 @@ export default function TrainingPlanDetail() {
                                           </>
                                         )}
 
-                                        {/* Aula concluída - botão Gerir */}
-                                        {progress?.status === 'COMPLETED' && (
-                                          <button
-                                            onClick={() => navigate(`/lessons/${lesson.id}/manage?planId=${id}&courseId=${course.id}`)}
-                                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                                              isDark 
-                                                ? 'bg-white/10 text-white hover:bg-white/20' 
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                            }`}
-                                          >
-                                            <Settings2 className="w-4 h-4" />
-                                            {t('trainingPlanDetail.manage')}
-                                          </button>
-                                        )}
                                       </>
                                     )}
                                   </div>
@@ -1927,9 +1919,9 @@ export default function TrainingPlanDetail() {
                                         MPU: {challenge.target_mpu}
                                       </span>
                                       <span className={`px-2 py-1 rounded-lg font-medium ${
-                                        challenge.challenge_type === 'COMPLETE' 
-                                          ? 'bg-blue-500/20 text-blue-400' 
-                                          : 'bg-purple-500/20 text-purple-400'
+                                        challenge.challenge_type === 'COMPLETE'
+                                          ? 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400'
+                                          : 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400'
                                       }`}>
                                         {challenge.challenge_type === 'SUMMARY' ? t('challengeResult.typeSummary') : challenge.challenge_type === 'COMPLETE' ? t('challengeResult.typeComplete') : challenge.challenge_type}
                                       </span>
@@ -1946,13 +1938,13 @@ export default function TrainingPlanDetail() {
                                           )}
                                         </div>
                                         {submission.submitted_by_name && (
-                                          <div className="flex items-center gap-1 mt-2 text-xs text-purple-400">
+                                          <div className="flex items-center gap-1 mt-2 text-xs text-purple-600 dark:text-purple-400">
                                             <User className="w-3 h-3" />
                                             {t('trainingPlanDetail.appliedBy', 'Aplicado por')} {submission.submitted_by_name}
                                           </div>
                                         )}
                                         {submission.reviewed_by_name && (
-                                          <div className="flex items-center gap-1 mt-1 text-xs text-emerald-400">
+                                          <div className="flex items-center gap-1 mt-1 text-xs text-emerald-600 dark:text-emerald-400">
                                             <User className="w-3 h-3" />
                                             {t('trainingPlanDetail.correctedBy', 'Corrigido por')} {submission.reviewed_by_name}
                                           </div>
@@ -2082,7 +2074,7 @@ export default function TrainingPlanDetail() {
                                       <>
                                         {/* Em andamento */}
                                         {submission.status === 'IN_PROGRESS' && (
-                                          <span className="flex items-center gap-2 px-3 py-2 bg-blue-500/20 text-blue-400 rounded-lg text-sm font-medium">
+                                          <span className="flex items-center gap-2 px-3 py-2 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 rounded-lg text-sm font-medium">
                                             <Clock className="w-4 h-4" />
                                             {t('trainingPlanDetail.inProgressStatus')}
                                           </span>
@@ -2132,7 +2124,7 @@ export default function TrainingPlanDetail() {
                                               </button>
                                             )}
                                             {submission.is_retry_allowed && (
-                                              <span className="flex items-center gap-2 px-3 py-2 bg-green-500/20 text-green-400 rounded-lg text-sm font-medium">
+                                              <span className="flex items-center gap-2 px-3 py-2 bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 rounded-lg text-sm font-medium">
                                                 <RotateCcw className="w-4 h-4" />
                                                 {t('trainingPlanDetail.retryReleased', 'Tentativa Liberada')}
                                               </span>

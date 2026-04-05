@@ -25,8 +25,10 @@ interface UserItem {
   full_name: string;
   role?: string;
   is_tutor?: boolean;
-  is_team_lead?: boolean;
+  is_chefe_equipe?: boolean;
   is_referente?: boolean;
+  is_admin?: boolean;
+  is_gerente?: boolean;
 }
 
 // ─── Field helpers ────────────────────────────────────────────────────────────
@@ -249,8 +251,8 @@ export default function CreateActionPlan() {
   const isTradePessonas = errorInfo?.origin_name?.toLowerCase().includes('personas') || false;
 
   const teamForCorretivoPrev = team.filter(u =>
-    u.is_tutor || u.is_team_lead || u.is_referente ||
-    u.role === 'ADMIN' || u.role === 'MANAGER'
+    u.is_tutor || u.is_chefe_equipe || u.is_referente ||
+    u.is_admin || u.is_gerente
   );
   const teamForMelhoria = team.filter(u => u.is_tutor);
 

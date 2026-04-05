@@ -371,10 +371,10 @@ class TestErrorRegistration:
         assert resp.json()["refs"][0]["referencia"] == "REF_NEW"
 
     def test_update_error_trainer(self, trainer_headers):
-        """Trainer (role TRAINER) passes require_manager — can update errors."""
+        """Trainer (role FORMADOR) does NOT pass require_manager in tutoria — portals separated."""
         resp = client.patch(f"/api/tutoria/errors/{st.error_id}", headers=trainer_headers,
                             json={"tags": ["trainer_updated"]})
-        assert resp.status_code == 200
+        assert resp.status_code == 403
 
     def test_update_error_student_forbidden(self, student_headers):
         """Student cannot update errors (requires manager+)."""

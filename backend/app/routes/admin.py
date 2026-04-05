@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from typing import List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.database import get_db
 from app import models, schemas, auth
 from app.pagination import paginate, PaginatedResponse
@@ -38,9 +38,14 @@ async def list_users(
                 "role": u.role,
                 "is_active": u.is_active,
                 "is_pending": u.is_pending,
-                "is_trainer": getattr(u, 'is_trainer', False),
+                "is_admin": getattr(u, 'is_admin', False),
+                "is_formador": getattr(u, 'is_formador', False),
                 "is_tutor": getattr(u, 'is_tutor', False),
                 "is_liberador": getattr(u, 'is_liberador', False),
+                "is_chefe_equipe": getattr(u, 'is_chefe_equipe', False),
+                "is_referente": getattr(u, 'is_referente', False),
+                "is_gerente": getattr(u, 'is_gerente', False),
+                "is_diretor": getattr(u, 'is_diretor', False),
                 "created_at": u.created_at.isoformat() if u.created_at else None,
             })
 
@@ -120,7 +125,7 @@ async def get_user(
     # Get user's enrollment IDs
     user_enrollment_ids = db.query(models.Enrollment.id).filter(
         models.Enrollment.user_id == user_id
-    ).subquery()
+    ).scalar_subquery()
     
     # Get lesson progress through enrollments
     completed_lessons = db.query(models.LessonProgress).filter(
@@ -144,9 +149,14 @@ async def get_user(
         "role": db_user.role,
         "is_active": db_user.is_active,
         "is_pending": db_user.is_pending,
-        "is_trainer": getattr(db_user, 'is_trainer', False),
+        "is_admin": getattr(db_user, 'is_admin', False),
+        "is_formador": getattr(db_user, 'is_formador', False),
         "is_tutor": getattr(db_user, 'is_tutor', False),
         "is_liberador": getattr(db_user, 'is_liberador', False),
+        "is_chefe_equipe": getattr(db_user, 'is_chefe_equipe', False),
+        "is_referente": getattr(db_user, 'is_referente', False),
+        "is_gerente": getattr(db_user, 'is_gerente', False),
+        "is_diretor": getattr(db_user, 'is_diretor', False),
         "created_at": db_user.created_at.isoformat() if db_user.created_at else None,
         "stats": {
             "enrollments_count": enrollments_count,
@@ -169,9 +179,26 @@ async def update_user(
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    for key, value in user_update.dict(exclude_unset=True).items():
+    update_data = user_update.model_dump(exclude_unset=True)
+
+    # Apply all updates first
+    for key, value in update_data.items():
         setattr(db_user, key, value)
-    
+
+    # Auto-derive role column from flags (flags are the source of truth)
+    if db_user.is_admin:
+        db_user.role = "ADMIN"
+    elif db_user.is_diretor:
+        db_user.role = "DIRETOR"
+    elif db_user.is_gerente:
+        db_user.role = "GERENTE"
+    elif db_user.is_chefe_equipe:
+        db_user.role = "CHEFE_EQUIPE"
+    elif db_user.is_formador:
+        db_user.role = "FORMADOR"
+    else:
+        db_user.role = "USUARIO"
+
     db.commit()
     db.refresh(db_user)
     
@@ -261,7 +288,7 @@ async def validate_trainer(
         raise HTTPException(status_code=404, detail="User not found")
     
     trainer.is_pending = False
-    trainer.validated_at = datetime.utcnow()
+    trainer.validated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(trainer)
     
@@ -316,11 +343,11 @@ async def create_bank(
             models.Bank.code.like(f"{prefix}%")
         ).count()
         bank_code = f"{prefix}{str(existing_count + 1).zfill(3)}"
-        bank_dict = bank.dict()
+        bank_dict = bank.model_dump()
         bank_dict['code'] = bank_code
         db_bank = models.Bank(**bank_dict)
     else:
-        db_bank = models.Bank(**bank.dict())
+        db_bank = models.Bank(**bank.model_dump())
     db.add(db_bank)
     db.commit()
     db.refresh(db_bank)
@@ -338,7 +365,7 @@ async def update_bank(
     if not db_bank:
         raise HTTPException(status_code=404, detail="Bank not found")
     
-    update_data = bank_update.dict(exclude_unset=True)
+    update_data = bank_update.model_dump(exclude_unset=True)
     # Não permitir alterar o código
     if 'code' in update_data:
         del update_data['code']
@@ -360,17 +387,28 @@ async def delete_bank(
     db_bank = db.query(models.Bank).filter(models.Bank.id == bank_id).first()
     if not db_bank:
         raise HTTPException(status_code=404, detail="Bank not found")
-    
-    # Verificar se há cursos associados
+
+    # Verificar se há cursos associados (legacy FK)
     courses_count = db.query(models.Course).filter(models.Course.bank_id == bank_id).count()
     if courses_count > 0:
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail=f"Não é possível excluir. Existem {courses_count} cursos associados a este banco."
         )
-    
-    db.delete(db_bank)
-    db.commit()
+
+    # Remover associações many-to-many antes de excluir
+    from sqlalchemy.exc import IntegrityError as SAIntegrityError
+    try:
+        db.query(models.CourseBank).filter(models.CourseBank.bank_id == bank_id).delete()
+        db.query(models.TrainingPlanBank).filter(models.TrainingPlanBank.bank_id == bank_id).delete()
+        db.delete(db_bank)
+        db.commit()
+    except SAIntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Não é possível excluir este banco. Existem registos associados."
+        )
     return None
 
 # Products Management
@@ -396,7 +434,7 @@ async def create_product(
                 status_code=400, 
                 detail=f"Já existe um produto com o código '{product.code}'"
             )
-        db_product = models.Product(**product.dict())
+        db_product = models.Product(**product.model_dump())
     else:
         # Gerar código único PROD + número sequencial
         existing_count = db.query(models.Product).count()
@@ -405,7 +443,7 @@ async def create_product(
         while db.query(models.Product).filter(models.Product.code == product_code).first():
             existing_count += 1
             product_code = f"PROD{str(existing_count + 1).zfill(3)}"
-        product_dict = product.dict()
+        product_dict = product.model_dump()
         product_dict['code'] = product_code
         db_product = models.Product(**product_dict)
     db.add(db_product)
@@ -426,7 +464,7 @@ async def update_product(
         raise HTTPException(status_code=404, detail="Produto não encontrado")
     
     # Atualizar apenas campos fornecidos
-    update_data = product_data.dict(exclude_unset=True)
+    update_data = product_data.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(db_product, field, value)
     
@@ -445,29 +483,41 @@ async def delete_product(
     if not db_product:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
     
-    # Verificar se o produto está associado a cursos ou planos de formação
+    # Verificar se o produto está associado a cursos ou planos de formação (legacy FK)
     courses_count = db.query(models.Course).filter(models.Course.product_id == product_id).count()
     if courses_count > 0:
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail=f"Não é possível excluir. Este produto está associado a {courses_count} curso(s)."
         )
-    
+
     plans_count = db.query(models.TrainingPlan).filter(models.TrainingPlan.product_id == product_id).count()
     if plans_count > 0:
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail=f"Não é possível excluir. Este produto está associado a {plans_count} plano(s) de formação."
         )
-    
-    db.delete(db_product)
-    db.commit()
+
+    # Remover associações many-to-many antes de excluir
+    from sqlalchemy.exc import IntegrityError as SAIntegrityError
+    try:
+        db.query(models.CourseProduct).filter(models.CourseProduct.product_id == product_id).delete()
+        db.query(models.TrainingPlanProduct).filter(models.TrainingPlanProduct.product_id == product_id).delete()
+        db.query(models.TeamService).filter(models.TeamService.product_id == product_id).delete()
+        db.delete(db_product)
+        db.commit()
+    except SAIntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Não é possível excluir este produto. Existem registos associados."
+        )
     return None
 
 # Courses Management (Admin)
 @router.get("/courses")
 async def list_admin_courses(
-    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_TRAINER_MANAGER_ROLES)),
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """List all courses with trainer and student information"""
@@ -538,7 +588,7 @@ async def list_admin_courses(
 @router.get("/courses/{course_id}")
 async def get_admin_course(
     course_id: int,
-    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_TRAINER_MANAGER_ROLES)),
     db: Session = Depends(get_db)
 ):
     """Get course details with lessons and challenges"""
@@ -655,7 +705,7 @@ async def delete_admin_course(
 async def get_admin_lesson(
     course_id: int,
     lesson_id: int,
-    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_TRAINER_MANAGER_ROLES)),
     db: Session = Depends(get_db)
 ):
     """Get lesson details"""
@@ -690,7 +740,7 @@ async def update_admin_lesson(
     course_id: int,
     lesson_id: int,
     lesson_update: schemas.LessonUpdate,
-    current_user: models.User = Depends(auth.require_role(["ADMIN", "TRAINER"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """Update a lesson"""
@@ -702,7 +752,7 @@ async def update_admin_lesson(
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
 
-    update_data = lesson_update.dict(exclude_unset=True)
+    update_data = lesson_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(lesson, key, value)
 
@@ -728,7 +778,7 @@ async def update_admin_lesson(
 async def delete_admin_lesson(
     course_id: int,
     lesson_id: int,
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """Delete a lesson"""
@@ -749,7 +799,7 @@ async def delete_admin_lesson(
 async def get_admin_challenge(
     course_id: int,
     challenge_id: int,
-    current_user: models.User = Depends(auth.require_role(auth.ADMIN_MANAGER_ROLES)),
+    current_user: models.User = Depends(auth.require_role(auth.ADMIN_TRAINER_MANAGER_ROLES)),
     db: Session = Depends(get_db)
 ):
     """Get challenge details with stats"""
@@ -812,7 +862,7 @@ async def update_admin_challenge(
     course_id: int,
     challenge_id: int,
     challenge_data: schemas.ChallengeUpdate,
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """Update a challenge"""
@@ -857,7 +907,7 @@ async def update_admin_challenge(
 async def delete_admin_challenge(
     course_id: int,
     challenge_id: int,
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """Delete a challenge"""
@@ -876,7 +926,7 @@ async def delete_admin_challenge(
 @router.post("/courses", status_code=status.HTTP_201_CREATED)
 async def create_admin_course(
     course: schemas.CourseCreate,
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """Create a new course as admin with multiple banks and products support"""
@@ -891,7 +941,7 @@ async def create_admin_course(
         product_ids.append(course.product_id)
     
     # Create course without bank_ids and product_ids
-    course_data = course.dict(exclude={'bank_ids', 'product_ids'})
+    course_data = course.model_dump(exclude={'bank_ids', 'product_ids'})
     db_course = models.Course(
         **course_data,
         created_by=current_user.id
@@ -935,7 +985,7 @@ async def create_admin_course(
 async def update_admin_course(
     course_id: int,
     course_update: schemas.CourseUpdate,
-    current_user: models.User = Depends(auth.require_role(["ADMIN"])),
+    current_user: models.User = Depends(auth.require_role(["ADMIN", "FORMADOR"])),
     db: Session = Depends(get_db)
 ):
     """Update a course with multiple banks and products support"""
@@ -944,7 +994,7 @@ async def update_admin_course(
         raise HTTPException(status_code=404, detail="Course not found")
     
     # Update basic fields
-    update_data = course_update.dict(exclude={'bank_ids', 'product_ids'}, exclude_unset=True)
+    update_data = course_update.model_dump(exclude={'bank_ids', 'product_ids'}, exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_course, key, value)
     
@@ -996,10 +1046,11 @@ async def list_all_students(
     current_user: models.User = Depends(auth.require_role(auth.ADMIN_ROLES)),
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
-    """List all active students for dropdowns (includes TRAINERs as they can be students in other plans)"""
+    """List all active non-admin users for dropdowns (any active user can be a student in a plan)"""
     students = db.query(models.User).filter(
-        models.User.role.in_(["TRAINEE", "TRAINER"]),
-        models.User.is_active == True
+        models.User.is_active == True,
+        models.User.is_admin == False,
+        models.User.is_pending == False,
     ).all()
     return [
         {
@@ -1017,9 +1068,9 @@ async def list_trainers(
     current_user: models.User = Depends(auth.require_role(auth.ADMIN_TRAINER_ROLES)),
     db: Session = Depends(get_db)
 ) -> List[Dict[str, Any]]:
-    """List all active trainers"""
+    """List all active formadores for dropdowns"""
     trainers = db.query(models.User).filter(
-        or_(models.User.role == "TRAINER", models.User.is_trainer == True),
+        models.User.is_formador == True,
         models.User.is_active == True,
         models.User.is_pending == False
     ).all()
@@ -1054,7 +1105,7 @@ async def get_admin_stats(
     ).count()
 
     # Trainers approved this month
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     first_day_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     approved_this_month = db.query(models.User).filter(
         or_(models.User.role == "TRAINER", models.User.is_trainer == True),
@@ -1098,7 +1149,7 @@ async def get_admin_stats(
     total_study_hours = (float(total_study_seconds) / 3600.0) + (float(challenge_time_minutes) / 60.0)
     
     # Active students (enrolled in last 30 days)
-    month_ago = datetime.utcnow() - timedelta(days=30)
+    month_ago = datetime.now(timezone.utc) - timedelta(days=30)
     active_students = db.query(models.Enrollment.user_id).filter(
         models.Enrollment.enrolled_at >= month_ago
     ).distinct().count()
@@ -1290,7 +1341,7 @@ async def get_admin_insights(
     Comprehensive insights dashboard for admin.
     Returns deep analytics across all platform dimensions.
     """
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     first_day_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     
     # ═══════════════ 1. OVERVIEW KPIs ═══════════════

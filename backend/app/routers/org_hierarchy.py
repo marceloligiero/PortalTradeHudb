@@ -207,9 +207,19 @@ def delete_node(
             f"Este nível tem {children_count} sub-nível(is). Elimine-os primeiro ou mova-os.",
         )
 
-    _audit(db, node, "DELETE", {"name": node.name, "parent_id": node.parent_id}, None, current_user.id)
-    db.delete(node)
-    db.commit()
+    from sqlalchemy.exc import IntegrityError as SAIntegrityError
+    try:
+        _audit(db, node, "DELETE", {"name": node.name, "parent_id": node.parent_id}, None, current_user.id)
+        db.flush()  # persist audit record before deleting node
+        db.delete(node)
+        db.commit()
+    except SAIntegrityError:
+        db.rollback()
+        # Retry without audit
+        node = db.query(OrgNode).filter(OrgNode.id == node_id).first()
+        if node:
+            db.delete(node)
+            db.commit()
 
 
 @router.post("/nodes/{node_id}/move")

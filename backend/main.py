@@ -5,7 +5,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from app.config import settings
-from app.routes import auth, admin, student, trainer, training_plans, advanced_reports, certificates, student_reports, ratings, password_reset, knowledge_matrix, public
+from app.routes import auth, admin, student, trainer, training_plans, advanced_reports, certificates, student_reports, ratings, password_reset, knowledge_matrix, public, auth_sso
 from app.routers import challenges, stats, lessons, finalization
 from app.routers import tutoria
 from app.routers import chat
@@ -15,22 +15,25 @@ from app.routers import chamados
 from app.routers import internal_errors
 from app.routers import dw
 from app.routers import feedback
-from app.routers import org_hierarchy
 from app.database import init_db
 from app.migrate import run_migrations
+from app.constants import (
+    RATE_LIMIT_DEFAULT, ETL_INTERVAL_SECONDS, DEADLINE_INTERVAL_SECONDS,
+    CACHE_ASSETS_MAX_AGE, CACHE_LOCALES_MAX_AGE, HSTS_MAX_AGE,
+)
 from contextlib import asynccontextmanager
 import logging
 
 logger = logging.getLogger("app.startup")
 
 # Rate limiter (shared instance used by route modules)
-limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+limiter = Limiter(key_func=get_remote_address, default_limits=[RATE_LIMIT_DEFAULT])
 
 async def _etl_scheduler():
     """Background task that re-runs ETL every hour."""
     import asyncio
     while True:
-        await asyncio.sleep(3600)
+        await asyncio.sleep(ETL_INTERVAL_SECONDS)
         try:
             from app.database import SessionLocal
             from app.etl.etl_runner import run_full_etl
@@ -49,7 +52,7 @@ async def _deadline_scheduler():
     import asyncio
     from datetime import date
     while True:
-        await asyncio.sleep(86400)  # 24 hours
+        await asyncio.sleep(DEADLINE_INTERVAL_SECONDS)  # 24 hours
         try:
             from app.database import SessionLocal
             from app.models import TutoriaError, TutoriaNotification
@@ -201,7 +204,7 @@ async def add_security_headers(request: Request, call_next):
     )
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https":
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Strict-Transport-Security"] = f"max-age={HSTS_MAX_AGE}; includeSubDomains"
     return response
 
 @app.middleware("http")
@@ -217,6 +220,7 @@ async def log_requests(request: Request, call_next):
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(auth_sso.router, prefix="/api/auth", tags=["sso"])
 app.include_router(password_reset.router, prefix="/api", tags=["auth"])
 app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(student.router, prefix="/api/student", tags=["student"])
@@ -259,8 +263,6 @@ app.include_router(knowledge_matrix.router, tags=["knowledge_matrix"])
 app.include_router(public.router, tags=["public"])
 # Data Warehouse aggregated data for dashboards
 app.include_router(dw.router, prefix="/api/dw", tags=["data-warehouse"])
-# Org Hierarchy — gestão de hierarquia organizacional
-app.include_router(org_hierarchy.router)
 
 @app.get("/api")
 async def api_root():
@@ -293,9 +295,9 @@ if _frontend_dist.is_dir():
         path = request.url.path
         if path.startswith("/assets/"):
             # Vite hashes filenames, safe to cache 1 year
-            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+            response.headers["Cache-Control"] = f"public, max-age={CACHE_ASSETS_MAX_AGE}, immutable"
         elif path.startswith("/locales/"):
-            response.headers["Cache-Control"] = "public, max-age=3600"
+            response.headers["Cache-Control"] = f"public, max-age={CACHE_LOCALES_MAX_AGE}"
         return response
 
     # Serve locale files

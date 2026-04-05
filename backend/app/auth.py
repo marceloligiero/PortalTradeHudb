@@ -97,15 +97,49 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
     return current_user
 
 def require_role(allowed_roles: list[str]):
-    async def role_checker(current_user: User = Depends(get_current_active_user)) -> User:
-        # Pending users are treated as TRAINEE regardless of their stored role
-        effective_role = "TRAINEE" if current_user.is_pending else current_user.role
+    """Dependency que verifica se o utilizador tem pelo menos uma das flags requeridas.
 
-        has_access = effective_role in allowed_roles
-        # Users with is_trainer=True (and NOT pending) also have TRAINER privileges
-        if not has_access and "TRAINER" in allowed_roles:
-            if getattr(current_user, 'is_trainer', False) and not current_user.is_pending:
-                has_access = True
+    Mapeamento de nome de role → flag:
+        ADMIN        → is_admin
+        DIRETOR      → is_diretor
+        GERENTE      → is_gerente
+        CHEFE_EQUIPE → is_chefe_equipe
+        FORMADOR     → is_formador
+        TUTOR        → is_tutor
+        LIBERADOR    → is_liberador
+        REFERENTE    → is_referente
+    """
+    # flag map: role name → attribute on User model
+    _FLAG_MAP = {
+        "ADMIN":        "is_admin",
+        "DIRETOR":      "is_diretor",
+        "GERENTE":      "is_gerente",
+        "CHEFE_EQUIPE": "is_chefe_equipe",
+        "FORMADOR":     "is_formador",
+        "TUTOR":        "is_tutor",
+        "LIBERADOR":    "is_liberador",
+        "REFERENTE":    "is_referente",
+        # Legacy aliases kept so chamadas antigas não quebram imediatamente
+        "TRAINER":   "is_formador",
+        "MANAGER":   "is_gerente",
+        "GESTOR":    "is_gerente",
+        # TRAINEE/STUDENT/USUARIO — qualquer utilizador activo (is_active já verificado por get_current_active_user)
+        "TRAINEE":   "is_active",
+        "STUDENT":   "is_active",
+        "USUARIO":   "is_active",
+    }
+
+    async def role_checker(current_user: User = Depends(get_current_active_user)) -> User:
+        if current_user.is_pending:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Conta pendente de validação pelo administrador"
+            )
+        has_access = any(
+            getattr(current_user, _FLAG_MAP[r], False)
+            for r in allowed_roles
+            if r in _FLAG_MAP
+        )
         if not has_access:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -114,29 +148,49 @@ def require_role(allowed_roles: list[str]):
         return current_user
     return role_checker
 
-# ── Role constants ─────────────────────────────────────────
-ADMIN_ROLES = ["ADMIN", "GESTOR"]
-ADMIN_MANAGER_ROLES = ["ADMIN", "MANAGER", "GESTOR"]
-ADMIN_TRAINER_ROLES = ["ADMIN", "TRAINER", "GESTOR"]
-ADMIN_TRAINER_MANAGER_ROLES = ["ADMIN", "TRAINER", "MANAGER", "GESTOR"]
+
+# ── Role-list constants (usados em require_role()) ────────────────────────
+ADMIN_ROLES                  = ["ADMIN"]
+ADMIN_MANAGER_ROLES          = ["ADMIN", "DIRETOR", "GERENTE", "CHEFE_EQUIPE"]
+ADMIN_TRAINER_ROLES          = ["ADMIN", "FORMADOR"]
+ADMIN_TRAINER_MANAGER_ROLES  = ["ADMIN", "DIRETOR", "GERENTE", "CHEFE_EQUIPE", "FORMADOR"]
+
+# Tutoria-specific role lists (is_formador EXCLUÍDO — só roles de tutoria + gestão)
+TUTORIA_MANAGER_ROLES        = ["ADMIN", "DIRETOR", "GERENTE", "CHEFE_EQUIPE", "TUTOR"]
+TUTORIA_ALL_ROLES            = ["ADMIN", "DIRETOR", "GERENTE", "CHEFE_EQUIPE", "TUTOR", "LIBERADOR", "REFERENTE"]
+
+
+# ── Flag-based permission helpers (usar em vez de role checks) ─────────────
+
+def is_formador_user(user) -> bool:
+    """True se o utilizador tem permissão de formador (não pendente)."""
+    if user is None:
+        return False
+    return bool(getattr(user, "is_formador", False)) and not bool(user.is_pending)
+
+# Alias de compatibilidade para código legado
+def is_trainer_user(user) -> bool:
+    return is_formador_user(user)
 
 
 def get_visible_user_ids(db: Session, user: User):
     """Retorna a lista de IDs de utilizadores cujos dados o user pode ver.
 
-    None  → vê todos (ADMIN / GESTOR).
-    [ids] → lista restrita (MANAGER vê a equipa; qualquer outro vê só si próprio).
+    None  → vê todos (is_admin ou is_diretor).
+    [ids] → lista restrita por role/flag:
+              is_gerente / is_chefe_equipe → equipa(s) gerida(s)
+              is_formador                  → formandos atribuídos (tutor_id)
+              USUARIO sem flags             → só o próprio
     """
     from app.models import Team
 
-    if user.role in ("ADMIN", "GESTOR"):
-        return None
+    if user.is_admin or user.is_diretor:
+        return None  # sem filtro
 
-    if user.role == "MANAGER" or getattr(user, "is_team_lead", False):
-        # Equipas geridas directamente (manager_id) + equipa própria (team_lead)
+    if user.is_gerente or user.is_chefe_equipe:
         managed = db.query(Team).filter(Team.manager_id == user.id).all()
         team_ids = {t.id for t in managed}
-        if getattr(user, "is_team_lead", False) and user.team_id:
+        if user.is_chefe_equipe and user.team_id:
             team_ids.add(user.team_id)
         if team_ids:
             rows = db.query(User.id).filter(
@@ -145,18 +199,10 @@ def get_visible_user_ids(db: Session, user: User):
             return list({r.id for r in rows} | {user.id})
         return [user.id]
 
-    # Utilizador simples (TRAINEE / STUDENT / qualquer flag) → só os próprios dados
+    if user.is_formador:
+        students = db.query(User.id).filter(
+            User.tutor_id == user.id, User.is_active == True
+        ).all()
+        return list({r.id for r in students} | {user.id})
+
     return [user.id]
-
-
-def is_trainer_user(user) -> bool:
-    """True para role='TRAINER' OU TRAINEE com is_trainer=True (não pendente).
-
-    No portal, o registo cria utilizadores como TRAINEE. A flag is_trainer=True
-    confere os mesmos privilégios de formador que role='TRAINER'.
-    """
-    if user is None:
-        return False
-    if user.role == "TRAINER":
-        return True
-    return bool(getattr(user, "is_trainer", False)) and not bool(user.is_pending)

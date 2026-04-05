@@ -128,6 +128,10 @@
       "rememberedPassword": "¿Recordó su contraseña?",
       "errorResetting": "Error al restablecer contraseña",
       "passwordsDontMatch": "Las contraseñas no coinciden"
+    },
+    "sso": {
+      "loginWithMicrosoft": "Iniciar sesión con Microsoft",
+      "authenticating": "Autenticando..."
     }
   },
   "navigation": {

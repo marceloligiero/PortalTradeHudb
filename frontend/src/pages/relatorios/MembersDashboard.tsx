@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Loader2, User, AlertTriangle, CheckCircle2, Award, Clock, Search, ChevronUp, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import api from '../../lib/axios';
+import { KpiCard, RateBar } from '../../components/reports';
 
 /* ─── Types ──────────────────────────────────────────────────────────────── */
 
@@ -24,26 +25,6 @@ const ROLE_COLORS: Record<string, string> = {
   TRAINER: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
   MANAGER: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
 };
-
-/* ─── Progress Bar ────────────────────────────────────────────────────────── */
-
-function RateBar({ value }: { value: number }) {
-  const color =
-    value >= 80 ? 'bg-emerald-500' : value >= 50 ? 'bg-amber-500' : 'bg-[#EC0000]';
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className="w-16 h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${value}%` }} />
-      </div>
-      <span
-        className={`text-xs font-mono font-semibold
-          ${value >= 80 ? 'text-emerald-600 dark:text-emerald-400' : value >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-[#EC0000]'}`}
-      >
-        {value}%
-      </span>
-    </div>
-  );
-}
 
 /* ─── Main ────────────────────────────────────────────────────────────────── */
 
@@ -131,22 +112,14 @@ export default function MembersDashboard() {
 
       {/* ── Summary KPIs ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { icon: User, label: t('relMembers.members'), value: total, boxBg: 'bg-blue-50 dark:bg-blue-900/20', iconColor: 'text-blue-600 dark:text-blue-400' },
-          { icon: CheckCircle2, label: t('relMembers.avgRate'), value: `${avgCompletion}%`, boxBg: 'bg-emerald-50 dark:bg-emerald-900/20', iconColor: 'text-emerald-600 dark:text-emerald-400' },
-          { icon: AlertTriangle, label: t('relMembers.totalErrors'), value: totalErrors, boxBg: 'bg-red-50 dark:bg-red-900/20', iconColor: 'text-[#EC0000]' },
-          { icon: Award, label: t('relMembers.certificates'), value: totalCerts, boxBg: 'bg-amber-50 dark:bg-amber-900/20', iconColor: 'text-amber-600 dark:text-amber-400' },
-        ].map(({ icon: Icon, label, value, boxBg, iconColor }) => (
-          <div key={label} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 p-5 flex gap-4">
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${boxBg}`}>
-              <Icon className={`w-5 h-5 ${iconColor}`} />
-            </div>
-            <div>
-              <p className="text-xl font-mono font-black text-gray-900 dark:text-white">{value}</p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-            </div>
-          </div>
-        ))}
+        <KpiCard index={0} icon={User} label={t('relMembers.members')} value={total}
+          boxClass="bg-blue-50 dark:bg-blue-900/20" iconClass="text-blue-600 dark:text-blue-400" />
+        <KpiCard index={1} icon={CheckCircle2} label={t('relMembers.avgRate')} value={`${avgCompletion}%`}
+          boxClass="bg-emerald-50 dark:bg-emerald-900/20" iconClass="text-emerald-600 dark:text-emerald-400" />
+        <KpiCard index={2} icon={AlertTriangle} label={t('relMembers.totalErrors')} value={totalErrors}
+          boxClass="bg-red-50 dark:bg-red-900/20" iconClass="text-[#EC0000]" />
+        <KpiCard index={3} icon={Award} label={t('relMembers.certificates')} value={totalCerts}
+          boxClass="bg-amber-50 dark:bg-amber-900/20" iconClass="text-amber-600 dark:text-amber-400" />
       </div>
 
       {/* ── Search ────────────────────────────────────────────────────────── */}
@@ -163,7 +136,7 @@ export default function MembersDashboard() {
       {/* ── Table ─────────────────────────────────────────────────────────── */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" aria-label={t('relMembers.title')}>
             <thead>
               <tr className="text-xs uppercase tracking-wider bg-gray-50 dark:bg-gray-800/50 text-gray-500 border-b border-gray-200 dark:border-gray-800">
                 <th className="px-5 py-3 text-left font-semibold">{t('relMembers.member')}</th>
@@ -216,7 +189,7 @@ export default function MembersDashboard() {
                       {m.plans_completed}/{m.plans_total}
                     </td>
                     <td className="px-5 py-4">
-                      <RateBar value={m.completion_rate} />
+                      <RateBar value={m.completion_rate} trackClass="w-16" />
                     </td>
                     <td className="px-4 py-4 text-center font-mono font-medium text-gray-700 dark:text-gray-300">
                       {m.avg_mpu > 0 ? m.avg_mpu : '---'}

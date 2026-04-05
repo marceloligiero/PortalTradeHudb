@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import AuthCallback from './pages/AuthCallback';
 import StudentDashboard from './pages/student/Dashboard';
 import StudentCoursesPage from './pages/student/Courses';
 import CertificatesPage from './pages/student/Certificates';
@@ -69,7 +70,6 @@ import AdminSettingsPage from './pages/admin/Settings';
 // Banks.tsx and Products.tsx standalone pages removed — MasterData.tsx is the single source
 import MasterDataPage from './pages/admin/MasterData';
 import MasterDataLayout from './pages/admin/MasterDataLayout';
-import OrgHierarchy from './pages/admin/OrgHierarchy';
 import ChamadosLayout from './pages/chamados/ChamadosLayout';
 import ChamadosKanban from './pages/chamados/ChamadosKanban';
 import AdminTrainerValidation from './pages/admin/TrainerValidation';
@@ -110,6 +110,7 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </>
@@ -149,6 +150,14 @@ function App() {
         <Route path="feedback/respond" element={<FeedbackRespond />} />
         <Route path="feedback/:id" element={<FeedbackSurveyDetail />} />
         <Route path="capsulas" element={<TutorCapsules />} />
+        <Route path="capsulas/:courseId" element={<AdminCourseDetail />} />
+        <Route path="capsulas/:courseId/challenges/new" element={<ChallengeForm />} />
+        <Route path="capsulas/:courseId/challenges/:challengeId/edit" element={<ChallengeForm />} />
+        <Route path="capsulas/:courseId/challenges/:challengeId" element={<ChallengeDetail />} />
+        <Route path="capsulas/:courseId/challenges/:challengeId/results" element={<ChallengeResult />} />
+        <Route path="capsulas/:courseId/lessons/new" element={<LessonForm />} />
+        <Route path="capsulas/:courseId/lessons/:lessonId/edit" element={<LessonForm />} />
+        <Route path="capsulas/:courseId/lessons/:lessonId" element={<LessonDetail />} />
         <Route path="side-by-side" element={<SideBySide />} />
       </Route>
 
@@ -161,10 +170,12 @@ function App() {
         <Route path="members" element={<RelatoriosMembers />} />
         <Route path="incidents" element={<RelatoriosIncidents />} />
         {/* Analytics — movidos do portal de formações */}
-        <Route path="reports" element={<AdminReportsPage />} />
+        <Route path="reports" element={<Navigate to="/relatorios/advanced-reports" replace />} />
         <Route path="advanced-reports" element={<AdminAdvancedReportsPage />} />
         <Route path="knowledge-matrix" element={<KnowledgeMatrixPage />} />
         <Route path="ratings" element={<AdminRatingsPage />} />
+        <Route path="tutoria-report" element={<TutoriaReport />} />
+        <Route path="feedback-dashboard" element={<FeedbackDashboard />} />
       </Route>
 
       {/* ── Portal de Dados Mestres (ADMIN only, layout próprio) ── */}
@@ -182,7 +193,6 @@ function App() {
         <Route path="faqs" element={<MasterDataPage tab="faqs" />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="trainer-validation" element={<AdminTrainerValidation />} />
-        <Route path="org-hierarchy" element={<OrgHierarchy />} />
       </Route>
 
       {/* ── Portal de Chamados (todos os roles autenticados) ── */}
@@ -192,7 +202,7 @@ function App() {
 
       {/* ── Portal de Formações ─────────────────────────────── */}
       <Route path="/" element={<Layout />}>
-        {effectiveRole === 'MANAGER' && (
+        {effectiveRole === 'GERENTE' && (
           <>
             <Route index element={<AdminDashboard />} />
             <Route path="courses" element={<AdminCoursesPage />} />
@@ -213,7 +223,7 @@ function App() {
             <Route path="ratings" element={<AdminRatingsPage />} />
           </>
         )}
-        {(effectiveRole === 'STUDENT' || effectiveRole === 'TRAINEE') && (
+        {(effectiveRole === 'USUARIO' || effectiveRole === 'CHEFE_EQUIPE') && (
           <>
             <Route index element={<StudentDashboard />} />
             <Route path="my-plans" element={<MyPlans />} />
@@ -234,16 +244,19 @@ function App() {
         {/* Rotas compartilhadas por todos os roles */}
         <Route path="challenges/result/:submissionId" element={<ChallengeResult />} />
         <Route path="certificates/:id" element={<CertificateView />} />
-        {effectiveRole === 'TRAINER' && (
+        {effectiveRole === 'FORMADOR' && (
           <>
             <Route index element={<TrainerDashboard />} />
             <Route path="courses" element={<TrainerCoursesPage />} />
             <Route path="courses/:courseId" element={<AdminCourseDetail />} />
+            <Route path="course/new" element={<AdminCourseForm />} />
+            <Route path="courses/:courseId/edit" element={<AdminCourseForm />} />
+            <Route path="courses/:courseId/challenges/new" element={<ChallengeForm />} />
+            <Route path="courses/:courseId/challenges/:challengeId/edit" element={<ChallengeForm />} />
             <Route path="training-plans" element={<TrainingPlans />} />
             <Route path="training-plan/new" element={<TrainingPlanForm />} />
             <Route path="students" element={<TrainerStudentsPage />} />
             <Route path="reports" element={<TrainerReportsPage />} />
-            {/* Formador executa desafios SUMMARY e pode registar COMPLETE */}
             <Route path="challenges/:challengeId/execute/summary" element={<ChallengeExecutionSummary />} />
             <Route path="challenges/:challengeId/execute/complete" element={<ChallengeExecutionComplete />} />
             <Route path="pending-reviews" element={<PendingReviews />} />
@@ -260,7 +273,7 @@ function App() {
         {/* Support direct links that include a 'trainer/' or 'admin/' prefix used in some navigation code */}
         <Route path="trainer/training-plan/:id" element={<TrainingPlanDetail />} />
         <Route path="training-plan/:id" element={<TrainingPlanDetail />} />
-        {(effectiveRole === 'ADMIN' || effectiveRole === 'GESTOR') && (
+        {(effectiveRole === 'ADMIN' || effectiveRole === 'DIRETOR') && (
           <>
             <Route index element={<AdminDashboard />} />
             <Route path="trainer-validation" element={<Navigate to="/master-data/trainer-validation" replace />} />
