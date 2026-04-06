@@ -135,6 +135,7 @@ install-service-output.txt
 .github/deploy-keys/
 
 # Artefactos locais
+packages-python/
 fonts.zip
 icone/
 icone

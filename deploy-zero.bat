@@ -7,6 +7,16 @@ set NODE_TLS_REJECT_UNAUTHORIZED=0
 set PYTHONHTTPSVERIFY=0
 set REQUESTS_CA_BUNDLE=
 set PIP_TRUSTED_HOST=pypi.org pypi.python.org files.pythonhosted.org
+set PIP_INDEX_URL=http://pypi.org/simple/
+
+:: Tentar ler proxy do sistema (Internet Explorer / WinHTTP)
+for /f "tokens=3 skip=4" %%p in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyServer 2^>nul') do set SYSTEM_PROXY=%%p
+if defined SYSTEM_PROXY (
+    set http_proxy=http://%SYSTEM_PROXY%
+    set https_proxy=http://%SYSTEM_PROXY%
+    set PIP_PROXY=http://%SYSTEM_PROXY%
+    echo  [INFO] Proxy detectado: %SYSTEM_PROXY%
+)
 
 echo.
 echo ════════════════════════════════════════════════════════════

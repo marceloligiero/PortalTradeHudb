@@ -6,6 +6,16 @@ set NODE_TLS_REJECT_UNAUTHORIZED=0
 set PYTHONHTTPSVERIFY=0
 set REQUESTS_CA_BUNDLE=
 set PIP_TRUSTED_HOST=pypi.org pypi.python.org files.pythonhosted.org
+set PIP_INDEX_URL=http://pypi.org/simple/
+
+:: Tentar ler proxy do sistema (Internet Explorer / WinHTTP)
+for /f "tokens=3 skip=4" %%p in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings" /v ProxyServer 2^>nul') do set SYSTEM_PROXY=%%p
+if defined SYSTEM_PROXY (
+    set http_proxy=http://%SYSTEM_PROXY%
+    set https_proxy=http://%SYSTEM_PROXY%
+    set PIP_PROXY=http://%SYSTEM_PROXY%
+    echo  [INFO] Proxy detectado: %SYSTEM_PROXY%
+)
 
 echo.
 echo ============================================
@@ -65,9 +75,19 @@ if errorlevel 1 goto :venv_erro
 call "%VENV%\Scripts\activate.bat"
 
 echo       Atualizando dependencias Python...
-"%VENV%\Scripts\pip.exe" install -r "%ROOT%backend\requirements.txt" --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org --timeout 120 --retries 5 --quiet
+if exist "%ROOT%packages-python\" goto :pip_offline
+
+:pip_online
+"%VENV%\Scripts\pip.exe" install -r "%ROOT%backend\requirements.txt" --index-url http://pypi.org/simple/ --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org --timeout 120 --retries 5 --quiet
 if errorlevel 1 goto :pip_erro
-echo  [OK] Dependencias Python OK.
+echo  [OK] Dependencias instaladas (online).
+goto :passo3
+
+:pip_offline
+echo       Usando pacotes offline (packages-python\)...
+"%VENV%\Scripts\pip.exe" install -r "%ROOT%backend\requirements.txt" --no-index --find-links="%ROOT%packages-python\" --quiet
+if errorlevel 1 goto :pip_erro
+echo  [OK] Dependencias instaladas (offline).
 goto :passo3
 
 :venv_erro
