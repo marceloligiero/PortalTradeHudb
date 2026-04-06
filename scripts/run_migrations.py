@@ -256,6 +256,7 @@ try:
                 role="ADMIN",
                 is_active=True,
                 is_pending=False,
+                is_admin=True,
             )
             db.add(admin)
             db.commit()

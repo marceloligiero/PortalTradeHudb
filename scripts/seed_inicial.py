@@ -362,6 +362,17 @@ def main() -> int:
             if cur.rowcount:
                 print(f"  [OK] tutor_id={tr[0]} atribuído a {cur.rowcount} utilizador(es)")
 
+        # Sincronizar flags de role (is_admin, is_formador, etc.)
+        cur.execute("UPDATE users SET is_admin        = TRUE WHERE role = 'ADMIN'        AND is_admin        = FALSE")
+        cur.execute("UPDATE users SET is_diretor      = TRUE WHERE role = 'DIRETOR'      AND is_diretor      = FALSE")
+        cur.execute("UPDATE users SET is_gerente      = TRUE WHERE role IN ('GERENTE','MANAGER') AND is_gerente = FALSE")
+        cur.execute("UPDATE users SET is_chefe_equipe = TRUE WHERE role = 'CHEFE_EQUIPE' AND is_chefe_equipe = FALSE")
+        cur.execute("UPDATE users SET is_formador     = TRUE WHERE role IN ('FORMADOR','TRAINER') AND is_formador = FALSE")
+        cur.execute("UPDATE users SET is_formador     = TRUE WHERE is_trainer = TRUE AND is_formador = FALSE")
+        cur.execute("UPDATE users SET is_chefe_equipe = TRUE WHERE is_team_lead = TRUE AND is_chefe_equipe = FALSE")
+        conn.commit()
+        print("  [OK] Flags de role sincronizadas (is_admin, is_formador, ...)")
+
         # Fix NULL is_active
         cur.execute("UPDATE banks SET is_active = 1 WHERE is_active IS NULL")
         cur.execute("UPDATE products SET is_active = 1 WHERE is_active IS NULL")
