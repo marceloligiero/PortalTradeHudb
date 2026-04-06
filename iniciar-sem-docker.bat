@@ -108,7 +108,7 @@ exit /b 1
 :passo3
 echo.
 echo [2/5] Base de dados - migracoes...
-"%VENV%\Scripts\python.exe" "%ROOT%scripts\run_migrations.py" 2>nul
+"%VENV%\Scripts\python.exe" "%ROOT%scripts\run_migrations.py"
 if errorlevel 1 goto :migr_aviso
 echo  [OK] Migracoes OK.
 goto :passo4
