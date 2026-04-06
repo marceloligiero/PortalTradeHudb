@@ -131,54 +131,16 @@ goto :passo5
 :: ────────────────────────────────────────────
 :passo5
 echo.
-echo [4/5] Frontend (build de producao)...
+echo [4/5] Frontend...
 
-cd /d "%ROOT%frontend"
-
-:: Desativar SSL estrito do npm (redes corporativas)
-npm config set strict-ssl false >nul 2>&1
-npm config set registry http://registry.npmjs.org/ >nul 2>&1
-
-if exist "node_modules\.bin\vite.cmd" goto :npm_ok
-echo       Instalando node_modules...
-npm install --no-fund --no-audit 2>&1
-if errorlevel 1 goto :npm_erro
-set FORCE_REBUILD=true
-
-:npm_ok
-if not exist "%ROOT%frontend\dist\index.html" set FORCE_REBUILD=true
-
-if "%FORCE_REBUILD%"=="true" goto :do_build
-echo  [OK] Frontend ja compilado. Use --rebuild para recompilar.
-goto :check_dist
-
-:do_build
-echo       A compilar frontend React...
-npm run build 2>&1
-if errorlevel 1 goto :build_erro
-echo  [OK] Build do frontend concluido.
-
-:check_dist
-if exist "%ROOT%frontend\dist\index.html" goto :passo6
-echo  [ERRO] frontend\dist\index.html nao encontrado apos build.
-echo         O npm run build pode ter falhado silenciosamente.
-echo         Tente executar manualmente: cd frontend ^&^& npm run build
-cd /d "%ROOT%"
+if exist "%ROOT%frontend\dist\index.html" goto :dist_ok
+echo  [ERRO] frontend\dist\index.html nao encontrado.
+echo         Faca git pull para obter o frontend pre-compilado.
 pause
 exit /b 1
 
-:npm_erro
-echo  [ERRO] npm install falhou.
-echo         Tente manualmente: cd frontend ^&^& npm install
-cd /d "%ROOT%"
-pause
-exit /b 1
-
-:build_erro
-echo  [ERRO] npm run build falhou. Ver mensagens acima.
-cd /d "%ROOT%"
-pause
-exit /b 1
+:dist_ok
+echo  [OK] Frontend dist encontrado (pre-compilado via git).
 
 :: ────────────────────────────────────────────
 :: 6. Iniciar backend
