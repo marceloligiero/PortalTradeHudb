@@ -135,9 +135,13 @@ echo [4/5] Frontend (build de producao)...
 
 cd /d "%ROOT%frontend"
 
+:: Desativar SSL estrito do npm (redes corporativas)
+npm config set strict-ssl false >nul 2>&1
+npm config set registry http://registry.npmjs.org/ >nul 2>&1
+
 if exist "node_modules\.bin\vite.cmd" goto :npm_ok
 echo       Instalando node_modules...
-npm install --registry http://registry.npmjs.org/ --quiet
+npm install --no-fund --no-audit 2>&1
 if errorlevel 1 goto :npm_erro
 set FORCE_REBUILD=true
 
@@ -146,23 +150,32 @@ if not exist "%ROOT%frontend\dist\index.html" set FORCE_REBUILD=true
 
 if "%FORCE_REBUILD%"=="true" goto :do_build
 echo  [OK] Frontend ja compilado. Use --rebuild para recompilar.
-goto :passo6
+goto :check_dist
 
 :do_build
 echo       A compilar frontend React...
-npm run build
+npm run build 2>&1
 if errorlevel 1 goto :build_erro
 echo  [OK] Build do frontend concluido.
-goto :passo6
+
+:check_dist
+if exist "%ROOT%frontend\dist\index.html" goto :passo6
+echo  [ERRO] frontend\dist\index.html nao encontrado apos build.
+echo         O npm run build pode ter falhado silenciosamente.
+echo         Tente executar manualmente: cd frontend ^&^& npm run build
+cd /d "%ROOT%"
+pause
+exit /b 1
 
 :npm_erro
-echo  [ERRO] npm install falhou. Verifique o Node.js.
+echo  [ERRO] npm install falhou.
+echo         Tente manualmente: cd frontend ^&^& npm install
 cd /d "%ROOT%"
 pause
 exit /b 1
 
 :build_erro
-echo  [ERRO] npm run build falhou. Verifique os logs acima.
+echo  [ERRO] npm run build falhou. Ver mensagens acima.
 cd /d "%ROOT%"
 pause
 exit /b 1
