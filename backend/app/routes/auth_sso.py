@@ -18,7 +18,6 @@ import time
 from typing import Optional
 
 import httpx
-import msal
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
@@ -66,7 +65,8 @@ def _pop_flow(state: str) -> Optional[dict]:
     return flow
 
 
-def _get_msal_app() -> msal.ConfidentialClientApplication:
+def _get_msal_app():
+    import msal
     return msal.ConfidentialClientApplication(
         _CLIENT_ID,
         authority=_AUTHORITY,
@@ -78,6 +78,14 @@ def _sso_configured() -> bool:
     return bool(_CLIENT_ID and _CLIENT_SECRET and _REDIRECT_URI)
 
 
+def _msal_available() -> bool:
+    try:
+        import msal  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -85,7 +93,7 @@ def _sso_configured() -> bool:
 @router.get("/status")
 def microsoft_sso_status():
     """Retorna se o SSO Microsoft está configurado. Público, sem autenticação."""
-    return {"enabled": _sso_configured()}
+    return {"enabled": _sso_configured() and _msal_available()}
 
 
 @router.get("/login")
@@ -96,6 +104,12 @@ def microsoft_login():
             status_code=503,
             detail="SSO Microsoft não configurado. Preencha as variáveis MICROSOFT_* no .env.",
         )
+    if not _msal_available():
+        raise HTTPException(
+            status_code=503,
+            detail="Pacote msal não instalado. Execute: pip install msal",
+        )
+    import msal
     flow = _get_msal_app().initiate_auth_code_flow(
         scopes=_SCOPES,
         redirect_uri=_REDIRECT_URI,

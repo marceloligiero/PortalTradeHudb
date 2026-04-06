@@ -75,7 +75,9 @@ if errorlevel 1 goto :venv_erro
 call "%VENV%\Scripts\activate.bat"
 
 echo       Atualizando dependencias Python...
-if exist "%ROOT%packages-python\" goto :pip_offline
+:: Verificar se a pasta offline tem conteudo (evitar pasta vazia)
+if not exist "%ROOT%packages-python\*.whl" goto :pip_online
+goto :pip_offline
 
 :pip_online
 "%VENV%\Scripts\pip.exe" install -r "%ROOT%backend\requirements.txt" --index-url http://pypi.org/simple/ --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org --timeout 120 --retries 5 --quiet
