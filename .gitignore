@@ -28,6 +28,7 @@ frontend/.vite/
 frontend/.cache/
 # frontend/dist/ — commitado para deploy no servidor sem Node.js
 # frontend/dist/
+!frontend/dist/
 
 # ── Ambiente (NUNCA commitar .env com valores reais) ───
 .env

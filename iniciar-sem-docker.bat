@@ -117,13 +117,22 @@ goto :passo4
 echo  [AVISO] Migracao falhou. Verifique se o MySQL esta a correr e o DATABASE_URL esta correto.
 
 :: ────────────────────────────────────────────
-:: 4. Dados mestres
+:: 4. Dados mestres + seed inicial
 :: ────────────────────────────────────────────
 :passo4
 echo.
-echo [3/5] Dados mestres...
-if not exist "%ROOT%scripts\import_seed_data.py" goto :passo5
-"%VENV%\Scripts\python.exe" "%ROOT%scripts\import_seed_data.py"
+echo [3/5] Dados mestres e seed inicial...
+if exist "%ROOT%scripts\seed_inicial.py" goto :seed_inicial
+goto :seed_real
+
+:seed_inicial
+"%VENV%\Scripts\python.exe" "%ROOT%scripts\seed_inicial.py"
+echo  [OK] Dados mestres (seed_inicial).
+
+:seed_real
+if not exist "%ROOT%scripts\seed_real_data.py" goto :passo5
+"%VENV%\Scripts\python.exe" "%ROOT%scripts\seed_real_data.py"
+echo  [OK] Dados operacionais (seed_real_data).
 goto :passo5
 
 :: ────────────────────────────────────────────
