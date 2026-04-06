@@ -64,13 +64,10 @@ if errorlevel 1 goto :venv_erro
 :venv_ok
 call "%VENV%\Scripts\activate.bat"
 
-"%VENV%\Scripts\python.exe" -c "import uvicorn" >nul 2>&1
-if not errorlevel 1 goto :deps_ok
-
-echo       Instalando dependencias Python...
+echo       Atualizando dependencias Python...
 "%VENV%\Scripts\pip.exe" install -r "%ROOT%backend\requirements.txt" --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org --timeout 120 --retries 5 --quiet
 if errorlevel 1 goto :pip_erro
-echo       Dependencias instaladas.
+echo  [OK] Dependencias Python OK.
 goto :passo3
 
 :venv_erro
@@ -82,9 +79,6 @@ exit /b 1
 echo  [ERRO] pip install falhou. Verifique a internet ou o Python.
 pause
 exit /b 1
-
-:deps_ok
-echo  [OK] Dependencias Python ja instaladas.
 
 :: ────────────────────────────────────────────
 :: 3. Migracoes de base de dados
