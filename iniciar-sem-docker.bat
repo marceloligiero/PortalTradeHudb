@@ -165,10 +165,7 @@ for /f "tokens=5" %%p in ('netstat -aon ^| findstr ":%BACKEND_PORT%.*LISTENING" 
 )
 
 :: Iniciar backend em janela separada (SEM --reload em producao)
-start "TradeHub Backend" /D "%ROOT%backend" cmd /k (^
-    call "%VENV%\Scripts\activate.bat" ^& ^
-    python -m uvicorn main:app --host 127.0.0.1 --port %BACKEND_PORT% --workers 1^
-)
+start "TradeHub Backend" /D "%ROOT%backend" cmd /k "%ROOT%backend\start-backend.bat"
 
 :: Aguardar o backend arrancar (até 60 segundos)
 echo       Aguardando backend arrancar...

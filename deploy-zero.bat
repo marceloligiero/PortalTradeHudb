@@ -203,10 +203,7 @@ for /f "tokens=5" %%p in ('netstat -aon ^| findstr ":%BACKEND_PORT%.*LISTENING" 
     taskkill /PID %%p /F >nul 2>&1
 )
 
-start "TradeHub Backend" /D "%ROOT%backend" cmd /k (^
-    call "%VENV%\Scripts\activate.bat" ^& ^
-    python -m uvicorn main:app --host 127.0.0.1 --port %BACKEND_PORT% --workers 1^
-)
+start "TradeHub Backend" /D "%ROOT%backend" cmd /k "%ROOT%backend\start-backend.bat"
 
 echo       Aguardando backend arrancar...
 set /a TRIES=0
